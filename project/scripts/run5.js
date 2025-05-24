@@ -457,11 +457,9 @@ function compareAndDisplayData(XLSX, file1, file2) {
     // Create a filtered result with only the columns we want to display
     const displayColumns = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"];
     
-    // Create filtered results array
+    // Create filtered results array with simple headers
     const filteredResults = [
-        ["MAIN HUB VS SALES COMPARISON REPORT"],
-        [""],
-        ["UNMATCHED TRANSACTIONS (Items in Main HUB not found in Sales)"],
+        ["Comparison Results"],
         [""],
         ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
     ];
@@ -532,11 +530,9 @@ function compareAndDisplayData(XLSX, file1, file2) {
         formatCurrency(totalFee)
     ]);
 
-    // Add clear separator for the card brand comparison section
+    // Add separator before card brand comparison
     filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["CARD BRAND COMPARISON"]);
-    filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["Card Brand", "Hub Report Total", "Sales Report Total", "Difference", "", ""]);
+    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
 
     // Collect unique card brands and totals from first file
     const cardBrandTotals = {};
@@ -614,40 +610,27 @@ function compareAndDisplayData(XLSX, file1, file2) {
         });
     }
     
-    // Define common card brands in preferred order
-    const commonCardBrands = ["VISA", "MASTERCARD", "AMERICAN EXPRESS", "DISCOVER"];
+    // Define card brands in the exact order shown
+    const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
     
-    // Process card brand totals with proper formatting
+    // Process card brand totals
     commonCardBrands.forEach(brand => {
         const leftValue = formatCurrency(cardBrandTotals[brand] || 0);
         const rightValue = formatCurrency(nameTotals[brand] || 0);
         const difference = formatCurrency(leftValue - rightValue);
         
-        // Add row with proper alignment
+        // Add row with proper alignment and only necessary columns
         filteredResults.push([
             brand,
             leftValue,
             rightValue,
-            difference,
-            "",
-            ""
+            difference
         ]);
     });
 
-    // Add grand total row for card brands
-    const hubTotal = formatCurrency(Object.values(cardBrandTotals).reduce((sum, val) => sum + (val || 0), 0));
-    const salesTotal = formatCurrency(Object.values(nameTotals).reduce((sum, val) => sum + (val || 0), 0));
-    const totalDifference = formatCurrency(hubTotal - salesTotal);
-
-    filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push([
-        "GRAND TOTAL",
-        hubTotal,
-        salesTotal,
-        totalDifference,
-        "",
-        ""
-    ]);
+    // Add legend for color coding
+    filteredResults.push(["", "", "", ""]);
+    filteredResults.push(["Negative difference", "", "Positive/Zero difference"]);
 
     return filteredResults;
 }
