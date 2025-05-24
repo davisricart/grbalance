@@ -223,7 +223,7 @@ export default function RegisterPage() {
             <img 
               src={clientConfig.logo}
               alt={`${clientConfig.title} Logo`}
-              className="h-24 sm:h-30 w-auto object-contain" 
+              className="h-36 sm:h-45 w-auto object-contain"
             />
             <p className="text-emerald-700 text-center text-base sm:text-lg font-medium">
               Create Your Account
