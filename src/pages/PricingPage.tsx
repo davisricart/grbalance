@@ -41,8 +41,7 @@ export default function PricingPage() {
         'Excel report downloads',
         'Priority email support',
         'Processing fee validation',
-        'Custom matching rules',
-        'Monthly reconciliation reports'
+        'Custom matching rules'
       ]
     },
     {
@@ -62,7 +61,6 @@ export default function PricingPage() {
         'Priority email support',
         'Processing fee validation',
         'Custom matching rules',
-        'Monthly reconciliation reports',
         'Phone support',
         'Custom implementation assistance'
       ]
