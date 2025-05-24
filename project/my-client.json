@@ -1,0 +1,13 @@
+{
+  "name": "my-client",
+  "title": "My Client Dashboard",
+  "logo": "https://images.pexels.com/photos/2312369/pexels-photo-2312369.jpeg",
+  "firebase": {
+    "apiKey": "your-firebase-api-key",
+    "authDomain": "your-firebase-domain",
+    "projectId": "your-firebase-project",
+    "storageBucket": "your-storage-bucket",
+    "messagingSenderId": "your-messaging-id",
+    "appId": "your-app-id"
+  }
+}
