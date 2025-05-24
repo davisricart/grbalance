@@ -83,7 +83,7 @@ export default function LoginPage() {
             <img 
               src={clientConfig.logo}
               alt={`${clientConfig.title} Logo`}
-              className="h-36 sm:h-45 w-auto object-contain"
+              className="h-28 sm:h-32 w-auto object-contain"
             />
             <p className="text-emerald-700 text-center text-base sm:text-lg font-medium">
               Sign In

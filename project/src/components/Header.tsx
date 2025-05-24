@@ -17,7 +17,7 @@ export default function Header() {
               <img 
                 src={clientConfig.logo}
                 alt={`${clientConfig.title} Logo`}
-                className="h-18 w-auto"
+                className="h-14 w-auto"
               />
             </Link>
             {isAuthenticated && <UsageCounter />}
