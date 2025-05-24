@@ -286,7 +286,7 @@ export default function PricingPage() {
                 What if my payment processor isn't supported yet?
               </dt>
               <dd className="mt-2 text-base leading-7 text-gray-600">
-                I build custom scripts for each client's specific setup. If your processor is new to me, I'll create a tailored solution during your trial period.
+                We build custom scripts for each client's specific setup. If your processor is new to us, we'll create a tailored solution during your trial period.
               </dd>
             </div>
           </dl>
