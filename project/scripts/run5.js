@@ -469,7 +469,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
         
         const displayRow = [
             row[0], // Date
-            row[1].toUpperCase(), // Customer Name in CAPS
+            row[1], // Customer Name (preserving original case)
             formatNumber(parseFloat(row[2] || 0)), // Total Transaction Amount
             formatNumber(parseFloat(row[3] || 0)), // Cash Discounting Amount
             cleanCardBrand(row[4]).trim(), // Card Brand (cleaned and trimmed)
