@@ -15,6 +15,24 @@ function compareAndDisplayData(XLSX, file1, file2) {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
     
+    // Helper function to normalize card brand names
+    function normalizeCardBrand(brand) {
+        brand = (brand || "").replace("Credit ", "").trim();
+        if (brand === "American") {
+            return "American Express";
+        }
+        return brand;
+    }
+
+    // Helper function to normalize customer name
+    function normalizeCustomerName(name) {
+        name = (name || "").trim().toUpperCase();
+        if (name === "VISA CARD" || name === "VISA CARDHOLDER") {
+            return "VISA CARDHOLDER";
+        }
+        return name;
+    }
+    
     // Define the allowed columns
     const allowedColumns = [
         "Date",
@@ -149,7 +167,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
         }
     }
     
-    // Step 3: Filter First File and Add New Columns
+    // Step 3: Process First File Data
     // Define columns to keep from the filtered data
     const columnsToKeep = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand"];
     const newColumns = ["Total (-) Fee", "Count", "Final Count"];
@@ -161,404 +179,129 @@ function compareAndDisplayData(XLSX, file1, file2) {
     const firstFileData = [];
     
     // Process each row of first file
-    const specificTransactions = [
-        { date: "03/13/2023", name: "YADIRA ROSA", amount: 196.65, discount: 6.65, brand: "Visa" },
-        { date: "03/13/2023", name: "VISA CARD", amount: 51.75, discount: 1.75, brand: "Visa" },
-        { date: "03/13/2023", name: "DITA HOUDE", amount: 51.75, discount: 1.75, brand: "Discover" },
-        { date: "03/13/2023", name: "ADILEIDA DIAZ", amount: 155.25, discount: 5.25, brand: "American Express" },
-        { date: "03/12/2023", name: "NICOLE SUAREZ", amount: 62.10, discount: 2.10, brand: "Mastercard" }
-    ];
-
-    const filteredJsonData1 = jsonData1.filter(row => {
-        const transactionAmount = parseFloat(row["Total Transaction Amount"]) || 0;
-        const customerName = (row["Customer Name"] || "").trim();
-        const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
-        const cardBrand = (row["Card Brand"] || "").replace("Credit ", "").trim();
-        const date = row["Date"] instanceof Date ? 
-            `${String(row["Date"].getMonth() + 1).padStart(2, '0')}/${String(row["Date"].getDate()).padStart(2, '0')}/${row["Date"].getFullYear()}` : 
-            row["Date"];
-
-        return specificTransactions.some(transaction => 
-            date === transaction.date &&
-            Math.abs(transaction.amount - transactionAmount) < 0.01 &&
-            Math.abs(transaction.discount - discountAmount) < 0.01 &&
-            customerName.includes(transaction.name.split(" ")[0]) &&
-            cardBrand.includes(transaction.brand)
-        );
-    });
-
-    // Process filtered transactions
-    filteredJsonData1.forEach(row => {
+    jsonData1.forEach(row => {
         const filteredRow = [];
         let firstFileDate = null;
-        let cardBrand = "";
-        let krValue = 0;
+        let cardBrand = normalizeCardBrand(row["Card Brand"]);
+        let transactionAmount = parseFloat(row["Total Transaction Amount"]) || 0;
+        let discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
+        let customerName = normalizeCustomerName(row["Customer Name"]);
         
         // Filter columns
         columnsToKeep.forEach(column => {
             if (column === "Date") {
                 if (row[column] instanceof Date) {
-                    const date = row[column];
-                    firstFileDate = new Date(date); // Clone date
-                    firstFileDate.setHours(12, 0, 0, 0); // Normalize time component
-                    
-                    // Format as MM/DD/YYYY
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    filteredRow.push(`${month}/${day}/${year}`);
+                    firstFileDate = row[column];
+                    filteredRow.push(formatDateForComparison(row[column]));
                 } else {
-                    // Handle string dates
-                    filteredRow.push(row[column] !== undefined ? row[column] : "");
-                    if (row[column]) {
-                        try {
-                            firstFileDate = new Date(row[column]);
-                            firstFileDate.setHours(12, 0, 0, 0);
-                        } catch (e) {
-                            firstFileDate = null;
-                        }
-                    }
+                    firstFileDate = new Date(row[column]);
+                    filteredRow.push(row[column]);
                 }
             } else if (column === "Card Brand") {
-                cardBrand = row[column] || "";
                 filteredRow.push(cardBrand);
+            } else if (column === "Customer Name") {
+                filteredRow.push(customerName);
+            } else if (column === "Total Transaction Amount") {
+                filteredRow.push(transactionAmount.toFixed(2));
+            } else if (column === "Cash Discounting Amount") {
+                filteredRow.push(discountAmount.toFixed(2));
             } else {
-                filteredRow.push(row[column] !== undefined ? row[column] : "");
+                filteredRow.push(row[column]);
             }
         });
         
-        // Calculate K-R value
-        const totalAmount = parseFloat(row["Total Transaction Amount"]) || 0;
-        const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
-        krValue = totalAmount - discountAmount;
+        // Calculate Total (-) Fee
+        const totalMinusFee = transactionAmount - discountAmount;
         
-        // Add K-R value (formatted to 2 decimal places)
-        filteredRow.push(krValue.toFixed(2));
+        // Add new columns
+        filteredRow.push(totalMinusFee.toFixed(2)); // Total (-) Fee
+        filteredRow.push("1"); // Count
+        filteredRow.push("0"); // Final Count
         
-        // Calculate Count - matches in second file
-        let countMatches = 0;
-        
-        if (dateClosedIndex !== -1 && nameIndex !== -1 && amountIndex !== -1 && firstFileDate) {
-            jsonData2.forEach(secondRow => {
-                if (secondRow.length > Math.max(dateClosedIndex, nameIndex, amountIndex)) {
-                    // Get date from second file
-                    let secondFileDate = null;
-                    const dateValue = secondRow[dateClosedIndex];
-                    
-                    if (typeof dateValue === 'string') {
-                        try {
-                            secondFileDate = new Date(dateValue);
-                            secondFileDate.setHours(12, 0, 0, 0);
-                        } catch (e) {
-                            secondFileDate = null;
-                        }
-                    } else if (dateValue instanceof Date) {
-                        secondFileDate = new Date(dateValue);
-                        secondFileDate.setHours(12, 0, 0, 0);
-                    }
-                    
-                    // Get name and amount
-                    const secondFileName = String(secondRow[nameIndex] || "").trim().toLowerCase();
-                    const secondFileAmount = parseFloat(secondRow[amountIndex]) || 0;
-                    
-                    // Format dates for comparison
-                    const firstFileDateStr = formatDateForComparison(firstFileDate);
-                    const secondFileDateStr = formatDateForComparison(secondFileDate);
-                    
-                    // Compare values
-                    const dateMatches = firstFileDateStr && secondFileDateStr && 
-                        firstFileDateStr === secondFileDateStr;
-                    
-                    const nameMatches = secondFileName && cardBrand && (
-                        cardBrand.trim().toLowerCase().includes(secondFileName) || 
-                        secondFileName.includes(cardBrand.trim().toLowerCase())
-                    );
-                    
-                    const amountMatches = Math.abs(krValue - secondFileAmount) < 0.01;
-                    
-                    if (dateMatches && nameMatches && amountMatches) {
-                        countMatches++;
-                    }
-                }
-            });
-        }
-        
-        // Add count and empty final count
-        filteredRow.push(countMatches.toString());
-        filteredRow.push("");
+        // Store data for comparison
+        firstFileData.push({
+            date: firstFileDate,
+            cardBrand: cardBrand,
+            amount: transactionAmount,
+            customerName: customerName
+        });
         
         resultData.push(filteredRow);
-        firstFileData.push(filteredRow);
     });
     
-    // Rest of the code remains the same...
-    // Step 4: Process Second File Data and Calculate Count2 Values
-    if (file2 && file2Headers.length > 0) {
-        const secondFileWithCount2 = [];
-        
-        // Process second file rows
-        jsonData2.forEach(row => {
-            const processedRow = [...row];
-            let secondFileDate = null;
-            let secondFileName = "";
-            let secondFileAmount = 0;
-            
-            // Extract date
-            if (dateClosedIndex !== -1 && dateClosedIndex < row.length) {
-                const dateValue = row[dateClosedIndex];
-                if (typeof dateValue === 'string') {
-                    try {
-                        secondFileDate = new Date(dateValue);
-                        secondFileDate.setHours(12, 0, 0, 0);
-                    } catch (e) {
-                        secondFileDate = null;
-                    }
-                } else if (dateValue instanceof Date) {
-                    secondFileDate = new Date(dateValue);
-                    secondFileDate.setHours(12, 0, 0, 0);
-                }
-            }
-            
-            // Extract name and amount
-            if (nameIndex !== -1 && nameIndex < row.length) {
-                secondFileName = String(row[nameIndex] || "").trim().toLowerCase();
-            }
-            
-            if (amountIndex !== -1 && amountIndex < row.length) {
-                let amountValue = row[amountIndex];
-                if (typeof amountValue === 'string') {
-                    amountValue = amountValue.replace(/[^0-9.-]+/g, "");
-                }
-                secondFileAmount = parseFloat(amountValue) || 0;
-            }
-            
-            // Format date for comparison
-            const secondFileDateStr = formatDateForComparison(secondFileDate);
-            
-            // Count matches in first file
-            let countMatches = 0;
-            
-            firstFileData.forEach(firstFileRow => {
-                // Extract values from first file
-                let firstFileDate = null;
-                if (firstFileRow[0]) {
-                    // Parse MM/DD/YYYY format
-                    const parts = firstFileRow[0].split('/');
-                    if (parts.length === 3) {
-                        const month = parseInt(parts[0]) - 1;
-                        const day = parseInt(parts[1]);
-                        const year = parseInt(parts[2]);
-                        firstFileDate = new Date(year, month, day);
-                        firstFileDate.setHours(12, 0, 0, 0);
-                    }
-                }
-                
-                const firstFileDateStr = formatDateForComparison(firstFileDate);
-                const firstFileCardBrand = String(firstFileRow[4] || "").trim().toLowerCase();
-                const firstFileKR = parseFloat(firstFileRow[5] || 0);
-                
-                // Compare values
-                const dateMatches = firstFileDateStr && secondFileDateStr && 
-                    firstFileDateStr === secondFileDateStr;
-                
-                const nameMatches = secondFileName && firstFileCardBrand && (
-                    firstFileCardBrand.includes(secondFileName) || 
-                    secondFileName.includes(firstFileCardBrand)
-                );
-                
-                const amountMatches = Math.abs(firstFileKR - secondFileAmount) < 0.01;
-                
-                if (dateMatches && nameMatches && amountMatches) {
-                    countMatches++;
-                }
-            });
-            
-            // Add Count2 value
-            processedRow.push(countMatches.toString());
-            secondFileWithCount2.push(processedRow);
-        });
-        
-        // Step 5: Calculate Final Count for First File Rows
-        firstFileData.forEach((firstFileRow, index) => {
-            // Extract values
-            const date = firstFileRow[0]; 
-            const cardBrand = String(firstFileRow[4] || "").trim().toLowerCase();
-            const kr = parseFloat(firstFileRow[5] || 0);
-            const count = parseInt(firstFileRow[6] || 0);
-            
-            // Parse date
-            let firstFileDate = null;
-            if (date) {
-                const parts = date.split('/');
-                if (parts.length === 3) {
-                    const month = parseInt(parts[0]) - 1;
-                    const day = parseInt(parts[1]);
-                    const year = parseInt(parts[2]);
-                    firstFileDate = new Date(year, month, day);
-                    firstFileDate.setHours(12, 0, 0, 0);
-                }
-            }
-            
-            const firstFileDateStr = formatDateForComparison(firstFileDate);
-            
-            // Calculate Final Count
-            let finalCount = 0;
-            
-            secondFileWithCount2.forEach(secondFileRow => {
-                // Extract values from second file
-                let secondFileDate = null;
-                if (dateClosedIndex !== -1 && dateClosedIndex < secondFileRow.length) {
-                    const dateValue = secondFileRow[dateClosedIndex];
-                    if (typeof dateValue === 'string') {
-                        try {
-                            secondFileDate = new Date(dateValue);
-                            secondFileDate.setHours(12, 0, 0, 0);
-                        } catch (e) {
-                            secondFileDate = null;
-                        }
-                    } else if (dateValue instanceof Date) {
-                        secondFileDate = new Date(dateValue);
-                        secondFileDate.setHours(12, 0, 0, 0);
-                    }
-                }
-                
-                const secondFileDateStr = formatDateForComparison(secondFileDate);
-                
-                const secondFileName = nameIndex !== -1 && nameIndex < secondFileRow.length ?
-                    String(secondFileRow[nameIndex] || "").trim().toLowerCase() : "";
-                    
-                const secondFileAmount = amountIndex !== -1 && amountIndex < secondFileRow.length ?
-                    parseFloat(secondFileRow[amountIndex]) || 0 : 0;
-                    
-                const secondFileCount2 = parseInt(secondFileRow[secondFileRow.length - 1] || 0);
-                
-                // Check all four criteria
-                const dateMatches = firstFileDateStr && secondFileDateStr && 
-                    firstFileDateStr === secondFileDateStr;
-                
-                const nameMatches = secondFileName && cardBrand && (
-                    cardBrand.includes(secondFileName) || 
-                    secondFileName.includes(cardBrand)
-                );
-                
-                const amountMatches = Math.abs(kr - secondFileAmount) < 0.01;
-                
-                const countMatches = count === secondFileCount2;
-                
-                if (dateMatches && nameMatches && amountMatches && countMatches) {
-                    finalCount++;
-                }
-            });
-            
-            // Update Final Count in result data (index + 1 because index 0 is header)
-            resultData[index + 1][7] = finalCount.toString();
-        });
-    }
+    // Add empty row as separator
+    resultData.push(Array(resultData[0].length).fill(""));
     
-    // Step 6: Filter results to only show rows with Final Count = 0
-    // and remove the Count and Final Count columns, and don't include second file data
+    // Add comparison section header
+    resultData.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
     
-    // Create a filtered result with only the columns we want to display
-    const displayColumns = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"];
+    // Calculate totals by card brand
+    const cardBrandTotals = {
+        "Visa": { hub: 0, sales: 0 },
+        "American Express": { hub: 0, sales: 0 },
+        "Discover": { hub: 0, sales: 0 },
+        "Mastercard": { hub: 0, sales: 0 }
+    };
     
-    // Helper function to clean customer name
-    function cleanCustomerName(name) {
-        return name.replace('info@bea', '').trim();
-    }
-
-    // Helper function to clean card brand
-    function cleanCardBrand(brand) {
-        return brand.replace('Credit ', '').trim();
-    }
-
-    // Helper function to format number
-    function formatNumber(num) {
-        // Convert to number in case it's a string
-        num = parseFloat(num);
-        // If it's a whole number, return without decimals
-        if (Number.isInteger(num)) {
-            return num.toString();
+    // Calculate Hub Report totals
+    firstFileData.forEach(data => {
+        const brand = normalizeCardBrand(data.cardBrand);
+        if (cardBrandTotals[brand]) {
+            cardBrandTotals[brand].hub += data.amount;
         }
-        // If it has decimals, keep them
-        return num.toFixed(2);
-    }
-
-    // Create filtered results array with comparison headers
-    const filteredResults = [
-        ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
-    ];
-
-    // Add only the first 5 transactions
-    const transactionsToShow = 5;
-    let transactionCount = 0;
+    });
     
-    for (let i = 1; i < resultData.length && transactionCount < transactionsToShow; i++) {
-        const row = resultData[i];
-        
-        if (row.every(cell => cell === "")) break;
-        
-        const displayRow = [
-            row[0], // Date
-            row[1], // Customer Name (preserving original case)
-            formatNumber(parseFloat(row[2] || 0)), // Total Transaction Amount
-            formatNumber(parseFloat(row[3] || 0)), // Cash Discounting Amount
-            cleanCardBrand(row[4]).trim(), // Card Brand (cleaned and trimmed)
-            formatNumber(parseFloat(row[5] || 0))  // Total (-) Fee
-        ];
-        filteredResults.push(displayRow);
-        transactionCount++;
-    }
-
-    // Add single blank row separator and comparison headers
-    filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
-
-    // Process card brands in exact order shown
-    const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
-    
-    // Collect totals from first file (Hub Report)
-    const hubTotals = {};
-    for (let i = 1; i < resultData.length; i++) {
-        const row = resultData[i];
-        if (row.every(cell => cell === "")) break;
-        
-        const cardBrand = cleanCardBrand(row[4]).trim();
-        if (cardBrand && !cardBrand.toLowerCase().includes('cash')) {
-            const totalAmount = parseFloat(row[2] || 0);
-            const discountAmount = parseFloat(row[3] || 0);
-            const totalFee = Math.round(totalAmount - discountAmount);
-            
-            hubTotals[cardBrand] = (hubTotals[cardBrand] || 0) + totalFee;
-        }
-    }
-    
-    // Collect totals from second file (Sales Report)
-    const salesTotals = {};
-    if (file2 && nameIndex !== -1 && amountIndex !== -1) {
+    // Calculate Sales Report totals (if file2 provided)
+    if (dateClosedIndex !== -1 && nameIndex !== -1 && amountIndex !== -1) {
         jsonData2.forEach(row => {
-            if (row.length > Math.max(nameIndex, amountIndex)) {
-                const cardBrand = String(row[nameIndex] || "").trim();
-                if (cardBrand.toLowerCase() === 'cash') return;
+            if (row.length > amountIndex) {
+                const brand = normalizeCardBrand(row[nameIndex]);
+                const amount = parseFloat(row[amountIndex]) || 0;
                 
-                const amount = Math.round(parseFloat(row[amountIndex]) || 0);
-                salesTotals[cardBrand] = (salesTotals[cardBrand] || 0) + amount;
+                if (cardBrandTotals[brand]) {
+                    cardBrandTotals[brand].sales += amount;
+                }
             }
         });
     }
     
-    // Add comparison rows in specific order
-    commonCardBrands.forEach(brand => {
-        const hubValue = Math.round(hubTotals[brand] || 0);
-        const salesValue = Math.round(salesTotals[brand] || 0);
-        const difference = hubValue - salesValue;
-        
-        filteredResults.push([
+    // Add comparison rows
+    Object.entries(cardBrandTotals).forEach(([brand, totals]) => {
+        const difference = totals.hub - totals.sales;
+        resultData.push([
             brand,
-            hubValue,
-            salesValue,
-            difference
+            totals.hub.toFixed(2),
+            totals.sales.toFixed(2),
+            difference.toFixed(2)
         ]);
     });
-
-    return filteredResults;
+    
+    // Calculate and add total row
+    const totalHub = Object.values(cardBrandTotals).reduce((sum, val) => sum + val.hub, 0);
+    const totalSales = Object.values(cardBrandTotals).reduce((sum, val) => sum + val.sales, 0);
+    const totalDiff = totalHub - totalSales;
+    
+    resultData.push([
+        "Total",
+        totalHub.toFixed(2),
+        totalSales.toFixed(2),
+        totalDiff.toFixed(2)
+    ]);
+    
+    return resultData;
 }
+
+// Helper functions
+function cleanCustomerName(name) {
+    return name.trim().toUpperCase();
+}
+
+function cleanCardBrand(brand) {
+    return brand.replace("Credit ", "").trim();
+}
+
+function formatNumber(num) {
+    return parseFloat(num).toFixed(2);
+}
+
+export { compareAndDisplayData };
