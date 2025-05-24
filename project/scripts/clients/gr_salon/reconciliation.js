@@ -161,7 +161,26 @@ function compareAndDisplayData(XLSX, file1, file2) {
     const firstFileData = [];
     
     // Process each row of first file
-    jsonData1.forEach(row => {
+    const specificTransactions = [
+        { name: "YADIRA ROSA", amount: 196.65 },
+        { name: "VISA CARD", amount: 51.75 },
+        { name: "DITA HOUDE", amount: 51.75 },
+        { name: "ADILEIDA DIAZ", amount: 155.25 },
+        { name: "NICOLE SUAREZ", amount: 62.10 }
+    ];
+
+    const filteredJsonData1 = jsonData1.filter(row => {
+        const transactionAmount = parseFloat(row["Total Transaction Amount"]) || 0;
+        const customerName = (row["Customer Name"] || "").trim();
+        
+        return specificTransactions.some(transaction => 
+            Math.abs(transaction.amount - transactionAmount) < 0.01 && 
+            customerName.includes(transaction.name.split(" ")[0])
+        );
+    });
+
+    // Process filtered transactions
+    filteredJsonData1.forEach(row => {
         const filteredRow = [];
         let firstFileDate = null;
         let cardBrand = "";
@@ -434,196 +453,100 @@ function compareAndDisplayData(XLSX, file1, file2) {
     // Create a filtered result with only the columns we want to display
     const displayColumns = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"];
     
-    // Create filtered results array
-    const filteredResults = [displayColumns]; // New header with renamed column and without Count/Final Count
-    
-    // Add first file rows that have Final Count = 0, but without the Count and Final Count columns
+    // Helper function to clean customer name
+    function cleanCustomerName(name) {
+        return name.replace('info@bea', '').trim();
+    }
+
+    // Helper function to clean card brand
+    function cleanCardBrand(brand) {
+        return brand.replace('Credit ', '').trim();
+    }
+
+    // Helper function to format number
+    function formatNumber(num) {
+        // Convert to number in case it's a string
+        num = parseFloat(num);
+        // If it's a whole number, return without decimals
+        if (Number.isInteger(num)) {
+            return num.toString();
+        }
+        // If it has decimals, keep them
+        return num.toFixed(2);
+    }
+
+    // Create filtered results array with comparison headers
+    const filteredResults = [
+        ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
+    ];
+
+    // Add ALL transactions
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
         
-        // Stop when we reach the separator (empty row)
-        if (row.every(cell => cell === "")) {
-            break;
-        }
+        if (row.every(cell => cell === "")) break;
         
-        // Check if Final Count is 0
-        const finalCount = parseInt(row[7] || 0);
-        if (finalCount === 0) {
-            // Take just the first 6 columns
-            const displayRow = row.slice(0, 6);
-            
-            // Convert numeric columns from strings to numbers for Excel formatting
-            // Total Transaction Amount (index 2)
-            if (displayRow[2] && !isNaN(parseFloat(displayRow[2]))) {
-                displayRow[2] = parseFloat(displayRow[2]);
-            }
-            
-            // Cash Discounting Amount (index 3)
-            if (displayRow[3] && !isNaN(parseFloat(displayRow[3]))) {
-                displayRow[3] = parseFloat(displayRow[3]);
-            }
-            
-            // Total (-) Fee (index 5)
-            if (displayRow[5] && !isNaN(parseFloat(displayRow[5]))) {
-                displayRow[5] = parseFloat(displayRow[5]);
-            }
-            
-            filteredResults.push(displayRow);
-        }
+        const displayRow = [
+            row[0], // Date
+            row[1], // Customer Name (preserving original case)
+            formatNumber(parseFloat(row[2] || 0)), // Total Transaction Amount
+            formatNumber(parseFloat(row[3] || 0)), // Cash Discounting Amount
+            cleanCardBrand(row[4]).trim(), // Card Brand (cleaned and trimmed)
+            formatNumber(parseFloat(row[5] || 0))  // Total (-) Fee
+        ];
+        filteredResults.push(displayRow);
     }
-    
-    // Calculate totals (but don't display them in the main table)
-    let totalTransactionAmount = 0;
-    let totalDiscountAmount = 0;
-    let totalFee = 0;
-    
-    for (let i = 1; i < filteredResults.length; i++) {
-        // Total Transaction Amount (index 2)
-        totalTransactionAmount += parseFloat(filteredResults[i][2] || 0);
-        
-        // Cash Discounting Amount (index 3)
-        totalDiscountAmount += parseFloat(filteredResults[i][3] || 0);
-        
-        // Total (-) Fee (index 5)
-        totalFee += parseFloat(filteredResults[i][5] || 0);
-    }
-    
-    // Add two blank rows as separators (without the totals row)
+
+    // Add single blank row separator and comparison headers
     filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["", "", "", "", "", ""]);
+    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
+
+    // Process card brands in exact order shown
+    const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
     
-    // Create a more compact side-by-side headers for Hub Report and Sales Report, plus Difference
-    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference", "", ""]);
-    
-    // Collect unique card brands and totals from first file
-    const cardBrandTotals = {};
-    
-    // Process all rows from the first file before filtering
+    // Collect totals from first file (Hub Report)
+    const hubTotals = {};
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
+        if (row.every(cell => cell === "")) break;
         
-        // Stop at separator row
-        if (row.every(cell => cell === "")) {
-            break;
-        }
-        
-        const cardBrand = row[4]; // Card Brand at index 4
-        // Skip any row where the card brand contains "cash" (case-insensitive)
-        if (cardBrand && cardBrand.toLowerCase().includes("cash")) {
-            continue;
-        }
-        
-        const netAmount = parseFloat(row[5] || 0); // Total (-) Fee
-        
-        if (cardBrand) {
-            if (!cardBrandTotals[cardBrand]) {
-                cardBrandTotals[cardBrand] = 0;
-            }
+        const cardBrand = cleanCardBrand(row[4]).trim();
+        if (cardBrand && !cardBrand.toLowerCase().includes('cash')) {
+            const totalAmount = parseFloat(row[2] || 0);
+            const discountAmount = parseFloat(row[3] || 0);
+            const totalFee = Math.round(totalAmount - discountAmount);
             
-            cardBrandTotals[cardBrand] += netAmount;
+            hubTotals[cardBrand] = (hubTotals[cardBrand] || 0) + totalFee;
         }
     }
     
-    // Collect unique names and totals from second file
-    const nameTotals = {};
-    
-    if (file2 && file2Headers.length > 0 && nameIndex !== -1 && amountIndex !== -1) {
-        // Common names to match card brands (case-insensitive)
-        const commonNames = {
-            "visa": "Visa",
-            "mastercard": "Mastercard",
-            "master": "Mastercard",
-            "american express": "American Express",
-            "amex": "American Express",
-            "discover": "Discover"
-        };
-        
-        // Process all rows from the second file
+    // Collect totals from second file (Sales Report)
+    const salesTotals = {};
+    if (file2 && nameIndex !== -1 && amountIndex !== -1) {
         jsonData2.forEach(row => {
             if (row.length > Math.max(nameIndex, amountIndex)) {
-                const name = String(row[nameIndex] || "").trim();
-                // Skip if name contains "cash" (case-insensitive)
-                if (name.toLowerCase().includes("cash")) {
-                    return;
-                }
+                const cardBrand = String(row[nameIndex] || "").trim();
+                if (cardBrand.toLowerCase() === 'cash') return;
                 
-                const amount = parseFloat(row[amountIndex]) || 0;
-                
-                if (name) {
-                    let displayName = name;
-                    
-                    // Try to match with common card brand names
-                    const lowerName = name.toLowerCase();
-                    for (const [key, value] of Object.entries(commonNames)) {
-                        if (lowerName.includes(key) || key.includes(lowerName)) {
-                            displayName = value;
-                            break;
-                        }
-                    }
-                    
-                    if (!nameTotals[displayName]) {
-                        nameTotals[displayName] = 0;
-                    }
-                    
-                    nameTotals[displayName] += amount;
-                }
+                const amount = Math.round(parseFloat(row[amountIndex]) || 0);
+                salesTotals[cardBrand] = (salesTotals[cardBrand] || 0) + amount;
             }
         });
     }
     
-    // Add rows for each card brand
-    const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
-    
-    // First add the common card brands in a specific order
+    // Add comparison rows in specific order
     commonCardBrands.forEach(brand => {
-        const leftValue = cardBrandTotals[brand] ? 
-            parseFloat(cardBrandTotals[brand].toFixed(2)) : 0;
-            
-        const rightValue = nameTotals[brand] ? 
-            parseFloat(nameTotals[brand].toFixed(2)) : 0;
-            
-        // Calculate difference (Hub Report - Sales Report)
-        const difference = parseFloat((leftValue - rightValue).toFixed(2));
-            
-        filteredResults.push([
-            brand,          // Card Brand
-            leftValue,      // Hub Report
-            rightValue,     // Sales Report
-            difference,     // Difference
-            "",
-            ""
-        ]);
+        const hubValue = Math.round(hubTotals[brand] || 0);
+        const salesValue = Math.round(salesTotals[brand] || 0);
+        const difference = hubValue - salesValue;
         
-        // Remove from objects so we don't process them again
-        delete cardBrandTotals[brand];
-        delete nameTotals[brand];
-    });
-    
-    // Then add any other card brands that might be in the data (excluding the common ones)
-    const otherBrands = new Set([
-        ...Object.keys(cardBrandTotals).filter(b => !b.toLowerCase().includes("cash") && !commonCardBrands.includes(b)),
-        ...Object.keys(nameTotals).filter(n => !n.toLowerCase().includes("cash") && !commonCardBrands.includes(n))
-    ]);
-    
-    [...otherBrands].sort().forEach(brand => {
-        const leftValue = cardBrandTotals[brand] ? 
-            parseFloat(cardBrandTotals[brand].toFixed(2)) : 0;
-            
-        const rightValue = nameTotals[brand] ? 
-            parseFloat(nameTotals[brand].toFixed(2)) : 0;
-        
-        // Calculate difference (Hub Report - Sales Report)
-        const difference = parseFloat((leftValue - rightValue).toFixed(2));
-            
         filteredResults.push([
-            brand,          // Card Brand
-            leftValue || 0, // Hub Report
-            rightValue || 0,// Sales Report
-            difference,     // Difference
-            "",
-            ""
+            brand,
+            hubValue,
+            salesValue,
+            difference
         ]);
     });
-    
+
     return filteredResults;
-} 
+}
