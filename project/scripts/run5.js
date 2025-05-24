@@ -12,27 +12,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
         if (!(date instanceof Date) || isNaN(date)) {
             return '';
         }
-        // Normalize to UTC to avoid timezone issues
-        return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
-    }
-
-    // Helper function to format currency values
-    function formatCurrency(value) {
-        const num = parseFloat(value);
-        return isNaN(num) ? 0 : parseFloat(num.toFixed(2));
-    }
-
-    // Helper function to normalize card brand names
-    function normalizeCardBrand(brand) {
-        if (!brand) return '';
-        // Remove common variations and standardize
-        return brand.trim().toLowerCase()
-            .replace(/\s+/g, '')
-            .replace('mastercard', 'mc')
-            .replace('master card', 'mc')
-            .replace('visa card', 'visa')
-            .replace('american express', 'amex')
-            .replace('discover card', 'discover');
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
     
     // Define the allowed columns
@@ -191,44 +171,42 @@ function compareAndDisplayData(XLSX, file1, file2) {
         columnsToKeep.forEach(column => {
             if (column === "Date") {
                 if (row[column] instanceof Date) {
-                    const date = new Date(row[column]);
-                    firstFileDate = new Date(date); 
-                    firstFileDate.setUTCHours(0, 0, 0, 0); // Normalize to UTC midnight
+                    const date = row[column];
+                    firstFileDate = new Date(date); // Clone date
+                    firstFileDate.setHours(12, 0, 0, 0); // Normalize time component
                     
                     // Format as MM/DD/YYYY
-                    const year = date.getUTCFullYear();
-                    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                    const day = String(date.getUTCDate()).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
                     filteredRow.push(`${month}/${day}/${year}`);
                 } else {
+                    // Handle string dates
                     filteredRow.push(row[column] !== undefined ? row[column] : "");
                     if (row[column]) {
                         try {
                             firstFileDate = new Date(row[column]);
-                            firstFileDate.setUTCHours(0, 0, 0, 0);
+                            firstFileDate.setHours(12, 0, 0, 0);
                         } catch (e) {
                             firstFileDate = null;
                         }
                     }
                 }
             } else if (column === "Card Brand") {
-                cardBrand = normalizeCardBrand(row[column]);
-                filteredRow.push(row[column] || "");
-            } else if (column === "Total Transaction Amount" || column === "Cash Discounting Amount") {
-                const value = formatCurrency(row[column]);
-                filteredRow.push(value);
+                cardBrand = row[column] || "";
+                filteredRow.push(cardBrand);
             } else {
                 filteredRow.push(row[column] !== undefined ? row[column] : "");
             }
         });
         
-        // Calculate K-R value with proper formatting
-        const totalAmount = formatCurrency(row["Total Transaction Amount"]);
-        const discountAmount = formatCurrency(row["Cash Discounting Amount"]);
-        krValue = formatCurrency(totalAmount - discountAmount);
+        // Calculate K-R value
+        const totalAmount = parseFloat(row["Total Transaction Amount"]) || 0;
+        const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
+        krValue = totalAmount - discountAmount;
         
-        // Add K-R value
-        filteredRow.push(krValue);
+        // Add K-R value (formatted to 2 decimal places)
+        filteredRow.push(krValue.toFixed(2));
         
         // Calculate Count - matches in second file
         let countMatches = 0;
@@ -243,13 +221,13 @@ function compareAndDisplayData(XLSX, file1, file2) {
                     if (typeof dateValue === 'string') {
                         try {
                             secondFileDate = new Date(dateValue);
-                            secondFileDate.setUTCHours(0, 0, 0, 0);
+                            secondFileDate.setHours(12, 0, 0, 0);
                         } catch (e) {
                             secondFileDate = null;
                         }
                     } else if (dateValue instanceof Date) {
                         secondFileDate = new Date(dateValue);
-                        secondFileDate.setUTCHours(0, 0, 0, 0);
+                        secondFileDate.setHours(12, 0, 0, 0);
                     }
                     
                     // Get name and amount
@@ -260,17 +238,16 @@ function compareAndDisplayData(XLSX, file1, file2) {
                     const firstFileDateStr = formatDateForComparison(firstFileDate);
                     const secondFileDateStr = formatDateForComparison(secondFileDate);
                     
-                    // Compare values with improved matching logic
+                    // Compare values
                     const dateMatches = firstFileDateStr && secondFileDateStr && 
                         firstFileDateStr === secondFileDateStr;
                     
-                    const nameMatches = secondFileName && cardBrand && 
-                        normalizeCardBrand(secondFileName) === cardBrand;
+                    const nameMatches = secondFileName && cardBrand && (
+                        cardBrand.trim().toLowerCase().includes(secondFileName) || 
+                        secondFileName.includes(cardBrand.trim().toLowerCase())
+                    );
                     
-                    // Use percentage-based threshold for amount comparison
-                    const amountDiff = Math.abs(krValue - secondFileAmount);
-                    const amountThreshold = Math.max(krValue, secondFileAmount) * 0.0001; // 0.01% threshold
-                    const amountMatches = amountDiff <= amountThreshold;
+                    const amountMatches = Math.abs(krValue - secondFileAmount) < 0.01;
                     
                     if (dateMatches && nameMatches && amountMatches) {
                         countMatches++;
@@ -305,13 +282,13 @@ function compareAndDisplayData(XLSX, file1, file2) {
                 if (typeof dateValue === 'string') {
                     try {
                         secondFileDate = new Date(dateValue);
-                        secondFileDate.setUTCHours(0, 0, 0, 0);
+                        secondFileDate.setHours(12, 0, 0, 0);
                     } catch (e) {
                         secondFileDate = null;
                     }
                 } else if (dateValue instanceof Date) {
                     secondFileDate = new Date(dateValue);
-                    secondFileDate.setUTCHours(0, 0, 0, 0);
+                    secondFileDate.setHours(12, 0, 0, 0);
                 }
             }
             
@@ -345,7 +322,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
                         const day = parseInt(parts[1]);
                         const year = parseInt(parts[2]);
                         firstFileDate = new Date(year, month, day);
-                        firstFileDate.setUTCHours(0, 0, 0, 0);
+                        firstFileDate.setHours(12, 0, 0, 0);
                     }
                 }
                 
@@ -391,7 +368,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
                     const day = parseInt(parts[1]);
                     const year = parseInt(parts[2]);
                     firstFileDate = new Date(year, month, day);
-                    firstFileDate.setUTCHours(0, 0, 0, 0);
+                    firstFileDate.setHours(12, 0, 0, 0);
                 }
             }
             
@@ -408,13 +385,13 @@ function compareAndDisplayData(XLSX, file1, file2) {
                     if (typeof dateValue === 'string') {
                         try {
                             secondFileDate = new Date(dateValue);
-                            secondFileDate.setUTCHours(0, 0, 0, 0);
+                            secondFileDate.setHours(12, 0, 0, 0);
                         } catch (e) {
                             secondFileDate = null;
                         }
                     } else if (dateValue instanceof Date) {
                         secondFileDate = new Date(dateValue);
-                        secondFileDate.setUTCHours(0, 0, 0, 0);
+                        secondFileDate.setHours(12, 0, 0, 0);
                     }
                 }
                 
@@ -457,12 +434,10 @@ function compareAndDisplayData(XLSX, file1, file2) {
     // Create a filtered result with only the columns we want to display
     const displayColumns = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"];
     
-    // Create filtered results array with simple headers
-    const filteredResults = [
-        ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
-    ];
+    // Create filtered results array
+    const filteredResults = [displayColumns]; // New header with renamed column and without Count/Final Count
     
-    // Process unmatched transactions as before, but ensure exact column order
+    // Add first file rows that have Final Count = 0, but without the Count and Final Count columns
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
         
@@ -474,24 +449,52 @@ function compareAndDisplayData(XLSX, file1, file2) {
         // Check if Final Count is 0
         const finalCount = parseInt(row[7] || 0);
         if (finalCount === 0) {
-            // Take just the first 6 columns in exact order
-            const displayRow = [
-                row[0], // Date
-                row[1], // Customer Name
-                parseFloat(row[2] || 0), // Total Transaction Amount
-                parseFloat(row[3] || 0), // Cash Discounting Amount
-                row[4], // Card Brand
-                parseFloat(row[5] || 0)  // Total (-) Fee
-            ];
+            // Take just the first 6 columns
+            const displayRow = row.slice(0, 6);
+            
+            // Convert numeric columns from strings to numbers for Excel formatting
+            // Total Transaction Amount (index 2)
+            if (displayRow[2] && !isNaN(parseFloat(displayRow[2]))) {
+                displayRow[2] = parseFloat(displayRow[2]);
+            }
+            
+            // Cash Discounting Amount (index 3)
+            if (displayRow[3] && !isNaN(parseFloat(displayRow[3]))) {
+                displayRow[3] = parseFloat(displayRow[3]);
+            }
+            
+            // Total (-) Fee (index 5)
+            if (displayRow[5] && !isNaN(parseFloat(displayRow[5]))) {
+                displayRow[5] = parseFloat(displayRow[5]);
+            }
             
             filteredResults.push(displayRow);
         }
     }
     
-    // Add separator and card brand comparison header
+    // Calculate totals (but don't display them in the main table)
+    let totalTransactionAmount = 0;
+    let totalDiscountAmount = 0;
+    let totalFee = 0;
+    
+    for (let i = 1; i < filteredResults.length; i++) {
+        // Total Transaction Amount (index 2)
+        totalTransactionAmount += parseFloat(filteredResults[i][2] || 0);
+        
+        // Cash Discounting Amount (index 3)
+        totalDiscountAmount += parseFloat(filteredResults[i][3] || 0);
+        
+        // Total (-) Fee (index 5)
+        totalFee += parseFloat(filteredResults[i][5] || 0);
+    }
+    
+    // Add two blank rows as separators (without the totals row)
     filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
-
+    filteredResults.push(["", "", "", "", "", ""]);
+    
+    // Create a more compact side-by-side headers for Hub Report and Sales Report, plus Difference
+    filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference", "", ""]);
+    
     // Collect unique card brands and totals from first file
     const cardBrandTotals = {};
     
@@ -568,21 +571,59 @@ function compareAndDisplayData(XLSX, file1, file2) {
         });
     }
     
-    // Process card brands in exact order shown
+    // Add rows for each card brand
     const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
     
+    // First add the common card brands in a specific order
     commonCardBrands.forEach(brand => {
-        const leftValue = parseFloat((cardBrandTotals[brand] || 0).toFixed(2));
-        const rightValue = parseFloat((nameTotals[brand] || 0).toFixed(2));
+        const leftValue = cardBrandTotals[brand] ? 
+            parseFloat(cardBrandTotals[brand].toFixed(2)) : 0;
+            
+        const rightValue = nameTotals[brand] ? 
+            parseFloat(nameTotals[brand].toFixed(2)) : 0;
+            
+        // Calculate difference (Hub Report - Sales Report)
         const difference = parseFloat((leftValue - rightValue).toFixed(2));
-        
+            
         filteredResults.push([
-            brand,
-            leftValue,
-            rightValue,
-            difference
+            brand,          // Card Brand
+            leftValue,      // Hub Report
+            rightValue,     // Sales Report
+            difference,     // Difference
+            "",
+            ""
+        ]);
+        
+        // Remove from objects so we don't process them again
+        delete cardBrandTotals[brand];
+        delete nameTotals[brand];
+    });
+    
+    // Then add any other card brands that might be in the data (excluding the common ones)
+    const otherBrands = new Set([
+        ...Object.keys(cardBrandTotals).filter(b => !b.toLowerCase().includes("cash") && !commonCardBrands.includes(b)),
+        ...Object.keys(nameTotals).filter(n => !n.toLowerCase().includes("cash") && !commonCardBrands.includes(n))
+    ]);
+    
+    [...otherBrands].sort().forEach(brand => {
+        const leftValue = cardBrandTotals[brand] ? 
+            parseFloat(cardBrandTotals[brand].toFixed(2)) : 0;
+            
+        const rightValue = nameTotals[brand] ? 
+            parseFloat(nameTotals[brand].toFixed(2)) : 0;
+        
+        // Calculate difference (Hub Report - Sales Report)
+        const difference = parseFloat((leftValue - rightValue).toFixed(2));
+            
+        filteredResults.push([
+            brand,          // Card Brand
+            leftValue || 0, // Hub Report
+            rightValue || 0,// Sales Report
+            difference,     // Difference
+            "",
+            ""
         ]);
     });
-
+    
     return filteredResults;
 }
