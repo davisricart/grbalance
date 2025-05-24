@@ -449,27 +449,19 @@ function compareAndDisplayData(XLSX, file1, file2) {
         ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
     ];
 
-    // Process all transactions from first file
+    // Add ALL transactions (not just unmatched ones)
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
         
         if (row.every(cell => cell === "")) break;
         
-        // Clean up the data
-        const date = row[0];
-        const customerName = cleanCustomerName(row[1]);
-        const totalAmount = parseFloat(row[2] || 0);
-        const discountAmount = parseFloat(row[3] || 0);
-        const cardBrand = cleanCardBrand(row[4]);
-        const totalFee = totalAmount - discountAmount;
-
         const displayRow = [
-            date,
-            customerName,
-            totalAmount.toFixed(2),
-            discountAmount.toFixed(2),
-            cardBrand,
-            totalFee.toFixed(2)
+            row[0], // Date
+            cleanCustomerName(row[1]), // Customer Name without info@bea
+            parseFloat(row[2] || 0).toFixed(2), // Total Transaction Amount (2 decimals)
+            parseFloat(row[3] || 0).toFixed(2), // Cash Discounting Amount (2 decimals)
+            cleanCardBrand(row[4]), // Card Brand without "Credit" prefix
+            parseFloat(row[5] || 0).toFixed(2)  // Total (-) Fee (2 decimals)
         ];
         filteredResults.push(displayRow);
     }
