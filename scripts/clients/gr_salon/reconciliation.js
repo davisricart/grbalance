@@ -488,8 +488,11 @@ function compareAndDisplayData(XLSX, file1, file2) {
         ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
     ];
 
-    // Add ALL transactions
-    for (let i = 1; i < resultData.length; i++) {
+    // Add only the first 5 transactions
+    const transactionsToShow = 5;
+    let transactionCount = 0;
+    
+    for (let i = 1; i < resultData.length && transactionCount < transactionsToShow; i++) {
         const row = resultData[i];
         
         if (row.every(cell => cell === "")) break;
@@ -503,6 +506,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
             formatNumber(parseFloat(row[5] || 0))  // Total (-) Fee
         ];
         filteredResults.push(displayRow);
+        transactionCount++;
     }
 
     // Add single blank row separator and comparison headers
