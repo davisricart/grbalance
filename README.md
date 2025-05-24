@@ -1,39 +1,63 @@
-# Payment Reconciliation System
+# Payment Reconciliation System Template
 
-A web-based system for reconciling payment transactions between different payment processing systems.
+A customizable web-based system for reconciling payment transactions between different payment processing systems. This repository serves as a template for creating client-specific reconciliation systems.
 
-## Features
+## Template Features
 
-- Compares transaction data from Hub Report and Sales Report
-- Handles multiple card brands (Visa, Mastercard, American Express, Discover)
-- Calculates fees and discounts
-- Provides detailed transaction matching
-- Shows summary totals by card brand
+- Configurable transaction data comparison
+- Customizable card brand mapping
+- Adjustable fee calculations
+- Flexible report formats
+- Modular client-specific logic
 
-## File Structure
+## Directory Structure
 
 ```
-project/
 ├── scripts/
-│   ├── run5.js              # Main reconciliation script
-│   ├── test-run5.js         # Test harness
+│   ├── run5.js                    # Main reconciliation script
+│   ├── test-run5.js              # Test harness
 │   └── clients/
-│       └── gr_salon/
-│           └── reconciliation.js  # Client-specific reconciliation logic
+│       └── template/             # Template client configuration
+│           └── reconciliation.js # Core reconciliation logic
+├── src/                          # Frontend source code
+└── config/                       # Configuration files
 ```
 
-## Usage
+## Customization Points
 
-1. Upload Hub Report Excel file
-2. Upload Sales Report Excel file
-3. System will process and display:
-   - Individual transactions with fees
-   - Summary by card brand
-   - Total differences
+1. **Report Formats**
+   - Column mappings
+   - Date formats
+   - Amount formats
 
-## Deployment
+2. **Card Brand Handling**
+   - Brand name mappings
+   - Brand-specific rules
 
-The application is deployed on Netlify at: https://grsalonsample.netlify.app
+3. **Fee Calculations**
+   - Processing fees
+   - Discount rates
+   - Tax handling
+
+4. **Client Branding**
+   - Logo
+   - Color scheme
+   - Custom styling
+
+## Creating a New Client Instance
+
+1. Clone this template repository
+2. Update client configuration in `config/`
+3. Customize reconciliation logic as needed
+4. Adjust branding and UI elements
+5. Deploy client-specific instance
+
+## Development Guidelines
+
+1. Keep core logic separate from client-specific code
+2. Document all customizations
+3. Maintain test coverage for changes
+4. Follow the existing code style
 
 ## Getting Started
 
@@ -44,21 +68,10 @@ The application is deployed on Netlify at: https://grsalonsample.netlify.app
 
 ### Installation
 
-1. Clone the repository:
-```bash
-git clone https://github.com/davisricart/NEW_Customer.git
-cd NEW_Customer/project
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Configure client settings
+4. Start development server: `npm run dev`
 
 ### Building for Production
 
@@ -66,29 +79,6 @@ npm run dev
 npm run build
 ```
 
-## File Format Requirements
-
-### Transaction Section
-- Date
-- Customer Name (preserves original case)
-- Total Transaction Amount
-- Cash Discounting Amount
-- Card Brand
-- Total (-) Fee
-
-### Comparison Section
-- Card Brand
-- Hub Report
-- Sales Report
-- Difference
-
-## Development Guidelines
-
-1. Always run tests before committing changes
-2. Follow the existing code style and formatting
-3. Update documentation when making significant changes
-4. Use meaningful commit messages
-
 ## Support
 
-For support or questions, please contact the development team. 
+For template support or customization guidance, please contact the development team. 

@@ -1,0 +1,48 @@
+{
+    "client": {
+        "name": "TEMPLATE_CLIENT",
+        "displayName": "Template Client",
+        "logo": "/images/client-logo.png"
+    },
+    "reconciliation": {
+        "hubReport": {
+            "dateColumn": "Date",
+            "customerNameColumn": "Customer Name",
+            "amountColumn": "Total Transaction Amount",
+            "feeColumn": "Cash Discounting Amount",
+            "cardBrandColumn": "Card Brand"
+        },
+        "salesReport": {
+            "dateColumn": "Date Closed",
+            "customerNameColumn": "Name",
+            "amountColumn": "Amount",
+            "cardBrandColumn": "Card Type"
+        },
+        "cardBrands": {
+            "mappings": {
+                "VISA": ["Visa", "VISA CARD"],
+                "MASTERCARD": ["Mastercard", "Master", "MC"],
+                "AMERICAN EXPRESS": ["Amex", "American", "AX"],
+                "DISCOVER": ["Discover", "DSC"]
+            }
+        },
+        "dateFormat": "YYYY-MM-DD",
+        "amountFormat": {
+            "decimalPlaces": 2,
+            "thousandsSeparator": ",",
+            "decimalSeparator": "."
+        }
+    },
+    "ui": {
+        "theme": {
+            "primary": "#007bff",
+            "secondary": "#6c757d",
+            "success": "#28a745",
+            "error": "#dc3545"
+        },
+        "layout": {
+            "showLogo": true,
+            "showClientName": true
+        }
+    }
+} 
