@@ -7,108 +7,102 @@ const path = require('path');
 // Import the compareAndDisplayData function using ES modules
 import { compareAndDisplayData } from './run5.js';
 
-// Create sample data for testing
-function createSampleExcel(data, filename) {
-    const ws = XLSX.utils.aoa_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    XLSX.writeFile(wb, filename);
-    return wb;
-}
-
-// Sample Hub Report data
-const hubData = [
-    ['Date', 'Customer Name', 'Total Transaction Amount', 'Cash Discounting Amount', 'Card Brand', 'Payment Type', 'First 6', 'Last 4'],
-    ['05/01/2024', 'John Smith', 125.99, 3.15, 'Visa', 'Credit', '424242', '1234'],
-    ['05/01/2024', 'Mary Johnson', 89.50, 2.24, 'Mastercard', 'Credit', '552233', '5678'],
-    ['05/01/2024', 'Bob Wilson', 299.99, 7.50, 'American Express', 'Credit', '378282', '9012'],
-    ['05/01/2024', 'Sarah Davis', 75.25, 1.88, 'Discover', 'Credit', '601100', '3456'],
-    ['05/01/2024', 'Mike Brown', 199.99, 5.00, 'Visa', 'Credit', '424242', '7890'],
-    ['05/01/2024', 'Lisa Anderson', 45.75, 1.14, 'Mastercard', 'Credit', '552233', '4321'],
-    ['05/01/2024', 'Tom White', 159.99, 4.00, 'American Express', 'Credit', '378282', '8765'],
-    ['05/01/2024', 'Emma Taylor', 229.50, 5.74, 'Visa', 'Credit', '424242', '2109']
-];
-
-// Sample Sales Report data
-const salesData = [
-    ['Date Closed', 'Name', 'Amount', 'Status'],
-    ['05/01/2024', 'Visa', 122.84, 'Completed'],
-    ['05/01/2024', 'Visa', 194.99, 'Completed'],
-    ['05/01/2024', 'Visa', 223.76, 'Completed'],
-    ['05/01/2024', 'Mastercard', 87.26, 'Completed'],
-    ['05/01/2024', 'Mastercard', 44.61, 'Completed'],
-    ['05/01/2024', 'Amex', 292.49, 'Completed'],
-    ['05/01/2024', 'Amex', 155.99, 'Completed'],
-    ['05/01/2024', 'Discover', 73.37, 'Completed']
-];
-
-// Create temporary Excel files
-const hubFile = 'test_hub_report.xlsx';
-const salesFile = 'test_sales_report.xlsx';
+// Read the sample files
+const hubFile = './sample_hub_report.xlsx';
+const salesFile = './sample_sales_report.xlsx';
 
 try {
-    // Create test Excel files
-    createSampleExcel(hubData, hubFile);
-    createSampleExcel(salesData, salesFile);
+    // Create the hub report data
+    const hubData = [
+        ["Date", "TransacticTransacticAccount NrDBA", "Invoice", "Auth", "BRIC", "Sold By", "Customer Name", "Total Transaction Amount", "Payment AAuthorizeTip", "$ Discount", "% Discount", "$ Tax", "Cash Discounting Amount", "State Tax", "County Tax", "City Tax", "Custom Tax", "Payment Type", "Card Brand", "First 6", "Last 4", "Comment"],
+        ["3/13/2025 19:58", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08 056240", "070M754A", "info@bea", "YADIRA RO", "196.65", "196.65", "0.00", "0%", "0.00", "6.65", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "438857", "5145", ""],
+        ["3/13/2025 18:23", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08", "102028", "070M74V8", "VISA CARD", "51.75", "51.75", "0.00", "0%", "0.00", "1.75", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "411774", "7080", ""],
+        ["3/13/2025 17:17", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08 013248", "070M748L", "info@bea", "BITA HOURI", "51.75", "51.75", "0.00", "0%", "0.00", "1.75", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Discover", "601100", "7028", ""],
+        ["3/13/2025 14:34", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08", "805464", "070M74X5", "ABDELIDA", "155.25", "155.25", "0.00", "0%", "0.00", "5.25", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "American", "376762", "3016", ""],
+        ["3/13/2025 14:34", "PayAnywh Keyed", "3.13E+12 Beauty an", "2.69E+08", "220068", "08UM74X5", "Unnamed", "62.10", "62.10", "0.00", "0%", "0.00", "2.10", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "American", "377230", "4015", ""],
+        ["3/13/2025 14:18", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08", "803349", "08UM74H6", "MONA S D", "476.10", "476.10", "0.00", "0%", "0.00", "16.10", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "American", "377230", "4015", ""],
+        ["3/13/2025 14:13", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08", "21314", "070M74G1", "YENNY OR", "36.23", "36.23", "0.00", "0%", "0.00", "1.23", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "434756", "8880", ""],
+        ["3/13/2025 12:59", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08", "88083", "08UM74W4", "VISA CARD", "36.23", "36.23", "0.00", "0%", "0.00", "1.23", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "473702", "2680", ""],
+        ["3/12/2025 23:13", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08", "141336", "070M72TE", "TAYLOR B", "531.99", "531.99", "0.00", "0%", "0.00", "17.99", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "416469", "5358", ""],
+        ["3/12/2025 18:10", "PayAnywh Chip Read", "3.13E+12 Beauty an", "2.69E+08 01720Z", "070M72W1", "info@bea", "NICOLE SU", "62.10", "62.10", "0.00", "0%", "0.00", "2.10", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Mastercard", "521307", "7595", ""],
+        ["3/12/2025 14:46", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08 01018D", "070M720E", "info@bea", "Unnamed", "41.40", "41.40", "0.00", "0%", "0.00", "1.40", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "438547", "8836", ""],
+        ["3/12/2025 13:38", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08", "12691", "070M712G", "Unnamed", "98.33", "98.33", "0.00", "0%", "0.00", "3.33", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "400278", "751", ""],
+        ["3/12/2025 11:02", "PayAnywh Contactle", "3.13E+12 Beauty an", "2.69E+08 06554C", "076M71J1", "info@bea", "Unnamed", "51.75", "51.75", "0.00", "0%", "0.00", "1.75", "n/a", "n/a", "n/a", "n/a", "Credit Sale", "Visa", "407123", "4959", ""]
+    ];
 
-    // Read the files as ArrayBuffer
-    const hubBuffer = fs.readFileSync(hubFile);
-    const salesBuffer = fs.readFileSync(salesFile);
-
-    // Process the data
-    const results = compareAndDisplayData(XLSX, hubBuffer, salesBuffer);
-
-    // Display results in the exact format requested
-    console.log('Date\tCustomer Name\tTotal Transaction Amount\tCash Discounting Amount\tCard Brand\tTotal (-) Fee');
+    // Create the sales report data
+    const salesData = [
+        ["Name", "Date Closed", "Ticket ID", "Client", "Amount", "Type"],
+        ["American Express", "3/13/2025", "11374", "Mona Dave", "460.00", "Payment"],
+        ["American Express", "3/13/2025", "11422", "Arshvi Gesu", "60.00", "Payment"],
+        ["Cash", "3/12/2025", "11093", "Helen Burgos", "35.00", "Payment"],
+        ["Cash", "3/13/2025", "11072", "Lorena Ospina", "110.00", "Payment"],
+        ["Visa", "3/12/2025", "11092", "Hailey Liz", "40.00", "Payment"],
+        ["Visa", "3/12/2025", "11189", "Maria Polanco", "95.00", "Payment"],
+        ["Visa", "3/12/2025", "11335", "Nicole Sunga", "60.00", "Payment"],
+        ["Visa", "3/12/2025", "11391", "Taylor Brooks", "514.00", "Payment"],
+        ["Visa", "3/12/2025", "11394", "Elicet Reynoso", "50.00", "Payment"],
+        ["Visa", "3/13/2025", "10872", "Alejandra Carmona", "50.00", "Payment"],
+        ["Visa", "3/13/2025", "11055", "Taleen Kakish", "35.00", "Payment"],
+        ["Visa", "3/13/2025", "11382", "Adi Diaz", "150.00", "Payment"],
+        ["Visa", "3/13/2025", "11409", "Yadira Rosa", "170.00", "Payment"],
+        ["Visa", "3/13/2025", "11412", "Bita Hourizadeh", "50.00", "Payment"],
+        ["Visa", "3/13/2025", "11418", "Yinny Ortiz", "35.00", "Payment"]
+    ];
     
-    // Print transaction rows until we hit empty rows
-    for (let i = 1; i < results.length; i++) {
-        const row = results[i];
-        if (row.every(cell => cell === '')) {
-            break;
-        }
-        // Format numbers to 2 decimal places
-        const formattedRow = row.map((cell, index) => {
-            if (index === 2 || index === 3 || index === 5) { // Amount columns
-                return typeof cell === 'number' ? cell.toFixed(2) : cell;
-            }
-            return cell;
-        });
-        console.log(formattedRow.join('\t'));
-    }
-
-    // Find the comparison section (after empty rows)
-    let comparisonIndex = results.findIndex((row, index) => 
-        index > 0 && row[0] === 'Card Brand' && row[1] === 'Hub Report'
-    );
-
-    if (comparisonIndex !== -1) {
-        console.log('\nCard Brand\tHub Report\tSales Report\tDifference');
+    console.log('Running comparison with sample files...\n');
+    
+    // Run the comparison
+    const results = compareAndDisplayData(XLSX, hubData, salesData);
+    
+    // Display the results
+    if (Array.isArray(results)) {
+        // Display transactions
+        console.log('Transactions:');
+        console.log('Date\tCustomer Name\tTotal Transaction Amount\tCash Discounting Amount\tCard Brand\tTotal (-) Fee');
         
-        // Print comparison rows
-        for (let i = comparisonIndex + 1; i < results.length; i++) {
+        for (let i = 1; i < results.length; i++) {
             const row = results[i];
-            if (row[0]) {  // Only print rows with a card brand
-                // Format numbers to 2 decimal places
-                const formattedRow = [
-                    row[0],
-                    typeof row[1] === 'number' ? row[1].toFixed(2) : row[1],
-                    typeof row[2] === 'number' ? row[2].toFixed(2) : row[2],
-                    typeof row[3] === 'number' ? row[3].toFixed(2) : row[3]
-                ];
-                console.log(formattedRow.join('\t'));
+            if (!row || row.length === 0 || row.every(cell => !cell)) {
+                break;
+            }
+            // Format the row for display
+            const formattedRow = row.map((cell, index) => {
+                if (index === 2 || index === 3 || index === 5) { // Amount columns
+                    return typeof cell === 'number' ? cell.toFixed(2) : cell;
+                }
+                return cell;
+            });
+            console.log(formattedRow.join('\t'));
+        }
+        
+        // Find and display comparison section
+        const comparisonIndex = results.findIndex(row => 
+            row && row[0] === 'Card Brand' && row[1] === 'Hub Report'
+        );
+        
+        if (comparisonIndex !== -1) {
+            console.log('\nComparison Summary:');
+            console.log('Card Brand\tHub Report\tSales Report\tDifference');
+            
+            for (let i = comparisonIndex + 1; i < results.length; i++) {
+                const row = results[i];
+                if (row && row[0]) {
+                    // Format numbers in the comparison
+                    const formattedRow = row.map((cell, index) => {
+                        if (index > 0) { // Amount columns in comparison
+                            return typeof cell === 'number' ? cell.toFixed(2) : cell;
+                        }
+                        return cell;
+                    });
+                    console.log(formattedRow.join('\t'));
+                }
             }
         }
     }
+    
+    console.log('\nComparison completed successfully!');
 
 } catch (error) {
-    console.error('Error:', error);
-} finally {
-    // Clean up temporary files
-    try {
-        fs.unlinkSync(hubFile);
-        fs.unlinkSync(salesFile);
-    } catch (e) {
-        console.error('Error cleaning up files:', e);
-    }
+    console.error('Error during comparison:', error);
 } 
