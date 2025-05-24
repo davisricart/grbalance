@@ -459,12 +459,10 @@ function compareAndDisplayData(XLSX, file1, file2) {
     
     // Create filtered results array with simple headers
     const filteredResults = [
-        ["Comparison Results"],
-        [""],
         ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
     ];
     
-    // Add first file rows that have Final Count = 0, but without the Count and Final Count columns
+    // Process unmatched transactions as before, but ensure exact column order
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
         
@@ -476,61 +474,21 @@ function compareAndDisplayData(XLSX, file1, file2) {
         // Check if Final Count is 0
         const finalCount = parseInt(row[7] || 0);
         if (finalCount === 0) {
-            // Take just the first 6 columns
-            const displayRow = row.slice(0, 6);
-            
-            // Convert numeric columns from strings to numbers for Excel formatting
-            // Total Transaction Amount (index 2)
-            if (displayRow[2] && !isNaN(parseFloat(displayRow[2]))) {
-                displayRow[2] = parseFloat(displayRow[2]);
-            }
-            
-            // Cash Discounting Amount (index 3)
-            if (displayRow[3] && !isNaN(parseFloat(displayRow[3]))) {
-                displayRow[3] = parseFloat(displayRow[3]);
-            }
-            
-            // Total (-) Fee (index 5)
-            if (displayRow[5] && !isNaN(parseFloat(displayRow[5]))) {
-                displayRow[5] = parseFloat(displayRow[5]);
-            }
+            // Take just the first 6 columns in exact order
+            const displayRow = [
+                row[0], // Date
+                row[1], // Customer Name
+                parseFloat(row[2] || 0), // Total Transaction Amount
+                parseFloat(row[3] || 0), // Cash Discounting Amount
+                row[4], // Card Brand
+                parseFloat(row[5] || 0)  // Total (-) Fee
+            ];
             
             filteredResults.push(displayRow);
         }
     }
     
-    // Calculate totals (but don't display them in the main table)
-    let totalTransactionAmount = 0;
-    let totalDiscountAmount = 0;
-    let totalFee = 0;
-    
-    for (let i = 1; i < filteredResults.length; i++) {
-        // Total Transaction Amount (index 2)
-        totalTransactionAmount += parseFloat(filteredResults[i][2] || 0);
-        
-        // Cash Discounting Amount (index 3)
-        totalDiscountAmount += parseFloat(filteredResults[i][3] || 0);
-        
-        // Total (-) Fee (index 5)
-        totalFee += parseFloat(filteredResults[i][5] || 0);
-    }
-    
-    // After processing all rows, add clear section separators and headers
-    filteredResults.push(["", "", "", "", "", ""]);
-    filteredResults.push(["SUMMARY OF UNMATCHED TRANSACTIONS"]);
-    filteredResults.push(["", "", "", "", "", ""]);
-    
-    // Add summary with proper formatting
-    filteredResults.push([
-        "TOTALS",
-        "",
-        formatCurrency(totalTransactionAmount),
-        formatCurrency(totalDiscountAmount),
-        "",
-        formatCurrency(totalFee)
-    ]);
-
-    // Add separator before card brand comparison
+    // Add separator and card brand comparison header
     filteredResults.push(["", "", "", "", "", ""]);
     filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
 
@@ -610,16 +568,14 @@ function compareAndDisplayData(XLSX, file1, file2) {
         });
     }
     
-    // Define card brands in the exact order shown
+    // Process card brands in exact order shown
     const commonCardBrands = ["Visa", "Mastercard", "American Express", "Discover"];
     
-    // Process card brand totals
     commonCardBrands.forEach(brand => {
-        const leftValue = formatCurrency(cardBrandTotals[brand] || 0);
-        const rightValue = formatCurrency(nameTotals[brand] || 0);
-        const difference = formatCurrency(leftValue - rightValue);
+        const leftValue = parseFloat((cardBrandTotals[brand] || 0).toFixed(2));
+        const rightValue = parseFloat((nameTotals[brand] || 0).toFixed(2));
+        const difference = parseFloat((leftValue - rightValue).toFixed(2));
         
-        // Add row with proper alignment and only necessary columns
         filteredResults.push([
             brand,
             leftValue,
@@ -627,10 +583,6 @@ function compareAndDisplayData(XLSX, file1, file2) {
             difference
         ]);
     });
-
-    // Add legend for color coding
-    filteredResults.push(["", "", "", ""]);
-    filteredResults.push(["Negative difference", "", "Positive/Zero difference"]);
 
     return filteredResults;
 }
