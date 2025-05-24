@@ -281,6 +281,14 @@ export default function PricingPage() {
                 Most salon owners save 8-12 hours monthly on reconciliation plus catch processing errors worth hundreds to thousands annually. Even at our highest plan, you'll save money vs. hiring help.
               </dd>
             </div>
+            <div className="text-left">
+              <dt className="text-base font-semibold leading-7 text-gray-900">
+                What if my payment processor isn't supported yet?
+              </dt>
+              <dd className="mt-2 text-base leading-7 text-gray-600">
+                I build custom scripts for each client's specific setup. If your processor is new to me, I'll create a tailored solution during your trial period.
+              </dd>
+            </div>
           </dl>
         </div>
       </div>
