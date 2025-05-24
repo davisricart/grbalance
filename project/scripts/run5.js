@@ -444,12 +444,24 @@ function compareAndDisplayData(XLSX, file1, file2) {
         return brand.replace('Credit ', '').trim();
     }
 
+    // Helper function to format number
+    function formatNumber(num) {
+        // Convert to number in case it's a string
+        num = parseFloat(num);
+        // If it's a whole number, return without decimals
+        if (Number.isInteger(num)) {
+            return num.toString();
+        }
+        // If it has decimals, keep them
+        return num.toFixed(2);
+    }
+
     // Create filtered results array with comparison headers
     const filteredResults = [
         ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]
     ];
 
-    // Add ALL transactions (not just unmatched ones)
+    // Add ALL transactions
     for (let i = 1; i < resultData.length; i++) {
         const row = resultData[i];
         
@@ -457,16 +469,16 @@ function compareAndDisplayData(XLSX, file1, file2) {
         
         const displayRow = [
             row[0], // Date
-            cleanCustomerName(row[1]), // Customer Name without info@bea
-            parseFloat(row[2] || 0).toFixed(2), // Total Transaction Amount (2 decimals)
-            parseFloat(row[3] || 0).toFixed(2), // Cash Discounting Amount (2 decimals)
-            cleanCardBrand(row[4]), // Card Brand without "Credit" prefix
-            parseFloat(row[5] || 0).toFixed(2)  // Total (-) Fee (2 decimals)
+            row[1].toUpperCase(), // Customer Name in CAPS
+            formatNumber(parseFloat(row[2] || 0)), // Total Transaction Amount
+            formatNumber(parseFloat(row[3] || 0)), // Cash Discounting Amount
+            cleanCardBrand(row[4]).trim(), // Card Brand (cleaned and trimmed)
+            formatNumber(parseFloat(row[5] || 0))  // Total (-) Fee
         ];
         filteredResults.push(displayRow);
     }
 
-    // Add separator and card brand comparison headers
+    // Add single blank row separator and comparison headers
     filteredResults.push(["", "", "", "", "", ""]);
     filteredResults.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
 
@@ -479,7 +491,7 @@ function compareAndDisplayData(XLSX, file1, file2) {
         const row = resultData[i];
         if (row.every(cell => cell === "")) break;
         
-        const cardBrand = cleanCardBrand(row[4]);
+        const cardBrand = cleanCardBrand(row[4]).trim();
         if (cardBrand && !cardBrand.toLowerCase().includes('cash')) {
             const totalAmount = parseFloat(row[2] || 0);
             const discountAmount = parseFloat(row[3] || 0);
@@ -505,8 +517,8 @@ function compareAndDisplayData(XLSX, file1, file2) {
     
     // Add comparison rows in specific order
     commonCardBrands.forEach(brand => {
-        const hubValue = hubTotals[brand] || 0;
-        const salesValue = salesTotals[brand] || 0;
+        const hubValue = Math.round(hubTotals[brand] || 0);
+        const salesValue = Math.round(salesTotals[brand] || 0);
         const difference = hubValue - salesValue;
         
         filteredResults.push([
