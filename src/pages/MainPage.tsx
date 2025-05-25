@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
 
-type ScriptKey = 'run5' | 'standardReconciliation';
+type ScriptKey = 'run5' | 'standardReconciliation' | 'claudeStandardReconciliation';
 
 const SCRIPTS: Record<ScriptKey, string> = {
   run5: `
@@ -311,6 +311,17 @@ const SCRIPTS: Record<ScriptKey, string> = {
       });
       return output;
     }
+  `,
+  claudeStandardReconciliation: `
+    function compareAndDisplayData(XLSX, file1, file2) {
+      function formatDateForComparison(date) {
+        if (!(date instanceof Date) || isNaN(date)) {
+          return '';
+        }
+        return \`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}\`;
+      }
+      // ... (Paste the full logic from claudeStandardReconciliation.js here, with all template literals escaped as \${...}) ...
+    }
   `
 };
 
@@ -571,6 +582,7 @@ export default function MainPage({ user }: MainPageProps) {
               <option value="">Select a script...</option>
               <option value="run5">Main HUB vs Sales</option>
               <option value="standardReconciliation">Standard Reconciliation (Payment Hub vs Sales Totals)</option>
+              <option value="claudeStandardReconciliation">Claude Standard Reconciliation</option>
             </select>
           </div>
 
