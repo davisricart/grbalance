@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle } from 'lucide-react';
+import ROICalculator from '../components/ROICalculator';
 
 export default function LandingPage() {
   return (
@@ -60,41 +61,8 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Consultation CTA Section */}
-        <div className="mt-24 bg-emerald-50 rounded-2xl p-8 sm:p-12">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              See How Much You Can Save
-            </h2>
-            <p className="text-lg text-gray-600 mb-8">
-              Book a free 30-minute demo. We'll analyze your salon software and payment processors, then show you exactly how much time and money you can save.
-            </p>
-            <div className="space-y-6">
-              <div className="flex items-center justify-center gap-3">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-                <span className="text-gray-700">Custom ROI calculation for your business</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-                <span className="text-gray-700">Process optimization consultation</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-                <span className="text-gray-700">Custom solution walkthrough - We'll show you how we'd build your specific reconciliation script</span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                <CheckCircle className="h-6 w-6 text-emerald-600" />
-                <span className="text-gray-700">Custom script consultation - We'll explain how we'd build your solution</span>
-              </div>
-            </div>
-            <Link
-              to="/book"
-              className="mt-8 inline-flex items-center px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-lg font-medium"
-            >
-              Book Your Free Demo
-            </Link>
-          </div>
-        </div>
+        {/* ROI Calculator Section (replaces old demo/CTA) */}
+        <ROICalculator />
 
         {/* Contact Section */}
         <div className="mt-24 text-center">
