@@ -1,330 +1,11 @@
 // PAGE MARKER: Main Page Component
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { FileSpreadsheet, Download, AlertCircle, LogOut } from 'lucide-react';
 import { doc, runTransaction } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
-
-type ScriptKey = 'run5' | 'standardReconciliation' | 'claudeStandardReconciliation';
-
-const SCRIPTS: Record<ScriptKey, string> = {
-  run5: `
-    function compareAndDisplayData(XLSX, file1, file2) {
-      try {
-        // Read workbooks with date parsing enabled
-        const workbook1 = XLSX.read(file1, { cellDates: true });
-        const workbook2 = XLSX.read(file2, { cellDates: true });
-        
-        // Get first sheet from each workbook
-        const sheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
-        const sheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
-        
-        // Convert sheets to JSON
-        const data1 = XLSX.utils.sheet_to_json(sheet1);
-        const data2 = XLSX.utils.sheet_to_json(sheet2);
-        
-        if (!data1.length || !data2.length) {
-          throw new Error('One or both files are empty');
-        }
-
-        // Find the date column in the second file
-        const dateColumn = Object.keys(data2[0]).find(key => 
-          key.toLowerCase().includes('date')
-        );
-
-        // Define columns to keep from the filtered data
-        const columnsToKeep = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand"];
-        const newColumns = ["Total (-) Fee"];
-        
-        // Create result array starting with header
-        const resultData = [columnsToKeep.concat(newColumns)];
-        
-        // Process each row of first file
-        data1.forEach(row => {
-          const filteredRow = [];
-          let firstFileDate = null;
-          let cardBrand = "";
-          let krValue = 0;
-          
-          // Filter columns
-          columnsToKeep.forEach(column => {
-            if (column === "Date") {
-              if (row[column] instanceof Date) {
-                const date = row[column];
-                firstFileDate = new Date(date);
-                firstFileDate.setHours(0, 0, 0, 0);
-                
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                filteredRow.push(\${month}/\${day}/\${year}\`);
-              } else {
-                filteredRow.push(row[column] !== undefined ? row[column] : "");
-                if (row[column]) {
-                  try {
-                    firstFileDate = new Date(row[column]);
-                    firstFileDate.setHours(0, 0, 0, 0);
-                  } catch (e) {
-                    firstFileDate = null;
-                  }
-                }
-              }
-            } else if (column === "Card Brand") {
-              cardBrand = (row[column] || "").toString().toLowerCase();
-              filteredRow.push(row[column] || "");
-            } else {
-              filteredRow.push(row[column] !== undefined ? row[column] : "");
-            }
-          });
-          
-          // Calculate K-R value (Total - Discount)
-          const totalAmount = parseFloat(row["Total Transaction Amount"]) || 0;
-          const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
-          krValue = totalAmount - discountAmount;
-          
-          // Add K-R value
-          filteredRow.push(krValue.toFixed(2));
-          
-          // Find matching transaction in second file
-          let found = false;
-          
-          if (firstFileDate && cardBrand) {
-            for (const secondRow of data2) {
-              // Get date from second file
-              let secondFileDate = null;
-              if (dateColumn) {
-                const dateValue = secondRow[dateColumn];
-                if (dateValue instanceof Date) {
-                  secondFileDate = new Date(dateValue);
-                  secondFileDate.setHours(0, 0, 0, 0);
-                } else if (typeof dateValue === 'string') {
-                  try {
-                    secondFileDate = new Date(dateValue);
-                    secondFileDate.setHours(0, 0, 0, 0);
-                  } catch (e) {
-                    continue;
-                  }
-                }
-              }
-              
-              // Skip if dates don't match
-              if (!secondFileDate || secondFileDate.getTime() !== firstFileDate.getTime()) {
-                continue;
-              }
-              
-              // Get name and amount from second file
-              const name = (secondRow["Name"] || "").toString().toLowerCase();
-              const amount = parseFloat(secondRow["Amount"]) || 0;
-              
-              // Check if card brand matches name and amounts match
-              if (
-                (cardBrand.includes(name) || name.includes(cardBrand)) &&
-                Math.abs(krValue - amount) < 0.01
-              ) {
-                found = true;
-                break;
-              }
-            }
-          }
-          
-          // Only add rows that don't have matches
-          if (!found) {
-            resultData.push(filteredRow);
-          }
-        });
-
-        // Add summary section
-        resultData.push(["", "", "", "", "", ""]);
-        resultData.push(["Summary", "", "", "", "", ""]);
-        resultData.push(["Card Brand", "Total Amount", "", "", "", ""]);
-
-        // Calculate totals by card brand
-        const cardBrandTotals = {};
-        for (let i = 1; i < resultData.length - 3; i++) {
-          const row = resultData[i];
-          const cardBrand = row[4];
-          const amount = parseFloat(row[5]) || 0;
-
-          if (cardBrand && !cardBrand.toLowerCase().includes('cash')) {
-            cardBrandTotals[cardBrand] = (cardBrandTotals[cardBrand] || 0) + amount;
-          }
-        }
-
-        // Add card brand totals to results
-        Object.entries(cardBrandTotals)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .forEach(([brand, total]) => {
-            resultData.push([brand, total.toFixed(2), "", "", "", ""]);
-          });
-
-        return resultData;
-      } catch (error) {
-        console.error('Error in comparison:', error);
-        return [
-          ['Error'],
-          ['An error occurred while comparing the files:'],
-          [error instanceof Error ? error.message : String(error)]
-        ];
-      }
-    }
-  `,
-  standardReconciliation: `
-    function compareAndDisplayData(XLSX, file1, file2) {
-      function formatDateForComparison(date) {
-        if (!(date instanceof Date) || isNaN(date)) {
-          return '';
-        }
-        return \`\${date.getFullYear()}-\${String(date.getMonth() + 1).padStart(2, '0')}-\${String(date.getDate()).padStart(2, '0')}\`;
-      }
-      // Step 1: Read and process Payment Hub (file1)
-      const workbook1 = XLSX.read(file1, { cellDates: true });
-      const sheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
-      const data1 = XLSX.utils.sheet_to_json(sheet1, { defval: '' });
-      // Step 2: Read and process Sales Totals (file2)
-      const workbook2 = XLSX.read(file2, { cellDates: true });
-      const sheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
-      const data2 = XLSX.utils.sheet_to_json(sheet2, { defval: '' });
-      // Find required columns in Sales Totals
-      const salesCols = {
-        date: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('date')) || 'Date Closed',
-        name: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('name')) || 'Name',
-        amount: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('amount')) || 'Amount',
-      };
-      // Clean and prepare Payment Hub data
-      const hubRows = data1.map(row => {
-        let date = row["Date"];
-        if (date instanceof Date) {
-          date = \`\${(date.getMonth()+1).toString().padStart(2,'0')}/\${date.getDate().toString().padStart(2,'0')}/\${date.getFullYear()}\`;
-        } else if (typeof date === 'string' && date) {
-          const d = new Date(date);
-          if (!isNaN(d)) date = \`\${(d.getMonth()+1).toString().padStart(2,'0')}/\${d.getDate().toString().padStart(2,'0')}/\${d.getFullYear()}\`;
-        }
-        const total = parseFloat(row["Total Transaction Amount"]) || 0;
-        const discount = parseFloat(row["Cash Discounting Amount"]) || 0;
-        const totalMinusFee = +(total - discount).toFixed(2);
-        return {
-          date,
-          customer: row["Customer Name"] || '',
-          total: +(+total).toFixed(2),
-          discount: +(+discount).toFixed(2),
-          brand: row["Card Brand"] || '',
-          totalMinusFee,
-        };
-      });
-      // Clean and prepare Sales Totals data
-      const salesRows = data2.map(row => {
-        let date = row[salesCols.date];
-        if (date instanceof Date) {
-          date = \`\${(date.getMonth()+1).toString().padStart(2,'0')}/\${date.getDate().toString().padStart(2,'0')}/\${date.getFullYear()}\`;
-        } else if (typeof date === 'string' && date) {
-          const d = new Date(date);
-          if (!isNaN(d)) date = \`\${(d.getMonth()+1).toString().padStart(2,'0')}/\${d.getDate().toString().padStart(2,'0')}/\${d.getFullYear()}\`;
-        }
-        let amount = row[salesCols.amount];
-        if (typeof amount === 'string') amount = amount.replace(/[^\d.-]/g, '');
-        amount = parseFloat(amount) || 0;
-        return {
-          date,
-          name: row[salesCols.name] || '',
-          amount: +(+amount).toFixed(2),
-        };
-      });
-      // Matching logic
-      function matchRows(hub, sales) {
-        return sales.filter(s => {
-          if (hub.date !== s.date) return false;
-          const hubBrand = (hub.brand || '').toLowerCase();
-          const salesName = (s.name || '').toLowerCase();
-          if (!(hubBrand.includes(salesName) || salesName.includes(hubBrand))) return false;
-          if (Math.abs(hub.totalMinusFee - s.amount) > 0.01) return false;
-          return true;
-        });
-      }
-      function matchRowsReverse(sale, hubs) {
-        return hubs.filter(hub => {
-          if (hub.date !== sale.date) return false;
-          const hubBrand = (hub.brand || '').toLowerCase();
-          const salesName = (sale.name || '').toLowerCase();
-          if (!(hubBrand.includes(salesName) || salesName.includes(hubBrand))) return false;
-          if (Math.abs(hub.totalMinusFee - sale.amount) > 0.01) return false;
-          return true;
-        });
-      }
-      hubRows.forEach(hub => {
-        hub.count = matchRows(hub, salesRows).length;
-      });
-      salesRows.forEach(sale => {
-        sale.count2 = matchRowsReverse(sale, hubRows).length;
-      });
-      hubRows.forEach(hub => {
-        const matches = matchRows(hub, salesRows).filter(sale => sale.count2 === hub.count);
-        hub.finalCount = matches.length;
-      });
-      const unmatched = hubRows.filter(hub => hub.finalCount === 0);
-      // Prepare output
-      const output = [];
-      output.push(["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]);
-      unmatched.forEach(row => {
-        output.push([
-          row.date,
-          row.customer,
-          row.total,
-          row.discount,
-          row.brand,
-          row.totalMinusFee
-        ]);
-      });
-      output.push(["", "", "", "", "", ""]);
-      output.push(["", "", "", "", "", ""]);
-      // Card brand summary
-      const hubBrandTotals = {};
-      hubRows.forEach(row => {
-        const brand = row.brand || '';
-        if (!brand.toLowerCase().includes('cash')) {
-          hubBrandTotals[brand] = (hubBrandTotals[brand] || 0) + row.totalMinusFee;
-        }
-      });
-      const salesBrandTotals = {};
-      salesRows.forEach(row => {
-        const name = row.name || '';
-        if (!name.toLowerCase().includes('cash')) {
-          salesBrandTotals[name] = (salesBrandTotals[name] || 0) + row.amount;
-        }
-      });
-      const allBrands = Array.from(new Set([
-        ...Object.keys(hubBrandTotals),
-        ...Object.keys(salesBrandTotals)
-      ])).filter(b => b);
-      output.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
-      allBrands.forEach(brand => {
-        const hubTotal = +(hubBrandTotals[brand] || 0).toFixed(2);
-        const salesTotal = +(salesBrandTotals[brand] || 0).toFixed(2);
-        const diff = +(hubTotal - salesTotal).toFixed(2);
-        output.push([
-          brand,
-          hubTotal,
-          salesTotal,
-          diff
-        ]);
-      });
-      return output;
-    }
-  `,
-  claudeStandardReconciliation: `
-    function compareAndDisplayData(XLSX, file1, file2) {
-      function formatDateForComparison(date) {
-        if (!(date instanceof Date) || isNaN(date)) {
-          return '';
-        }
-        return '\${date.getFullYear()}-\${String(date.getMonth() + 1).padStart(2, '0')}-\${String(date.getDate()).padStart(2, '0')}';
-      }
-      // (Paste the full logic from claudeStandardReconciliation.js here, with all template literals escaped as \${...})
-      // ...
-    }
-  `
-};
 
 interface MainPageProps {
   user: User;
@@ -336,12 +17,20 @@ export default function MainPage({ user }: MainPageProps) {
   const navigate = useNavigate();
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
-  const [script, setScript] = useState<ScriptKey | ''>('');
+  const [script, setScript] = useState<string>('');
+  const [availableScripts, setAvailableScripts] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [warning, setWarning] = useState('');
   const [results, setResults] = useState<ResultRow[]>([]);
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch('/api/scripts')
+      .then(res => res.json())
+      .then(setAvailableScripts)
+      .catch(() => setStatus('Failed to fetch available scripts'));
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -373,68 +62,50 @@ export default function MainPage({ user }: MainPageProps) {
     event.preventDefault();
   };
 
-  const executeComparison = async (script: string, file1Content: ArrayBuffer, file2Content: ArrayBuffer): Promise<ResultRow[]> => {
-    const CompareFunction = new Function('XLSX', 'file1', 'file2', 
-      `return (async () => {
-        ${script}
-        return compareAndDisplayData(XLSX, file1, file2);
-      })();`
-    );
-    return await CompareFunction(XLSX, file1Content, file2Content);
-  };
-
   const handleCompare = async () => {
     const validationErrors: string[] = [];
-    if (!file1) validationErrors.push("Please select the first file");
-    if (!file2) validationErrors.push("Please select the second file");
-    if (!script) validationErrors.push("Please select a comparison script");
-
+    if (!file1) validationErrors.push('Please select the first file');
+    if (!file2) validationErrors.push('Please select the second file');
+    if (!script) validationErrors.push('Please select a comparison script');
     if (validationErrors.length > 0) {
-      setStatus(validationErrors.join(", "));
+      setStatus(validationErrors.join(', '));
       return;
     }
-
     try {
       // Check and update usage limits
       const usageRef = doc(db, 'usage', user.uid);
-      
       await runTransaction(db, async (transaction) => {
         const usageDoc = await transaction.get(usageRef);
         const userData = usageDoc.data();
-        
         if (!userData) {
           throw new Error('Usage data not found');
         }
-
-        // Check if near limit (80% or more)
         const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
         if (usagePercentage >= 80) {
           setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
         }
-
         if (userData.comparisonsUsed >= userData.comparisonsLimit) {
           throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
         }
-
         transaction.update(usageRef, {
           comparisonsUsed: userData.comparisonsUsed + 1
         });
       });
-
-      setStatus('Processing files...');
-      
-      const content1 = await readExcelFile(file1!);
-      const content2 = await readExcelFile(file2!);
-
-      setStatus('Running comparison...');
-      const scriptContent = SCRIPTS[script as ScriptKey];
-      if (!scriptContent) {
-        throw new Error('Invalid script selected');
+      setStatus('Uploading and processing files...');
+      const formData = new FormData();
+      formData.append('file1', file1!);
+      formData.append('file2', file2!);
+      const response = await fetch(`/api/scripts/${script}/execute`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setStatus(data.error || 'An error occurred');
+        setResults([]);
+        return;
       }
-      
-      const result = await executeComparison(scriptContent, content1, content2);
-      
-      setResults(result);
+      setResults(data.result);
       setStatus('Comparison complete!');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'An error occurred');
@@ -442,25 +113,8 @@ export default function MainPage({ user }: MainPageProps) {
     }
   };
 
-  const readExcelFile = (file: File): Promise<ArrayBuffer> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result;
-        if (result instanceof ArrayBuffer) {
-          resolve(result);
-        } else {
-          reject(new Error('Failed to read file as ArrayBuffer'));
-        }
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsArrayBuffer(file);
-    });
-  };
-
   const downloadResults = () => {
     if (results.length === 0) return;
-    
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet(results);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
@@ -501,7 +155,6 @@ export default function MainPage({ user }: MainPageProps) {
           </div>
         </div>
       </div>
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -534,7 +187,6 @@ export default function MainPage({ user }: MainPageProps) {
                 </button>
               </div>
             </div>
-
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-600">Upload Second File</label>
               <div 
@@ -565,13 +217,12 @@ export default function MainPage({ user }: MainPageProps) {
               </div>
             </div>
           </div>
-
           <div className="mt-6 max-w-xs">
             <label className="block text-sm font-medium text-gray-600 mb-2">Select Comparison Script</label>
             <select 
               value={script}
               onChange={(e) => {
-                setScript(e.target.value as ScriptKey | '');
+                setScript(e.target.value);
                 setStatus('');
               }}
               className={`block w-full rounded-md shadow-sm transition-colors duration-200 ${
@@ -581,19 +232,17 @@ export default function MainPage({ user }: MainPageProps) {
               } focus:border-emerald-500 focus:ring-emerald-500`}
             >
               <option value="">Select a script...</option>
-              <option value="run5">Main HUB vs Sales</option>
-              <option value="standardReconciliation">Standard Reconciliation (Payment Hub vs Sales Totals)</option>
-              <option value="claudeStandardReconciliation">Claude Standard Reconciliation</option>
+              {availableScripts.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
             </select>
           </div>
-
           {warning && (
             <div className="mt-4 p-3 rounded-md flex items-center gap-2 bg-yellow-50 text-yellow-700">
               <AlertCircle className="h-5 w-5" />
               <span className="text-sm font-medium">{warning}</span>
             </div>
           )}
-
           {status && (
             <div className={`mt-4 p-3 rounded-md flex items-center gap-2 ${
               status.includes('error') || status.includes('limit')
@@ -606,7 +255,6 @@ export default function MainPage({ user }: MainPageProps) {
               <span className="text-sm font-medium">{status}</span>
             </div>
           )}
-
           <div className="mt-6 flex gap-4">
             <button 
               type="button"
@@ -623,7 +271,6 @@ export default function MainPage({ user }: MainPageProps) {
               Clear Form
             </button>
           </div>
-
           {results.length > 0 && (
             <div className="mt-8 bg-white rounded-lg shadow-lg border border-gray-200">
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -657,7 +304,6 @@ export default function MainPage({ user }: MainPageProps) {
                         {row.map((cell, j) => {
                           const isNumber = typeof cell === 'number';
                           const isNegative = isNumber && cell < 0;
-                          
                           return (
                             <td
                               key={j}

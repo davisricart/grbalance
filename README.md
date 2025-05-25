@@ -14,14 +14,41 @@ A customizable web-based system for reconciling payment transactions between dif
 
 ```
 ├── scripts/
-│   ├── run5.js                    # Main reconciliation script
-│   ├── test-run5.js              # Test harness
+│   ├── standardReconciliation.js      # Main reconciliation script (standalone)
+│   ├── claudeStandardReconciliation.js # Claude AI version (standalone)
 │   └── clients/
-│       └── template/             # Template client configuration
-│           └── reconciliation.js # Core reconciliation logic
-├── src/                          # Frontend source code
-└── config/                       # Configuration files
+│       └── template/
+│           └── reconciliation.js      # Core reconciliation logic for template client
+├── src/                              # Frontend source code
+└── config/                           # Configuration files
 ```
+
+## Script Organization Standard
+
+All comparison scripts must be standalone `.js` files located in the `scripts` directory. No comparison logic should be embedded in React components. This ensures all business logic is modular, testable, and reusable.
+
+## Backend API
+
+A Node.js Express backend provides endpoints to:
+- List available scripts: `GET /api/scripts`
+- Execute a script: `POST /api/scripts/:scriptName/execute` (accepts two files: `file1` and `file2`)
+
+### Running the Backend
+
+1. Install dependencies:
+   ```bash
+   npm install express multer xlsx
+   ```
+2. Start the server:
+   ```bash
+   node server.js
+   ```
+   The API will be available at `http://localhost:3001` by default.
+
+## Frontend Integration
+
+- The frontend fetches the list of available scripts from the backend and allows the user to select and execute them with uploaded files.
+- Results are displayed in the UI and can be downloaded as Excel.
 
 ## Customization Points
 
