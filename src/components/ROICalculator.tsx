@@ -60,7 +60,7 @@ export default function ROICalculator() {
               onChange={(e) => setHoursPerWeek(parseInt(e.target.value))}
               className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               style={{
-                background: `linear-gradient(to right, #059669 0%, #059669 ${(hoursPerWeek / 20) * 100}%, #e5e7eb ${(hoursPerWeek / 20) * 100}%, #e5e7eb 100%)`
+                background: `linear-gradient(to right, #059669 0%, #059669 ${((hoursPerWeek - 1) / 19) * 100 + 2.5}%, #e5e7eb ${((hoursPerWeek - 1) / 19) * 100 + 2.5}%, #e5e7eb 100%)`
               }}
             />
             <div className="flex justify-between text-xs text-gray-500 mt-1">
