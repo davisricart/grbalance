@@ -10,10 +10,10 @@ export default function LandingPage() {
         {/* Hero Section */}
         <div className="text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Automated Payment Reconciliation: Save $8,400+ Annually & Reclaim 12 Hours Every Month
+            Custom Payment Reconciliation for Salons: Save $8,400+ Annually & Reclaim 12 Hours Every Month
           </h1>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Stop payment discrepancies between your business software and processors. Our tool ensures you never overpay fees again.
+            Stop payment discrepancies between your salon software and processors. Our custom-built solutions ensure you never overpay fees again.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
@@ -39,7 +39,7 @@ export default function LandingPage() {
             <Clock className="h-12 w-12 text-emerald-600 mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Save 12+ Hours Monthly</h3>
             <p className="text-gray-600">
-              Reduce manual reconciliation work by 85% with our automated matching system. Process thousands of transactions in minutes.
+              Reduce manual reconciliation work by 85% with our custom-built matching logic designed specifically for your salon. Process thousands of transactions in minutes.
             </p>
           </div>
           
@@ -55,7 +55,7 @@ export default function LandingPage() {
             <Shield className="h-12 w-12 text-emerald-600 mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">99.9% Accuracy</h3>
             <p className="text-gray-600">
-              Reduce reconciliation errors by 99.9% with our intelligent matching algorithm and automated verification.
+              Reduce reconciliation errors by 99.9% with our custom matching logic built for your specific data formats and automated verification.
             </p>
           </div>
         </div>
@@ -67,7 +67,7 @@ export default function LandingPage() {
               See How Much You Can Save
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              Book a free 30-minute demo. We'll analyze your current process and show you exactly how much time and money you can save.
+              Book a free 30-minute demo. We'll analyze your salon software and payment processors, then show you exactly how much time and money you can save.
             </p>
             <div className="space-y-6">
               <div className="flex items-center justify-center gap-3">
@@ -81,6 +81,10 @@ export default function LandingPage() {
               <div className="flex items-center justify-center gap-3">
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
                 <span className="text-gray-700">Live demo with your actual data</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <CheckCircle className="h-6 w-6 text-emerald-600" />
+                <span className="text-gray-700">Custom script consultation - We'll explain how we'd build your solution</span>
               </div>
             </div>
             <Link
@@ -98,7 +102,7 @@ export default function LandingPage() {
             Have Questions? We're Here to Help
           </h2>
           <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-            Our team is ready to answer any questions you have about our reconciliation tool and how it can benefit your business. We'd love to hear from you!
+            Our team is ready to answer any questions you have about our custom reconciliation solutions for salons and how they can benefit your business. We'd love to hear from you!
           </p>
           <Link
             to="/contact"
