@@ -13,7 +13,7 @@ export default function ROICalculator() {
   const annualTimeCost = hoursPerWeek * (hourlyRate || parseInt(customRate) || 0) * 52;
   const annualErrorCost = (monthlyErrorsCaught + monthlyErrorsMissed) * 12;
   const totalAnnualCost = annualTimeCost + annualErrorCost;
-  const professionalPlanCost = 348; // $29/month * 12
+  const professionalPlanCost = 348 + 497; // $845 Year 1
   const netSavings = totalAnnualCost - professionalPlanCost;
   const roiPercentage = totalAnnualCost > 0 ? Math.round((netSavings / professionalPlanCost) * 100) : 0;
 
@@ -178,7 +178,7 @@ export default function ROICalculator() {
                 <div className="border-t pt-3 mt-4">
                   <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
                     <span className="font-medium text-emerald-900">Our {suggestedPlan} Plan</span>
-                    <span className="font-semibold text-emerald-900">{formatCurrency(suggestedPlanCost)}/year</span>
+                    <span className="font-semibold text-emerald-900">{formatCurrency(348)}/year + $497 setup</span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-emerald-100 rounded-lg mt-2">
@@ -186,7 +186,7 @@ export default function ROICalculator() {
                       <DollarSign className="h-5 w-5 text-emerald-700" />
                       <span className="font-semibold text-emerald-900">Your Net Savings</span>
                     </div>
-                    <span className="font-bold text-xl text-emerald-900">{formatCurrency(Math.max(0, totalAnnualCost - suggestedPlanCost))}</span>
+                    <span className="font-bold text-xl text-emerald-900">{formatCurrency(Math.max(0, netSavings))}</span>
                   </div>
 
                   {roiPercentage > 0 && (
@@ -200,14 +200,14 @@ export default function ROICalculator() {
               {netSavings > 1000 && (
                 <div className="mt-6 text-center">
                   <p className="text-lg font-semibold text-gray-900 mb-4">
-                    Ready to save {formatCurrency(Math.max(0, totalAnnualCost - suggestedPlanCost))} this year?
+                    Ready to save {formatCurrency(Math.max(0, netSavings))} this year?
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
                     <button className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium">
                       Book Free Consultation
                     </button>
                     <button className="flex-1 bg-white text-emerald-600 border-2 border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors font-medium">
-                      Start Free Trial
+                      Try Sample Data Free
                     </button>
                   </div>
                 </div>

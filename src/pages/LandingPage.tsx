@@ -22,14 +22,14 @@ export default function LandingPage() {
               className="inline-flex items-center px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-lg font-medium"
             >
               <FileSpreadsheet className="mr-2 h-5 w-5" />
-              Start Free Trial
+              Try Demo Data Free
             </Link>
             <Link
               to="/book"
               className="inline-flex items-center px-8 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200 text-lg font-medium"
             >
               <Calendar className="mr-2 h-5 w-5" />
-              Schedule Demo
+              Book Consultation
             </Link>
           </div>
         </div>
@@ -59,6 +59,17 @@ export default function LandingPage() {
               Reduce reconciliation errors by 99.9% with our custom matching logic built for your specific data formats and automated verification.
             </p>
           </div>
+        </div>
+
+        {/* How It Works Section */}
+        <div className="mt-12 max-w-2xl mx-auto text-center">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">How It Works:</h3>
+          <ul className="text-gray-700 text-base space-y-1">
+            <li>✓ Try our system with realistic sample data (free)</li>
+            <li>✓ See exactly how reconciliation works for salons</li>
+            <li>✓ Ready to use your data? One-time $497 custom setup</li>
+            <li>✓ Start catching real discrepancies immediately</li>
+          </ul>
         </div>
 
         {/* ROI Calculator Section (replaces old demo/CTA) */}

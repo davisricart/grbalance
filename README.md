@@ -81,4 +81,19 @@ npm run build
 
 ## Support
 
-For template support or customization guidance, please contact the development team. 
+For template support or customization guidance, please contact the development team.
+
+## Security
+
+- **API keys and secrets are never committed to the repository.**
+  - All sensitive credentials are stored in `.env` files, which are gitignored.
+  - Sample config files only use placeholders, never real secrets.
+- **Firebase and other API keys are loaded via environment variables** (e.g., `import.meta.env.VITE_FIREBASE_API_KEY`).
+- **Admin credentials and scripts** use environment variables and are never exposed to the frontend or public repo.
+- **Security best practices:**
+  - Never commit real `.env` files or secrets.
+  - Review and enforce strict Firebase security rules.
+  - Keep all secret keys for third-party APIs (Stripe, Square, etc.) server-side only.
+  - Periodically audit the repo for accidental key leaks.
+
+**This section is a reminder to always follow these practices as the project evolves.** 
