@@ -96,4 +96,10 @@ For template support or customization guidance, please contact the development t
   - Keep all secret keys for third-party APIs (Stripe, Square, etc.) server-side only.
   - Periodically audit the repo for accidental key leaks.
 
-**This section is a reminder to always follow these practices as the project evolves.** 
+**This section is a reminder to always follow these practices as the project evolves.**
+
+## grbalance
+
+## Script Organization Standard
+
+All comparison scripts must be standalone `.js` files located in the `scripts` directory. No comparison logic should be embedded in React components. This ensures all business logic is modular, testable, and reusable. 
