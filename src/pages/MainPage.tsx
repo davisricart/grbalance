@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
 
-type ScriptKey = 'run5';
+type ScriptKey = 'run5' | 'hubVsSalesCustom';
 
 const SCRIPTS: Record<ScriptKey, string> = {
   run5: `
@@ -168,6 +168,171 @@ const SCRIPTS: Record<ScriptKey, string> = {
           [error instanceof Error ? error.message : String(error)]
         ];
       }
+    }
+  `,
+  hubVsSalesCustom: `
+    function compareAndDisplayData(XLSX, file1, file2) {
+      // --- Step 1: Process Payment Hub File ---
+      const workbook1 = XLSX.read(file1, { cellDates: true });
+      const sheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
+      const data1 = XLSX.utils.sheet_to_json(sheet1, { defval: '' });
+      
+      // Columns to keep from Payment Hub
+      const hubColumns = [
+        "Date", "Transaction Source", "Transaction Type", "Account Number", "DBA", "Invoice", "Auth", "BRIC", "Sold By", "Customer Name", "Total Transaction Amount", "Payment Amount", "Authorized Amount", "Tip", "$ Discount", "% Discount", "$ Tax", "Cash Discounting Amount", "State Tax", "County Tax", "City Tax", "Custom Tax", "Payment Type", "Card Brand", "First 6", "Last 4", "Comment"
+      ];
+      // Key columns for analysis
+      const keyHubCols = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand"];
+      
+      // --- Step 2: Process Sales Totals File ---
+      const workbook2 = XLSX.read(file2, { cellDates: true });
+      const sheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
+      const data2 = XLSX.utils.sheet_to_json(sheet2, { defval: '' });
+      
+      // Find required columns in Sales Totals
+      const salesCols = {
+        date: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('date')) || 'Date Closed',
+        name: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('name')) || 'Name',
+        amount: Object.keys(data2[0] || {}).find(k => k.toLowerCase().includes('amount')) || 'Amount',
+      };
+      
+      // Clean and prepare Payment Hub data
+      const hubRows = data1.map(row => {
+        // Format date
+        let date = row["Date"];
+        if (date instanceof Date) {
+          date = `${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}/${date.getFullYear()}`;
+        } else if (typeof date === 'string' && date) {
+          const d = new Date(date);
+          if (!isNaN(d)) date = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+        }
+        // Calculate Total (-) Fee
+        const total = parseFloat(row["Total Transaction Amount"]) || 0;
+        const discount = parseFloat(row["Cash Discounting Amount"]) || 0;
+        const totalMinusFee = +(total - discount).toFixed(2);
+        return {
+          date,
+          customer: row["Customer Name"] || '',
+          total: +(+total).toFixed(2),
+          discount: +(+discount).toFixed(2),
+          brand: row["Card Brand"] || '',
+          totalMinusFee,
+        };
+      });
+      // Clean and prepare Sales Totals data
+      const salesRows = data2.map(row => {
+        // Format date
+        let date = row[salesCols.date];
+        if (date instanceof Date) {
+          date = `${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}/${date.getFullYear()}`;
+        } else if (typeof date === 'string' && date) {
+          const d = new Date(date);
+          if (!isNaN(d)) date = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+        }
+        // Clean amount
+        let amount = row[salesCols.amount];
+        if (typeof amount === 'string') amount = amount.replace(/[^\d.-]/g, '');
+        amount = parseFloat(amount) || 0;
+        return {
+          date,
+          name: row[salesCols.name] || '',
+          amount: +(+amount).toFixed(2),
+        };
+      });
+      // --- Step 3: First Matching Process (Count) ---
+      function matchRows(hub, sales) {
+        return sales.filter(s => {
+          // Date match
+          if (hub.date !== s.date) return false;
+          // Name match (case-insensitive, partial)
+          const hubBrand = (hub.brand || '').toLowerCase();
+          const salesName = (s.name || '').toLowerCase();
+          if (!(hubBrand.includes(salesName) || salesName.includes(hubBrand))) return false;
+          // Amount match (within 1 cent)
+          if (Math.abs(hub.totalMinusFee - s.amount) > 0.01) return false;
+          return true;
+        });
+      }
+      function matchRowsReverse(sale, hubs) {
+        return hubs.filter(hub => {
+          if (hub.date !== sale.date) return false;
+          const hubBrand = (hub.brand || '').toLowerCase();
+          const salesName = (sale.name || '').toLowerCase();
+          if (!(hubBrand.includes(salesName) || salesName.includes(hubBrand))) return false;
+          if (Math.abs(hub.totalMinusFee - sale.amount) > 0.01) return false;
+          return true;
+        });
+      }
+      // Add Count to hubRows
+      hubRows.forEach(hub => {
+        hub.count = matchRows(hub, salesRows).length;
+      });
+      // Add Count2 to salesRows
+      salesRows.forEach(sale => {
+        sale.count2 = matchRowsReverse(sale, hubRows).length;
+      });
+      // --- Step 5: Final Count Calculation ---
+      hubRows.forEach(hub => {
+        const matches = matchRows(hub, salesRows).filter(sale => sale.count2 === hub.count);
+        hub.finalCount = matches.length;
+      });
+      // --- Step 6: Filter Unmatched Transactions ---
+      const unmatched = hubRows.filter(hub => hub.finalCount === 0);
+      // --- Step 7: Prepare Output Table ---
+      const output = [];
+      // Headers
+      output.push(["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand", "Total (-) Fee"]);
+      // Data rows
+      unmatched.forEach(row => {
+        output.push([
+          row.date,
+          row.customer,
+          row.total,
+          row.discount,
+          row.brand,
+          row.totalMinusFee
+        ]);
+      });
+      // Two blank separator rows
+      output.push(["", "", "", "", "", ""]);
+      output.push(["", "", "", "", "", ""]);
+      // --- Step 8: Card Brand Summary ---
+      // Group Payment Hub by Card Brand
+      const hubBrandTotals = {};
+      hubRows.forEach(row => {
+        const brand = row.brand || '';
+        if (!brand.toLowerCase().includes('cash')) {
+          hubBrandTotals[brand] = (hubBrandTotals[brand] || 0) + row.totalMinusFee;
+        }
+      });
+      // Group Sales Totals by Name (map to card brands)
+      const salesBrandTotals = {};
+      salesRows.forEach(row => {
+        const name = row.name || '';
+        if (!name.toLowerCase().includes('cash')) {
+          salesBrandTotals[name] = (salesBrandTotals[name] || 0) + row.amount;
+        }
+      });
+      // Unique brands
+      const allBrands = Array.from(new Set([
+        ...Object.keys(hubBrandTotals),
+        ...Object.keys(salesBrandTotals)
+      ])).filter(b => b);
+      // Card brand summary header
+      output.push(["Card Brand", "Hub Report", "Sales Report", "Difference"]);
+      // Card brand summary rows
+      allBrands.forEach(brand => {
+        const hubTotal = +(hubBrandTotals[brand] || 0).toFixed(2);
+        const salesTotal = +(salesBrandTotals[brand] || 0).toFixed(2);
+        const diff = +(hubTotal - salesTotal).toFixed(2);
+        output.push([
+          brand,
+          hubTotal,
+          salesTotal,
+          diff
+        ]);
+      });
+      return output;
     }
   `
 };
@@ -428,6 +593,7 @@ export default function MainPage({ user }: MainPageProps) {
             >
               <option value="">Select a script...</option>
               <option value="run5">Main HUB vs Sales</option>
+              <option value="hubVsSalesCustom">Payment Hub vs Sales Totals Custom</option>
             </select>
           </div>
 

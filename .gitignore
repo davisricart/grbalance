@@ -26,3 +26,6 @@ dist-ssr
 # Environment variables
 .env
 .env.*
+
+# Ignore local sample data
+sample-data/
