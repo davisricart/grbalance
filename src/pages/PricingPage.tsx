@@ -1,5 +1,6 @@
 // PAGE MARKER: Pricing Page Component
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { Check, Zap, DollarSign, Clock, Shield, Star } from 'lucide-react';
 
@@ -88,6 +89,19 @@ export default function PricingPage() {
 
   return (
     <div className="py-16 sm:py-24">
+      <Helmet>
+        <title>Stop Losing Money on Payment Processing Errors | GR Balance</title>
+        <meta name="description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
+        <meta property="og:title" content="Stop Losing Money on Payment Processing Errors" />
+        <meta property="og:description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
+        <meta property="og:url" content="https://grbalance.netlify.app/pricing" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://grbalance.netlify.app/your-social-image.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Stop Losing Money on Payment Processing Errors" />
+        <meta name="twitter:description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
+        <meta name="twitter:image" content="https://grbalance.netlify.app/your-social-image.png" />
+      </Helmet>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
