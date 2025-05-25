@@ -263,19 +263,19 @@ export default function PricingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div className="bg-white rounded-lg p-6">
-              <div className="text-2xl font-bold text-emerald-600">$550</div>
-              <div className="text-sm text-gray-600">Net annual savings after setup fee</div>
-              <div className="text-xs text-gray-500 mt-1">From catching processing fee errors</div>
+              <div className="text-2xl font-bold text-emerald-600">$900</div>
+              <div className="text-sm text-gray-600">Minimum annual error savings</div>
+              <div className="text-xs text-gray-500">Even conservative salons save $75+ monthly</div>
             </div>
             <div className="bg-white rounded-lg p-6">
               <div className="text-2xl font-bold text-emerald-600">12 hours</div>
               <div className="text-sm text-gray-600">Saved monthly on reconciliation</div>
-              <div className="text-xs text-gray-500 mt-1">No more manual spreadsheet matching</div>
+              <div className="text-xs text-gray-500">Worth $3,600+ annually in staff time</div>
             </div>
             <div className="bg-white rounded-lg p-6">
-              <div className="text-2xl font-bold text-emerald-600">$240</div>
-              <div className="text-sm text-gray-600">Saved on bookkeeping costs</div>
-              <div className="text-xs text-gray-500 mt-1">Less time = lower accounting bills</div>
+              <div className="text-2xl font-bold text-emerald-600">$400</div>
+              <div className="text-sm text-gray-600">Reduced accounting costs</div>
+              <div className="text-xs text-gray-500">Less manual work = lower professional fees</div>
             </div>
           </div>
         </div>
