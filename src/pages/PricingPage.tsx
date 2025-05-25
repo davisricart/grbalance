@@ -19,7 +19,7 @@ export default function PricingPage() {
       popular: false,
       features: [
         '50 file comparisons per month',
-        '1 custom reconciliation script',
+        '1 custom-built reconciliation script',
         'DaySmart & processor file support',
         'Excel report downloads',
         'Email support',
@@ -38,12 +38,12 @@ export default function PricingPage() {
       popular: true,
       features: [
         '75 file comparisons per month',
-        '2 custom reconciliation scripts',
+        '2 custom-built reconciliation scripts',
         'DaySmart & processor file support',
         'Excel report downloads',
         'Priority email support',
         'Processing fee validation',
-        'Custom matching rules'
+        'Tailored matching rules for your business'
       ]
     },
     {
@@ -57,14 +57,14 @@ export default function PricingPage() {
       popular: false,
       features: [
         '150 file comparisons per month',
-        '3 custom reconciliation scripts',
+        '3 custom-built reconciliation scripts',
         'DaySmart & processor file support',
         'Excel report downloads',
         'Priority email support',
         'Processing fee validation',
-        'Custom matching rules',
+        'Tailored matching rules for your business',
         'Phone support',
-        'Custom implementation assistance'
+        'Personal consultation and setup'
       ]
     }
   ];
@@ -73,17 +73,17 @@ export default function PricingPage() {
     {
       icon: Clock,
       title: '12 hours saved monthly',
-      description: 'Eliminate manual reconciliation work that costs $200+ in staff time'
+      description: 'Save time every month with automation'
     },
     {
       icon: DollarSign,
-      title: '$847 Average annual savings',
-      description: 'Identify fee discrepancies that could cost thousands yearly'
+      title: 'Custom matching logic',
+      description: 'Built specifically for your data formats'
     },
     {
       icon: Shield,
-      title: 'Risk-Free Trial',
-      description: '14-day free trial - no credit card required'
+      title: 'Expert consultation',
+      description: 'We analyze your setup and build your solution'
     }
   ];
 
@@ -108,7 +108,7 @@ export default function PricingPage() {
             Stop Losing Money on Payment Processing Errors
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Automated reconciliation for DaySmart, Square, Stripe & salon software
+            Custom reconciliation solutions built for your salon's specific setup
           </p>
         </div>
 
@@ -286,7 +286,7 @@ export default function PricingPage() {
                 What are custom reconciliation scripts?
               </dt>
               <dd className="mt-2 text-base leading-7 text-gray-600">
-                Custom scripts define how your specific DaySmart data matches with your processor's format. Each processor has different column names and data formats, so we create scripts tailored to your setup.
+                We analyze your specific salon software and payment processor formats, then build custom matching logic tailored to your exact data structure. Each script is built from scratch for your unique setup - not a one-size-fits-all solution.
               </dd>
             </div>
             <div className="text-left">
@@ -311,6 +311,14 @@ export default function PricingPage() {
               </dt>
               <dd className="mt-2 text-base leading-7 text-gray-600">
                 We build custom scripts for each client's specific setup. If your processor is new to us, we'll create a tailored solution during your trial period.
+              </dd>
+            </div>
+            <div className="text-left">
+              <dt className="text-base font-semibold leading-7 text-gray-900">
+                Do I need to understand the technical details?
+              </dt>
+              <dd className="mt-2 text-base leading-7 text-gray-600">
+                Not at all. We handle all the technical complexity. You simply upload your reports, and our custom-built scripts do the matching work we designed specifically for your business.
               </dd>
             </div>
           </dl>
