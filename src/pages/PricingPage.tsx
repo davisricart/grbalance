@@ -191,29 +191,31 @@ export default function PricingPage() {
                 {plan.description}
               </p>
               
-              <div className="mt-6">
-                <div className="flex items-baseline gap-x-2">
-                  <span className="text-4xl font-bold tracking-tight">
-                    ${isAnnual ? plan.annualPrice.toFixed(0) : plan.monthlyPrice}
-                  </span>
-                  <span className="text-sm font-semibold leading-6">
-                    /month
-                  </span>
-                  {plan.originalPrice && !isAnnual && (
-                    <span className="text-lg text-gray-400 line-through">
-                      ${plan.originalPrice}
-                    </span>
-                  )}
-                </div>
-                {isAnnual && (
-                  <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
-                    Billed annually (${(plan.annualPrice * 12).toFixed(0)}/year)
-                  </p>
+              <div className="flex items-baseline gap-x-2 mt-4">
+                <span className="text-4xl font-bold tracking-tight">
+                  ${isAnnual ? plan.annualPrice.toFixed(0) : plan.monthlyPrice}
+                </span>
+                <span className="text-sm font-semibold leading-6">/month</span>
+                {plan.originalPrice && !isAnnual && (
+                  <span className="text-lg text-gray-400 line-through">${plan.originalPrice}</span>
                 )}
-                <p className="mt-2 text-sm font-medium text-emerald-600">
-                  {plan.savings}
-                </p>
               </div>
+              <div className="text-sm text-emerald-700 font-semibold mt-1">
+                + $497 one-time custom setup
+              </div>
+              {isAnnual && (
+                <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Billed annually (${(plan.annualPrice * 12).toFixed(0)}/year + $497 setup = ${(plan.annualPrice * 12 + 497).toFixed(0)} Year 1, save $70)
+                </p>
+              )}
+              {!isAnnual && (
+                <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
+                  Year 1: ${(plan.monthlyPrice * 12 + 497).toFixed(0)} (includes setup)
+                </p>
+              )}
+              <p className="mt-2 text-sm font-medium text-emerald-600">
+                {plan.savings}
+              </p>
               
               <Link
                 to="/app"
@@ -223,10 +225,10 @@ export default function PricingPage() {
                     : 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-emerald-600'
                 }`}
               >
-                Start free trial
+                Try Sample Data Free
               </Link>
               
-              <ul role="list" className="mt-8 space-y-3 text-sm leading-6">
+              <ul className="mt-8 space-y-3 text-sm leading-6">
                 {plan.features.map((feature) => (
                   <li key={feature} className="flex gap-x-3">
                     <Check
@@ -243,6 +245,17 @@ export default function PricingPage() {
           ))}
         </div>
 
+        {/* After software compatibility line */}
+        <div className="mt-8 max-w-2xl mx-auto text-center">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">How It Works:</h3>
+          <ul className="text-gray-700 text-base space-y-1">
+            <li>✓ Try our system with realistic sample data (free)</li>
+            <li>✓ See exactly how reconciliation works for salons</li>
+            <li>✓ Ready to use your data? One-time $497 custom setup</li>
+            <li>✓ Start catching real discrepancies immediately</li>
+          </ul>
+        </div>
+
         {/* ROI Calculator Preview */}
         <div className="mx-auto mt-16 max-w-4xl bg-emerald-50 rounded-2xl p-8">
           <h2 className="text-2xl font-bold text-center text-gray-900 mb-6">
@@ -250,8 +263,8 @@ export default function PricingPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div className="bg-white rounded-lg p-6">
-              <div className="text-2xl font-bold text-emerald-600">$847</div>
-              <div className="text-sm text-gray-600">Average annual savings</div>
+              <div className="text-2xl font-bold text-emerald-600">$550</div>
+              <div className="text-sm text-gray-600">Net annual savings after setup fee</div>
               <div className="text-xs text-gray-500 mt-1">From catching processing fee errors</div>
             </div>
             <div className="bg-white rounded-lg p-6">
@@ -319,6 +332,22 @@ export default function PricingPage() {
               </dt>
               <dd className="mt-2 text-base leading-7 text-gray-600">
                 Not at all. We handle all the technical complexity. You simply upload your reports, and our custom-built scripts do the matching work we designed specifically for your business.
+              </dd>
+            </div>
+            <div className="text-left">
+              <dt className="text-base font-semibold leading-7 text-gray-900">
+                What does the setup fee include?
+              </dt>
+              <dd className="mt-2 text-base leading-7 text-gray-600">
+                The one-time $497 setup fee covers our expert analysis of your salon software and payment processor formats, custom script development tailored to your specific data structure, testing and validation, and implementation support. This ensures your reconciliation works perfectly from day one.
+              </dd>
+            </div>
+            <div className="text-left">
+              <dt className="text-base font-semibold leading-7 text-gray-900">
+                How does the free trial work?
+              </dt>
+              <dd className="mt-2 text-base leading-7 text-gray-600">
+                Start by trying our system with realistic sample salon data - no setup required. You'll see exactly how reconciliation works and what results to expect. When you're ready to process your actual data, we'll build your custom solution for a one-time setup fee.
               </dd>
             </div>
           </dl>
