@@ -111,16 +111,6 @@ export default function PricingPage() {
             Automated reconciliation for DaySmart, Square, Stripe & salon software
           </p>
         </div>
-        {/* Social Proof Section */}
-        <div className="flex flex-col items-center mt-8 mb-8">
-          <span className="text-gray-700 font-medium mb-2">Trusted by salons using:</span>
-          <div className="flex gap-4">
-            <img src="/logos/daysmart.png" alt="DaySmart" className="h-8" />
-            <img src="/logos/square.png" alt="Square" className="h-8" />
-            <img src="/logos/stripe.png" alt="Stripe" className="h-8" />
-            <img src="/logos/paymentcloud.png" alt="PaymentCloud" className="h-8" />
-          </div>
-        </div>
 
         {/* Annual/Monthly Toggle */}
         <div className="mt-12 flex justify-center">
