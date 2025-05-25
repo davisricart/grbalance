@@ -31,7 +31,7 @@ export default function PricingPage() {
       monthlyPrice: 29,
       annualPrice: 23.2, // 20% off
       originalPrice: 35, // Strikethrough price
-      description: 'Most popular for growing salons',
+      description: 'Most chosen - saves $1,200+ yearly',
       savings: 'Save $1,200+ annually',
       comparisons: 75,
       scripts: 2,
