@@ -59,7 +59,7 @@ const SCRIPTS: Record<ScriptKey, string> = {
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
-                filteredRow.push(\`\${month}/\${day}/\${year}\`);
+                filteredRow.push(\${month}/\${day}/\${year}\`);
               } else {
                 filteredRow.push(row[column] !== undefined ? row[column] : "");
                 if (row[column]) {
@@ -190,10 +190,10 @@ const SCRIPTS: Record<ScriptKey, string> = {
       const hubRows = data1.map(row => {
         let date = row["Date"];
         if (date instanceof Date) {
-          date = `${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}/${date.getFullYear()}`;
+          date = \`\${(date.getMonth()+1).toString().padStart(2,'0')}/\${date.getDate().toString().padStart(2,'0')}/\${date.getFullYear()}\`;
         } else if (typeof date === 'string' && date) {
           const d = new Date(date);
-          if (!isNaN(d)) date = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+          if (!isNaN(d)) date = \`\${(d.getMonth()+1).toString().padStart(2,'0')}/\${d.getDate().toString().padStart(2,'0')}/\${d.getFullYear()}\`;
         }
         const total = parseFloat(row["Total Transaction Amount"]) || 0;
         const discount = parseFloat(row["Cash Discounting Amount"]) || 0;
@@ -211,10 +211,10 @@ const SCRIPTS: Record<ScriptKey, string> = {
       const salesRows = data2.map(row => {
         let date = row[salesCols.date];
         if (date instanceof Date) {
-          date = `${(date.getMonth()+1).toString().padStart(2,'0')}/${date.getDate().toString().padStart(2,'0')}/${date.getFullYear()}`;
+          date = \`\${(date.getMonth()+1).toString().padStart(2,'0')}/\${date.getDate().toString().padStart(2,'0')}/\${date.getFullYear()}\`;
         } else if (typeof date === 'string' && date) {
           const d = new Date(date);
-          if (!isNaN(d)) date = `${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getDate().toString().padStart(2,'0')}/${d.getFullYear()}`;
+          if (!isNaN(d)) date = \`\${(d.getMonth()+1).toString().padStart(2,'0')}/\${d.getDate().toString().padStart(2,'0')}/\${d.getFullYear()}\`;
         }
         let amount = row[salesCols.amount];
         if (typeof amount === 'string') amount = amount.replace(/[^\d.-]/g, '');
