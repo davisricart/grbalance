@@ -58,7 +58,7 @@ export default function ROICalculator() {
               max="20"
               value={hoursPerWeek}
               onChange={(e) => setHoursPerWeek(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               style={{
                 background: `linear-gradient(to right, #059669 0%, #059669 ${(hoursPerWeek / 20) * 100}%, #e5e7eb ${(hoursPerWeek / 20) * 100}%, #e5e7eb 100%)`
               }}
@@ -111,7 +111,7 @@ export default function ROICalculator() {
               step="50"
               value={monthlyErrorsCaught}
               onChange={(e) => setMonthlyErrorsCaught(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               style={{
                 background: `linear-gradient(to right, #059669 0%, #059669 ${(monthlyErrorsCaught / 2000) * 100}%, #e5e7eb ${(monthlyErrorsCaught / 2000) * 100}%, #e5e7eb 100%)`
               }}
@@ -133,7 +133,7 @@ export default function ROICalculator() {
               step="25"
               value={monthlyErrorsMissed}
               onChange={(e) => setMonthlyErrorsMissed(parseInt(e.target.value))}
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
               style={{
                 background: `linear-gradient(to right, #dc2626 0%, #dc2626 ${(monthlyErrorsMissed / 1000) * 100}%, #e5e7eb ${(monthlyErrorsMissed / 1000) * 100}%, #e5e7eb 100%)`
               }}
@@ -225,6 +225,9 @@ export default function ROICalculator() {
           border-radius: 50%;
           background: #059669;
           cursor: pointer;
+          outline: none;
+          border: 2px solid white;
+          box-shadow: 0 0 2px #059669;
         }
         .slider::-moz-range-thumb {
           height: 20px;
@@ -232,7 +235,14 @@ export default function ROICalculator() {
           border-radius: 50%;
           background: #059669;
           cursor: pointer;
-          border: none;
+          border: 2px solid white;
+          outline: none;
+          box-shadow: 0 0 2px #059669;
+        }
+        .slider {
+          height: 12px;
+          outline: none;
+          border-radius: 6px;
         }
       `}</style>
     </div>
