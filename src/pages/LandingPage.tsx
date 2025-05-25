@@ -80,7 +80,7 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center justify-center gap-3">
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
-                <span className="text-gray-700">Live demo with your actual data</span>
+                <span className="text-gray-700">Custom solution walkthrough - We'll show you how we'd build your specific reconciliation script</span>
               </div>
               <div className="flex items-center justify-center gap-3">
                 <CheckCircle className="h-6 w-6 text-emerald-600" />
