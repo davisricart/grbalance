@@ -3,55 +3,59 @@ import React, { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../main';
-import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check } from 'lucide-react';
+import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import clientConfig from '../config/client';
 
 const TIER_LIMITS = {
-  basic: 50,
-  premium: 100,
-  enterprise: 250
+  starter: 50,
+  professional: 75,
+  business: 150
 };
 
 const SUBSCRIPTION_TIERS = [
   {
-    name: 'Basic',
+    name: 'Starter',
     price: '19',
-    comparisons: TIER_LIMITS.basic,
+    comparisons: TIER_LIMITS.starter,
     features: [
-      '50 comparisons per month',
-      '1 custom reconciliation script',
-      'CSV & Excel file support',
-      'Download results as Excel',
-      'Email support'
+      '50 file comparisons per month',
+      '1 custom-built reconciliation script',
+      'DaySmart & processor file support',
+      'Excel report downloads',
+      'Email support',
+      'Processing fee validation'
     ]
   },
   {
-    name: 'Premium',
-    price: '35',
-    comparisons: TIER_LIMITS.premium,
+    name: 'Professional',
+    price: '29',
+    comparisons: TIER_LIMITS.professional,
+    popular: true,
     features: [
-      '100 comparisons per month',
-      '2 custom reconciliation scripts',
-      'CSV & Excel file support',
-      'Download results as Excel',
+      '75 file comparisons per month',
+      '2 custom-built reconciliation scripts',
+      'DaySmart & processor file support',
+      'Excel report downloads',
       'Priority email support',
-      'Advanced data matching'
+      'Processing fee validation',
+      'Tailored matching rules for your business'
     ]
   },
   {
-    name: 'Enterprise',
-    price: '65',
-    comparisons: TIER_LIMITS.enterprise,
+    name: 'Business',
+    price: '49',
+    comparisons: TIER_LIMITS.business,
     features: [
-      '250 comparisons per month',
-      '4 custom reconciliation scripts',
-      'CSV & Excel file support',
-      'Download results as Excel',
+      '150 file comparisons per month',
+      '3 custom-built reconciliation scripts',
+      'DaySmart & processor file support',
+      'Excel report downloads',
       'Priority email support',
-      'Advanced data matching',
-      'Dedicated account manager',
-      'Custom implementation support'
+      'Processing fee validation',
+      'Tailored matching rules for your business',
+      'Phone support',
+      'Personal consultation and setup'
     ]
   }
 ];
@@ -78,7 +82,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedTier, setSelectedTier] = useState('basic');
+  const [selectedTier, setSelectedTier] = useState('professional');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isHuman, setIsHuman] = useState(false);
@@ -179,12 +183,20 @@ export default function RegisterPage() {
           {SUBSCRIPTION_TIERS.map((tier) => (
             <div
               key={tier.name.toLowerCase()}
-              className={`rounded-2xl p-8 ${
+              className={`rounded-2xl p-8 relative ${
                 selectedTier === tier.name.toLowerCase()
                   ? 'ring-2 ring-emerald-600 bg-emerald-50'
                   : 'bg-white'
               } border border-gray-200 shadow-sm transition-all duration-200 hover:shadow-md`}
             >
+              {tier.popular && (
+                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-4 py-1 text-xs font-medium text-white">
+                    <Star className="h-3 w-3" />
+                    Most Popular
+                  </span>
+                </div>
+              )}
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">{tier.name}</h3>

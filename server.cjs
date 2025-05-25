@@ -27,9 +27,9 @@ app.post('/api/scripts/:scriptName/execute', upload.fields([{ name: 'file1' }, {
   if (!fs.existsSync(scriptPath)) return res.status(404).json({ error: 'Script not found' });
 
   try {
-    // Clear require cache for hot-reloading during dev
-    delete require.cache[require.resolve(scriptPath)];
-    const script = require(scriptPath);
+    // Use dynamic import for ES modules
+    const scriptModule = await import(`file://${scriptPath}?t=${Date.now()}`);
+    const script = scriptModule.default;
     const XLSX = require('xlsx');
     const file1 = req.files['file1']?.[0]?.buffer;
     const file2 = req.files['file2']?.[0]?.buffer;

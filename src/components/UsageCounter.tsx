@@ -5,14 +5,14 @@ import { db, auth } from '../main';
 interface UsageData {
   comparisonsUsed: number;
   comparisonsLimit: number;
-  subscriptionTier: 'basic' | 'premium' | 'enterprise';
+  subscriptionTier: 'starter' | 'professional' | 'business';
   email?: string;
 }
 
 const TIER_LIMITS = {
-  basic: 50,
-  premium: 100,
-  enterprise: 250
+  starter: 50,
+  professional: 75,
+  business: 150
 };
 
 export default function UsageCounter() {
@@ -26,23 +26,49 @@ export default function UsageCounter() {
     const unsubscribe = onSnapshot(userDoc, 
       async (docSnapshot) => {
         if (docSnapshot.exists()) {
-          const data = docSnapshot.data() as UsageData;
-          // Ensure limit matches current tier
-          const tierLimit = TIER_LIMITS[data.subscriptionTier];
-          if (data.comparisonsLimit !== tierLimit) {
-            await setDoc(userDoc, {
-              ...data,
-              comparisonsLimit: tierLimit,
-              email: auth.currentUser?.email // Ensure email is set
-            }, { merge: true });
+          const data = docSnapshot.data() as any; // Use any to handle old tier names
+          
+          // Migration logic: Convert old tier names to new ones
+          let migratedTier = data.subscriptionTier;
+          let migratedLimit = data.comparisonsLimit;
+          
+          // Map old tier names to new ones
+          if (data.subscriptionTier === 'basic') {
+            migratedTier = 'starter';
+            migratedLimit = TIER_LIMITS.starter;
+          } else if (data.subscriptionTier === 'premium') {
+            migratedTier = 'professional';
+            migratedLimit = TIER_LIMITS.professional;
+          } else if (data.subscriptionTier === 'enterprise') {
+            migratedTier = 'business';
+            migratedLimit = TIER_LIMITS.business;
           }
-          setUsage(data);
+          
+          // Update if migration is needed or limits don't match
+          const needsUpdate = 
+            data.subscriptionTier !== migratedTier || 
+            data.comparisonsLimit !== migratedLimit ||
+            !data.email;
+            
+          if (needsUpdate) {
+            const updatedData = {
+              ...data,
+              subscriptionTier: migratedTier,
+              comparisonsLimit: migratedLimit,
+              email: auth.currentUser?.email || data.email
+            };
+            
+            await setDoc(userDoc, updatedData, { merge: true });
+            setUsage(updatedData as UsageData);
+          } else {
+            setUsage(data as UsageData);
+          }
         } else {
           const initialData: UsageData = {
-            email: auth.currentUser?.email,
+            email: auth.currentUser?.email || undefined,
             comparisonsUsed: 0,
-            comparisonsLimit: TIER_LIMITS.basic,
-            subscriptionTier: 'basic'
+            comparisonsLimit: TIER_LIMITS.starter,
+            subscriptionTier: 'starter'
           };
           
           await setDoc(userDoc, initialData);
@@ -69,11 +95,11 @@ export default function UsageCounter() {
       <div className={`text-sm font-medium ${
         isNearLimit ? 'text-yellow-700' : 'text-gray-700'
       }`}>
-        ({usage.comparisonsUsed}/{usage.comparisonsLimit} uses)
+        Monthly Usage: {usage.comparisonsUsed}/{usage.comparisonsLimit}
       </div>
       <div className="text-xs text-gray-500">
         {usage.subscriptionTier.charAt(0).toUpperCase() + usage.subscriptionTier.slice(1)} Plan
       </div>
     </div>
   );
-}
+} 

@@ -6,6 +6,7 @@ import { doc, runTransaction } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
+import UsageCounter from '../components/UsageCounter';
 
 interface MainPageProps {
   user: User;
@@ -72,26 +73,33 @@ export default function MainPage({ user }: MainPageProps) {
       return;
     }
     try {
-      // Check and update usage limits
+      // Check and update monthly usage limits (no daily restrictions)
       const usageRef = doc(db, 'usage', user.uid);
+      
       await runTransaction(db, async (transaction) => {
         const usageDoc = await transaction.get(usageRef);
         const userData = usageDoc.data();
+        
         if (!userData) {
           throw new Error('Usage data not found');
         }
+
+        // Check if near monthly limit (80% or more)
         const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
         if (usagePercentage >= 80) {
-          setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
+          setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} monthly comparisons (${Math.round(usagePercentage)}%)`);
         }
+
         if (userData.comparisonsUsed >= userData.comparisonsLimit) {
           throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
         }
+
         transaction.update(usageRef, {
           comparisonsUsed: userData.comparisonsUsed + 1
         });
       });
-      setStatus('Uploading and processing files...');
+
+      setStatus('Processing files...');
       const formData = new FormData();
       formData.append('file1', file1!);
       formData.append('file2', file2!);
@@ -143,7 +151,10 @@ export default function MainPage({ user }: MainPageProps) {
                   {user.email?.[0].toUpperCase() || 'U'}
                 </span>
               </div>
-              <span className="text-gray-700">{user.email}</span>
+              <div className="flex flex-col">
+                <span className="text-gray-700">{user.email}</span>
+                <UsageCounter />
+              </div>
             </div>
             <button
               onClick={handleSignOut}

@@ -367,4 +367,4 @@ function standardReconciliation(XLSX, file1, file2) {
     return filteredResults;
 }
 
-module.exports = standardReconciliation; 
+export default standardReconciliation; 
