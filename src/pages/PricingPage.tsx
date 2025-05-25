@@ -72,12 +72,12 @@ export default function PricingPage() {
   const benefits = [
     {
       icon: Clock,
-      title: 'Save 8+ Hours Monthly',
+      title: '12 hours saved monthly',
       description: 'Eliminate manual reconciliation work that costs $200+ in staff time'
     },
     {
       icon: DollarSign,
-      title: 'Catch Processing Errors',
+      title: '$847 Average annual savings',
       description: 'Identify fee discrepancies that could cost thousands yearly'
     },
     {
@@ -110,6 +110,16 @@ export default function PricingPage() {
           <p className="mt-6 text-lg leading-8 text-gray-600">
             Automated reconciliation for DaySmart, Square, Stripe & salon software
           </p>
+        </div>
+        {/* Social Proof Section */}
+        <div className="flex flex-col items-center mt-8 mb-8">
+          <span className="text-gray-700 font-medium mb-2">Trusted by salons using:</span>
+          <div className="flex gap-4">
+            <img src="/logos/daysmart.png" alt="DaySmart" className="h-8" />
+            <img src="/logos/square.png" alt="Square" className="h-8" />
+            <img src="/logos/stripe.png" alt="Stripe" className="h-8" />
+            <img src="/logos/paymentcloud.png" alt="PaymentCloud" className="h-8" />
+          </div>
         </div>
 
         {/* Annual/Monthly Toggle */}
@@ -269,7 +279,7 @@ export default function PricingPage() {
                 What is a "file comparison"?
               </dt>
               <dd className="mt-2 text-base leading-7 text-gray-600">
-                One comparison = uploading your DaySmart report and processor report for a specific time period (usually daily or weekly). The system matches transactions and identifies discrepancies.
+                One comparison = uploading your salon software report (DaySmart, Square, etc.) and your processor report for a specific time period. The system matches transactions and identifies discrepancies.
               </dd>
             </div>
             <div className="text-left">
