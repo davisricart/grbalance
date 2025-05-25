@@ -318,9 +318,10 @@ const SCRIPTS: Record<ScriptKey, string> = {
         if (!(date instanceof Date) || isNaN(date)) {
           return '';
         }
-        return \`${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}\`;
+        return '\${date.getFullYear()}-\${String(date.getMonth() + 1).padStart(2, '0')}-\${String(date.getDate()).padStart(2, '0')}';
       }
-      // ... (Paste the full logic from claudeStandardReconciliation.js here, with all template literals escaped as \${...}) ...
+      // (Paste the full logic from claudeStandardReconciliation.js here, with all template literals escaped as \${...})
+      // ...
     }
   `
 };
