@@ -172,6 +172,12 @@ const SCRIPTS: Record<ScriptKey, string> = {
   `,
   standardReconciliation: `
     function compareAndDisplayData(XLSX, file1, file2) {
+      function formatDateForComparison(date) {
+        if (!(date instanceof Date) || isNaN(date)) {
+          return '';
+        }
+        return \`\${date.getFullYear()}-\${String(date.getMonth() + 1).padStart(2, '0')}-\${String(date.getDate()).padStart(2, '0')}\`;
+      }
       // Step 1: Read and process Payment Hub (file1)
       const workbook1 = XLSX.read(file1, { cellDates: true });
       const sheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
