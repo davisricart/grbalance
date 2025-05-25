@@ -13,7 +13,7 @@ export default function PricingPage() {
       monthlyPrice: 19,
       annualPrice: 15.2, // 20% off
       description: 'Perfect for small salons getting started',
-      savings: 'Save $500+ annually',
+      savings: 'Save $800+ annually',
       comparisons: 50,
       scripts: 1,
       popular: false,
@@ -152,6 +152,12 @@ export default function PricingPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Social Proof Text Section */}
+        <div className="text-center mt-10 mb-4">
+          <span className="text-gray-700 font-medium text-lg">Works with salon software you already use:</span>
+          <div className="mt-2 text-emerald-700 font-semibold text-base">DaySmart &bull; Square &bull; Stripe &bull; PaymentCloud &bull; BookedBy</div>
         </div>
 
         {/* Pricing Cards */}

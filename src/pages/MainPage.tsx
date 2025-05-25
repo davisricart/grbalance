@@ -1,3 +1,4 @@
+// PAGE MARKER: Main Page Component
 import React, { useState, useRef } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { FileSpreadsheet, Download, AlertCircle, LogOut } from 'lucide-react';

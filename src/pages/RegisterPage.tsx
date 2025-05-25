@@ -1,3 +1,4 @@
+// PAGE MARKER: Register Page Component
 import React, { useState } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';

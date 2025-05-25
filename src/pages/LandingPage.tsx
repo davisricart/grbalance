@@ -1,3 +1,4 @@
+// PAGE MARKER: Landing Page Component
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle } from 'lucide-react';

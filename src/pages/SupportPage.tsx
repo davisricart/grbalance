@@ -1,3 +1,4 @@
+// PAGE MARKER: Support Page Component
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MessageSquare, ArrowLeft, Home } from 'lucide-react';
