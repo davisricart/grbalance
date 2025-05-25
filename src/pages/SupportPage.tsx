@@ -9,7 +9,11 @@ export default function SupportPage() {
   const faqs = [
     {
       question: "How do I start comparing files?",
-      answer: "Upload two Excel or CSV files using the file upload buttons on the main application page. Select a comparison script that matches your needs, then click 'Run Comparison'."
+      answer: "First, we'll analyze your salon software and payment processor formats during setup. Once we've built your custom reconciliation script, you simply upload your reports and run your personalized comparison."
+    },
+    {
+      question: "How does the setup process work?",
+      answer: "We start with a consultation to understand your salon software, payment processors, and reconciliation needs. Then we build custom matching logic specifically for your data formats. Once your script is ready, you can upload files and get results instantly."
     },
     {
       question: "What file formats are supported?",
@@ -21,11 +25,15 @@ export default function SupportPage() {
     },
     {
       question: "How can I upgrade my plan?",
-      answer: "Contact our support team to discuss upgrading to our Premium plan with increased comparison limits and priority support."
+      answer: "Contact our support team to discuss adding more custom scripts or increasing your monthly comparison limits."
+    },
+    {
+      question: "What if my data format changes?",
+      answer: "No problem! If your salon software or payment processor changes their report format, we'll update your custom script at no additional charge. Your reconciliation will continue working seamlessly."
     },
     {
       question: "Is my data secure?",
-      answer: "Yes! All file processing happens in your browser - files are never uploaded to our servers. We use secure authentication and don't store any of your comparison data."
+      answer: "Your uploaded files are processed securely and never stored permanently. We only access your data during the initial setup consultation to build your custom scripts."
     }
   ];
 
