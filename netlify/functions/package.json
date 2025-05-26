@@ -1,0 +1,8 @@
+{
+  "name": "grbalance-functions",
+  "version": "1.0.0",
+  "dependencies": {
+    "lambda-multipart-parser": "^1.0.1",
+    "xlsx": "^0.18.5"
+  }
+} 
