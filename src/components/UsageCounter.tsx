@@ -64,15 +64,9 @@ export default function UsageCounter() {
             setUsage(data as UsageData);
           }
         } else {
-          const initialData: UsageData = {
-            email: auth.currentUser?.email || undefined,
-            comparisonsUsed: 0,
-            comparisonsLimit: TIER_LIMITS.starter,
-            subscriptionTier: 'starter'
-          };
-          
-          await setDoc(userDoc, initialData);
-          setUsage(initialData);
+          // Don't auto-create documents - let registration handle this
+          // This prevents automatic recreation of deleted test accounts
+          console.log('No usage document found for user:', auth.currentUser?.email);
         }
       },
       (error) => {

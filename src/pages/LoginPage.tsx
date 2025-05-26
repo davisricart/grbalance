@@ -2,16 +2,20 @@ import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../main';
 import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import clientConfig from '../config/client';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isHuman, setIsHuman] = useState(false);
+
+  // Preserve URL parameters for registration link
+  const registerUrl = `/register${location.search}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,7 +160,7 @@ export default function LoginPage() {
 
             <p className="text-center text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link to="/register" className="text-emerald-600 hover:text-emerald-700 font-medium">
+              <Link to={registerUrl} className="text-emerald-600 hover:text-emerald-700 font-medium">
                 Create one
               </Link>
             </p>

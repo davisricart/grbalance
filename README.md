@@ -9,6 +9,9 @@ A customizable web-based system for reconciling payment transactions between dif
 - Adjustable fee calculations
 - Flexible report formats
 - Modular client-specific logic
+- **Visual Dashboard**: Summary cards showing key metrics at a glance
+- **Enhanced Results Display**: Color-coded discrepancies with trend indicators
+- **Smart Highlighting**: Large discrepancies highlighted for immediate attention
 
 ## Architecture Philosophy
 

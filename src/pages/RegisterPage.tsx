@@ -1,10 +1,10 @@
 // PAGE MARKER: Register Page Component
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../main';
 import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import clientConfig from '../config/client';
 
 const TIER_LIMITS = {
@@ -16,7 +16,8 @@ const TIER_LIMITS = {
 const SUBSCRIPTION_TIERS = [
   {
     name: 'Starter',
-    price: '19',
+    monthlyPrice: 19,
+    annualPrice: 15.2, // 20% off
     comparisons: TIER_LIMITS.starter,
     features: [
       '50 file comparisons per month',
@@ -29,7 +30,8 @@ const SUBSCRIPTION_TIERS = [
   },
   {
     name: 'Professional',
-    price: '29',
+    monthlyPrice: 29,
+    annualPrice: 23.2, // 20% off
     comparisons: TIER_LIMITS.professional,
     popular: true,
     features: [
@@ -44,7 +46,8 @@ const SUBSCRIPTION_TIERS = [
   },
   {
     name: 'Business',
-    price: '49',
+    monthlyPrice: 49,
+    annualPrice: 39.2, // 20% off
     comparisons: TIER_LIMITS.business,
     features: [
       '150 file comparisons per month',
@@ -80,12 +83,28 @@ const validateEmail = (email: string): { isValid: boolean; error?: string } => {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [selectedTier, setSelectedTier] = useState('professional');
+  const [isAnnual, setIsAnnual] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isHuman, setIsHuman] = useState(false);
+
+  // Check URL parameters for pricing preferences
+  useEffect(() => {
+    const billingParam = searchParams.get('billing');
+    const planParam = searchParams.get('plan');
+    
+    if (billingParam === 'annual') {
+      setIsAnnual(true);
+    }
+    
+    if (planParam && ['starter', 'professional', 'business'].includes(planParam.toLowerCase())) {
+      setSelectedTier(planParam.toLowerCase());
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,7 +146,7 @@ export default function RegisterPage() {
       console.error('Registration error:', error);
       switch (error.code) {
         case 'auth/email-already-in-use':
-          setError('This email is already registered');
+          setError('This email is already registered. If you recently deleted this account, please try a different email or contact support.');
           break;
         case 'auth/invalid-email':
           setError('Invalid email address');
@@ -179,6 +198,35 @@ export default function RegisterPage() {
           </p>
         </div>
 
+        {/* Annual/Monthly Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="relative flex items-center bg-gray-100 rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => setIsAnnual(false)}
+              className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
+                !isAnnual
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAnnual(true)}
+              className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
+                isAnnual
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              Annual
+              <span className="ml-1 text-xs text-emerald-600 font-semibold">Save 20%</span>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {SUBSCRIPTION_TIERS.map((tier) => (
             <div
@@ -201,9 +249,16 @@ export default function RegisterPage() {
                 <div>
                   <h3 className="text-xl font-semibold text-gray-900">{tier.name}</h3>
                   <div className="mt-2 flex items-baseline">
-                    <span className="text-3xl font-bold tracking-tight text-gray-900">${tier.price}</span>
+                    <span className="text-3xl font-bold tracking-tight text-gray-900">
+                      ${isAnnual ? tier.annualPrice.toFixed(0) : tier.monthlyPrice}
+                    </span>
                     <span className="text-sm text-gray-500">/month</span>
                   </div>
+                  {isAnnual && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Billed annually (${(tier.annualPrice * 12).toFixed(0)}/year)
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"

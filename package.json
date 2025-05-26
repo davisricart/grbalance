@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:clean": "npm run kill-ports && npm run dev",
+    "dev:force": "npm run kill-ports && vite --force",
+    "kill-ports": "npx kill-port 5177 5178 5179 || echo 'No processes to kill'",
+    "start": "npm run dev:clean",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "download": "node scripts/download.js",
@@ -56,6 +60,7 @@
     "husky": "^8.0.3",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "kill-port": "^2.0.1",
     "lint-staged": "^15.2.0",
     "postcss": "^8.4.31",
     "prettier": "^3.1.1",

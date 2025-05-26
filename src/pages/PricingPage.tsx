@@ -218,7 +218,7 @@ export default function PricingPage() {
               </p>
               
               <Link
-                to="/app"
+                to={`/app?billing=${isAnnual ? 'annual' : 'monthly'}&plan=${plan.name.toLowerCase()}`}
                 className={`mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   plan.popular
                     ? 'bg-emerald-500 text-white hover:bg-emerald-400 focus-visible:outline-emerald-500'
