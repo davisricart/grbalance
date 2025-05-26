@@ -28,8 +28,8 @@ export default function BookingCalendar() {
               layout: "month_view"
             });
             window.Cal("ui", {
-              styles: { branding: { brandColor: "#059669" } },
-              hideEventTypeDetails: false,
+        styles: { branding: { brandColor: "#059669" } },
+        hideEventTypeDetails: false,
               layout: "month_view"
             });
             console.log('Cal embed initialized, checking for content...');

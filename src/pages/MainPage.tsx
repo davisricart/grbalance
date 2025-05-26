@@ -40,8 +40,8 @@ export default function MainPage({ user }: MainPageProps) {
         // Fallback to direct Netlify function call
         fetch('/.netlify/functions/scripts')
           .then(res => res.json())
-          .then(setAvailableScripts)
-          .catch(() => setStatus('Failed to fetch available scripts'));
+      .then(setAvailableScripts)
+      .catch(() => setStatus('Failed to fetch available scripts'));
       });
   }, []);
 
@@ -150,15 +150,15 @@ export default function MainPage({ user }: MainPageProps) {
       } catch (error) {
         // Fallback to direct Netlify function call
         response = await fetch(`/.netlify/functions/execute-script?scriptName=${script}`, {
-          method: 'POST',
-          body: formData,
-        });
+        method: 'POST',
+        body: formData,
+      });
         data = await response.json();
         
-        if (!response.ok) {
-          setStatus(data.error || 'An error occurred');
-          setResults([]);
-          return;
+      if (!response.ok) {
+        setStatus(data.error || 'An error occurred');
+        setResults([]);
+        return;
         }
       }
       setResults(data.result);
@@ -745,35 +745,35 @@ export default function MainPage({ user }: MainPageProps) {
 
                     {/* Detailed Results Table */}
                     <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-                      <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
                         <h2 className="text-lg font-medium text-gray-700">Detailed Results</h2>
-                        <button
-                          type="button"
-                          onClick={downloadResults}
-                          className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
+                <button
+                  type="button"
+                  onClick={downloadResults}
+                  className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {results[0]?.map((header, i) => (
+                        <th
+                          key={i}
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
                         >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </button>
-                      </div>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              {results[0]?.map((header, i) => (
-                                <th
-                                  key={i}
-                                  className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                                >
-                                  {header}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-100">
-                            {results.slice(1).map((row, i) => (
-                              <tr key={i}>
-                                {row.map((cell, j) => {
+                          {header}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {results.slice(1).map((row, i) => (
+                      <tr key={i}>
+                        {row.map((cell, j) => {
                                   const header = results[0]?.[j];
                                   const headerStr = String(header || '').trim();
                                   
@@ -814,16 +814,16 @@ export default function MainPage({ user }: MainPageProps) {
                                     }
                                   }
                                   
-                                  return (
+                          return (
                                     <td key={j} className={cellClass}>
-                                      {cell}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                              {cell}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
                       </div>
                     </div>
                   </div>
