@@ -347,35 +347,40 @@ export default function MainPage({ user }: MainPageProps) {
                           const header = results[0]?.[j];
                           const headerStr = String(header || '').trim();
                           
-                          // Check for financial columns in both the main table and summary section
-                          const isFinancialColumn = headerStr === 'Total (-) Fee' || 
-                                                   headerStr === 'Difference' ||
-                                                   (j === 3 && headerStr === ''); // 4th column in summary section
+                          // Debug logging
+                          if (String(cell).includes('-240') || String(cell).includes('240')) {
+                            console.log('Debug -240:', {
+                              cell,
+                              cellType: typeof cell,
+                              header,
+                              headerStr,
+                              j,
+                              rowIndex: i
+                            });
+                          }
                           
                           const cellStr = String(cell || '').trim();
                           const isNumber = typeof cell === 'number' || 
-                                         (!isNaN(Number(cellStr)) && cellStr !== '' && cellStr !== null && cellStr !== '0');
+                                         (!isNaN(Number(cellStr)) && cellStr !== '' && cellStr !== null);
                           const numValue = Number(cellStr);
                           const isPositive = isNumber && numValue > 0;
                           const isNegative = isNumber && numValue < 0;
                           
                           let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
                           
-                          // Apply color coding for financial columns or if it looks like a financial value
-                          if ((isFinancialColumn || (isNumber && Math.abs(numValue) > 0)) && numValue !== 0) {
-                            // Special check for difference column (negative values are red, positive are green)
-                            if (headerStr === 'Difference' || (j === 3 && Math.abs(numValue) > 0)) {
-                              if (isPositive) {
-                                cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                              } else if (isNegative) {
-                                cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                              }
-                            } else if (headerStr === 'Total (-) Fee' && isNumber) {
-                              if (isPositive) {
-                                cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                              } else if (isNegative) {
-                                cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                              }
+                          // Simplified logic - check if this is a difference column or contains -240
+                          if (headerStr === 'Difference' || (cellStr === '-240')) {
+                            if (isNegative) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
+                              console.log('Applied red styling to:', cell);
+                            } else if (isPositive) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                            }
+                          } else if (headerStr === 'Total (-) Fee') {
+                            if (isPositive) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                            } else if (isNegative) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
                             }
                           }
                           
