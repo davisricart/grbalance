@@ -11,7 +11,7 @@ export default function PricingPage() {
     {
       name: 'Starter',
       monthlyPrice: 19,
-      annualPrice: 15.2, // 20% off
+      annualPrice: 15, // Simplified to $15 (21% off)
       description: 'Perfect for small salons getting started',
       savings: 'Save $800+ annually',
       comparisons: 50,
@@ -29,7 +29,7 @@ export default function PricingPage() {
     {
       name: 'Professional',
       monthlyPrice: 29,
-      annualPrice: 23.2, // 20% off
+      annualPrice: 23, // Simplified to $23 (21% off)
       originalPrice: 35, // Strikethrough price
       description: 'Most chosen - saves $1,200+ yearly',
       savings: 'Save $1,200+ annually',
@@ -49,7 +49,7 @@ export default function PricingPage() {
     {
       name: 'Business',
       monthlyPrice: 49,
-      annualPrice: 39.2, // 20% off
+      annualPrice: 39, // Simplified to $39 (20% off)
       description: 'For high-volume salon businesses',
       savings: 'Save $2,500+ annually',
       comparisons: 150,
@@ -134,10 +134,29 @@ export default function PricingPage() {
               }`}
             >
               Annual
-              <span className="ml-1 text-xs text-emerald-600 font-semibold">Save 20%</span>
+              <span className="ml-1 text-xs text-emerald-600 font-semibold">Best Value</span>
             </button>
           </div>
         </div>
+
+        {/* Annual Benefits Callout */}
+        {isAnnual && (
+          <div className="mt-8 max-w-2xl mx-auto text-center">
+            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl p-6 border border-emerald-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">🎉 Annual Plan Benefits</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-600">🔒</span>
+                  <span>Price lock guarantee</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-emerald-600">⚡</span>
+                  <span>Priority support</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Benefits Section */}
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
@@ -205,7 +224,7 @@ export default function PricingPage() {
               </div>
               {isAnnual && (
                 <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
-                  Billed annually (${(plan.annualPrice * 12).toFixed(0)}/year + $497 setup = ${(plan.annualPrice * 12 + 497).toFixed(0)} Year 1, save $70)
+                  Billed annually (${(plan.annualPrice * 12).toFixed(0)}/year + $497 setup)
                 </p>
               )}
               {!isAnnual && (

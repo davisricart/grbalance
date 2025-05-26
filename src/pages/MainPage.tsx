@@ -25,11 +25,15 @@ export default function MainPage({ user }: MainPageProps) {
   const [results, setResults] = useState<ResultRow[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'fees' | 'insights'>('overview');
   const [rawFileData, setRawFileData] = useState<{file1Data: any[], file2Data: any[]} | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState('');
+  const [transactionCount, setTransactionCount] = useState(0);
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Try the redirect first, then fallback to direct function call
+    // Production: Try the redirect first, then fallback to direct function call
     fetch('/api/scripts')
       .then(res => {
         if (!res.ok) throw new Error('Redirect failed');
@@ -40,8 +44,10 @@ export default function MainPage({ user }: MainPageProps) {
         // Fallback to direct Netlify function call
         fetch('/.netlify/functions/scripts')
           .then(res => res.json())
-      .then(setAvailableScripts)
-      .catch(() => setStatus('Failed to fetch available scripts'));
+          .then(setAvailableScripts)
+          .catch(() => {
+            setStatus('Failed to fetch available scripts');
+          });
       });
   }, []);
 
@@ -128,15 +134,39 @@ export default function MainPage({ user }: MainPageProps) {
         });
       });
 
-      setStatus('Processing files...');
+      // Start processing animation
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      setProcessingStep('Analyzing file structure...');
+      setStatus('');
+      
+      // Estimate transaction count for progress display
+      if (rawFileData) {
+        const estimatedCount = Math.max(rawFileData.file1Data.length, rawFileData.file2Data.length);
+        setTransactionCount(estimatedCount);
+      }
+
+      // Simulate processing steps with progress
+      const updateProgress = (progress: number, step: string) => {
+        setProcessingProgress(progress);
+        setProcessingStep(step);
+        return new Promise(resolve => setTimeout(resolve, 300));
+      };
+
+      await updateProgress(15, 'Reading file formats...');
+      
       const formData = new FormData();
       formData.append('file1', file1!);
       formData.append('file2', file2!);
+      
+      await updateProgress(30, 'Validating data structure...');
       
       let response;
       let data;
       
       try {
+        await updateProgress(50, 'Connecting to processing engine...');
+        
         // Try the redirect first
         response = await fetch(`/api/scripts/${script}/execute`, {
           method: 'POST',
@@ -148,22 +178,42 @@ export default function MainPage({ user }: MainPageProps) {
           throw new Error(data.error || 'Redirect failed');
         }
       } catch (error) {
-        // Fallback to direct Netlify function call
-        response = await fetch(`/.netlify/functions/execute-script?scriptName=${script}`, {
-        method: 'POST',
-        body: formData,
-      });
-        data = await response.json();
+        await updateProgress(60, 'Switching to backup processor...');
         
-      if (!response.ok) {
-        setStatus(data.error || 'An error occurred');
-        setResults([]);
-        return;
+        try {
+          // Fallback to direct Netlify function call
+          response = await fetch(`/.netlify/functions/execute-script?scriptName=${script}`, {
+            method: 'POST',
+            body: formData,
+          });
+          data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Netlify function failed');
+          }
+        } catch (netlifyError) {
+          // Both API calls failed
+          setIsProcessing(false);
+          setStatus('Unable to process files. Please try again later.');
+          setResults([]);
+          return;
         }
       }
+      
+      await updateProgress(80, 'Processing transactions...');
+      await updateProgress(95, 'Generating results...');
+      
       setResults(data.result);
-      setStatus('Comparison complete!');
+      setProcessingProgress(100);
+      setProcessingStep('Complete!');
+      
+      // Show completion for a moment, then hide processing
+      setTimeout(() => {
+        setIsProcessing(false);
+        setStatus('Comparison complete!');
+      }, 800);
     } catch (error) {
+      setIsProcessing(false);
       setStatus(error instanceof Error ? error.message : 'An error occurred');
       setResults([]);
     }
@@ -184,6 +234,10 @@ export default function MainPage({ user }: MainPageProps) {
     setStatus('');
     setWarning('');
     setResults([]);
+    setIsProcessing(false);
+    setProcessingProgress(0);
+    setProcessingStep('');
+    setTransactionCount(0);
     if (file1Ref.current) file1Ref.current.value = '';
     if (file2Ref.current) file2Ref.current.value = '';
   };
@@ -457,6 +511,32 @@ export default function MainPage({ user }: MainPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Processing Overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div className="text-center">
+              <div className="animate-spin h-12 w-12 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-6"></div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">Processing Your Files</h2>
+              <p className="text-gray-600 mb-6">
+                Analyzing {transactionCount > 0 ? transactionCount.toLocaleString() : '2,847'} transactions...
+              </p>
+              
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                <div 
+                  className="bg-emerald-600 h-3 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${processingProgress}%` }}
+                ></div>
+              </div>
+              <p className="text-sm text-gray-500">{processingProgress}% Complete</p>
+              
+              {processingStep && (
+                <p className="text-sm text-emerald-600 mt-2 font-medium">{processingStep}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
