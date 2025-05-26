@@ -2,10 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, ExternalLink } from 'lucide-react';
 
 export default function BookingCalendar() {
-  const [showFallback, setShowFallback] = useState(true); // Start with fallback shown
+  const [showFallback, setShowFallback] = useState(false); // Start with embed attempt
 
   useEffect(() => {
-    // Try to load Cal.com embed, but fallback is already shown
+    // Set fallback timer - show fallback after 3 seconds if embed doesn't work
+    const fallbackTimer = setTimeout(() => {
+      setShowFallback(true);
+    }, 3000);
+
+    // Try to load Cal.com embed
     const script = document.createElement('script');
     script.src = 'https://app.cal.com/embed/embed.js';
     script.async = true;
@@ -25,27 +30,35 @@ export default function BookingCalendar() {
             layout: "month_view"
           });
           
-          // If embed loads successfully, hide fallback
+          // Check if embed actually loaded content
           setTimeout(() => {
             const container = document.getElementById('cal-booking-inline');
             if (container && container.children.length > 0) {
-              setShowFallback(false);
+              // Embed worked! Clear the fallback timer
+              clearTimeout(fallbackTimer);
+            } else {
+              // Embed didn't load content, show fallback
+              setShowFallback(true);
             }
-          }, 1000);
+          }, 2000);
+        } else {
+          setShowFallback(true);
         }
       } catch (error) {
         console.error('Cal.com embed error:', error);
-        // Keep fallback shown
+        setShowFallback(true);
       }
     };
 
     script.onerror = () => {
-      // Keep fallback shown
+      clearTimeout(fallbackTimer);
+      setShowFallback(true);
     };
 
     document.head.appendChild(script);
 
     return () => {
+      clearTimeout(fallbackTimer);
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
