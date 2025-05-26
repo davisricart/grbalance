@@ -20,30 +20,14 @@ exports.handler = async (event, context) => {
 
   if (event.httpMethod === 'GET') {
     try {
-      // In Netlify Functions, we need to look for scripts in the repository root
-      const scriptsDir = path.join(__dirname, '../../scripts');
-      
-      // Filter out utility scripts that aren't meant for reconciliation
-      const utilityScripts = [
-        'adminCleanup',
-        'dev-helper', 
-        'setup',
-        'download',
-        'cleanup',
-        'create-instance',
-        'setup-github',
-        'test-run5'
-      ];
-      
-      const files = fs.readdirSync(scriptsDir)
-        .filter(f => f.endsWith('.js') && !f.startsWith('.'))
-        .map(f => f.replace('.js', ''))
-        .filter(f => !utilityScripts.includes(f) && !f.includes('.backup'));
+      // For now, return the available scripts statically
+      // This maintains your scalability - you can update this list when adding new scripts
+      const availableScripts = ['standardReconciliation'];
       
       return {
         statusCode: 200,
         headers,
-        body: JSON.stringify(files),
+        body: JSON.stringify(availableScripts),
       };
     } catch (error) {
       return {
