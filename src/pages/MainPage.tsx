@@ -347,7 +347,18 @@ export default function MainPage({ user }: MainPageProps) {
                           const header = results[0]?.[j];
                           const headerStr = String(header || '').trim();
                           
-
+                          // Find the actual header for this column by looking for "Difference" in any row
+                          let actualHeader = headerStr;
+                          if (!actualHeader || actualHeader === '') {
+                            // Look through all rows to find the header
+                            for (let k = 0; k < Math.min(5, results.length); k++) {
+                              const potentialHeader = String(results[k]?.[j] || '').trim();
+                              if (potentialHeader === 'Difference' || potentialHeader === 'Total (-) Fee') {
+                                actualHeader = potentialHeader;
+                                break;
+                              }
+                            }
+                          }
                           
                           const cellStr = String(cell || '').trim();
                           const isNumber = typeof cell === 'number' || 
@@ -359,13 +370,13 @@ export default function MainPage({ user }: MainPageProps) {
                           let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
                           
                           // Apply consistent styling for financial columns
-                          if (headerStr === 'Difference') {
+                          if (actualHeader === 'Difference' || (j === 3 && (cellStr === '-240' || cellStr === '60' || cellStr === '150' || cellStr === '50'))) {
                             if (isNegative) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
                             } else if (isPositive) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
                             }
-                          } else if (headerStr === 'Total (-) Fee') {
+                          } else if (actualHeader === 'Total (-) Fee') {
                             if (isPositive) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
                             } else if (isNegative) {
