@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calculator, TrendingUp, DollarSign, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function ROICalculator() {
+  const navigate = useNavigate();
   const [hoursPerWeek, setHoursPerWeek] = useState(3);
   const [hourlyRate, setHourlyRate] = useState(25);
   const [customRate, setCustomRate] = useState('');
@@ -203,10 +205,16 @@ export default function ROICalculator() {
                     Ready to save {formatCurrency(Math.max(0, netSavings))} this year?
                   </p>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <button className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium">
+                    <button 
+                      onClick={() => navigate('/book')}
+                      className="flex-1 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+                    >
                       Book Free Consultation
                     </button>
-                    <button className="flex-1 bg-white text-emerald-600 border-2 border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors font-medium">
+                    <button 
+                      onClick={() => navigate('/app')}
+                      className="flex-1 bg-white text-emerald-600 border-2 border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
+                    >
                       Try Sample Data Free
                     </button>
                   </div>
