@@ -16,38 +16,41 @@ export default function BookingCalendar() {
     script.async = true;
     
     script.onload = () => {
-      try {
-        if (window.Cal) {
-          window.Cal("init", "30min", { origin: "https://cal.com" });
-          window.Cal.ns["30min"]("inline", {
-            elementOrSelector: "#cal-booking-inline",
-            config: { layout: "month_view" },
-            calLink: "davis-r-rmz6au/30min",
-          });
-          window.Cal.ns["30min"]("ui", {
-            styles: { branding: { brandColor: "#059669" } },
-            hideEventTypeDetails: false,
-            layout: "month_view"
-          });
-          
-          // Check if embed actually loaded content
-          setTimeout(() => {
-            const container = document.getElementById('cal-booking-inline');
-            if (container && container.children.length > 0) {
-              // Embed worked! Clear the fallback timer
-              clearTimeout(fallbackTimer);
-            } else {
-              // Embed didn't load content, show fallback
-              setShowFallback(true);
-            }
-          }, 2000);
-        } else {
+      // Wait a moment for Cal to be available after script loads
+      setTimeout(() => {
+        try {
+          if (window.Cal) {
+            window.Cal("init", "30min", { origin: "https://cal.com" });
+            window.Cal.ns["30min"]("inline", {
+              elementOrSelector: "#cal-booking-inline",
+              config: { layout: "month_view" },
+              calLink: "davis-r-rmz6au/30min",
+            });
+            window.Cal.ns["30min"]("ui", {
+              styles: { branding: { brandColor: "#059669" } },
+              hideEventTypeDetails: false,
+              layout: "month_view"
+            });
+            
+            // Check if embed actually loaded content
+            setTimeout(() => {
+              const container = document.getElementById('cal-booking-inline');
+              if (container && container.children.length > 0) {
+                // Embed worked! Clear the fallback timer
+                clearTimeout(fallbackTimer);
+              } else {
+                // Embed didn't load content, show fallback
+                setShowFallback(true);
+              }
+            }, 2000);
+          } else {
+            setShowFallback(true);
+          }
+        } catch (error) {
+          console.error('Cal.com embed error:', error);
           setShowFallback(true);
         }
-      } catch (error) {
-        console.error('Cal.com embed error:', error);
-        setShowFallback(true);
-      }
+      }, 100); // Wait 100ms for Cal to be available
     };
 
     script.onerror = () => {
