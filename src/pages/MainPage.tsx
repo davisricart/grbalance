@@ -282,7 +282,43 @@ export default function MainPage({ user }: MainPageProps) {
     }
 
     // ENHANCED ANALYSIS: Analyze raw file data for deeper insights
-    let enhancedInsights = {
+    let enhancedInsights: {
+      paymentTrends: {
+        avgDailyVolume?: number;
+        peakDay?: string;
+        peakDayVolume?: number;
+        lowestDayVolume?: number;
+        peakHour?: number;
+        peakHourTransactions?: number;
+        topPeakDays?: any[];
+        topLowestDays?: any[];
+      };
+      customerBehavior: {
+        totalUniqueCustomers?: number;
+        repeatCustomers?: number;
+        retentionRate?: number;
+        avgTransactionsPerCustomer?: number;
+        highValueCustomers?: number;
+      };
+      operationalMetrics: {
+        processingEfficiency?: number;
+        avgProcessingFeeRate?: number;
+        dataQualityScore?: number;
+        reconciliationAccuracy?: number;
+      };
+      riskFactors: {
+        largeDiscrepancies?: number;
+        missingTransactions?: number;
+        dataInconsistencies?: number;
+        highRiskTransactions?: number;
+      };
+      businessIntelligence: {
+        revenueGrowthPotential?: number;
+        costSavingsFromAutomation?: number;
+        timeValueOfReconciliation?: number;
+        complianceScore?: number;
+      };
+    } = {
       paymentTrends: {},
       customerBehavior: {},
       operationalMetrics: {},
@@ -646,7 +682,7 @@ export default function MainPage({ user }: MainPageProps) {
                                 <div key={brand} className="flex justify-between items-center">
                                   <span className="text-gray-700">{brand}:</span>
                                   <div className="text-right">
-                                    <span className="font-medium">{percentage.toFixed(1)}% (${totalAmount.toLocaleString()})</span>
+                                    <span className="font-medium">{percentage.toFixed(1)}% (${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
                                   </div>
                                 </div>
                               );
@@ -818,8 +854,8 @@ export default function MainPage({ user }: MainPageProps) {
                                     <div className="text-sm text-gray-500">Fee Rate</div>
                                   </div>
                                   <div className="mt-3 space-y-1 text-sm">
-                                    <div className="font-medium">${totalFees.toLocaleString()} total fees</div>
-                                    <div className="text-gray-500">on {transactionCount} transactions</div>
+                                    <div className="font-medium">${totalFees.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} total fees</div>
+                                    <div className="text-gray-500">on {transactionCount.toLocaleString()} transactions</div>
                                   </div>
                                 </div>
                               </div>
@@ -841,10 +877,10 @@ export default function MainPage({ user }: MainPageProps) {
                                 ((analysis.totalFees / (analysis.totalRevenue + analysis.totalFees)) * 100).toFixed(2) : '0.00'}%</span>
                             </p>
                             <p className="mb-2">
-                              <span className="font-medium">Total fees: ${analysis.totalFees.toLocaleString()}</span>
+                              <span className="font-medium">Total fees: ${analysis.totalFees.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </p>
                             <p>
-                              <span className="font-medium">Net revenue: ${analysis.totalRevenue.toLocaleString()}</span>
+                              <span className="font-medium">Net revenue: ${analysis.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
                             </p>
                           </div>
                         </div>
@@ -863,17 +899,17 @@ export default function MainPage({ user }: MainPageProps) {
                           Payment Trends Analysis
                         </h3>
 
-                        <div className="bg-emerald-50 rounded-lg p-6">
+                        <div className="bg-emerald-50/50 rounded-lg p-6">
                           <h4 className="font-medium text-emerald-800 mb-4">Transaction Patterns</h4>
                           
                           {/* Key Metrics */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div className="text-center">
-                              <div className="text-2xl font-bold text-emerald-500">${analysis.enhancedInsights.paymentTrends.avgDailyVolume.toFixed(0)}</div>
+                              <div className="text-2xl font-bold text-emerald-800">${analysis.enhancedInsights.paymentTrends.avgDailyVolume.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                               <div className="text-sm text-emerald-600 mt-1">Average Daily Volume</div>
                             </div>
                             <div className="text-center">
-                              <div className="text-2xl font-bold text-emerald-500">${analysis.enhancedInsights.paymentTrends.peakDayVolume.toFixed(0)}</div>
+                              <div className="text-2xl font-bold text-emerald-800">${analysis.enhancedInsights.paymentTrends.peakDayVolume.toLocaleString()}</div>
                               <div className="text-sm text-emerald-600 mt-1">Highest Day Volume</div>
                             </div>
                           </div>
@@ -890,7 +926,7 @@ export default function MainPage({ user }: MainPageProps) {
                                       <span className="text-sm text-gray-500 ml-2">({day.dayOfWeek})</span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-medium text-emerald-900">${day.volume.toFixed(0)}</div>
+                                      <div className="font-medium text-emerald-900">${day.volume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                       <div className="text-xs text-emerald-700">{day.timeRange}</div>
                                     </div>
                                   </div>
@@ -907,7 +943,7 @@ export default function MainPage({ user }: MainPageProps) {
                                       <span className="text-sm text-gray-500 ml-2">({day.dayOfWeek})</span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-medium text-emerald-900">${day.volume.toFixed(0)}</div>
+                                      <div className="font-medium text-emerald-900">${day.volume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                       <div className="text-xs text-emerald-700">{day.timeRange}</div>
                                     </div>
                                   </div>
@@ -936,7 +972,7 @@ export default function MainPage({ user }: MainPageProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           {/* Best Performance */}
-                          <div className="bg-emerald-50 rounded-lg p-4">
+                          <div className="bg-emerald-50/50 rounded-lg p-4">
                             <h4 className="font-medium text-emerald-900 mb-3 flex items-center">
                               <TrendingUp className="h-4 w-4 mr-2" />
                               Peak Performance Window
@@ -954,8 +990,8 @@ export default function MainPage({ user }: MainPageProps) {
                                 <span className="text-emerald-700">Avg Volume:</span>
                                 <span className="font-medium text-emerald-900">
                                   ${analysis.enhancedInsights.paymentTrends.peakDayVolume ? 
-                                    analysis.enhancedInsights.paymentTrends.peakDayVolume.toFixed(0) : 
-                                    (analysis.enhancedInsights.paymentTrends.avgDailyVolume * 1.7).toFixed(0)
+                                    analysis.enhancedInsights.paymentTrends.peakDayVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 
+                                    (analysis.enhancedInsights.paymentTrends.avgDailyVolume * 1.7).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
                                   }
                                 </span>
                               </div>
@@ -966,7 +1002,7 @@ export default function MainPage({ user }: MainPageProps) {
                           </div>
 
                           {/* Low Performance - using light rose to indicate needs attention */}
-                          <div className="bg-rose-50 rounded-lg p-4 border border-rose-100">
+                          <div className="bg-rose-50/50 rounded-lg p-4 border border-rose-100">
                             <h4 className="font-medium text-rose-900 mb-3 flex items-center">
                               <BarChart3 className="h-4 w-4 mr-2" />
                               Low Performance Window
@@ -1023,15 +1059,15 @@ export default function MainPage({ user }: MainPageProps) {
                           Optimization Opportunities
                         </h3>
 
-                        <div className="bg-rose-50 rounded-lg p-6 border border-rose-100">
+                        <div className="bg-rose-50/50 rounded-lg p-6 border border-rose-100">
                           <h4 className="font-medium text-rose-900 mb-4">Low Volume Analysis</h4>
                           
                           {/* Lowest Volume Metric */}
                           <div className="text-center mb-6">
                             <div className="text-2xl font-bold text-rose-700">
                               ${analysis.enhancedInsights.paymentTrends.lowestDayVolume ? 
-                                analysis.enhancedInsights.paymentTrends.lowestDayVolume.toFixed(0) : 
-                                (analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.3).toFixed(0)
+                                analysis.enhancedInsights.paymentTrends.lowestDayVolume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : 
+                                (analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.3).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
                               }
                             </div>
                             <div className="text-sm text-rose-600 mt-1">Lowest Day Volume</div>
@@ -1049,7 +1085,7 @@ export default function MainPage({ user }: MainPageProps) {
                                       <span className="text-sm text-gray-500 ml-2">({day.dayOfWeek})</span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-medium text-rose-700">${day.volume.toFixed(0)}</div>
+                                      <div className="font-medium text-rose-700">${day.volume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                       <div className="text-xs text-rose-500">{day.timeRange}</div>
                                     </div>
                                   </div>
@@ -1081,7 +1117,7 @@ export default function MainPage({ user }: MainPageProps) {
                                       <span className="text-sm text-gray-500 ml-2">({day.dayOfWeek})</span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-medium text-rose-700">${day.volume.toFixed(0)}</div>
+                                      <div className="font-medium text-rose-700">${day.volume.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                                       <div className="text-xs text-rose-500">{day.timeRange}</div>
                                     </div>
                                   </div>
