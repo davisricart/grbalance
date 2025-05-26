@@ -347,17 +347,7 @@ export default function MainPage({ user }: MainPageProps) {
                           const header = results[0]?.[j];
                           const headerStr = String(header || '').trim();
                           
-                          // Debug logging
-                          if (String(cell).includes('-240') || String(cell).includes('240')) {
-                            console.log('Debug -240:', {
-                              cell,
-                              cellType: typeof cell,
-                              header,
-                              headerStr,
-                              j,
-                              rowIndex: i
-                            });
-                          }
+
                           
                           const cellStr = String(cell || '').trim();
                           const isNumber = typeof cell === 'number' || 
@@ -368,11 +358,10 @@ export default function MainPage({ user }: MainPageProps) {
                           
                           let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
                           
-                          // Simplified logic - check if this is a difference column or contains -240
-                          if (headerStr === 'Difference' || (cellStr === '-240')) {
+                          // Apply consistent styling for financial columns
+                          if (headerStr === 'Difference') {
                             if (isNegative) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                              console.log('Applied red styling to:', cell);
                             } else if (isPositive) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
                             }
