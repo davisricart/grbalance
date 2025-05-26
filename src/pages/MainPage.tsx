@@ -1,7 +1,7 @@
 // PAGE MARKER: Main Page Component
 import React, { useState, useRef, useEffect } from 'react';
 import { User, signOut } from 'firebase/auth';
-import { FileSpreadsheet, Download, AlertCircle, LogOut, TrendingUp, TrendingDown, CheckCircle, XCircle } from 'lucide-react';
+import { FileSpreadsheet, Download, AlertCircle, LogOut } from 'lucide-react';
 import { doc, runTransaction } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
@@ -313,59 +313,6 @@ export default function MainPage({ user }: MainPageProps) {
           </div>
           {results.length > 0 && (
             <div className="mt-8 space-y-6">
-              {/* Summary Dashboard */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center">
-                    <FileSpreadsheet className="h-8 w-8 text-blue-600" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-blue-600">Total Processed</p>
-                      <p className="text-2xl font-bold text-blue-900">
-                        {results.slice(1).filter(row => Array.isArray(row) && row[0] && row[0] !== '' && row[0] !== 'Card Brand').length}
-                      </p>
-                      <p className="text-xs text-blue-600">transactions</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                  <div className="flex items-center">
-                    <XCircle className="h-8 w-8 text-red-600" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-red-600">Discrepancies</p>
-                      <p className="text-2xl font-bold text-red-900">
-                        {results.filter(row => Array.isArray(row) && typeof row[3] === 'number' && Math.abs(Number(row[3])) > 0.01).length}
-                      </p>
-                      <p className="text-xs text-red-600">found</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                  <div className="flex items-center">
-                    <TrendingDown className="h-8 w-8 text-yellow-600" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-yellow-600">Largest Variance</p>
-                      <p className="text-2xl font-bold text-yellow-900">
-                        ${Math.max(...results.filter(row => Array.isArray(row) && typeof row[3] === 'number').map(row => Math.abs(Number(row[3])))).toFixed(2)}
-                      </p>
-                      <p className="text-xs text-yellow-600">amount</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                  <div className="flex items-center">
-                    <CheckCircle className="h-8 w-8 text-emerald-600" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-emerald-600">Status</p>
-                      <p className="text-2xl font-bold text-emerald-900">Complete</p>
-                      <p className="text-xs text-emerald-600">processed</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Results Table */}
               <div className="bg-white rounded-lg shadow-lg border border-gray-200">
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -396,43 +343,14 @@ export default function MainPage({ user }: MainPageProps) {
                   <tbody className="bg-white divide-y divide-gray-100">
                     {results.slice(1).map((row, i) => (
                       <tr key={i}>
-                        {row.map((cell, j) => {
-                          const isNumber = typeof cell === 'number';
-                          const isNegative = isNumber && cell < 0;
-                          const isLargeDiscrepancy = isNumber && Math.abs(Number(cell)) > 100;
-                          
-                          return (
-                            <td
-                              key={j}
-                              className={`px-6 py-4 whitespace-nowrap ${
-                                isNumber
-                                  ? isNegative
-                                    ? isLargeDiscrepancy 
-                                      ? 'bg-red-100 text-red-800 font-bold' 
-                                      : 'bg-red-50 text-red-600 font-medium'
-                                    : Number(cell) > 0.01
-                                      ? isLargeDiscrepancy 
-                                        ? 'bg-yellow-100 text-yellow-800 font-bold' 
-                                        : 'bg-emerald-50 text-emerald-600 font-medium'
-                                      : 'text-gray-900'
-                                  : 'text-gray-900'
-                              }`}
-                            >
-                              {isNumber && Math.abs(Number(cell)) > 0.01 ? (
-                                <span className="inline-flex items-center">
-                                  {isNegative ? (
-                                    <TrendingDown className="h-4 w-4 mr-1" />
-                                  ) : (
-                                    <TrendingUp className="h-4 w-4 mr-1" />
-                                  )}
-                                  {cell}
-                                </span>
-                              ) : (
-                                cell
-                              )}
-                            </td>
-                          );
-                        })}
+                        {row.map((cell, j) => (
+                          <td
+                            key={j}
+                            className="px-6 py-4 whitespace-nowrap text-gray-900"
+                          >
+                            {cell}
+                          </td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
