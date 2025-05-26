@@ -27,10 +27,20 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Try the redirect first, then fallback to direct function call
     fetch('/api/scripts')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Redirect failed');
+        return res.json();
+      })
       .then(setAvailableScripts)
-      .catch(() => setStatus('Failed to fetch available scripts'));
+      .catch(() => {
+        // Fallback to direct Netlify function call
+        fetch('/.netlify/functions/scripts')
+          .then(res => res.json())
+          .then(setAvailableScripts)
+          .catch(() => setStatus('Failed to fetch available scripts'));
+      });
   }, []);
 
   const handleSignOut = async () => {
@@ -103,15 +113,34 @@ export default function MainPage({ user }: MainPageProps) {
       const formData = new FormData();
       formData.append('file1', file1!);
       formData.append('file2', file2!);
-      const response = await fetch(`/api/scripts/${script}/execute`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setStatus(data.error || 'An error occurred');
-        setResults([]);
-        return;
+      
+      let response;
+      let data;
+      
+      try {
+        // Try the redirect first
+        response = await fetch(`/api/scripts/${script}/execute`, {
+          method: 'POST',
+          body: formData,
+        });
+        data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Redirect failed');
+        }
+      } catch (error) {
+        // Fallback to direct Netlify function call
+        response = await fetch(`/.netlify/functions/execute-script?scriptName=${script}`, {
+          method: 'POST',
+          body: formData,
+        });
+        data = await response.json();
+        
+        if (!response.ok) {
+          setStatus(data.error || 'An error occurred');
+          setResults([]);
+          return;
+        }
       }
       setResults(data.result);
       setStatus('Comparison complete!');
