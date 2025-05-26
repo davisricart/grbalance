@@ -1,37 +1,82 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, ExternalLink } from 'lucide-react';
 
 export default function BookingCalendar() {
+  const [showFallback, setShowFallback] = useState(false);
+
   useEffect(() => {
-    // Load Cal.com embed script
+    // Set a timeout to show fallback if embed doesn't load
+    const fallbackTimer = setTimeout(() => {
+      setShowFallback(true);
+    }, 5000); // Show fallback after 5 seconds
+
+    // Try to load Cal.com embed
     const script = document.createElement('script');
     script.src = 'https://app.cal.com/embed/embed.js';
     script.async = true;
-    document.head.appendChild(script);
-
+    
     script.onload = () => {
-      // Initialize Cal.com embed
-      if (window.Cal) {
-        window.Cal("init", "30min", { origin: "https://cal.com" });
-        window.Cal.ns["30min"]("inline", {
-          elementOrSelector: "#cal-booking-inline",
-          config: { layout: "month_view" },
-          calLink: "davis-r-rmz6au/30min",
-        });
-        window.Cal.ns["30min"]("ui", {
-          styles: { branding: { brandColor: "#059669" } },
-          hideEventTypeDetails: false,
-          layout: "month_view"
-        });
+      clearTimeout(fallbackTimer);
+      try {
+        if (window.Cal) {
+          window.Cal("init", "30min", { origin: "https://cal.com" });
+          window.Cal.ns["30min"]("inline", {
+            elementOrSelector: "#cal-booking-inline",
+            config: { layout: "month_view" },
+            calLink: "davis-r-rmz6au/30min",
+          });
+          window.Cal.ns["30min"]("ui", {
+            styles: { branding: { brandColor: "#059669" } },
+            hideEventTypeDetails: false,
+            layout: "month_view"
+          });
+        }
+      } catch (error) {
+        console.error('Cal.com embed error:', error);
+        setShowFallback(true);
       }
     };
 
+    script.onerror = () => {
+      clearTimeout(fallbackTimer);
+      setShowFallback(true);
+    };
+
+    document.head.appendChild(script);
+
     return () => {
-      // Cleanup script on unmount
+      clearTimeout(fallbackTimer);
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
     };
   }, []);
+
+  if (showFallback) {
+    return (
+      <div className="w-full h-full min-h-[600px] flex items-center justify-center">
+        <div className="text-center p-8 bg-emerald-50 rounded-xl border border-emerald-200">
+          <Calendar className="h-16 w-16 text-emerald-600 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Schedule Your Consultation
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-md">
+            Click the button below to open our booking calendar in a new window and schedule your free 30-minute consultation.
+          </p>
+          <a
+            href="https://cal.com/davis-r-rmz6au/30min"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 font-medium"
+          >
+            <Calendar className="mr-2 h-5 w-5" />
+            Book Your Free Consultation
+            <ExternalLink className="ml-2 h-4 w-4" />
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full min-h-[600px]">
