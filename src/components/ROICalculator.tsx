@@ -212,10 +212,18 @@ export default function ROICalculator() {
                       Book Free Consultation
                     </button>
                     <button 
-                      onClick={() => navigate('/demo')}
+                      onClick={() => navigate('/interactive-demo')}
                       className="flex-1 bg-white text-emerald-600 border-2 border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
                     >
-                      View Sample Results
+                      Try Interactive Demo
+                    </button>
+                  </div>
+                  <div className="mt-3">
+                    <button 
+                      onClick={() => navigate('/demo')}
+                      className="text-sm text-gray-600 hover:text-emerald-600 transition-colors underline"
+                    >
+                      Or view static sample results
                     </button>
                   </div>
                 </div>
@@ -255,4 +263,4 @@ export default function ROICalculator() {
       `}</style>
     </div>
   );
-} 
+}
