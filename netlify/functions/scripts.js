@@ -20,8 +20,8 @@ exports.handler = async (event, context) => {
 
   if (event.httpMethod === 'GET') {
     try {
-      // In Netlify Functions, we need to look for scripts in the build directory
-      const scriptsDir = path.join(process.cwd(), 'scripts');
+      // In Netlify Functions, we need to look for scripts in the repository root
+      const scriptsDir = path.join(__dirname, '../../scripts');
       
       // Filter out utility scripts that aren't meant for reconciliation
       const utilityScripts = [

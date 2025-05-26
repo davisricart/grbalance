@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
       }
 
       // Load and execute the script
-      const scriptPath = path.join(process.cwd(), 'scripts', `${scriptName}.js`);
+      const scriptPath = path.join(__dirname, '../../scripts', `${scriptName}.js`);
       
       if (!fs.existsSync(scriptPath)) {
         return {
