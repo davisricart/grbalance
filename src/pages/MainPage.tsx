@@ -343,14 +343,29 @@ export default function MainPage({ user }: MainPageProps) {
                   <tbody className="bg-white divide-y divide-gray-100">
                     {results.slice(1).map((row, i) => (
                       <tr key={i}>
-                        {row.map((cell, j) => (
-                          <td
-                            key={j}
-                            className="px-6 py-4 whitespace-nowrap text-gray-900"
-                          >
-                            {cell}
-                          </td>
-                        ))}
+                        {row.map((cell, j) => {
+                          const header = results[0]?.[j];
+                          const isFinancialColumn = header === 'Total (-) Fee' || header === 'Difference';
+                          const isNumber = typeof cell === 'number';
+                          const isPositive = isNumber && cell > 0;
+                          const isNegative = isNumber && cell < 0;
+                          
+                          let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
+                          
+                          if (isFinancialColumn && isNumber) {
+                            if (isPositive) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                            } else if (isNegative) {
+                              cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
+                            }
+                          }
+                          
+                          return (
+                            <td key={j} className={cellClass}>
+                              {cell}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
