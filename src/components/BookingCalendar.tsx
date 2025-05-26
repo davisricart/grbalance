@@ -2,21 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, ExternalLink } from 'lucide-react';
 
 export default function BookingCalendar() {
-  const [showFallback, setShowFallback] = useState(false);
+  const [showFallback, setShowFallback] = useState(true); // Start with fallback shown
 
   useEffect(() => {
-    // Set a timeout to show fallback if embed doesn't load
-    const fallbackTimer = setTimeout(() => {
-      setShowFallback(true);
-    }, 5000); // Show fallback after 5 seconds
-
-    // Try to load Cal.com embed
+    // Try to load Cal.com embed, but fallback is already shown
     const script = document.createElement('script');
     script.src = 'https://app.cal.com/embed/embed.js';
     script.async = true;
     
     script.onload = () => {
-      clearTimeout(fallbackTimer);
       try {
         if (window.Cal) {
           window.Cal("init", "30min", { origin: "https://cal.com" });
@@ -30,22 +24,28 @@ export default function BookingCalendar() {
             hideEventTypeDetails: false,
             layout: "month_view"
           });
+          
+          // If embed loads successfully, hide fallback
+          setTimeout(() => {
+            const container = document.getElementById('cal-booking-inline');
+            if (container && container.children.length > 0) {
+              setShowFallback(false);
+            }
+          }, 1000);
         }
       } catch (error) {
         console.error('Cal.com embed error:', error);
-        setShowFallback(true);
+        // Keep fallback shown
       }
     };
 
     script.onerror = () => {
-      clearTimeout(fallbackTimer);
-      setShowFallback(true);
+      // Keep fallback shown
     };
 
     document.head.appendChild(script);
 
     return () => {
-      clearTimeout(fallbackTimer);
       if (script.parentNode) {
         script.parentNode.removeChild(script);
       }
