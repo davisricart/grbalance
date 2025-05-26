@@ -21,13 +21,13 @@ export default function BookingCalendar() {
         try {
           if (window.Cal) {
             console.log('Cal object found, initializing embed...');
-            window.Cal("init", "30min", { origin: "https://cal.com" });
-            window.Cal.ns["30min"]("inline", {
+            window.Cal("init", { origin: "https://cal.com" });
+            window.Cal("inline", {
               elementOrSelector: "#cal-booking-inline",
-              config: { layout: "month_view" },
               calLink: "davis-r-rmz6au/30min",
+              layout: "month_view"
             });
-            window.Cal.ns["30min"]("ui", {
+            window.Cal("ui", {
               styles: { branding: { brandColor: "#059669" } },
               hideEventTypeDetails: false,
               layout: "month_view"
