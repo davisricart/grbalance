@@ -1,10 +1,23 @@
 [build]
 command = "npm run build"
 publish = "dist"
+functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
 
+# API redirects for Netlify Functions
+[[redirects]]
+  from = "/api/scripts"
+  to = "/.netlify/functions/scripts"
+  status = 200
+
+[[redirects]]
+  from = "/api/scripts/:scriptName/execute"
+  to = "/.netlify/functions/execute-script?scriptName=:scriptName"
+  status = 200
+
+# SPA fallback
 [[redirects]]
   from = "/*"
   to = "/index.html"
