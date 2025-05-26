@@ -63,6 +63,15 @@ function standardReconciliation(XLSX, file1, file2) {
         nameIndex = file2Headers.findIndex(header => typeof header === "string" && header.trim().toLowerCase() === "name");
         amountIndex = file2Headers.findIndex(header => typeof header === "string" && header.trim().toLowerCase() === "amount");
         jsonData2 = data.slice(1);
+        
+        // Filter out total/summary rows
+        jsonData2 = jsonData2.filter(row => {
+            // Check if any cell in the row contains total-related keywords
+            const rowText = row.join(' ').toLowerCase();
+            const totalKeywords = ['grand total', 'total', 'sum', 'subtotal', 'summary'];
+            return !totalKeywords.some(keyword => rowText.includes(keyword));
+        });
+        
         if (amountIndex !== -1) {
             jsonData2.forEach(row => {
                 if (amountIndex < row.length && row[amountIndex] !== undefined) {
@@ -310,9 +319,19 @@ function standardReconciliation(XLSX, file1, file2) {
         jsonData2.forEach(row => {
             if (row.length > Math.max(nameIndex, amountIndex)) {
                 const name = String(row[nameIndex] || "").trim();
+                
+                // Skip cash transactions and total/summary rows
                 if (name.toLowerCase().includes("cash")) {
                     return;
                 }
+                
+                // Skip total/summary rows
+                const rowText = row.join(' ').toLowerCase();
+                const totalKeywords = ['grand total', 'total', 'sum', 'subtotal', 'summary'];
+                if (totalKeywords.some(keyword => rowText.includes(keyword))) {
+                    return;
+                }
+                
                 const amount = parseFloat(row[amountIndex]) || 0;
                 if (name) {
                     let displayName = name;

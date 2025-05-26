@@ -11,9 +11,23 @@ const SCRIPTS_DIR = path.join(__dirname, 'scripts');
 // List available scripts
 app.get('/api/scripts', (req, res) => {
   try {
+    // Filter out utility scripts that aren't meant for reconciliation
+    const utilityScripts = [
+      'adminCleanup',
+      'dev-helper', 
+      'setup',
+      'download',
+      'cleanup',
+      'create-instance',
+      'setup-github',
+      'test-run5'
+    ];
+    
     const files = fs.readdirSync(SCRIPTS_DIR)
       .filter(f => f.endsWith('.js') && !f.startsWith('.'))
-      .map(f => f.replace('.js', ''));
+      .map(f => f.replace('.js', ''))
+      .filter(f => !utilityScripts.includes(f) && !f.includes('.backup'));
+    
     res.json(files);
   } catch (err) {
     res.status(500).json({ error: 'Failed to list scripts' });

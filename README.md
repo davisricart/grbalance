@@ -10,6 +10,14 @@ A customizable web-based system for reconciling payment transactions between dif
 - Flexible report formats
 - Modular client-specific logic
 
+## Architecture Philosophy
+
+**Lightweight & Cost-Effective Design:**
+- **No Data Storage**: All processing is client-side with uploaded files only
+- **Stateless Operations**: No historical data retention or user data persistence
+- **Minimal Infrastructure**: Reduces hosting costs and complexity
+- **Privacy-First**: User data never leaves their session
+
 ## Directory Structure
 
 ```
