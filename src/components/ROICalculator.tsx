@@ -212,10 +212,10 @@ export default function ROICalculator() {
                       Book Free Consultation
                     </button>
                     <button 
-                      onClick={() => navigate('/app')}
+                      onClick={() => navigate('/demo')}
                       className="flex-1 bg-white text-emerald-600 border-2 border-emerald-600 px-4 py-2 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
                     >
-                      Try Sample Data Free
+                      View Sample Results
                     </button>
                   </div>
                 </div>

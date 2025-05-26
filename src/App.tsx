@@ -11,6 +11,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import PricingPage from './pages/PricingPage';
 import BookingPage from './pages/BookingPage';
+import DemoPage from './pages/DemoPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -27,7 +28,8 @@ function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/book" element={<BookingPage />} />
+                      <Route path="/book" element={<BookingPage />} />
+            <Route path="/demo" element={<DemoPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Layout>
