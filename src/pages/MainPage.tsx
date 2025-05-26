@@ -345,14 +345,16 @@ export default function MainPage({ user }: MainPageProps) {
                       <tr key={i}>
                         {row.map((cell, j) => {
                           const header = results[0]?.[j];
-                          const isFinancialColumn = header === 'Total (-) Fee' || header === 'Difference';
-                          const isNumber = typeof cell === 'number';
-                          const isPositive = isNumber && cell > 0;
-                          const isNegative = isNumber && cell < 0;
+                          const headerStr = String(header || '').trim();
+                          const isFinancialColumn = headerStr === 'Total (-) Fee' || headerStr === 'Difference';
+                          const isNumber = typeof cell === 'number' || (!isNaN(Number(cell)) && cell !== '' && cell !== null);
+                          const numValue = Number(cell);
+                          const isPositive = isNumber && numValue > 0;
+                          const isNegative = isNumber && numValue < 0;
                           
                           let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
                           
-                          if (isFinancialColumn && isNumber) {
+                          if (isFinancialColumn && isNumber && numValue !== 0) {
                             if (isPositive) {
                               cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
                             } else if (isNegative) {
