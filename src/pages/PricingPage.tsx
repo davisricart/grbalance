@@ -202,7 +202,7 @@ export default function PricingPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tight">{plan.name}</h2>
                 <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                  14-day trial
+                  Free demo
                 </span>
               </div>
               
@@ -237,14 +237,14 @@ export default function PricingPage() {
               </p>
               
               <Link
-                to={`/app?billing=${isAnnual ? 'annual' : 'monthly'}&plan=${plan.name.toLowerCase()}`}
+                to={`/interactive-demo`}
                 className={`mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                   plan.popular
                     ? 'bg-emerald-500 text-white hover:bg-emerald-400 focus-visible:outline-emerald-500'
                     : 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-emerald-600'
                 }`}
               >
-                Try Sample Data Free
+                Try Interactive Demo
               </Link>
               
               <ul className="mt-8 space-y-3 text-sm leading-6">

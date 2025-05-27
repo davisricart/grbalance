@@ -32,14 +32,6 @@ export default function LandingPage() {
               Book Consultation
             </Link>
           </div>
-          <div className="mt-4">
-            <Link
-              to="/demo"
-              className="text-gray-600 hover:text-emerald-600 transition-colors underline"
-            >
-              Or view static sample results
-            </Link>
-          </div>
         </div>
 
         {/* Benefits Section */}

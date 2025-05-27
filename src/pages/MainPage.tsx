@@ -742,7 +742,7 @@ export default function MainPage({ user }: MainPageProps) {
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
                     {/* Current Session Insights */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 max-w-2xl">
+                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 max-w-lg">
                       <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
                         <BarChart3 className="h-5 w-5 mr-2" />
                         Current Session Insights
