@@ -33,24 +33,24 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Fetch scripts from API, with local fallback for development
+    // Fetch scripts from API, with fallback for when backend has no scripts
     fetch('/api/scripts')
       .then(response => response.json())
-      .then(data => setAvailableScripts(data.scripts || []))
+      .then(data => {
+        const scripts = data.scripts || [];
+        if (scripts.length === 0) {
+          // If backend returns no scripts, provide default script
+          console.log('Backend returned no scripts, using default script');
+          setAvailableScripts(['Standard Reconciliation']);
+        } else {
+          setAvailableScripts(scripts);
+        }
+      })
       .catch(error => {
         console.error('Error fetching scripts:', error);
-        // Only use mock scripts as fallback in local development
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-          console.log('Using mock scripts for local testing');
-          setAvailableScripts([
-            'Standard Reconciliation',
-            'DaySmart + Square',
-            'Payment Hub Analysis',
-            'Custom Salon Script'
-          ]);
-        } else {
-          setAvailableScripts([]);
-        }
+        // Fallback script for both local and production
+        console.log('API call failed, using default script');
+        setAvailableScripts(['Standard Reconciliation']);
       });
   }, []);
 
