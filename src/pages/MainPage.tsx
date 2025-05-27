@@ -23,7 +23,7 @@ export default function MainPage({ user }: MainPageProps) {
   const [status, setStatus] = useState('');
   const [warning, setWarning] = useState('');
   const [results, setResults] = useState<ResultRow[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'fees' | 'insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'insights'>('overview');
   const [rawFileData, setRawFileData] = useState<{file1Data: any[], file2Data: any[]} | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -713,17 +713,7 @@ export default function MainPage({ user }: MainPageProps) {
                     Overview
                   </button>
 
-                  <button
-                    onClick={() => setActiveTab('fees')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'fees'
-                        ? 'border-emerald-500 text-emerald-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <DollarSign className="h-4 w-4 inline mr-2" />
-                    Processing Fees
-                  </button>
+
                   <button
                     onClick={() => setActiveTab('insights')}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -934,63 +924,7 @@ export default function MainPage({ user }: MainPageProps) {
 
 
 
-                {activeTab === 'fees' && (
-                  <div className="space-y-6">
-                    {/* Processing Fee Breakdown */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6">
-                      <h3 className="text-lg font-medium text-gray-900 mb-6">Processing Fee Breakdown</h3>
-                      
-                      {analysis && Object.keys(analysis.cardBrandTransactions).length > 0 && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                          {Object.entries(analysis.cardBrandTransactions).map(([brand, data]) => {
-                            const grossRevenue = data.revenue + data.fees;
-                            const feeRate = grossRevenue > 0 ? (data.fees / grossRevenue) * 100 : 0;
-                            const totalFees = data.fees;
-                            const transactionCount = data.count;
-                            
-                            return (
-                              <div key={brand} className="text-center">
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                  <h4 className="text-lg font-semibold text-gray-900">{brand}</h4>
-                                  <div className="mt-2">
-                                    <div className="text-2xl font-bold text-red-600">{feeRate.toFixed(2)}%</div>
-                                    <div className="text-sm text-gray-500">Fee Rate</div>
-                                  </div>
-                                  <div className="mt-3 space-y-1 text-sm">
-                                    <div className="font-medium">${totalFees.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} total fees</div>
-                                    <div className="text-gray-500">on {transactionCount.toLocaleString()} transactions</div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
 
-                      {/* Fee Analysis Summary */}
-                      {analysis && (
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <h4 className="text-md font-medium text-blue-900 mb-2 flex items-center">
-                            <Lightbulb className="h-4 w-4 mr-2" />
-                            Fee Analysis
-                          </h4>
-                          <div className="text-blue-700">
-                            <p className="mb-2">
-                              <span className="font-medium">Overall processing fee rate: {analysis.totalRevenue > 0 ? 
-                                ((analysis.totalFees / (analysis.totalRevenue + analysis.totalFees)) * 100).toFixed(2) : '0.00'}%</span>
-                            </p>
-                            <p className="mb-2">
-                              <span className="font-medium">Total fees: ${analysis.totalFees.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                            </p>
-                            <p>
-                              <span className="font-medium">Net revenue: ${analysis.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</span>
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {activeTab === 'insights' && (
                   <div className="space-y-6">
