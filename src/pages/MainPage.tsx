@@ -371,6 +371,8 @@ export default function MainPage({ user }: MainPageProps) {
         repeatCustomers?: number;
         retentionRate?: number;
         avgTransactionsPerCustomer?: number;
+        avgRevenuePerCustomer?: number;
+        totalCustomerRevenue?: number;
         highValueCustomers?: number;
       };
       operationalMetrics: {
@@ -417,6 +419,9 @@ export default function MainPage({ user }: MainPageProps) {
         const customerFrequency: { [key: string]: number } = {};
         const averageTickets: { [key: string]: number[] } = {};
 
+        let totalCustomerRevenue = 0;
+        let totalCustomerTransactions = 0;
+
         file1Rows.forEach((row: any[]) => {
           if (row && row.length > Math.max(dateIndex, amountIndex)) {
             const dateStr = String(row[dateIndex] || '');
@@ -442,6 +447,8 @@ export default function MainPage({ user }: MainPageProps) {
               customerFrequency[customer] = (customerFrequency[customer] || 0) + 1;
               if (!averageTickets[customer]) averageTickets[customer] = [];
               averageTickets[customer].push(amount);
+              totalCustomerRevenue += amount;
+              totalCustomerTransactions++;
             }
           }
         });
@@ -469,7 +476,9 @@ export default function MainPage({ user }: MainPageProps) {
             totalUniqueCustomers: totalCustomers,
             repeatCustomers: repeatCustomers,
             retentionRate: customerRetentionRate,
-            avgTransactionsPerCustomer: totalTransactions / totalCustomers,
+            avgTransactionsPerCustomer: totalCustomerTransactions / totalCustomers,
+            avgRevenuePerCustomer: totalCustomers > 0 ? totalCustomerRevenue / totalCustomers : 0,
+            totalCustomerRevenue: totalCustomerRevenue,
             highValueCustomers: Object.entries(averageTickets)
               .map(([customer, amounts]) => ({
                 customer,
@@ -741,97 +750,51 @@ export default function MainPage({ user }: MainPageProps) {
                       
 
 
-                      {/* Business Insights - Compact Layout */}
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Payment Method Distribution */}
-                        {analysis && rawFileData?.file1Data && (
-                          <div className="bg-emerald-50 rounded-lg p-4">
-                            <h4 className="text-md font-medium text-emerald-900 mb-3 flex items-center">
-                              <DollarSign className="h-4 w-4 mr-2" />
-                              Payment Method Distribution
-                            </h4>
-                            <div className="space-y-2">
-                              {(() => {
-                                // Calculate from raw file data (total population, not just discrepancies)
-                                const file1Headers = rawFileData.file1Data[0] || [];
-                                const file1Rows = rawFileData.file1Data.slice(1);
-                                const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
-                                const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
-                                
-                                const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
-                                let totalCount = 0;
-                                
-                                file1Rows.forEach((row: any[]) => {
-                                  if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
-                                    const brand = String(row[brandIndex] || 'Unknown').trim();
-                                    const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
-                                    
-                                    if (!brandDistribution[brand]) {
-                                      brandDistribution[brand] = { count: 0, amount: 0 };
-                                    }
-                                    brandDistribution[brand].count++;
-                                    brandDistribution[brand].amount += amount;
-                                    totalCount++;
+                                            {/* Business Insights */}
+                      {analysis && rawFileData?.file1Data && (
+                        <div className="bg-emerald-50 rounded-lg p-4">
+                          <h4 className="text-md font-medium text-emerald-900 mb-3 flex items-center">
+                            <DollarSign className="h-4 w-4 mr-2" />
+                            Payment Method Distribution
+                          </h4>
+                          <div className="space-y-2">
+                            {(() => {
+                              // Calculate from raw file data (total population, not just discrepancies)
+                              const file1Headers = rawFileData.file1Data[0] || [];
+                              const file1Rows = rawFileData.file1Data.slice(1);
+                              const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
+                              const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
+                              
+                              const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
+                              let totalCount = 0;
+                              
+                              file1Rows.forEach((row: any[]) => {
+                                if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
+                                  const brand = String(row[brandIndex] || 'Unknown').trim();
+                                  const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
+                                  
+                                  if (!brandDistribution[brand]) {
+                                    brandDistribution[brand] = { count: 0, amount: 0 };
                                   }
-                                });
-                                
-                                return Object.entries(brandDistribution).map(([brand, data]) => {
-                                  const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
-                                  return (
-                                    <div key={brand} className="flex justify-between items-center">
-                                      <span className="text-emerald-700">{brand}:</span>
-                                      <span className="font-medium text-emerald-900">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
+                                  brandDistribution[brand].count++;
+                                  brandDistribution[brand].amount += amount;
+                                  totalCount++;
+                                }
+                              });
+                              
+                              return Object.entries(brandDistribution).map(([brand, data]) => {
+                                const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
+                                return (
+                                  <div key={brand} className="flex justify-between items-center">
+                                    <span className="text-emerald-700">{brand}:</span>
+                                    <span className="font-medium text-emerald-900">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
+                                  </div>
+                                );
+                              });
+                            })()}
                           </div>
-                        )}
-
-                        {/* Customer Intelligence */}
-                        {analysis && analysis.enhancedInsights && (
-                          <div className="bg-emerald-50 rounded-lg p-4">
-                            <h4 className="text-md font-medium text-emerald-900 mb-3 flex items-center">
-                              <Users className="h-4 w-4 mr-2" />
-                              Customer Intelligence
-                            </h4>
-                            <div className="space-y-2 text-emerald-700">
-                              {analysis.enhancedInsights.customerBehavior?.totalUniqueCustomers ? (
-                                <>
-                                  <div className="flex justify-between">
-                                    <span>Unique customers:</span>
-                                    <span className="font-medium text-emerald-900">{analysis.enhancedInsights.customerBehavior.totalUniqueCustomers}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Avg revenue per customer:</span>
-                                    <span className="font-medium text-emerald-900">${(analysis.totalRevenue / analysis.enhancedInsights.customerBehavior.totalUniqueCustomers).toFixed(0)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>High-value customers:</span>
-                                    <span className="font-medium text-emerald-900">{analysis.enhancedInsights.customerBehavior.highValueCustomers} ($200+ avg)</span>
-                                  </div>
-                                </>
-                              ) : (
-                                <>
-                                  <div className="flex justify-between">
-                                    <span>Estimated customers:</span>
-                                    <span className="font-medium text-emerald-900">{Math.floor(analysis.totalTransactions * 0.6)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>Avg revenue per customer:</span>
-                                    <span className="font-medium text-emerald-900">${(analysis.totalRevenue / Math.floor(analysis.totalTransactions * 0.6)).toFixed(0)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span>High-value customers:</span>
-                                    <span className="font-medium text-emerald-900">{Math.floor(analysis.totalTransactions * 0.15)}</span>
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Detailed Results Table */}
