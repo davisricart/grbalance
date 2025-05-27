@@ -103,6 +103,22 @@ export default function PricingPage() {
         <meta name="twitter:image" content="https://grbalance.netlify.app/your-social-image.png" />
       </Helmet>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        {/* Launch Special Banner */}
+        <div className="mb-12">
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl p-6 text-center text-white shadow-lg max-w-4xl mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-2xl">🚀</span>
+              <h2 className="text-xl font-bold">Launch Special - Setup Fee Waived</h2>
+            </div>
+            <p className="text-lg font-medium mb-2">
+              Sign up before July 1st, 2025 and get setup fee waived + 14-day free trial
+            </p>
+            <p className="text-emerald-100 text-sm">
+              Save $497 + risk-free trial • After July 1st, standard pricing applies
+            </p>
+          </div>
+        </div>
+
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
             Stop Losing Money on Payment Processing Errors
@@ -185,7 +201,7 @@ export default function PricingPage() {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold tracking-tight">{plan.name}</h2>
                 <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                  Free demo
+                  14-day free trial
                 </span>
               </div>
               
@@ -202,17 +218,18 @@ export default function PricingPage() {
                   <span className="text-lg text-gray-400 line-through">${plan.originalPrice}</span>
                 )}
               </div>
-              <div className="text-sm text-emerald-700 font-semibold mt-1">
-                + $497 one-time custom setup
+              <div className="text-sm mt-1">
+                <span className="text-gray-400 line-through">+ $497 one-time custom setup</span>
+                <span className="text-emerald-700 font-semibold ml-2">FREE until July 1st</span>
               </div>
               {isAnnual && (
                 <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
-                  Billed annually (${(plan.annualPrice * 12).toFixed(0)}/year + $497 setup)
+                  Year 1: ${(plan.annualPrice * 12).toFixed(0)} (setup fee waived)
                 </p>
               )}
               {!isAnnual && (
                 <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
-                  Year 1: ${(plan.monthlyPrice * 12 + 497).toFixed(0)} (includes setup)
+                  Year 1: ${(plan.monthlyPrice * 12).toFixed(0)} (setup fee waived)
                 </p>
               )}
               <p className="mt-2 text-sm font-medium text-emerald-600">
@@ -253,8 +270,8 @@ export default function PricingPage() {
           <ul className="text-gray-700 text-base space-y-1">
             <li>✓ Try our system with realistic sample data (free)</li>
             <li>✓ See exactly how reconciliation works for salons</li>
-            <li>✓ Ready to use your data? One-time $497 custom setup</li>
-            <li>✓ Start catching real discrepancies immediately</li>
+            <li>✓ Ready to use your data? <span className="text-emerald-600 font-semibold">Custom setup FREE + 14-day trial until July 1st</span></li>
+            <li>✓ Start catching real discrepancies risk-free</li>
           </ul>
         </div>
 

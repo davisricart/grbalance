@@ -8,6 +8,22 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+        {/* Launch Special Banner */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 rounded-xl p-6 text-center text-white shadow-lg">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="text-2xl">🚀</span>
+              <h2 className="text-xl font-bold">Launch Special - Limited Time</h2>
+            </div>
+            <p className="text-lg font-medium mb-2">
+              Setup fee waived + 14-day free trial for salon owners who sign up before July 1st, 2025
+            </p>
+            <p className="text-emerald-100 text-sm">
+              Save $497 on custom script development • Risk-free trial • Offer expires July 1st
+            </p>
+          </div>
+        </div>
+
         {/* Hero Section */}
         <div className="text-center">
           <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
