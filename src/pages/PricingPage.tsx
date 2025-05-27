@@ -139,24 +139,7 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* Annual Benefits Callout */}
-        {isAnnual && (
-          <div className="mt-8 max-w-2xl mx-auto text-center">
-            <div className="bg-gradient-to-r from-emerald-50 to-blue-50 rounded-xl p-6 border border-emerald-200">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">🎉 Annual Plan Benefits</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-600">🔒</span>
-                  <span>Price lock guarantee</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-emerald-600">⚡</span>
-                  <span>Priority support</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Benefits Section */}
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
