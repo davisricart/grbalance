@@ -756,77 +756,75 @@ export default function MainPage({ user }: MainPageProps) {
                         </div>
                       )}
 
-                      {/* Payment Method Distribution */}
-                      {analysis && Object.keys(analysis.cardBrandTransactions).length > 0 && (
+                      {/* Payment Method Distribution - Fixed to use total population from raw data */}
+                      {analysis && rawFileData?.file1Data && (
                         <div className="mb-6">
                           <h4 className="text-md font-medium text-gray-700 mb-3 flex items-center">
                             <DollarSign className="h-4 w-4 mr-2" />
                             Payment Method Distribution
                           </h4>
                           <div className="grid grid-cols-2 gap-4">
-                            {Object.entries(analysis.cardBrandTransactions).map(([brand, data]) => {
-                              const percentage = (data.count / analysis.totalTransactions) * 100;
-                              const totalAmount = data.revenue;
-                              return (
-                                <div key={brand} className="flex justify-between items-center">
-                                  <span className="text-gray-700">{brand}:</span>
-                                  <div className="text-right">
-                                    <span className="font-medium">{percentage.toFixed(1)}% (${totalAmount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
+                            {(() => {
+                              // Calculate from raw file data (total population, not just discrepancies)
+                              const file1Headers = rawFileData.file1Data[0] || [];
+                              const file1Rows = rawFileData.file1Data.slice(1);
+                              const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
+                              const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
+                              
+                              const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
+                              let totalCount = 0;
+                              
+                              file1Rows.forEach((row: any[]) => {
+                                if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
+                                  const brand = String(row[brandIndex] || 'Unknown').trim();
+                                  const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
+                                  
+                                  if (!brandDistribution[brand]) {
+                                    brandDistribution[brand] = { count: 0, amount: 0 };
+                                  }
+                                  brandDistribution[brand].count++;
+                                  brandDistribution[brand].amount += amount;
+                                  totalCount++;
+                                }
+                              });
+                              
+                              return Object.entries(brandDistribution).map(([brand, data]) => {
+                                const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
+                                return (
+                                  <div key={brand} className="flex justify-between items-center">
+                                    <span className="text-gray-700">{brand}:</span>
+                                    <div className="text-right">
+                                      <span className="font-medium">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
+                                    </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              });
+                            })()}
                           </div>
                         </div>
                       )}
 
                       {/* Enhanced Business Intelligence */}
                       {analysis && analysis.enhancedInsights && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Customer Intelligence */}
-                          <div className="bg-blue-50 rounded-lg p-4">
-                            <h4 className="text-md font-medium text-blue-900 mb-2 flex items-center">
-                              <Users className="h-4 w-4 mr-2" />
-                              Customer Intelligence
-                            </h4>
-                            <div className="space-y-1 text-blue-700">
-                              {analysis.enhancedInsights.customerBehavior?.totalUniqueCustomers ? (
-                                <>
-                                  <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.totalUniqueCustomers}</span> unique customers</p>
-                                  <p><span className="font-medium">{(analysis.enhancedInsights.customerBehavior.retentionRate ?? 0).toFixed(1)}%</span> customer retention rate</p>
-                                  <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.highValueCustomers}</span> high-value customers ($200+ avg)</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.6)}</span> estimated unique customers</p>
-                                  <p><span className="font-medium">${(analysis.totalRevenue / Math.floor(analysis.totalTransactions * 0.6)).toFixed(0)}</span> average revenue per customer</p>
-                                  <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.15)}</span> estimated repeat customers</p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Operational Performance */}
-                          <div className="bg-purple-50 rounded-lg p-4">
-                            <h4 className="text-md font-medium text-purple-900 mb-2 flex items-center">
-                              <BarChart3 className="h-4 w-4 mr-2" />
-                              Operational Performance
-                            </h4>
-                            <div className="space-y-1 text-purple-700">
-                              {analysis.enhancedInsights.operationalMetrics?.processingEfficiency ? (
-                                <>
-                                  <p><span className="font-medium">{analysis.enhancedInsights.operationalMetrics.processingEfficiency.toFixed(1)}%</span> processing efficiency</p>
-                                  <p><span className="font-medium">{(analysis.enhancedInsights.operationalMetrics.avgProcessingFeeRate ?? 0).toFixed(2)}%</span> avg processing fee rate</p>
-                                  <p><span className="font-medium">{analysis.enhancedInsights.businessIntelligence?.timeValueOfReconciliation?.toFixed(0) || 0}</span> minutes saved via automation</p>
-                                </>
-                              ) : (
-                                <>
-                                  <p><span className="font-medium">{((analysis.totalTransactions - analysis.discrepancies) / analysis.totalTransactions * 100).toFixed(1)}%</span> processing efficiency</p>
-                                  <p><span className="font-medium">{(analysis.totalFees / (analysis.totalRevenue + analysis.totalFees) * 100).toFixed(2)}%</span> processing fee rate</p>
-                                  <p><span className="font-medium">{(analysis.totalTransactions * 2.5).toFixed(0)}</span> minutes saved via automation</p>
-                                </>
-                              )}
-                            </div>
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <h4 className="text-md font-medium text-blue-900 mb-2 flex items-center">
+                            <Users className="h-4 w-4 mr-2" />
+                            Customer Intelligence
+                          </h4>
+                          <div className="space-y-1 text-blue-700">
+                            {analysis.enhancedInsights.customerBehavior?.totalUniqueCustomers ? (
+                              <>
+                                <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.totalUniqueCustomers}</span> unique customers</p>
+                                <p><span className="font-medium">${(analysis.totalRevenue / analysis.enhancedInsights.customerBehavior.totalUniqueCustomers).toFixed(0)}</span> average revenue per customer</p>
+                                <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.highValueCustomers}</span> high-value customers ($200+ avg)</p>
+                              </>
+                            ) : (
+                              <>
+                                <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.6)}</span> estimated unique customers</p>
+                                <p><span className="font-medium">${(analysis.totalRevenue / Math.floor(analysis.totalTransactions * 0.6)).toFixed(0)}</span> average revenue per customer</p>
+                                <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.15)}</span> estimated high-value customers</p>
+                              </>
+                            )}
                           </div>
                         </div>
                       )}
