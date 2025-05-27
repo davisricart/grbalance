@@ -744,90 +744,108 @@ export default function MainPage({ user }: MainPageProps) {
                           <div className="flex items-center mb-2">
                             <CheckCircle className="h-5 w-5 text-emerald-500 mr-2" />
                             <span className="font-medium text-emerald-700">
-                              {(analysis.enhancedInsights?.operationalMetrics?.reconciliationAccuracy ?? 95) > 90 ? 'Excellent' : 
-                               (analysis.enhancedInsights?.operationalMetrics?.reconciliationAccuracy ?? 95) > 80 ? 'Good' : 'Needs Attention'} Data Quality
+                              Reconciliation Summary
                             </span>
                           </div>
                           <p className="text-emerald-600">
-                            {analysis.matchPercentage.toFixed(1)}% reconciliation accuracy • {analysis.discrepancies} discrepancies worth ${analysis.totalVariance.toFixed(2)}
-                            {analysis.enhancedInsights?.operationalMetrics?.dataQualityScore && 
-                              ` • ${analysis.enhancedInsights.operationalMetrics.dataQualityScore.toFixed(1)}% data completeness`}
+                            <span className="font-medium">{analysis.totalTransactions} transactions processed</span> • 
+                            <span className="font-medium"> {analysis.discrepancies} discrepancies found</span> • 
+                            <span className="font-medium"> ${analysis.totalVariance.toFixed(2)} total variance</span>
                           </p>
                         </div>
                       )}
 
-                      {/* Payment Method Distribution - Fixed to use total population from raw data */}
-                      {analysis && rawFileData?.file1Data && (
-                        <div className="mb-6">
-                          <h4 className="text-md font-medium text-gray-700 mb-3 flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2" />
-                            Payment Method Distribution
-                          </h4>
-                          <div className="grid grid-cols-2 gap-4">
-                            {(() => {
-                              // Calculate from raw file data (total population, not just discrepancies)
-                              const file1Headers = rawFileData.file1Data[0] || [];
-                              const file1Rows = rawFileData.file1Data.slice(1);
-                              const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
-                              const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
-                              
-                              const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
-                              let totalCount = 0;
-                              
-                              file1Rows.forEach((row: any[]) => {
-                                if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
-                                  const brand = String(row[brandIndex] || 'Unknown').trim();
-                                  const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
-                                  
-                                  if (!brandDistribution[brand]) {
-                                    brandDistribution[brand] = { count: 0, amount: 0 };
+                      {/* Business Insights - Compact Layout */}
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Payment Method Distribution */}
+                        {analysis && rawFileData?.file1Data && (
+                          <div className="bg-gray-50 rounded-lg p-4">
+                            <h4 className="text-md font-medium text-gray-700 mb-3 flex items-center">
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              Payment Method Distribution
+                            </h4>
+                            <div className="space-y-2">
+                              {(() => {
+                                // Calculate from raw file data (total population, not just discrepancies)
+                                const file1Headers = rawFileData.file1Data[0] || [];
+                                const file1Rows = rawFileData.file1Data.slice(1);
+                                const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
+                                const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
+                                
+                                const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
+                                let totalCount = 0;
+                                
+                                file1Rows.forEach((row: any[]) => {
+                                  if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
+                                    const brand = String(row[brandIndex] || 'Unknown').trim();
+                                    const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
+                                    
+                                    if (!brandDistribution[brand]) {
+                                      brandDistribution[brand] = { count: 0, amount: 0 };
+                                    }
+                                    brandDistribution[brand].count++;
+                                    brandDistribution[brand].amount += amount;
+                                    totalCount++;
                                   }
-                                  brandDistribution[brand].count++;
-                                  brandDistribution[brand].amount += amount;
-                                  totalCount++;
-                                }
-                              });
-                              
-                              return Object.entries(brandDistribution).map(([brand, data]) => {
-                                const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
-                                return (
-                                  <div key={brand} className="flex justify-between items-center">
-                                    <span className="text-gray-700">{brand}:</span>
-                                    <div className="text-right">
-                                      <span className="font-medium">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
+                                });
+                                
+                                return Object.entries(brandDistribution).map(([brand, data]) => {
+                                  const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
+                                  return (
+                                    <div key={brand} className="flex justify-between items-center">
+                                      <span className="text-gray-700">{brand}:</span>
+                                      <span className="font-medium text-gray-900">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
                                     </div>
-                                  </div>
-                                );
-                              });
-                            })()}
+                                  );
+                                });
+                              })()}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Enhanced Business Intelligence */}
-                      {analysis && analysis.enhancedInsights && (
-                        <div className="bg-blue-50 rounded-lg p-4">
-                          <h4 className="text-md font-medium text-blue-900 mb-2 flex items-center">
-                            <Users className="h-4 w-4 mr-2" />
-                            Customer Intelligence
-                          </h4>
-                          <div className="space-y-1 text-blue-700">
-                            {analysis.enhancedInsights.customerBehavior?.totalUniqueCustomers ? (
-                              <>
-                                <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.totalUniqueCustomers}</span> unique customers</p>
-                                <p><span className="font-medium">${(analysis.totalRevenue / analysis.enhancedInsights.customerBehavior.totalUniqueCustomers).toFixed(0)}</span> average revenue per customer</p>
-                                <p><span className="font-medium">{analysis.enhancedInsights.customerBehavior.highValueCustomers}</span> high-value customers ($200+ avg)</p>
-                              </>
-                            ) : (
-                              <>
-                                <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.6)}</span> estimated unique customers</p>
-                                <p><span className="font-medium">${(analysis.totalRevenue / Math.floor(analysis.totalTransactions * 0.6)).toFixed(0)}</span> average revenue per customer</p>
-                                <p><span className="font-medium">{Math.floor(analysis.totalTransactions * 0.15)}</span> estimated high-value customers</p>
-                              </>
-                            )}
+                        {/* Customer Intelligence */}
+                        {analysis && analysis.enhancedInsights && (
+                          <div className="bg-blue-50 rounded-lg p-4">
+                            <h4 className="text-md font-medium text-blue-900 mb-3 flex items-center">
+                              <Users className="h-4 w-4 mr-2" />
+                              Customer Intelligence
+                            </h4>
+                            <div className="space-y-2 text-blue-700">
+                              {analysis.enhancedInsights.customerBehavior?.totalUniqueCustomers ? (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span>Unique customers:</span>
+                                    <span className="font-medium">{analysis.enhancedInsights.customerBehavior.totalUniqueCustomers}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Avg revenue per customer:</span>
+                                    <span className="font-medium">${(analysis.totalRevenue / analysis.enhancedInsights.customerBehavior.totalUniqueCustomers).toFixed(0)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>High-value customers:</span>
+                                    <span className="font-medium">{analysis.enhancedInsights.customerBehavior.highValueCustomers} ($200+ avg)</span>
+                                  </div>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex justify-between">
+                                    <span>Estimated customers:</span>
+                                    <span className="font-medium">{Math.floor(analysis.totalTransactions * 0.6)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>Avg revenue per customer:</span>
+                                    <span className="font-medium">${(analysis.totalRevenue / Math.floor(analysis.totalTransactions * 0.6)).toFixed(0)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span>High-value customers:</span>
+                                    <span className="font-medium">{Math.floor(analysis.totalTransactions * 0.15)}</span>
+                                  </div>
+                                </>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
 
                     {/* Detailed Results Table */}
