@@ -33,25 +33,25 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Only use mock scripts in local development
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.log('Using mock scripts for local testing');
-      setAvailableScripts([
-        'Standard Reconciliation',
-        'DaySmart + Square',
-        'Payment Hub Analysis',
-        'Custom Salon Script'
-      ]);
-    } else {
-      // Production: Fetch real scripts from API
-      fetch('/api/scripts')
-        .then(response => response.json())
-        .then(data => setAvailableScripts(data.scripts || []))
-        .catch(error => {
-          console.error('Error fetching scripts:', error);
+    // Fetch scripts from API, with local fallback for development
+    fetch('/api/scripts')
+      .then(response => response.json())
+      .then(data => setAvailableScripts(data.scripts || []))
+      .catch(error => {
+        console.error('Error fetching scripts:', error);
+        // Only use mock scripts as fallback in local development
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          console.log('Using mock scripts for local testing');
+          setAvailableScripts([
+            'Standard Reconciliation',
+            'DaySmart + Square',
+            'Payment Hub Analysis',
+            'Custom Salon Script'
+          ]);
+        } else {
           setAvailableScripts([]);
-        });
-    }
+        }
+      });
   }, []);
 
   const handleSignOut = async () => {
