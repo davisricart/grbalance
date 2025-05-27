@@ -33,25 +33,10 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Fetch scripts from API, with fallback for when backend has no scripts
-    fetch('/api/scripts')
-      .then(response => response.json())
-      .then(data => {
-        const scripts = data.scripts || [];
-        if (scripts.length === 0) {
-          // If backend returns no scripts, provide default script
-          console.log('Backend returned no scripts, using default script');
-          setAvailableScripts(['Standard Reconciliation']);
-        } else {
-          setAvailableScripts(scripts);
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching scripts:', error);
-        // Fallback script for both local and production
-        console.log('API call failed, using default script');
-        setAvailableScripts(['Standard Reconciliation']);
-      });
+    // For local development, just use the default script without trying to fetch from API
+    console.log('Setting up default scripts for local development');
+    setAvailableScripts(['Standard Reconciliation']);
+    setScript('Standard Reconciliation');
   }, []);
 
   const handleSignOut = async () => {
@@ -184,38 +169,251 @@ export default function MainPage({ user }: MainPageProps) {
         await updateProgress(60, 'Switching to backup processor...');
         
         try {
-          // Fallback to direct Netlify function call
-          response = await fetch(`/.netlify/functions/execute-script?scriptName=${script}`, {
-            method: 'POST',
-            body: formData,
-          });
-          data = await response.json();
+          // Process files locally using the actual run5.js logic
+          console.log('API calls failed, processing files locally with run5.js logic');
+          await updateProgress(70, 'Processing files locally...');
           
-          if (!response.ok) {
-            throw new Error(data.error || 'Netlify function failed');
+          try {
+            // Read the uploaded files
+            console.log('Starting local file processing...');
+            const file1Buffer = await file1!.arrayBuffer();
+            const file2Buffer = await file2!.arrayBuffer();
+            console.log('Files read successfully, file1 size:', file1Buffer.byteLength, 'file2 size:', file2Buffer.byteLength);
+            
+            // Use the actual compareAndDisplayData function from run5.js
+            const compareAndDisplayData = (XLSX: any, file1: ArrayBuffer, file2: ArrayBuffer) => {
+              try {
+                console.log('Starting compareAndDisplayData function...');
+                
+                // Helper function to parse amount strings
+                function parseAmount(amount: any) {
+                  if (typeof amount === 'number') return amount;
+                  if (!amount) return 0;
+                  return parseFloat(amount.toString().replace(/[^0-9.-]+/g, '')) || 0;
+                }
+                
+                // Step 1: Process First File (Payments Hub Transaction)
+                console.log('Processing first file...');
+                const workbook1 = XLSX.read(file1, { cellDates: true });
+                const sheetName1 = workbook1.SheetNames[0];
+                const worksheet1 = workbook1.Sheets[sheetName1];
+                const rawData = XLSX.utils.sheet_to_json(worksheet1, { header: 1 });
+                console.log('First file processed, rows:', rawData.length);
+                
+                const headers = rawData[0] || [];
+                console.log('Headers found:', headers);
+                
+                // Convert to JSON format for easier processing
+                const jsonData1: any[] = [];
+                for (let i = 1; i < rawData.length; i++) {
+                  const row = rawData[i];
+                  if (!row || row.length === 0) continue;
+                  
+                  const obj: any = {};
+                  headers.forEach((header: any, index: number) => {
+                    obj[header] = row[index];
+                  });
+                  jsonData1.push(obj);
+                }
+                
+                // Step 2: Process Second File (Sales Totals)
+                let jsonData2: any[] = [];
+                let nameIndex = -1;
+                let amountIndex = -1;
+                let file2Headers: any[] = [];
+                
+                if (file2) {
+                  console.log('Processing second file...');
+                  const workbook2 = XLSX.read(file2, { cellDates: true });
+                  const sheetName2 = workbook2.SheetNames[0];
+                  const worksheet2 = workbook2.Sheets[sheetName2];
+                  const salesData = XLSX.utils.sheet_to_json(worksheet2, { header: 1 });
+                  console.log('Second file processed, rows:', salesData.length);
+                  
+                  file2Headers = salesData[0] || [];
+                  
+                  // Find column indices for Sales Totals file
+                  nameIndex = file2Headers.findIndex((header: any) => 
+                    typeof header === "string" && header.trim().toLowerCase() === "name"
+                  );
+                  amountIndex = file2Headers.findIndex((header: any) => 
+                    typeof header === "string" && header.trim().toLowerCase() === "amount"
+                  );
+                  
+                  jsonData2 = salesData.slice(1);
+                  
+                  // Convert amount values to numbers
+                  if (amountIndex !== -1) {
+                    jsonData2.forEach(row => {
+                      if (amountIndex < row.length && row[amountIndex] !== undefined) {
+                        let amount = row[amountIndex];
+                        if (typeof amount === "string") {
+                          amount = amount.replace(/[^0-9.-]+/g, "");
+                        }
+                        row[amountIndex] = parseFloat(amount) || 0;
+                      }
+                    });
+                  }
+                }
+                console.log('Second file data processed, valid rows:', jsonData2.length);
+                
+                // Step 3: Process First File Data - Show ALL transactions
+                const columnsToKeep = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand"];
+                const newColumns = ["Total (-) Fee"];
+                const resultData = [columnsToKeep.concat(newColumns)];
+                const firstFileData: any[] = [];
+                
+                jsonData1.forEach(row => {
+                  const filteredRow: any[] = [];
+                  let cardBrand = "";
+                  
+                  columnsToKeep.forEach(column => {
+                    if (column === "Date") {
+                      if (row[column] instanceof Date) {
+                        const date = row[column];
+                        const year = date.getFullYear();
+                        const month = String(date.getMonth() + 1).padStart(2, '0');
+                        const day = String(date.getDate()).padStart(2, '0');
+                        filteredRow.push(`${month}/${day}/${year}`);
+                      } else {
+                        filteredRow.push(row[column] !== undefined ? String(row[column]) : "");
+                      }
+                    } else if (column === "Card Brand") {
+                      // Clean up card brand - remove "Credit " prefix
+                      cardBrand = String(row[column] || "").replace("Credit ", "").trim();
+                      // Map "American" to "American Express" for consistency
+                      if (cardBrand === "American") {
+                        cardBrand = "American Express";
+                      }
+                      filteredRow.push(cardBrand);
+                    } else {
+                      filteredRow.push(row[column] !== undefined ? String(row[column]) : "");
+                    }
+                  });
+                  
+                  const totalAmount = parseFloat(row["Total Transaction Amount"]) || 0;
+                  const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
+                  const totalMinusFee = totalAmount - discountAmount;
+                  filteredRow.push(totalMinusFee.toFixed(2));
+                  
+                  // Store data for totals calculation
+                  firstFileData.push({
+                    cardBrand: cardBrand,
+                    totalAmount: totalAmount
+                  });
+                  
+                  resultData.push(filteredRow);
+                });
+                
+                // Step 4: Add comparison section
+                resultData.push(['', '', '', '', '', '']); // Empty row
+                resultData.push(['', '', '', '', '', '']); // Empty row
+                resultData.push(['Card Brand', 'Hub Report', 'Sales Report', 'Difference', '', '']);
+                
+                // Step 5: Calculate totals by card brand
+                const cardBrandTotals: { [key: string]: number } = {
+                  "Visa": 0,
+                  "American Express": 0,
+                  "Discover": 0,
+                  "Mastercard": 0
+                };
+                
+                // Calculate Hub Report totals from ALL transactions
+                firstFileData.forEach(data => {
+                  const brand = data.cardBrand;
+                  if (cardBrandTotals.hasOwnProperty(brand)) {
+                    cardBrandTotals[brand] += data.totalAmount;
+                  }
+                });
+                
+                // Calculate Sales Report totals
+                const salesTotals: { [key: string]: number } = {
+                  "Visa": 0,
+                  "American Express": 0,
+                  "Discover": 0,
+                  "Mastercard": 0
+                };
+                
+                if (nameIndex !== -1 && amountIndex !== -1) {
+                  jsonData2.forEach(row => {
+                    if (row.length > amountIndex) {
+                      let brand = String(row[nameIndex] || '').trim();
+                      // Map "American Express" to "American Express" and "American" to "American Express"
+                      if (brand === "American Express" || brand === "American") {
+                        brand = "American Express";
+                      }
+                      const amount = parseFloat(row[amountIndex]) || 0;
+                      
+                      if (salesTotals.hasOwnProperty(brand)) {
+                        salesTotals[brand] += amount;
+                      }
+                    }
+                  });
+                }
+                
+                // Add comparison rows for each card brand
+                const cardBrands = ["Visa", "American Express", "Discover", "Mastercard"];
+                cardBrands.forEach(brand => {
+                  const hubTotal = cardBrandTotals[brand] || 0;
+                  const salesTotal = salesTotals[brand] || 0;
+                  const difference = hubTotal - salesTotal;
+                  
+                  resultData.push([
+                    String(brand),
+                    String(hubTotal.toFixed(0)), // Round to whole numbers like in the sample
+                    String(salesTotal.toFixed(0)),
+                    String(difference.toFixed(0)),
+                    '',
+                    ''
+                  ]);
+                });
+                
+                // Add total row
+                const totalHub = Object.values(cardBrandTotals).reduce((sum, val) => sum + val, 0);
+                const totalSales = Object.values(salesTotals).reduce((sum, val) => sum + val, 0);
+                const totalDiff = totalHub - totalSales;
+                
+                resultData.push([
+                  'Total',
+                  String(totalHub.toFixed(0)),
+                  String(totalSales.toFixed(0)),
+                  String(totalDiff.toFixed(0)),
+                  '',
+                  ''
+                ]);
+                
+                console.log('Result data created, total rows:', resultData.length);
+                return resultData;
+                
+              } catch (innerError) {
+                console.error('Error in compareAndDisplayData:', innerError);
+                throw innerError;
+              }
+            };
+            
+            // Process the files using the actual logic
+            console.log('Calling compareAndDisplayData...');
+            const result = compareAndDisplayData(XLSX, file1Buffer, file2Buffer);
+            console.log('compareAndDisplayData completed successfully');
+            
+            data = { result };
+            
+          } catch (localError) {
+            console.error('Local processing failed:', localError);
+            // Provide a fallback result instead of throwing
+            data = {
+              result: [
+                ['Date', 'Customer Name', 'Total Transaction Amount', 'Cash Discounting Amount', 'Card Brand', 'Total (-) Fee'],
+                ['Error', 'Processing failed: ' + (localError instanceof Error ? localError.message : 'Unknown error'), '', '', '', ''],
+                ['', '', '', '', '', ''],
+                ['Card Brand', 'Hub Report', 'Sales Report', 'Difference'],
+                ['Error', '0.00', '0.00', '0.00']
+              ]
+            };
           }
         } catch (netlifyError) {
-          // Use mock data for both local and production until backend is configured
-          console.log('API calls failed, using mock comparison results');
-          await updateProgress(70, 'Generating comparison results...');
-          
-          data = {
-            result: [
-              ['Date', 'Customer Name', 'Total Transaction Amount', 'Cash Discounting Amount', 'Card Brand', 'Total (-) Fee'],
-              ['2024-03-15', 'John Smith', '$125.00', '$3.12', 'Visa', '$121.88'],
-              ['2024-03-15', 'Jane Doe', '$89.50', '$2.27', 'Mastercard', '$87.23'],
-              ['2024-03-15', 'Bob Johnson', '$200.00', '$6.00', 'American Express', '$194.00'],
-              ['2024-03-16', 'Alice Brown', '$75.25', '$1.75', 'Discover', '$73.50'],
-              ['2024-03-16', 'Charlie Wilson', '$150.00', '$3.75', 'Visa', '$146.25'],
-              ['', '', '', '', '', ''],
-              ['Card Brand', 'Hub Report', 'Sales Report', 'Difference'],
-              ['Visa', '4263.5', '4805', '-541.5'],
-              ['Mastercard', '694', '270', '424'],
-              ['American Express', '390', '367.5', '22.5'],
-              ['Discover', '225', '0', '225'],
-              ['Check', '0', '794', '-794']
-            ]
-          };
+          console.error('All processing methods failed:', netlifyError);
+          throw new Error('Unable to process files. Please try again or contact support.');
         }
       }
       
