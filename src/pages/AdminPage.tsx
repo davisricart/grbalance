@@ -69,10 +69,11 @@ const AdminPage: React.FC = () => {
   console.log('🟢 AUTH CURRENT USER:', auth.currentUser);
   console.log('🟢 AUTH STATE:', auth.currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
 
-  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'settings'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'settings'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
+  const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddClient, setShowAddClient] = useState(false);
   const [showUploadScript, setShowUploadScript] = useState(false);
@@ -213,23 +214,30 @@ const AdminPage: React.FC = () => {
       console.log('🔥 Current user:', auth.currentUser);
       
       const usageCollection = collection(db, 'usage');
-      // Fetch both approved and deactivated users for full lifecycle management
-      const approvedQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated']));
-      console.log('🔥 Created approved/deactivated query:', approvedQuery);
+      // Fetch approved, deactivated, AND deleted users for full lifecycle management
+      const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
+      console.log('🔥 Created all users query:', allUsersQuery);
       
-      const snapshot = await getDocs(approvedQuery);
+      const snapshot = await getDocs(allUsersQuery);
       console.log('🔥 Query executed, document count:', snapshot.size);
       
       const approvedUsersData: ApprovedUser[] = [];
+      const deletedUsersData: ApprovedUser[] = [];
       const urlsData: {[userId: string]: string} = {};
       const idsData: {[userId: string]: string} = {};
       
       snapshot.forEach((doc) => {
         const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
         console.log('🔥 Found user:', userData);
-        approvedUsersData.push(userData);
         
-        // Load site info if it exists
+        // Separate approved/deactivated from deleted users
+        if (userData.status === 'deleted') {
+          deletedUsersData.push(userData);
+        } else {
+          approvedUsersData.push(userData);
+        }
+        
+        // Load site info if it exists (for all users)
         const data = doc.data();
         if (data.siteUrl) {
           urlsData[doc.id] = data.siteUrl;
@@ -240,10 +248,12 @@ const AdminPage: React.FC = () => {
       });
       
       console.log('✅ Approved/deactivated users fetched successfully:', approvedUsersData.length);
+      console.log('✅ Deleted users fetched successfully:', deletedUsersData.length);
       console.log('✅ Site URLs loaded:', Object.keys(urlsData).length);
       console.log('✅ Site IDs loaded:', Object.keys(idsData).length);
       
       setApprovedUsers(approvedUsersData);
+      setDeletedUsers(deletedUsersData);
       setSiteUrls(urlsData);
       setSiteIds(idsData);
     } catch (error: any) {
@@ -253,6 +263,83 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Full Error Object:', error);
       console.error('🚨 Auth State:', auth.currentUser ? 'authenticated' : 'not authenticated');
       setApprovedUsers([]);
+      setDeletedUsers([]);
+    }
+  };
+
+  // Delete user (soft delete)
+  const deleteUser = async (userId: string) => {
+    try {
+      console.log('🗑️ Soft deleting user:', userId);
+      
+      // Update status in usage collection to "deleted"
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'deleted',
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      console.log('✅ User marked as deleted successfully');
+      
+      // Refresh data
+      await fetchApprovedUsers();
+      
+    } catch (error) {
+      console.error('🚨 Error deleting user:', error);
+    }
+  };
+
+  // Restore deleted user
+  const restoreUser = async (userId: string) => {
+    try {
+      console.log('🔄 Restoring deleted user:', userId);
+      
+      // Find the deleted user to get their original subscription tier
+      const deletedUser = deletedUsers.find(user => user.id === userId);
+      if (!deletedUser) {
+        console.error('🚨 Deleted user not found');
+        return;
+      }
+
+      // Get the comparison limit based on subscription tier
+      const comparisonLimit = TIER_LIMITS[deletedUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
+      
+      // Update status back to "approved" and restore limits
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'approved',
+        comparisonsLimit: comparisonLimit,
+        restoredAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      console.log('✅ User restored successfully');
+      
+      // Refresh data
+      await fetchApprovedUsers();
+      
+    } catch (error) {
+      console.error('🚨 Error restoring user:', error);
+    }
+  };
+
+  // Permanently delete user
+  const permanentlyDeleteUser = async (userId: string) => {
+    try {
+      console.log('🗑️ Permanently deleting user:', userId);
+      
+      // Delete from usage collection completely
+      const usageDocRef = doc(db, 'usage', userId);
+      await deleteDoc(usageDocRef);
+
+      console.log('✅ User permanently deleted');
+      
+      // Refresh data
+      await fetchApprovedUsers();
+      
+    } catch (error) {
+      console.error('🚨 Error permanently deleting user:', error);
     }
   };
 
@@ -488,16 +575,51 @@ const AdminPage: React.FC = () => {
   };
 
   const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
-    const user = approvedUsers.find(u => u.id === userId);
-    const tier = user?.subscriptionTier || 'unknown';
-    const limit = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || 0;
+    showConfirmation(
+      'Reactivate User Account',
+      `Are you sure you want to REACTIVATE the account for ${userEmail}?\n\n✅ This will:\n• Restore full access to their subscription\n• Re-enable their comparison limits\n• Allow them to use the platform again\n\n⚠️ User will regain access immediately`,
+      'Reactivate User',
+      'bg-green-600 hover:bg-green-700',
+      () => reactivateApprovedUser(userId)
+    );
+  };
+
+  // Handler for user deletion with confirmation
+  const handleDeleteUser = (userId: string, userEmail: string) => {
+    showConfirmation(
+      'Delete User Account',
+      `Are you sure you want to DELETE the account for ${userEmail}?\n\n🗑️ This will:\n• Move user to "Deleted" tab\n• Preserve all data for recovery\n• Remove access to platform\n• Keep Netlify site (use "Delete Website" first if needed)\n\n⚠️ This is a soft delete - user can be restored later`,
+      'Delete User',
+      'bg-red-600 hover:bg-red-700',
+      () => deleteUser(userId)
+    );
+  };
+
+  // Handler for user restoration with confirmation  
+  const handleRestoreUser = (userId: string) => {
+    const deletedUser = deletedUsers.find(user => user.id === userId);
+    const userEmail = deletedUser?.email || 'Unknown';
     
     showConfirmation(
-      '✅ Reactivate User Account',
-      `Are you sure you want to REACTIVATE ${userEmail}?\n\n✅ This will:\n• Restore their ${tier} subscription access\n• Set their usage limit to ${limit} comparisons/month\n• Allow them to use all platform features again\n\n💡 They will be able to log in immediately.`,
-      'Yes, Reactivate User',
-      'bg-green-600 text-white',
-      () => reactivateApprovedUser(userId)
+      'Restore User Account',
+      `Are you sure you want to RESTORE the account for ${userEmail}?\n\n✅ This will:\n• Move user back to "Approved" tab\n• Restore full subscription access\n• Re-enable comparison limits based on tier\n• Allow platform access immediately\n\n⚠️ User will regain access immediately`,
+      'Restore User',
+      'bg-green-600 hover:bg-green-700',
+      () => restoreUser(userId)
+    );
+  };
+
+  // Handler for permanent deletion with strong confirmation
+  const handlePermanentDeleteUser = (userId: string) => {
+    const deletedUser = deletedUsers.find(user => user.id === userId);
+    const userEmail = deletedUser?.email || 'Unknown';
+    
+    showConfirmation(
+      '⚠️ PERMANENT DELETION',
+      `Are you sure you want to PERMANENTLY DELETE ${userEmail}?\n\n❌ This will:\n• COMPLETELY remove all user data\n• DELETE all records from database\n• CANNOT be undone or recovered\n• Require manual Netlify site cleanup\n\n🚨 This action is IRREVERSIBLE!`,
+      'PERMANENTLY DELETE',
+      'bg-red-600 hover:bg-red-700',
+      () => permanentlyDeleteUser(userId)
     );
   };
 
@@ -1161,6 +1283,17 @@ const AdminPage: React.FC = () => {
                 Approved Users ({filteredUsers.length}{filteredUsers.length !== approvedUsers.length ? `/${approvedUsers.length}` : ''})
               </button>
               <button
+                onClick={() => setActiveTab('deleted')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'deleted'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Users className="inline w-4 h-4 mr-2" />
+                Deleted Users ({deletedUsers.length})
+              </button>
+              <button
                 onClick={() => setActiveTab('settings')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'settings'
@@ -1672,6 +1805,15 @@ const AdminPage: React.FC = () => {
                               <HiLockClosed className="w-4 h-4" />
                               Deactivate
                             </button>
+                            
+                            {/* Delete User button */}
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete User
+                            </button>
                           </>
                         ) : (
                           // Buttons for deactivated users
@@ -1687,11 +1829,129 @@ const AdminPage: React.FC = () => {
                               <UserCheck className="w-4 h-4" />
                               Reactivate
                             </button>
+                            
+                            {/* Delete User button for deactivated users too */}
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete User
+                            </button>
                           </>
                         )}
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'deleted' && (
+          <div className="space-y-6">
+            {/* Deleted Users Table */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">Deleted Users</h3>
+                <p className="text-sm text-gray-500 mt-1">Manage deleted user accounts</p>
+              </div>
+              
+              {deletedUsers.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="mx-auto h-12 w-12 text-gray-400">
+                    <Settings className="h-12 w-12" />
+                  </div>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
+                  <p className="mt-1 text-sm text-gray-500">All deleted users have been permanently removed.</p>
+                  <div className="mt-6">
+                    <div className="text-xs text-gray-400">
+                      Deleted users will appear here for admin review
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          User Information
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Business Details
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Subscription Plan
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Usage Limit
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Registration Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {deletedUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <User className="h-5 w-5 text-gray-600" />
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                                <div className="text-sm text-gray-500">ID: {user.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">{user.businessName}</div>
+                            <div className="text-sm text-gray-500">{user.businessType}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                              {user.subscriptionTier}
+                            </span>
+                            <div className="text-xs text-gray-500 mt-1">{user.billingCycle}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div className="text-sm font-medium text-gray-900">
+                              {TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 'Unknown'} calls/month
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              ${user.subscriptionTier === 'starter' ? '29' : user.subscriptionTier === 'professional' ? '79' : '149'}/month
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div>{parseDate(user.createdAt)?.toLocaleDateString() || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">
+                              {getDaysAgo(user.createdAt)} days ago
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                            <button
+                              onClick={() => handleRestoreUser(user.id)}
+                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors flex items-center"
+                            >
+                              ✓ Restore
+                            </button>
+                            <button
+                              onClick={() => handlePermanentDeleteUser(user.id)}
+                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors flex items-center mt-1"
+                            >
+                              ✗ Permanent Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
