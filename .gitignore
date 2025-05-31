@@ -29,3 +29,5 @@ dist-ssr
 
 # Ignore local sample data
 sample-data/
+# Local Netlify folder
+.netlify

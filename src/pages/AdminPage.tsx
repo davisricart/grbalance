@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, where, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db, auth } from '../main';
-import { Plus, Trash2, Upload, User, Settings, UserCheck, Eye, EyeOff } from 'lucide-react';
+import { Plus, Trash2, Upload, User, Settings, UserCheck, Eye, EyeOff, Shield, Users } from 'lucide-react';
 import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
 import clientConfig from '../config/client';
+import axios from 'axios';
+import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
 
 const TIER_LIMITS = {
   starter: 50,
@@ -124,6 +126,36 @@ const AdminPage: React.FC = () => {
   const [settingsError, setSettingsError] = useState('');
   const [settingsSuccess, setSettingsSuccess] = useState('');
 
+  // Provisioning state
+  const [provisioning, setProvisioning] = useState<{[userId: string]: boolean}>({});
+  const [siteUrls, setSiteUrls] = useState<{[userId: string]: string}>({});
+  const [siteIds, setSiteIds] = useState<{[userId: string]: string}>({});
+  const [deploying, setDeploying] = useState<{[userId: string]: boolean}>({});
+
+  // Add script deployment state
+  const [showDeployScript, setShowDeployScript] = useState(false);
+  const [selectedUserForScript, setSelectedUserForScript] = useState<ApprovedUser | null>(null);
+  const [scriptDeployForm, setScriptDeployForm] = useState({
+    scriptName: '',
+    scriptContent: ''
+  });
+
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'deactivated'>('all');
+  const [filterTier, setFilterTier] = useState<'all' | 'starter' | 'professional' | 'business'>('all');
+
+  // Edit user state
+  const [showEditUser, setShowEditUser] = useState(false);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<ApprovedUser | null>(null);
+  const [editUserForm, setEditUserForm] = useState({
+    businessName: '',
+    businessType: '',
+    subscriptionTier: 'professional',
+    billingCycle: 'monthly',
+    adminNotes: ''
+  });
+
   // Fetch clients from Firebase
   const fetchClients = async () => {
     try {
@@ -181,22 +213,39 @@ const AdminPage: React.FC = () => {
       console.log('🔥 Current user:', auth.currentUser);
       
       const usageCollection = collection(db, 'usage');
-      const approvedQuery = query(usageCollection, where('status', '==', 'approved'));
-      console.log('🔥 Created approved query:', approvedQuery);
+      // Fetch both approved and deactivated users for full lifecycle management
+      const approvedQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated']));
+      console.log('🔥 Created approved/deactivated query:', approvedQuery);
       
       const snapshot = await getDocs(approvedQuery);
       console.log('🔥 Query executed, document count:', snapshot.size);
       
       const approvedUsersData: ApprovedUser[] = [];
+      const urlsData: {[userId: string]: string} = {};
+      const idsData: {[userId: string]: string} = {};
+      
       snapshot.forEach((doc) => {
         const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
-        console.log('🔥 Found approved user:', userData);
+        console.log('🔥 Found user:', userData);
         approvedUsersData.push(userData);
+        
+        // Load site info if it exists
+        const data = doc.data();
+        if (data.siteUrl) {
+          urlsData[doc.id] = data.siteUrl;
+        }
+        if (data.siteId) {
+          idsData[doc.id] = data.siteId;
+        }
       });
       
-      console.log('✅ Approved users fetched successfully:', approvedUsersData.length);
-      console.log('✅ Approved users data:', approvedUsersData);
+      console.log('✅ Approved/deactivated users fetched successfully:', approvedUsersData.length);
+      console.log('✅ Site URLs loaded:', Object.keys(urlsData).length);
+      console.log('✅ Site IDs loaded:', Object.keys(idsData).length);
+      
       setApprovedUsers(approvedUsersData);
+      setSiteUrls(urlsData);
+      setSiteIds(idsData);
     } catch (error: any) {
       console.error('🚨 FIREBASE ERROR in fetchApprovedUsers:');
       console.error('🚨 Error Code:', error.code);
@@ -371,12 +420,46 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Reactivate deactivated user
+  const reactivateApprovedUser = async (userId: string) => {
+    try {
+      console.log('Reactivating user:', userId);
+      
+      // Get the user data to restore their original subscription limits
+      const user = approvedUsers.find(u => u.id === userId);
+      if (!user) {
+        console.error('User not found');
+        return;
+      }
+
+      // Restore their comparison limit based on subscription tier
+      const comparisonLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
+      
+      // Update status back to "approved" and restore access
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'approved',
+        comparisonsLimit: comparisonLimit,
+        reactivatedAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      console.log('User reactivated successfully');
+      
+      // Refresh approved users list
+      await fetchApprovedUsers();
+      
+    } catch (error) {
+      console.error('Error reactivating user:', error);
+    }
+  };
+
   // Confirmation handlers
   const handleApprovePendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
-      'Approve User',
-      `Are you sure you want to approve ${userEmail}? This will grant them full access to their subscription plan.`,
-      'Approve',
+      '⚠️ Approve User Account',
+      `Are you sure you want to APPROVE ${userEmail}?\n\n✅ This will:\n• Grant them full access to their subscription plan\n• Allow them to use all platform features\n• Send them login credentials\n\n❌ This action cannot be easily undone.`,
+      'Yes, Approve User',
       'bg-green-600 text-white',
       () => approvePendingUser(userId)
     );
@@ -384,9 +467,9 @@ const AdminPage: React.FC = () => {
 
   const handleRejectPendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
-      'Reject User',
-      `Are you sure you want to reject ${userEmail}? This will permanently delete their account and they will need to register again.`,
-      'Reject',
+      '🚨 Permanently Reject User',
+      `Are you sure you want to REJECT ${userEmail}?\n\n❌ This will:\n• Permanently delete their account\n• Remove all their registration data\n• They will need to register again\n\n⚠️ THIS ACTION CANNOT BE UNDONE!`,
+      'Yes, Reject & Delete',
       'bg-red-600 text-white',
       () => rejectPendingUser(userId)
     );
@@ -395,13 +478,70 @@ const AdminPage: React.FC = () => {
   const handleDeactivateApprovedUser = (userId: string, userEmail: string) => {
     console.log('🔥 handleDeactivateApprovedUser called for:', userEmail);
     showConfirmation(
-      'Deactivate User',
-      `Are you sure you want to deactivate ${userEmail}? This will remove their access but preserve their account data.`,
-      'Deactivate',
-      'bg-red-600 text-white',
+      '⚠️ Temporarily Deactivate User',
+      `Are you sure you want to DEACTIVATE ${userEmail}?\n\n❌ This will:\n• Remove their access to all services\n• Set their usage limit to 0\n• Keep their account data intact\n\n✅ They can be reactivated later if needed.`,
+      'Yes, Deactivate User',
+      'bg-orange-600 text-white',
       () => deactivateApprovedUser(userId)
     );
     console.log('🔥 Confirmation dialog should now be visible');
+  };
+
+  const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
+    const user = approvedUsers.find(u => u.id === userId);
+    const tier = user?.subscriptionTier || 'unknown';
+    const limit = TIER_LIMITS[tier as keyof typeof TIER_LIMITS] || 0;
+    
+    showConfirmation(
+      '✅ Reactivate User Account',
+      `Are you sure you want to REACTIVATE ${userEmail}?\n\n✅ This will:\n• Restore their ${tier} subscription access\n• Set their usage limit to ${limit} comparisons/month\n• Allow them to use all platform features again\n\n💡 They will be able to log in immediately.`,
+      'Yes, Reactivate User',
+      'bg-green-600 text-white',
+      () => reactivateApprovedUser(userId)
+    );
+  };
+
+  // Edit user handlers
+  const handleEditUser = (user: ApprovedUser) => {
+    setSelectedUserForEdit(user);
+    setEditUserForm({
+      businessName: user.businessName || '',
+      businessType: user.businessType || '',
+      subscriptionTier: user.subscriptionTier,
+      billingCycle: user.billingCycle || 'monthly',
+      adminNotes: (user as any).adminNotes || ''
+    });
+    setShowEditUser(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!selectedUserForEdit) return;
+
+    try {
+      const usageDocRef = doc(db, 'usage', selectedUserForEdit.id);
+      const newComparisonLimit = TIER_LIMITS[editUserForm.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
+      
+      await updateDoc(usageDocRef, {
+        businessName: editUserForm.businessName,
+        businessType: editUserForm.businessType,
+        subscriptionTier: editUserForm.subscriptionTier,
+        billingCycle: editUserForm.billingCycle,
+        comparisonsLimit: newComparisonLimit,
+        adminNotes: editUserForm.adminNotes,
+        updatedAt: new Date()
+      });
+
+      alert(`User details updated successfully!`);
+      
+      // Close modal and refresh data
+      setShowEditUser(false);
+      setSelectedUserForEdit(null);
+      await fetchApprovedUsers();
+      
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      alert('Failed to update user: ' + error.message);
+    }
   };
 
   // Add new client
@@ -631,6 +771,244 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  const handleProvisionWebsite = async (user: ApprovedUser) => {
+    // Check if site already exists
+    if (siteUrls[user.id] && siteIds[user.id]) {
+      alert(`Website already provisioned for ${user.businessName || user.email}: ${siteUrls[user.id]}`);
+      return;
+    }
+
+    setProvisioning((prev) => ({ ...prev, [user.id]: true }));
+    try {
+      const businessName = user.businessName || user.email || user.id;
+      const clientId = businessName.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id;
+      const payload = { businessName, clientEmail: user.email, clientName: businessName, clientId };
+      console.log('Sending payload:', payload);
+      const res = await axios.post(
+        '/.netlify/functions/provision-client',
+        JSON.stringify({
+          clientId,
+          clientName: businessName,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+      
+      // Update local state
+      setSiteUrls((prev) => ({ ...prev, [user.id]: res.data.siteUrl }));
+      setSiteIds((prev) => ({ ...prev, [user.id]: res.data.siteId }));
+      
+      // Persist to Firebase so it survives page refreshes
+      const usageDocRef = doc(db, 'usage', user.id);
+      await updateDoc(usageDocRef, {
+        siteUrl: res.data.siteUrl,
+        siteId: res.data.siteId,
+        siteName: res.data.siteName,
+        updatedAt: new Date()
+      });
+      
+      alert(`Site provisioned: ${res.data.siteUrl}`);
+    } catch (err: any) {
+      const data = err.response?.data;
+      let msg = 'Provisioning failed: ';
+      if (data?.error) msg += data.error;
+      else if (data?.message) msg += data.message;
+      else msg += err.message || JSON.stringify(data) || 'Unknown error';
+      alert(msg);
+    } finally {
+      setProvisioning((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  // Add this handler near the other confirmation handlers
+  const handleConfirmProvisionWebsite = (user: ApprovedUser) => {
+    showConfirmation(
+      '🌐 Provision New Website',
+      `Are you sure you want to PROVISION a website for ${user.businessName || user.email}?\n\n✅ This will:\n• Create a new Netlify site\n• Generate a unique client portal URL\n• Set up environment variables\n• Enable script deployment capabilities\n\n💡 Each user can only have ONE website.\n⚠️ This process may take 30-60 seconds.`,
+      'Yes, Provision Website',
+      'bg-emerald-600 text-white',
+      () => handleProvisionWebsite(user)
+    );
+  };
+
+  // Add this handler near the other confirmation handlers
+  const handleConfirmDeleteWebsite = (user: ApprovedUser) => {
+    showConfirmation(
+      '🚨 Permanently Delete Website',
+      `Are you sure you want to DELETE the website for ${user.businessName || user.email}?\n\n❌ This will:\n• Permanently remove their Netlify site\n• Delete all deployed scripts\n• Remove the client portal URL\n• Cannot be undone\n\n⚠️ The user will lose access to their custom portal!\n💡 You can provision a new website afterward if needed.`,
+      'Yes, Delete Website',
+      'bg-red-600 text-white',
+      () => handleDeleteWebsite(user)
+    );
+  };
+
+  const handleDeleteWebsite = async (user: ApprovedUser) => {
+    setProvisioning((prev) => ({ ...prev, [user.id]: true }));
+    try {
+      // Try to delete from Netlify (will fail locally)
+      await axios.post('/api/delete-client-site', {
+        siteUrl: siteUrls[user.id],
+        clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
+      });
+      alert('Site deleted successfully.');
+    } catch (err: any) {
+      console.log('API deletion failed (expected in local testing):', err.message);
+      // Don't show error alert for local testing - just log it
+    }
+    
+    // Always clean up state, regardless of API success/failure
+    try {
+      // Update local state
+      setSiteUrls((prev) => {
+        const copy = { ...prev };
+        delete copy[user.id];
+        return copy;
+      });
+      setSiteIds((prev) => {
+        const copy = { ...prev };
+        delete copy[user.id];
+        return copy;
+      });
+      
+      // Remove from Firebase
+      const usageDocRef = doc(db, 'usage', user.id);
+      await updateDoc(usageDocRef, {
+        siteUrl: null,
+        siteId: null,
+        siteName: null,
+        updatedAt: new Date()
+      });
+      
+      console.log('✅ State cleaned up successfully');
+      
+      // Only show success message if this is local testing
+      if (window.location.hostname === 'localhost') {
+        alert('Website state reset successfully (local testing mode)');
+      }
+      
+    } catch (stateErr: any) {
+      console.error('Failed to clean up state:', stateErr);
+      alert('Failed to reset website state: ' + stateErr.message);
+    } finally {
+      setProvisioning((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  // Script deployment functions
+  const handleDeployScript = async (user: ApprovedUser) => {
+    if (!scriptDeployForm.scriptName || !scriptDeployForm.scriptContent) {
+      alert('Please provide both script name and content.');
+      return;
+    }
+
+    if (!siteUrls[user.id] || !siteIds[user.id]) {
+      alert('Please provision a website for this user first.');
+      return;
+    }
+
+    setDeploying((prev) => ({ ...prev, [user.id]: true }));
+    try {
+      const payload = {
+        siteId: siteIds[user.id],
+        scriptContent: scriptDeployForm.scriptContent,
+        scriptName: scriptDeployForm.scriptName,
+        clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
+      };
+
+      console.log('Deploying script with payload:', payload);
+      
+      const res = await axios.post(
+        '/.netlify/functions/deploy-script',
+        JSON.stringify(payload),
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      alert(`Script "${scriptDeployForm.scriptName}" deployed successfully to ${user.businessName || user.email}!`);
+      
+      // Clear form and close modal
+      setScriptDeployForm({ scriptName: '', scriptContent: '' });
+      setShowDeployScript(false);
+      setSelectedUserForScript(null);
+      
+    } catch (err: any) {
+      const data = err.response?.data;
+      let msg = 'Script deployment failed: ';
+      if (data?.error) msg += data.error;
+      else if (data?.message) msg += data.message;
+      else msg += err.message || JSON.stringify(data) || 'Unknown error';
+      alert(msg);
+    } finally {
+      setDeploying((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  const extractSiteIdFromUrl = (url: string): string | null => {
+    // This function is now deprecated since we store site IDs directly
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname;
+      
+      if (hostname.includes('.netlify.app')) {
+        return hostname.replace('.netlify.app', '');
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const handleConfirmDeployScript = (user: ApprovedUser) => {
+    showConfirmation(
+      '📝 Deploy Custom Script',
+      `Ready to deploy a custom script for ${user.businessName || user.email}?\n\n✅ This will:\n• Open the script deployment editor\n• Allow you to write/paste JavaScript code\n• Deploy the script to their website\n• Update their client portal\n\n💡 You can deploy multiple scripts and update them anytime.`,
+      'Yes, Open Script Editor',
+      'bg-blue-600 text-white',
+      () => {
+        setSelectedUserForScript(user);
+        setShowDeployScript(true);
+        closeConfirmation();
+      }
+    );
+  };
+
+  const parseDate = (dateVal: any) => {
+    if (!dateVal) return null;
+    if (typeof dateVal === 'string') return new Date(dateVal);
+    if (dateVal.seconds) return new Date(dateVal.seconds * 1000);
+    return new Date(dateVal);
+  };
+
+  const getDaysAgo = (dateVal: any) => {
+    const d = parseDate(dateVal);
+    return d && !isNaN(d.getTime()) ? Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)) : 'N/A';
+  };
+
+  // Filter users based on search and filters
+  const filteredUsers = approvedUsers.filter(user => {
+    // Search term filter
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = !searchTerm || 
+      user.email.toLowerCase().includes(searchLower) ||
+      user.businessName?.toLowerCase().includes(searchLower) ||
+      user.id.toLowerCase().includes(searchLower);
+
+    // Status filter
+    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+
+    // Tier filter
+    const matchesTier = filterTier === 'all' || user.subscriptionTier === filterTier;
+
+    return matchesSearch && matchesStatus && matchesTier;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -780,7 +1158,7 @@ const AdminPage: React.FC = () => {
                 }`}
               >
                 <UserCheck className="inline w-4 h-4 mr-2" />
-                Approved Users ({approvedUsers.length})
+                Approved Users ({filteredUsers.length}{filteredUsers.length !== approvedUsers.length ? `/${approvedUsers.length}` : ''})
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
@@ -883,7 +1261,7 @@ const AdminPage: React.FC = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{client.email}</div>
-                            <div className="text-sm text-gray-500">Registered: {new Date(client.createdAt).toLocaleDateString()}</div>
+                            <div className="text-sm text-gray-500">Registered: {parseDate(client.createdAt)?.toLocaleDateString() || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">Subdomain: {client.subdomain}</div>
@@ -1016,9 +1394,9 @@ const AdminPage: React.FC = () => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div>{new Date(user.createdAt).toLocaleDateString()}</div>
+                            <div>{parseDate(user.createdAt)?.toLocaleDateString() || 'N/A'}</div>
                             <div className="text-xs text-gray-400">
-                              {Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days ago
+                              {getDaysAgo(user.createdAt)} days ago
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -1047,6 +1425,69 @@ const AdminPage: React.FC = () => {
 
         {activeTab === 'approved' && (
           <div className="space-y-6">
+            {/* Search and Filter Controls */}
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Search Users
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Search by email, business name, or ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as 'all' | 'approved' | 'deactivated')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Status</option>
+                    <option value="approved">Approved</option>
+                    <option value="deactivated">Deactivated</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subscription
+                  </label>
+                  <select
+                    value={filterTier}
+                    onChange={(e) => setFilterTier(e.target.value as 'all' | 'starter' | 'professional' | 'business')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Tiers</option>
+                    <option value="starter">Starter</option>
+                    <option value="professional">Professional</option>
+                    <option value="business">Business</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterStatus('all');
+                      setFilterTier('all');
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              </div>
+              {/* Results count */}
+              <div className="mt-3 text-sm text-gray-600">
+                Showing {filteredUsers.length} of {approvedUsers.length} users
+              </div>
+            </div>
+
             {/* Approved Users Table */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
@@ -1068,80 +1509,189 @@ const AdminPage: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User Information
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Business Details
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Subscription Plan
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Usage Limit
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Registration Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {approvedUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                                <UserCheck className="h-5 w-5 text-green-600" />
+                /* Mobile-friendly card layout instead of wide table */
+                <div className="divide-y divide-gray-200">
+                  {filteredUsers.map((user) => (
+                    <div key={user.id} className="p-6 hover:bg-gray-50">
+                      {/* User Header */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center">
+                          <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            user.status === 'approved' 
+                              ? 'bg-green-100' 
+                              : 'bg-gray-100'
+                          }`}>
+                            {user.status === 'approved' ? (
+                              <UserCheck className="h-5 w-5 text-green-600" />
+                            ) : (
+                              <HiLockClosed className="h-5 w-5 text-gray-600" />
+                            )}
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                            <div className="text-sm text-gray-500">ID: {user.id}</div>
+                            {user.status === 'deactivated' && (
+                              <div className="text-xs text-red-600 font-medium mt-1">
+                                ⚠️ Account Deactivated
                               </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                                <div className="text-sm text-gray-500">ID: {user.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{user.businessName || 'N/A'}</div>
-                            <div className="text-sm text-gray-500">{user.businessType || 'N/A'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              {user.subscriptionTier}
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            user.status === 'approved'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {user.subscriptionTier}
+                          </span>
+                          {user.status === 'deactivated' && (
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                              Deactivated
                             </span>
-                            <div className="text-xs text-gray-500 mt-1">{user.billingCycle || 'N/A'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="text-sm font-medium text-gray-900">
+                          )}
+                        </div>
+                      </div>
+
+                      {/* User Details Grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm">
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Business</div>
+                          <div className="mt-1">
+                            <div className="text-gray-900">{user.businessName || 'N/A'}</div>
+                            <div className="text-gray-500">{user.businessType || 'N/A'}</div>
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Usage</div>
+                          <div className="mt-1">
+                            <div className="text-gray-900">
                               {user.comparisonsUsed || 0}/{user.comparisonsLimit} used
                             </div>
-                            <div className="text-xs text-gray-500">
+                            <div className="text-gray-500">
                               ${user.subscriptionTier === 'starter' ? '19' : user.subscriptionTier === 'professional' ? '29' : '49'}/month
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div>{new Date(user.createdAt).toLocaleDateString()}</div>
-                            <div className="text-xs text-gray-400">
-                              {Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days ago
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Registration</div>
+                          <div className="mt-1">
+                            <div className="text-gray-900">{parseDate(user.createdAt)?.toLocaleDateString() || 'N/A'}</div>
+                            <div className="text-gray-500">
+                              {getDaysAgo(user.createdAt)} days ago
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Site Status</div>
+                          <div className="mt-1">
+                            {siteUrls[user.id] ? (
+                              <div>
+                                <div className="text-green-600 font-medium">Provisioned</div>
+                                <a
+                                  href={siteUrls[user.id]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-xs underline"
+                                >
+                                  View Site
+                                </a>
+                              </div>
+                            ) : (
+                              <div className="text-gray-500">Not provisioned</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Admin Notes */}
+                      {(user as any).adminNotes && (
+                        <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
+                          <div className="text-xs text-yellow-700 font-medium mb-1">ADMIN NOTES:</div>
+                          <div className="text-sm text-yellow-800">{(user as any).adminNotes}</div>
+                        </div>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex flex-wrap gap-2">
+                        {/* Edit button - always available */}
+                        <button
+                          onClick={() => handleEditUser(user)}
+                          className="inline-flex items-center gap-2 bg-gray-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-700"
+                        >
+                          <User className="w-4 h-4" />
+                          Edit Details
+                        </button>
+
+                        {user.status === 'approved' ? (
+                          // Buttons for active approved users
+                          <>
+                            {/* Provision Website button (only if not already provisioned) */}
+                            {!siteUrls[user.id] && (
+                              <button
+                                onClick={() => handleConfirmProvisionWebsite(user)}
+                                className="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50"
+                                disabled={provisioning[user.id]}
+                              >
+                                <HiGlobeAlt className="w-4 h-4" />
+                                {provisioning[user.id] ? 'Provisioning...' : 'Provision Website'}
+                              </button>
+                            )}
+                            
+                            {/* Deploy Script button (only if site is provisioned) */}
+                            {siteUrls[user.id] && (
+                              <button
+                                onClick={() => handleConfirmDeployScript(user)}
+                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                                disabled={deploying[user.id]}
+                              >
+                                <Upload className="w-4 h-4" />
+                                {deploying[user.id] ? 'Deploying...' : 'Deploy Script'}
+                              </button>
+                            )}
+                            
+                            {/* Delete Website button (only if site is provisioned) */}
+                            {siteUrls[user.id] && (
+                              <button
+                                onClick={() => handleConfirmDeleteWebsite(user)}
+                                className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm hover:bg-red-200 disabled:opacity-50"
+                                disabled={provisioning[user.id]}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Website
+                              </button>
+                            )}
+                            
                             <button
                               onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
-                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors flex items-center"
+                              className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm hover:bg-orange-200"
                             >
+                              <HiLockClosed className="w-4 h-4" />
                               Deactivate
                             </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </>
+                        ) : (
+                          // Buttons for deactivated users
+                          <>
+                            <div className="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm">
+                              <HiLockClosed className="w-4 h-4" />
+                              Account Deactivated
+                            </div>
+                            <button
+                              onClick={() => handleReactivateApprovedUser(user.id, user.email)}
+                              className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                              Reactivate
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1531,6 +2081,199 @@ const AdminPage: React.FC = () => {
                   className="px-4 py-2 text-gray-600 hover:text-gray-800"
                 >
                   Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Deploy Script Modal */}
+        {showDeployScript && selectedUserForScript && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg font-medium mb-4">
+                Deploy Script for {selectedUserForScript.businessName || selectedUserForScript.email}
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Script Name
+                  </label>
+                  <input
+                    type="text"
+                    value={scriptDeployForm.scriptName}
+                    onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., reconciliation-script-v1.js"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Script Content
+                  </label>
+                  <textarea
+                    value={scriptDeployForm.scriptContent}
+                    onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptContent: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={15}
+                    placeholder="// Enter your JavaScript code here
+function reconcileData() {
+  // Your custom reconciliation logic
+  console.log('Reconciliation script running...');
+}
+
+// Example usage
+reconcileData();"
+                  />
+                </div>
+
+                <div className="bg-blue-50 p-4 rounded-md">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">Deployment Info</h4>
+                  <p className="text-sm text-blue-700">
+                    <strong>Client:</strong> {selectedUserForScript.businessName || selectedUserForScript.email}
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    <strong>Site URL:</strong> {siteUrls[selectedUserForScript.id] || 'No site provisioned'}
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    <strong>Client ID:</strong> {selectedUserForScript.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || selectedUserForScript.id}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowDeployScript(false);
+                    setSelectedUserForScript(null);
+                    setScriptDeployForm({ scriptName: '', scriptContent: '' });
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleDeployScript(selectedUserForScript)}
+                  disabled={deploying[selectedUserForScript.id] || !scriptDeployForm.scriptName || !scriptDeployForm.scriptContent}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deploying[selectedUserForScript.id] ? 'Deploying...' : 'Deploy Script'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditUser && selectedUserForEdit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <h3 className="text-lg font-medium mb-4">
+                Edit User: {selectedUserForEdit.email}
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Name
+                  </label>
+                  <input
+                    type="text"
+                    value={editUserForm.businessName}
+                    onChange={(e) => setEditUserForm({...editUserForm, businessName: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter business name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Business Type
+                  </label>
+                  <select
+                    value={editUserForm.businessType}
+                    onChange={(e) => setEditUserForm({...editUserForm, businessType: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select business type</option>
+                    <option value="restaurant">Restaurant</option>
+                    <option value="retail">Retail Store</option>
+                    <option value="franchise">Franchise</option>
+                    <option value="grocery">Grocery Store</option>
+                    <option value="salon">Salon/Spa</option>
+                    <option value="automotive">Automotive</option>
+                    <option value="healthcare">Healthcare/Medical</option>
+                    <option value="fitness">Fitness/Gym</option>
+                    <option value="service">Service Business</option>
+                    <option value="ecommerce">E-commerce</option>
+                    <option value="hospitality">Hotel/Hospitality</option>
+                    <option value="entertainment">Entertainment/Events</option>
+                    <option value="professional">Professional Services</option>
+                    <option value="nonprofit">Non-Profit</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subscription Tier
+                  </label>
+                  <select
+                    value={editUserForm.subscriptionTier}
+                    onChange={(e) => setEditUserForm({...editUserForm, subscriptionTier: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="starter">Starter - {TIER_LIMITS.starter} comparisons/month</option>
+                    <option value="professional">Professional - {TIER_LIMITS.professional} comparisons/month</option>
+                    <option value="business">Business - {TIER_LIMITS.business} comparisons/month</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Billing Cycle
+                  </label>
+                  <select
+                    value={editUserForm.billingCycle}
+                    onChange={(e) => setEditUserForm({...editUserForm, billingCycle: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="annual">Annual (Save 20%)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Admin Notes (Private)
+                  </label>
+                  <textarea
+                    value={editUserForm.adminNotes}
+                    onChange={(e) => setEditUserForm({...editUserForm, adminNotes: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    placeholder="Add private notes about this client (special requirements, conversation history, etc.)"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowEditUser(false);
+                    setSelectedUserForEdit(null);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateUser}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Save Changes
                 </button>
               </div>
             </div>

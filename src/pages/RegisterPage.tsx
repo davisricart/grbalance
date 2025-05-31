@@ -196,8 +196,8 @@ export default function RegisterPage() {
         subscriptionTier: selectedTier,
         billingCycle: isAnnual ? 'annual' : 'monthly',
         status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
       // Create initial usage record with pending status
@@ -207,8 +207,8 @@ export default function RegisterPage() {
         comparisonsLimit: 0, // No access until approved
         subscriptionTier: selectedTier,
         status: 'pending',
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       });
 
       // Redirect to pending approval page instead of main app

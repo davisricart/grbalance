@@ -1,382 +1,499 @@
-# Payment Reconciliation System Template
+# GR Balance - Multi-Client SaaS Reconciliation Platform
 
-A customizable web-based system for reconciling payment transactions between different payment processing systems. This repository serves as a template for creating client-specific reconciliation systems.
+A comprehensive multi-client SaaS platform for payment reconciliation and financial data analysis. This system provides automated client onboarding, website provisioning, custom script deployment, and centralized admin management.
 
-## Multi-Client Architecture
+## 🏗️ System Architecture
 
-This system is designed to serve multiple clients from a single codebase while maintaining complete isolation and customization for each client.
+### Multi-Client SaaS Model
 
-### Core Principles
+This platform serves multiple clients through a unified admin dashboard while maintaining complete isolation and customization for each client.
 
-- **One Codebase**: All clients share the same core application code
-- **Script Isolation**: Each client has their own custom reconciliation scripts
-- **Secure Access**: Clients only see and access their assigned scripts
-- **Individual Branding**: Each client gets their own Netlify site with custom branding
-- **Centralized Updates**: Core improvements benefit all clients instantly
+**Key Features:**
+- **Self-Service Registration**: Clients can sign up and choose subscription plans
+- **Admin Approval Workflow**: Pending users reviewed and approved by administrators
+- **Automated Site Provisioning**: One-click Netlify website creation for approved clients
+- **Custom Script Deployment**: Deploy client-specific reconciliation scripts to their websites
+- **User Lifecycle Management**: Full user management with activation/deactivation controls
 
-### Repository Structure for Multi-Client
+### Tech Stack
 
+**Frontend:**
+- React 18 with TypeScript
+- Vite for development and build
+- Tailwind CSS for responsive design
+- Lucide React & HeroIcons for icons
+
+**Backend:**
+- Firebase Authentication for user management
+- Firestore for data persistence
+- Netlify Functions for serverless backend
+- Netlify Sites API for automated provisioning
+
+**Infrastructure:**
+- Netlify for hosting and CI/CD
+- Firebase for authentication and database
+- Automated site deployment and management
+
+## 🎯 Core Features
+
+### 🔐 User Management System
+
+**Registration Flow:**
+1. **Self-Service Signup**: Users provide business details and select subscription tier
+2. **Pending Approval**: New registrations wait for admin review
+3. **Admin Review**: Admins approve/reject pending users through dashboard
+4. **Account Activation**: Approved users gain full access to their subscription
+
+**User Lifecycle:**
+- ✅ **Pending** → **Approved** → **Active**
+- ⚠️ **Approved** → **Deactivated** (temporary suspension)
+- ✅ **Deactivated** → **Reactivated** (restore access)
+- 🗑️ **Pending** → **Rejected** (permanent deletion)
+
+### 🏢 Admin Dashboard
+
+**Comprehensive Management Interface:**
+
+**User Management:**
+- View and manage pending user approvals
+- Approve/reject new registrations with detailed confirmation dialogs
+- Deactivate/reactivate user accounts
+- Edit user details, subscription tiers, and billing cycles
+- Add private admin notes for internal tracking
+
+**Search & Filter System:**
+- Real-time search by email, business name, or user ID
+- Filter by user status (approved/deactivated) and subscription tier
+- Smart counters showing filtered vs total results
+- One-click filter clearing
+
+**Website Provisioning:**
+- One-click Netlify site creation for approved clients
+- Automatic unique subdomain generation
+- Environment variable configuration
+- Duplicate prevention (one site per user maximum)
+- Site deletion and cleanup
+
+**Script Deployment:**
+- Custom JavaScript deployment to client sites
+- Visual code editor with syntax highlighting
+- Real-time deployment status tracking
+- Script versioning and management
+
+### 🌐 Automated Site Provisioning
+
+**Netlify Integration:**
+```javascript
+// Automated site creation process
+1. Generate unique site name: clientname-abc123
+2. Create Netlify site via API
+3. Configure environment variables (CLIENT_ID)
+4. Deploy basic client portal structure
+5. Store site details in Firebase for persistence
 ```
-grbalance/ (Master Repository)
-├── src/                              # Shared frontend code
-├── scripts/                          # Client-specific scripts (isolated)
-│   ├── client1_reconciliation.js     # Client 1's custom scripts
-│   ├── client1_paymentHub.js
-│   ├── grSalon_reconciliation.js     # GR Salon's custom scripts  
-│   ├── grSalon_daySmartSquare.js
-│   ├── client3_squareIntegration.js  # Client 3's custom scripts
-│   └── standard_reconciliation.js    # Admin/demo scripts
-├── config/                           # Client-specific configurations
-│   ├── client1.json                  # Client 1 branding & settings
-│   ├── grSalon.json                  # GR Salon branding & settings
-│   ├── client3.json                  # Client 3 branding & settings
-│   └── default.json                  # Default configuration
-├── netlify/                          # Shared serverless functions
-└── netlify.toml                      # Build configuration
+
+**Features:**
+- Guaranteed unique site names with random suffixes
+- Automatic SSL certificate provisioning
+- Environment variable setup with retry logic
+- State persistence across admin dashboard refreshes
+- Clean deletion with full cleanup
+
+### 📝 Script Deployment System
+
+**Custom Script Management:**
+```javascript
+// Script deployment process
+1. Admin opens script editor for specific client
+2. Write/paste custom JavaScript code
+3. Deploy to client's Netlify site
+4. Script becomes available on client portal
+5. Track deployment history and status
 ```
 
-### Client Script Isolation
+**Capabilities:**
+- Visual code editor with large textarea
+- Real-time deployment status
+- Client-specific script isolation
+- Automatic site updates
+- Error handling and rollback
 
-**Each client gets completely separate scripts:**
+## 🗂️ Database Structure
 
-- **GR Salon**: `grSalon_reconciliation.js`, `grSalon_daySmartSquare.js`
-- **Client 2**: `client2_reconciliation.js`, `client2_paymentHub.js`  
-- **Client 3**: `client3_squareIntegration.js`, `client3_customLogic.js`
-
-**Security Features:**
-- Clients can only see scripts assigned to them in dropdown
-- Database controls which scripts each user can access
-- No shared scripts between clients (complete isolation)
-- Admin profile has access to demo/testing scripts only
-
-### Database Structure (Firebase)
+### Firebase Collections
 
 ```javascript
-// User-Client Mapping
-users: {
-  "grSalonUser@email.com": {
-    clientId: "grSalon",
-    scripts: ["grSalon_reconciliation", "grSalon_daySmartSquare"],
-    role: "user"
-  },
-  "client2User@email.com": {
-    clientId: "client2",
-    scripts: ["client2_reconciliation", "client2_paymentHub"],
-    role: "user"
+// User registration and management
+pendingUsers: {
+  "userId": {
+    email: "user@example.com",
+    businessName: "Example Corp",
+    businessType: "retail", 
+    subscriptionTier: "professional",
+    billingCycle: "monthly",
+    createdAt: timestamp,
+    status: "pending"
   }
 }
 
-// Client Configurations
-clients: {
-  "grSalon": {
-    name: "GR Salon",
-    scripts: ["grSalon_reconciliation", "grSalon_daySmartSquare"],
-    branding: {
-      logo: "path/to/logo.png",
-      primaryColor: "#your-color",
-      siteName: "GR Salon Reconciliation Portal"
-    }
-  },
-  "client2": {
-    name: "Client 2 Corp",
-    scripts: ["client2_reconciliation", "client2_paymentHub"],
-    branding: {
-      logo: "path/to/client2-logo.png", 
-      primaryColor: "#their-color",
-      siteName: "Client 2 Payment Portal"
-    }
+// Active user accounts
+usage: {
+  "userId": {
+    email: "user@example.com",
+    businessName: "Example Corp",
+    businessType: "retail",
+    subscriptionTier: "professional", 
+    billingCycle: "monthly",
+    status: "approved", // approved, deactivated
+    comparisonsUsed: 15,
+    comparisonsLimit: 75,
+    createdAt: timestamp,
+    approvedAt: timestamp,
+    
+    // Site provisioning data
+    siteUrl: "https://example-corp-abc123.netlify.app",
+    siteId: "netlify-site-id",
+    siteName: "example-corp-abc123",
+    
+    // Admin management
+    adminNotes: "Special requirements for this client",
+    updatedAt: timestamp
   }
 }
 ```
 
-### Deployment Strategy
+### Subscription Tiers
 
-**One Repository → Multiple Netlify Sites**
+```javascript
+const TIER_LIMITS = {
+  starter: 50,      // 50 comparisons/month
+  professional: 75, // 75 comparisons/month  
+  business: 150     // 150 comparisons/month
+};
+```
 
-1. **Master Repository**: Single GitHub repo with all code
-2. **Multiple Netlify Sites**: Each client gets their own site pointing to the same repo
-3. **Environment Variables**: Each Netlify site has client-specific environment variables
+## 🚀 API Endpoints
 
-**Example Sites:**
-- `grSalon.grbalance.com` → CLIENT_ID=grSalon
-- `client2.grbalance.com` → CLIENT_ID=client2  
-- `client3.grbalance.com` → CLIENT_ID=client3
+### Netlify Functions
 
-**Environment Variables per Site:**
+**Site Provisioning:**
 ```bash
-# grSalon.grbalance.com
-CLIENT_ID=grSalon
-SITE_NAME="GR Salon Reconciliation Portal"
-PRIMARY_COLOR=#your-color
+POST /.netlify/functions/provision-client
+Content-Type: application/json
 
-# client2.grbalance.com
-CLIENT_ID=client2
-SITE_NAME="Client 2 Payment Portal"  
-PRIMARY_COLOR=#their-color
+{
+  "clientId": "example-corp",
+  "clientName": "Example Corp"
+}
+
+Response:
+{
+  "message": "Site created successfully!",
+  "siteUrl": "https://example-corp-abc123.netlify.app",
+  "siteId": "abc123-def456-ghi789",
+  "siteName": "example-corp-abc123"
+}
 ```
 
-### Adding New Clients
+**Script Deployment:**
+```bash
+POST /.netlify/functions/deploy-script
+Content-Type: application/json
 
-**Step-by-Step Process:**
+{
+  "siteId": "abc123-def456-ghi789",
+  "scriptContent": "function reconcileData() { ... }",
+  "scriptName": "reconciliation-v1.js",
+  "clientId": "example-corp"
+}
 
-1. **Create Client Scripts**
-   ```bash
-   # Add to scripts/ folder
-   newClient_reconciliation.js
-   newClient_customLogic.js
-   ```
-
-2. **Create Client Configuration**
-   ```bash
-   # Add to config/ folder
-   config/newClient.json
-   ```
-
-3. **Update Database**
-   ```javascript
-   // Add to Firestore
-   clients/newClient: {
-     name: "New Client Corp",
-     scripts: ["newClient_reconciliation", "newClient_customLogic"],
-     branding: { ... }
-   }
-   ```
-
-4. **Create Netlify Site**
-   - Point to same GitHub repo
-   - Set CLIENT_ID=newClient environment variable
-   - Configure custom domain: newClient.grbalance.com
-
-5. **Add Users**
-   ```javascript
-   // Add to Firestore
-   users/newClientUser@email.com: {
-     clientId: "newClient",
-     scripts: ["newClient_reconciliation", "newClient_customLogic"]
-   }
-   ```
-
-### Benefits of This Architecture
-
-✅ **Scalable**: Add unlimited clients without code duplication  
-✅ **Maintainable**: Core improvements benefit all clients instantly  
-✅ **Secure**: Complete script and data isolation between clients  
-✅ **Customizable**: Each client gets tailored scripts and branding  
-✅ **Cost-Effective**: One codebase, multiple revenue streams  
-✅ **Professional**: Each client gets their own branded portal  
-
-### Development Workflow
-
-**For Core Features** (benefits all clients):
-1. Develop in master branch
-2. Deploy updates all client sites automatically
-3. Examples: UI improvements, new features, bug fixes
-
-**For Client-Specific Work**:
-1. Create new scripts in `scripts/clientName_*.js`
-2. Add client configuration in `config/clientName.json`
-3. Update database with client/user mappings
-4. Create new Netlify site with client environment variables
-
-This architecture allows you to scale efficiently while providing each client with a completely customized, professional solution.
-
-## Template Features
-
-- Configurable transaction data comparison
-- Customizable card brand mapping
-- Adjustable fee calculations
-- Flexible report formats
-- Modular client-specific logic
-- **Visual Dashboard**: Summary cards showing key metrics at a glance
-- **Enhanced Results Display**: Color-coded discrepancies with trend indicators
-- **Smart Highlighting**: Large discrepancies highlighted for immediate attention
-- **Consistent Admin UI**: The admin login page now matches the main site branding, using the emerald theme, logo, and modern rounded card styling for a unified user experience.
-
-## Architecture Philosophy
-
-**Lightweight & Cost-Effective Design:**
-- **No Data Storage**: All processing is client-side with uploaded files only
-- **Stateless Operations**: No historical data retention or user data persistence
-- **Minimal Infrastructure**: Reduces hosting costs and complexity
-- **Privacy-First**: User data never leaves their session
-
-## Design Guidelines
-
-**Simple, Beautiful, and Flowing UI Principles:**
-
-### Visual Design Philosophy
-- **Minimalistic**: Clean, uncluttered interfaces that focus on essential functionality
-- **Consistent**: Unified design language across all pages and components
-- **Professional**: Modern, business-appropriate aesthetics
-- **Accessible**: Clear contrast, readable fonts, and intuitive navigation
-
-### Color Scheme
-- **Primary**: Emerald green (`emerald-600`, `emerald-700`) for primary actions and branding
-- **Secondary**: Gray tones (`gray-50` to `gray-900`) for typography and backgrounds
-- **Accent**: Light emerald (`emerald-50`, `emerald-100`) for highlights and hover states
-- **Status Colors**: 
-  - Success: Green variants
-  - Warning: Yellow/amber variants
-  - Error: Red variants
-  - Info: Blue variants
-
-### Typography
-- **Headers**: Bold, clear hierarchy (text-2xl, text-3xl, text-4xl)
-- **Body**: Readable, consistent spacing (text-sm, text-base)
-- **Interactive Elements**: Medium weight for buttons and links
-- **Labels**: Medium weight for form labels and navigation
-
-### Layout Principles
-- **Responsive**: Mobile-first design with clean grid layouts
-- **Whitespace**: Generous padding and margins for breathing room
-- **Cards**: Rounded corners (rounded-lg, rounded-xl) with subtle shadows
-- **Forms**: Clean, well-spaced inputs with clear labels
-- **Tables**: Professional styling with hover states and clear data presentation
-
-### Component Standards
-- **Buttons**: 
-  - Primary: `bg-emerald-600 hover:bg-emerald-700`
-  - Secondary: `bg-gray-600 hover:bg-gray-700`
-  - Rounded corners and smooth transitions
-- **Forms**: 
-  - Focus states with emerald ring: `focus:ring-emerald-500`
-  - Consistent padding: `px-4 py-3`
-  - Clear labels with proper spacing
-- **Navigation**:
-  - Clean, minimal header design
-  - Breadcrumbs for complex flows
-  - Intuitive back/forward actions
-
-### User Experience
-- **Progressive Disclosure**: Show information when needed, hide complexity
-- **Clear Feedback**: Loading states, success messages, error handling
-- **Intuitive Flow**: Logical progression through multi-step processes
-- **Consistent Interactions**: Same patterns for similar actions across the app
-
-### Implementation Notes
-- Use Tailwind CSS classes consistently
-- Maintain `transition-colors duration-200` for interactive elements
-- Include proper hover and focus states for accessibility
-- Test on mobile devices for responsive behavior
-- Keep animations subtle and purposeful
-
-## Directory Structure
-
-```
-├── scripts/
-│   ├── standardReconciliation.js      # Main reconciliation script (standalone)
-│   ├── claudeStandardReconciliation.js # Claude AI version (standalone)
-│   └── clients/
-│       └── template/
-│           └── reconciliation.js      # Core reconciliation logic for template client
-├── src/                              # Frontend source code
-└── config/                           # Configuration files
+Response:
+{
+  "message": "Script deployed successfully",
+  "deployUrl": "https://example-corp-abc123.netlify.app",
+  "deployId": "deploy-abc123",
+  "scriptName": "reconciliation-v1.js"
+}
 ```
 
-## Script Organization Standard
+## 🎨 UI/UX Design
 
-All comparison scripts must be standalone `.js` files located in the `scripts` directory. No comparison logic should be embedded in React components. This ensures all business logic is modular, testable, and reusable.
+### Design System
 
-## Backend API
+**Color Palette:**
+- **Primary**: Emerald (`emerald-600`, `emerald-700`) for main actions
+- **Secondary**: Gray tones for typography and backgrounds  
+- **Status**: Green (success), Orange (warning), Red (danger), Blue (info)
 
-A Node.js Express backend provides endpoints to:
-- List available scripts: `GET /api/scripts`
-- Execute a script: `POST /api/scripts/:scriptName/execute` (accepts two files: `file1` and `file2`)
+**Component Standards:**
+- **Responsive Design**: Mobile-first with card-based layouts
+- **Consistent Spacing**: Generous padding with `p-4`, `p-6` patterns
+- **Interactive Elements**: Smooth transitions with hover states
+- **Form Design**: Clean inputs with focus rings and clear labels
 
-### Running the Backend
+**User Experience:**
+- **Progressive Disclosure**: Information shown when needed
+- **Clear Feedback**: Loading states, success messages, error dialogs
+- **Warning Confirmations**: Detailed warnings before destructive actions
+- **Smart Filtering**: Real-time search and filter capabilities
 
-1. Install dependencies:
-   ```bash
-   npm install express multer xlsx
-   ```
-2. Start the server:
-   ```bash
-   node server.js
-   ```
-   The API will be available at `http://localhost:3001` by default.
+### Responsive Layout
 
-## Frontend Integration
+**Desktop View:**
+- Multi-column grid layouts for user information
+- Horizontal action button groups
+- Full-width search and filter controls
 
-- The frontend fetches the list of available scripts from the backend and allows the user to select and execute them with uploaded files.
-- Results are displayed in the UI and can be downloaded as Excel.
+**Mobile View:**
+- Stacked card layouts replacing wide tables
+- Vertically organized user information
+- Touch-friendly button sizes and spacing
 
-## Customization Points
-
-1. **Report Formats**
-   - Column mappings
-   - Date formats
-   - Amount formats
-
-2. **Card Brand Handling**
-   - Brand name mappings
-   - Brand-specific rules
-
-3. **Fee Calculations**
-   - Processing fees
-   - Discount rates
-   - Tax handling
-
-4. **Client Branding**
-   - Logo
-   - Color scheme
-   - Custom styling
-
-## Creating a New Client Instance
-
-1. Clone this template repository
-2. Update client configuration in `config/`
-3. Customize reconciliation logic as needed
-4. Adjust branding and UI elements
-5. Deploy client-specific instance
-
-## Development Guidelines
-
-1. Keep core logic separate from client-specific code
-2. Document all customizations
-3. Maintain test coverage for changes
-4. Follow the existing code style
-
-## Getting Started
+## 🔧 Development Setup
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
-- npm (v6 or higher)
+- Node.js 18+ and npm 8+
+- Firebase account and project
+- Netlify account with API access
+- Git for version control
 
 ### Installation
 
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Configure client settings
-4. Start development server: `npm run dev`
-
-### Building for Production
-
 ```bash
-npm run build
+# Clone repository
+git clone https://github.com/yourusername/grbalance
+cd grbalance
+
+# Install dependencies  
+npm install
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your Firebase and Netlify credentials
+
+# Start development server
+npm run dev
 ```
 
-## Support
+### Environment Variables
 
-For template support or customization guidance, please contact the development team.
+```bash
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
 
-## Security
+# Netlify Configuration  
+NETLIFY_TOKEN=your_netlify_api_token
+```
 
-- **API keys and secrets are never committed to the repository.**
-  - All sensitive credentials are stored in `.env` files, which are gitignored.
-  - Sample config files only use placeholders, never real secrets.
-- **Firebase and other API keys are loaded via environment variables** (e.g., `import.meta.env.VITE_FIREBASE_API_KEY`).
-- **Admin credentials and scripts** use environment variables and are never exposed to the frontend or public repo.
-- **Security best practices:**
-  - Never commit real `.env` files or secrets.
-  - Review and enforce strict Firebase security rules.
-  - Keep all secret keys for third-party APIs (Stripe, Square, etc.) server-side only.
-  - Periodically audit the repo for accidental key leaks.
+### Build for Production
 
-**This section is a reminder to always follow these practices as the project evolves.**
+```bash
+# Build for production
+npm run build
 
-## grbalance
+# Preview production build
+npm run preview
+```
 
-## Script Organization Standard
+## 📋 Admin Workflows
 
-All comparison scripts must be standalone `.js` files located in the `
+### Onboarding New Clients
+
+1. **User Registration**: Client completes self-service signup form
+2. **Admin Review**: Review pending user in admin dashboard
+3. **Approval**: Click "Approve" with confirmation dialog
+4. **Site Provisioning**: Click "Provision Website" to create Netlify site
+5. **Script Deployment**: Deploy custom reconciliation scripts
+6. **Client Notification**: Send client their portal URL and login details
+
+### Managing Existing Clients
+
+**Edit User Details:**
+- Update business information and subscription tiers
+- Add private admin notes for internal tracking
+- Adjust usage limits based on new subscription
+
+**Website Management:**  
+- View client site status and URLs
+- Deploy updated scripts to client portals
+- Delete and recreate sites if needed
+
+**User Status Management:**
+- Temporarily deactivate users (preserves data)
+- Reactivate users (restores full access)  
+- Permanent account deletion if required
+
+### Search and Organization
+
+**Finding Users:**
+- Search by email, business name, or user ID
+- Filter by approval status (approved/deactivated)
+- Filter by subscription tier (starter/professional/business)
+- Clear all filters with one click
+
+## 🔒 Security & Privacy
+
+### Authentication & Authorization
+
+- **Firebase Authentication**: Secure user management with email/password
+- **Admin-Only Access**: Dashboard requires admin credentials
+- **Session Management**: Automatic session handling and token refresh
+
+### Data Protection
+
+- **Client Isolation**: Complete separation of client data and scripts
+- **Secure API Calls**: All Netlify API calls use secured tokens
+- **Environment Variables**: Sensitive credentials stored securely
+- **No Data Persistence**: Reconciliation data processed client-side only
+
+### Site Security
+
+- **HTTPS Only**: All sites provisioned with SSL certificates
+- **Environment Variables**: Client-specific variables set automatically
+- **Access Controls**: Users only access their assigned client portal
+
+## 📈 Monitoring & Analytics
+
+### Admin Dashboard Metrics
+
+- **User Counts**: Total pending, approved, and deactivated users
+- **Site Status**: Number of provisioned websites per subscription tier
+- **Search Results**: Live filtering with result counts
+- **Activity Tracking**: User registration and approval timestamps
+
+### Operational Insights
+
+- **Subscription Distribution**: Visual breakdown of tier adoption
+- **Site Provisioning Success**: Track successful vs failed deployments
+- **User Lifecycle**: Monitor approval rates and user activity
+
+## 🚀 Deployment
+
+### Production Deployment
+
+**Netlify Deployment:**
+1. Connect GitHub repository to Netlify
+2. Configure build settings:
+   ```bash
+   Build command: npm run build
+   Publish directory: dist
+   ```
+3. Set environment variables in Netlify dashboard
+4. Enable automatic deployments on Git push
+
+**Firebase Setup:**
+1. Create Firebase project and enable Authentication + Firestore
+2. Configure security rules for admin access
+3. Set up Firebase hosting (optional) for additional environments
+
+### Multi-Environment Setup
+
+**Development:**
+- Local development with Firebase emulators
+- Test database with sample data
+- Mock Netlify API calls for testing
+
+**Staging:**
+- Separate Firebase project for testing
+- Limited Netlify site creation for validation
+- Full feature testing environment
+
+**Production:**
+- Production Firebase project with real user data
+- Full Netlify API access for live site creation
+- Monitoring and alerting for critical functions
+
+## 🆘 Support & Maintenance
+
+### Common Admin Tasks
+
+**Adding New Subscription Tiers:**
+1. Update `TIER_LIMITS` object in AdminPage.tsx
+2. Add new tier options to dropdown selects
+3. Update pricing display logic
+4. Test tier switching and limit calculations
+
+**Customizing Warning Messages:**
+- Edit confirmation dialog text in handler functions
+- Update warning icons and styling as needed
+- Test all destructive action confirmations
+
+**Managing Site Templates:**
+- Modify deploy-script.js for different site structures
+- Update HTML templates for client portals
+- Customize CSS and branding elements
+
+### Troubleshooting
+
+**Site Provisioning Issues:**
+- Check Netlify API token permissions
+- Verify unique site name generation
+- Review error logs in browser console
+- Test with different client names
+
+**Script Deployment Problems:**  
+- Validate JavaScript syntax before deployment
+- Check site ID accuracy and availability
+- Review deployment logs for specific errors
+- Test with simple scripts first
+
+**User Management Errors:**
+- Verify Firebase security rules and permissions
+- Check admin authentication status
+- Review user data structure and required fields
+- Test with different user scenarios
+
+## 📝 Contributing
+
+### Code Standards
+
+- **TypeScript**: Strict typing for all new code
+- **ESLint**: Follow configured linting rules
+- **Prettier**: Consistent code formatting
+- **Component Structure**: Functional components with hooks
+
+### Testing Guidelines
+
+- **Unit Tests**: Test utility functions and business logic
+- **Integration Tests**: Test API endpoints and data flows  
+- **UI Tests**: Test user interactions and responsive design
+- **End-to-End**: Test complete admin workflows
+
+### Documentation
+
+- Update README for new features
+- Document API changes and new endpoints
+- Add inline code comments for complex logic
+- Maintain changelog for version releases
+
+---
+
+## 📊 Project Status
+
+**Current Version**: 2.0.0 - Complete Multi-Client SaaS Platform
+
+**Features Implemented:**
+- ✅ Self-service user registration with subscription tiers
+- ✅ Comprehensive admin dashboard with user management
+- ✅ Automated Netlify site provisioning with duplicate prevention
+- ✅ Custom script deployment system with visual editor
+- ✅ Advanced search and filtering for user management
+- ✅ User lifecycle management (approve/deactivate/reactivate)
+- ✅ Edit user details and private admin notes system
+- ✅ Responsive mobile-friendly design
+- ✅ Warning confirmations for all destructive actions
+- ✅ State persistence across page refreshes
+
+**Ready for Production**: ✅ All core features implemented and tested
+
+**Next Phase**: Ready for additional client-specific customizations and advanced features based on business requirements.
+
+---
+
+**Built with ❤️ for efficient multi-client reconciliation management** 

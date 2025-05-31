@@ -1,3 +1,21 @@
 {
-	"siteId": "16eafe88-8a28-4a9e-9f46-5c26948a8a30"
+	"siteId": "16eafe88-8a28-4a9e-9f46-5c26948a8a30",
+	"geolocation": {
+		"data": {
+			"city": "Wayne",
+			"country": {
+				"code": "US",
+				"name": "United States"
+			},
+			"subdivision": {
+				"code": "NJ",
+				"name": "New Jersey"
+			},
+			"timezone": "America/New_York",
+			"latitude": 40.9451,
+			"longitude": -74.2531,
+			"postalCode": "07470"
+		},
+		"timestamp": 1748668037905
+	}
 }

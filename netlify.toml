@@ -1,26 +1,17 @@
+# netlify.toml
+
 [build]
-command = "npm run build"
-publish = "dist"
-functions = "netlify/functions"
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
 
-[build.environment]
-  NODE_VERSION = "18"
-
-# API redirects for Netlify Functions (must come before SPA fallback)
 [[redirects]]
-  from = "/api/scripts"
-  to = "/.netlify/functions/scripts"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
-  force = true
 
-[[redirects]]
-  from = "/api/scripts/:scriptName/execute"
-  to = "/.netlify/functions/execute-script?scriptName=:scriptName"
-  status = 200
-  force = true
-
-# SPA fallback (must be last)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200 
+[dev]
+  command = "vite"
+  targetPort = 5177
+  port = 8893
+  publish = "dist"
