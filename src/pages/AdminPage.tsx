@@ -329,11 +329,45 @@ const AdminPage: React.FC = () => {
     try {
       console.log('🗑️ Permanently deleting user:', userId);
       
-      // Delete from usage collection completely
+      // Find the user to get their site info
+      const userToDelete = deletedUsers.find(user => user.id === userId);
+      if (!userToDelete) {
+        console.error('🚨 User not found in deleted users');
+        return;
+      }
+
+      // Step 1: Delete Netlify site if it exists
+      if (siteUrls[userId] && siteIds[userId]) {
+        console.log('🌐 Deleting Netlify site for user:', userToDelete.email);
+        try {
+          await axios.post('/api/delete-client-site', {
+            siteUrl: siteUrls[userId],
+            clientId: userToDelete.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || userId
+          });
+          console.log('✅ Netlify site deleted successfully');
+        } catch (netErr: any) {
+          console.log('⚠️ Netlify site deletion failed (may not exist or local testing):', netErr.message);
+          // Continue with Firebase deletion even if Netlify fails
+        }
+      }
+
+      // Step 2: Delete from Firebase database completely
       const usageDocRef = doc(db, 'usage', userId);
       await deleteDoc(usageDocRef);
 
-      console.log('✅ User permanently deleted');
+      // Step 3: Clean up local state
+      setSiteUrls((prev) => {
+        const copy = { ...prev };
+        delete copy[userId];
+        return copy;
+      });
+      setSiteIds((prev) => {
+        const copy = { ...prev };
+        delete copy[userId];
+        return copy;
+      });
+
+      console.log('✅ User permanently deleted from all systems');
       
       // Refresh data
       await fetchApprovedUsers();
@@ -544,9 +578,9 @@ const AdminPage: React.FC = () => {
   // Confirmation handlers
   const handleApprovePendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
-      '⚠️ Approve User Account',
-      `Are you sure you want to APPROVE ${userEmail}?\n\n✅ This will:\n• Grant them full access to their subscription plan\n• Allow them to use all platform features\n• Send them login credentials\n\n❌ This action cannot be easily undone.`,
-      'Yes, Approve User',
+      'Approve User Account',
+      `Are you sure you want to approve ${userEmail}?\n\nThis will:\n• Grant them full access to their subscription plan\n• Allow them to use all platform features\n• Send them login credentials\n\nThis action cannot be easily undone.`,
+      'Approve User',
       'bg-green-600 text-white',
       () => approvePendingUser(userId)
     );
@@ -554,9 +588,9 @@ const AdminPage: React.FC = () => {
 
   const handleRejectPendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
-      '🚨 Permanently Reject User',
-      `Are you sure you want to REJECT ${userEmail}?\n\n❌ This will:\n• Permanently delete their account\n• Remove all their registration data\n• They will need to register again\n\n⚠️ THIS ACTION CANNOT BE UNDONE!`,
-      'Yes, Reject & Delete',
+      'Permanently Reject User',
+      `Are you sure you want to reject ${userEmail}?\n\nThis will:\n• Permanently delete their account\n• Remove all their registration data\n• They will need to register again\n\nTHIS ACTION CANNOT BE UNDONE.`,
+      'Reject & Delete',
       'bg-red-600 text-white',
       () => rejectPendingUser(userId)
     );
@@ -565,9 +599,9 @@ const AdminPage: React.FC = () => {
   const handleDeactivateApprovedUser = (userId: string, userEmail: string) => {
     console.log('🔥 handleDeactivateApprovedUser called for:', userEmail);
     showConfirmation(
-      '⚠️ Temporarily Deactivate User',
-      `Are you sure you want to DEACTIVATE ${userEmail}?\n\n❌ This will:\n• Remove their access to all services\n• Set their usage limit to 0\n• Keep their account data intact\n\n✅ They can be reactivated later if needed.`,
-      'Yes, Deactivate User',
+      'Temporarily Deactivate User',
+      `Are you sure you want to deactivate ${userEmail}?\n\nThis will:\n• Remove their access to all services\n• Set their usage limit to 0\n• Keep their account data intact\n\nThey can be reactivated later if needed.`,
+      'Deactivate User',
       'bg-orange-600 text-white',
       () => deactivateApprovedUser(userId)
     );
@@ -577,7 +611,7 @@ const AdminPage: React.FC = () => {
   const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Reactivate User Account',
-      `Are you sure you want to REACTIVATE the account for ${userEmail}?\n\n✅ This will:\n• Restore full access to their subscription\n• Re-enable their comparison limits\n• Allow them to use the platform again\n\n⚠️ User will regain access immediately`,
+      `Are you sure you want to reactivate the account for ${userEmail}?\n\nThis will:\n• Restore full access to their subscription\n• Re-enable their comparison limits\n• Allow them to use the platform again\n\nUser will regain access immediately.`,
       'Reactivate User',
       'bg-green-600 hover:bg-green-700',
       () => reactivateApprovedUser(userId)
@@ -588,7 +622,7 @@ const AdminPage: React.FC = () => {
   const handleDeleteUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Delete User Account',
-      `Are you sure you want to DELETE the account for ${userEmail}?\n\n🗑️ This will:\n• Move user to "Deleted" tab\n• Preserve all data for recovery\n• Remove access to platform\n• Keep Netlify site (use "Delete Website" first if needed)\n\n⚠️ This is a soft delete - user can be restored later`,
+      `Are you sure you want to delete the account for ${userEmail}?\n\nThis will:\n• Move user to "Deleted" tab\n• Preserve all data for recovery\n• Remove access to platform\n• Keep Netlify site (use "Delete Website" first if needed)\n\nThis is a soft delete - user can be restored later.`,
       'Delete User',
       'bg-red-600 hover:bg-red-700',
       () => deleteUser(userId)
@@ -602,7 +636,7 @@ const AdminPage: React.FC = () => {
     
     showConfirmation(
       'Restore User Account',
-      `Are you sure you want to RESTORE the account for ${userEmail}?\n\n✅ This will:\n• Move user back to "Approved" tab\n• Restore full subscription access\n• Re-enable comparison limits based on tier\n• Allow platform access immediately\n\n⚠️ User will regain access immediately`,
+      `Are you sure you want to restore the account for ${userEmail}?\n\nThis will:\n• Move user back to "Approved" tab\n• Restore full subscription access\n• Re-enable comparison limits based on tier\n• Allow platform access immediately\n\nUser will regain access immediately.`,
       'Restore User',
       'bg-green-600 hover:bg-green-700',
       () => restoreUser(userId)
@@ -613,11 +647,12 @@ const AdminPage: React.FC = () => {
   const handlePermanentDeleteUser = (userId: string) => {
     const deletedUser = deletedUsers.find(user => user.id === userId);
     const userEmail = deletedUser?.email || 'Unknown';
+    const hasNetlifySite = siteUrls[userId] ? 'YES' : 'NO';
     
     showConfirmation(
-      '⚠️ PERMANENT DELETION',
-      `Are you sure you want to PERMANENTLY DELETE ${userEmail}?\n\n❌ This will:\n• COMPLETELY remove all user data\n• DELETE all records from database\n• CANNOT be undone or recovered\n• Require manual Netlify site cleanup\n\n🚨 This action is IRREVERSIBLE!`,
-      'PERMANENTLY DELETE',
+      'PERMANENT DELETION - IRREVERSIBLE',
+      `Are you sure you want to permanently delete ALL data for ${userEmail}?\n\nThis will COMPLETELY REMOVE:\n• User account from Firebase database\n• Netlify website and all deployed scripts (${hasNetlifySite} site found)\n• All user data and history\n• All admin notes and records\n\nTHIS ACTION IS 100% IRREVERSIBLE.\nUser will be completely erased from all systems.`,
+      'DELETE EVERYTHING',
       'bg-red-600 hover:bg-red-700',
       () => permanentlyDeleteUser(userId)
     );
@@ -948,9 +983,9 @@ const AdminPage: React.FC = () => {
   // Add this handler near the other confirmation handlers
   const handleConfirmProvisionWebsite = (user: ApprovedUser) => {
     showConfirmation(
-      '🌐 Provision New Website',
-      `Are you sure you want to PROVISION a website for ${user.businessName || user.email}?\n\n✅ This will:\n• Create a new Netlify site\n• Generate a unique client portal URL\n• Set up environment variables\n• Enable script deployment capabilities\n\n💡 Each user can only have ONE website.\n⚠️ This process may take 30-60 seconds.`,
-      'Yes, Provision Website',
+      'Provision New Website',
+      `Are you sure you want to provision a website for ${user.businessName || user.email}?\n\nThis will:\n• Create a new Netlify site\n• Generate a unique client portal URL\n• Set up environment variables\n• Enable script deployment capabilities\n\nEach user can only have ONE website.\nThis process may take 30-60 seconds.`,
+      'Provision Website',
       'bg-emerald-600 text-white',
       () => handleProvisionWebsite(user)
     );
@@ -959,9 +994,9 @@ const AdminPage: React.FC = () => {
   // Add this handler near the other confirmation handlers
   const handleConfirmDeleteWebsite = (user: ApprovedUser) => {
     showConfirmation(
-      '🚨 Permanently Delete Website',
-      `Are you sure you want to DELETE the website for ${user.businessName || user.email}?\n\n❌ This will:\n• Permanently remove their Netlify site\n• Delete all deployed scripts\n• Remove the client portal URL\n• Cannot be undone\n\n⚠️ The user will lose access to their custom portal!\n💡 You can provision a new website afterward if needed.`,
-      'Yes, Delete Website',
+      'Permanently Delete Website',
+      `Are you sure you want to delete the website for ${user.businessName || user.email}?\n\nThis will:\n• Permanently remove their Netlify site\n• Delete all deployed scripts\n• Remove the client portal URL\n• Cannot be undone\n\nThe user will lose access to their custom portal.\nYou can provision a new website afterward if needed.`,
+      'Delete Website',
       'bg-red-600 text-white',
       () => handleDeleteWebsite(user)
     );
@@ -1089,9 +1124,9 @@ const AdminPage: React.FC = () => {
 
   const handleConfirmDeployScript = (user: ApprovedUser) => {
     showConfirmation(
-      '📝 Deploy Custom Script',
-      `Ready to deploy a custom script for ${user.businessName || user.email}?\n\n✅ This will:\n• Open the script deployment editor\n• Allow you to write/paste JavaScript code\n• Deploy the script to their website\n• Update their client portal\n\n💡 You can deploy multiple scripts and update them anytime.`,
-      'Yes, Open Script Editor',
+      'Deploy Custom Script',
+      `Ready to deploy a custom script for ${user.businessName || user.email}?\n\nThis will:\n• Open the script deployment editor\n• Allow you to write/paste JavaScript code\n• Deploy the script to their website\n• Update their client portal\n\nYou can deploy multiple scripts and update them anytime.`,
+      'Open Script Editor',
       'bg-blue-600 text-white',
       () => {
         setSelectedUserForScript(user);
