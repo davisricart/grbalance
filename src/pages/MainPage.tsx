@@ -33,11 +33,37 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // For local development, just use the default script without trying to fetch from API
-    console.log('Setting up default scripts for local development');
-    setAvailableScripts(['Standard Reconciliation']);
-    setScript('Standard Reconciliation');
+    // Check for client parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client');
+    
+    if (clientId) {
+      // Load client-specific scripts
+      console.log(`Loading scripts for client: ${clientId}`);
+      loadClientScripts(clientId);
+    } else {
+      // For local development, just use the default script without trying to fetch from API
+      console.log('Setting up default scripts for local development');
+      setAvailableScripts(['Standard Reconciliation']);
+      setScript('Standard Reconciliation');
+    }
   }, []);
+
+  const loadClientScripts = (clientId: string) => {
+    // Mock client-specific scripts for testing
+    const clientScripts: { [key: string]: string[] } = {
+      'demo': ['Standard Reconciliation', 'DaySmart + Square'],
+      'tonys-pizza': ['Pizza POS Reconciliation', 'Square Integration'],
+      'salon-pro': ['Salon Management System', 'Payment Hub Analysis'],
+      'retail-store': ['Retail POS Sync', 'Multi-Location Report']
+    };
+
+    const scripts = clientScripts[clientId] || ['Standard Reconciliation'];
+    setAvailableScripts(scripts);
+    setScript(scripts[0] || '');
+    
+    console.log(`Loaded ${scripts.length} scripts for client ${clientId}:`, scripts);
+  };
 
   const handleSignOut = async () => {
     try {
@@ -640,8 +666,8 @@ export default function MainPage({ user }: MainPageProps) {
                         if (row.length > Math.max(nameIndex, amountIndex)) {
                             const name = String(row[nameIndex] || "").trim();
                             if (name.toLowerCase().includes("cash")) {
-                                return;
-                            }
+        return;
+        }
                             
                             const amount = parseFloat(row[amountIndex]) || 0;
                             
@@ -1342,12 +1368,12 @@ export default function MainPage({ user }: MainPageProps) {
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
                       {results[0]?.map((header, i) => (
                         <th
                           key={i}
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
+                          className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
                         >
                           {header}
                         </th>
@@ -1355,50 +1381,90 @@ export default function MainPage({ user }: MainPageProps) {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-100">
-                    {results.slice(1).map((row, i) => (
-                      <tr key={i}>
-                        {row.map((cell, j) => {
+                    {results.slice(1).map((row, i) => {
+                      // Check if this is a header row within the table body
+                      const currentRowFirstCell = String(row[0] || '').trim().toLowerCase();
+                      const secondCell = String(row[1] || '').trim().toLowerCase();
+                      const thirdCell = String(row[2] || '').trim().toLowerCase();
+                      
+                      // Detect various types of headers within the table body:
+                      // 1. Summary section headers: "Card Brand", "Hub Report", "Sales Report", "Difference"
+                      // 2. Any row that looks like headers (multiple capitalized words in sequence)
+                      // 3. Rows where first cell contains "brand" and second contains "report"
+                      const isHeaderRow = currentRowFirstCell.includes('card brand') || 
+                                         (currentRowFirstCell.includes('card') && secondCell.includes('hub')) ||
+                                         (currentRowFirstCell.includes('brand') && secondCell.includes('report')) ||
+                                         (secondCell.includes('hub report') || secondCell.includes('sales report')) ||
+                                         // Check if this looks like a header row (multiple title-case words)
+                                         (row.length >= 3 && 
+                                          String(row[0]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
+                                          String(row[1]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
+                                          String(row[2]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/));
+                      
+                      // Check if this is an empty separator row
+                      const isEmptyRow = Array.isArray(row) && row.every(cell => !cell || String(cell).trim() === '');
+                      
+                      if (isEmptyRow) {
+                        return (
+                          <tr key={i} className="h-4">
+                            <td colSpan={row.length} className="px-6 py-2 bg-gray-25"></td>
+                          </tr>
+                        );
+                      }
+                      
+                      if (isHeaderRow) {
+                        return (
+                          <tr key={i} className="bg-gray-50 border-b border-gray-200">
+                            {row.map((cell, j) => (
+                              <th
+                                key={j}
+                                className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                              >
+                                {cell}
+                              </th>
+                            ))}
+                          </tr>
+                        );
+                      }
+                      
+                      return (
+                        <tr key={i} className="hover:bg-gray-50 transition-colors duration-150">
+                          {row.map((cell, j) => {
                                   const cellStr = String(cell || '').trim();
                                   const isNumber = typeof cell === 'number' || 
-                                                 (!isNaN(Number(cellStr.replace(/[$,]/g, ''))) && cellStr !== '' && cellStr !== null);
-                                  const numValue = Number(cellStr.replace(/[$,]/g, ''));
+                                           (!isNaN(Number(cellStr.replace(/[$,]/g, ''))) && cellStr !== '' && cellStr !== null);
+                            const numValue = Number(cellStr.replace(/[$,]/g, ''));
                                   
                                   let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
                                   
-                                  // Check if this is the difference column (4th column in summary section)
-                                  // The summary section starts when we see "Card Brand" in the first column
-                                  const currentRowFirstCell = String(row[0] || '').trim().toLowerCase();
-                                  const isInSummarySection = currentRowFirstCell.includes('card brand') || 
-                                                           (currentRowFirstCell !== '' && 
-                                                            currentRowFirstCell !== 'date' && 
-                                                            !currentRowFirstCell.includes('2024') &&
-                                                            results.some((r, idx) => idx < i + 1 && Array.isArray(r) && String(r[0] || '').toLowerCase().includes('card brand')));
-                                  
-                                  // Check if this is a header row
-                                  const isHeaderRow = currentRowFirstCell.includes('card brand') || currentRowFirstCell === 'date';
-                                  
-                                  // Get the header for this column to identify Total (-) Fee column
-                                  const header = results[0]?.[j];
-                                  const headerStr = String(header || '').trim().toLowerCase();
-                                  const isTotalFeeColumn = headerStr.includes('total') && headerStr.includes('fee');
-                                  
-                                  // Apply coloring to specific columns
-                                  if (!isHeaderRow && isNumber) {
-                                    // Color the "Total (-) Fee" column in the top section (positive = green, negative = red)
-                                    if (isTotalFeeColumn && !isInSummarySection) {
-                                      if (numValue > 0) {
-                                        cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                      } else if (numValue < 0) {
+                            // Check if this is in the summary section
+                            const isInSummarySection = results.some((r, idx) => 
+                              idx < i + 1 && Array.isArray(r) && 
+                              String(r[0] || '').toLowerCase().includes('card brand')
+                            );
+                            
+                            // Get the header for this column to identify Total (-) Fee column
+                            const header = results[0]?.[j];
+                            const headerStr = String(header || '').trim().toLowerCase();
+                            const isTotalFeeColumn = headerStr.includes('total') && headerStr.includes('fee');
+                            
+                            // Apply coloring to specific columns
+                            if (isNumber) {
+                              // Color the "Total (-) Fee" column in the top section (positive = green, negative = red)
+                              if (isTotalFeeColumn && !isInSummarySection) {
+                                if (numValue > 0) {
+                                  cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                                } else if (numValue < 0) {
                                       cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                      }
-                                    }
-                                    // Color the "Difference" column in the summary section (positive = green, negative = red)
-                                    else if (isInSummarySection && j === 3) {
-                                      if (numValue > 0) {
-                                        cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                      } else if (numValue < 0) {
+                                }
+                              }
+                              // Color the "Difference" column in the summary section (positive = green, negative = red)
+                              else if (isInSummarySection && j === 3) {
+                                if (numValue > 0) {
+                                  cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                                } else if (numValue < 0) {
                                       cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                      }
+                                }
                                     }
                                   }
                                   
@@ -1409,7 +1475,8 @@ export default function MainPage({ user }: MainPageProps) {
                           );
                         })}
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
                       </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../main';
+import { getDoc, doc } from 'firebase/firestore';
+import { auth, db } from '../main';
 import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import clientConfig from '../config/client';
@@ -29,8 +30,37 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      navigate('/app');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Check user's approval status
+      const userStatusDoc = await getDoc(doc(db, 'usage', user.uid));
+      
+      if (userStatusDoc.exists() && userStatusDoc.data().status === 'pending') {
+        // User is pending approval - redirect to pending page
+        navigate('/pending-approval');
+        return;
+      }
+      
+      // Check if user is associated with a specific client
+      const clientId = detectClientFromEmail(email);
+      
+      if (clientId) {
+        // Redirect to client-specific portal
+        navigate(`/app?client=${clientId}`);
+      } else {
+        // Check if there's already a client parameter in the URL
+        const urlParams = new URLSearchParams(location.search);
+        const existingClient = urlParams.get('client');
+        
+        if (existingClient) {
+          // Preserve the client parameter from the URL
+          navigate(`/app?client=${existingClient}`);
+        } else {
+          // Default redirect to main app
+          navigate('/app');
+        }
+      }
     } catch (error: any) {
       switch (error.code) {
         case 'auth/invalid-email':
@@ -56,6 +86,21 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Function to detect client association from email
+  const detectClientFromEmail = (email: string): string | null => {
+    // Mock client associations - in production, this would come from your database
+    const clientAssociations: { [key: string]: string } = {
+      'test@test.com': 'demo',  // Added for testing
+      'tony@pizzashop.com': 'tonys-pizza',
+      'manager@salonspa.com': 'salon-pro',
+      'admin@retailstore.com': 'retail-store',
+      'demo@example.com': 'demo',
+      // Add more client associations as needed
+    };
+
+    return clientAssociations[email.toLowerCase()] || null;
   };
 
   return (
