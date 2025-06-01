@@ -184,8 +184,12 @@ exports.handler = async function(event, context) {
 
     let processedData;
 
-    // Try to load and execute dynamic script if scriptName is provided
-    if (scriptName && clientId) {
+    // TEMPORARY: Force simple comparison to isolate 502 error
+    console.log('🔄 TEMPORARY: Using simple comparison only...');
+    processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
+    
+    // DISABLED: Try to load and execute dynamic script if scriptName is provided
+    /*if (scriptName && clientId) {
       console.log('🔧 Attempting to load dynamic script...');
       try {
         const dynamicResult = await loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer);
@@ -204,7 +208,7 @@ exports.handler = async function(event, context) {
     } else {
       console.log('🔄 No script name provided, using simple comparison...');
       processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
-    }
+    }*/
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
