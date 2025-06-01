@@ -151,77 +151,25 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    console.log('📋 Parsing multipart form data...');
-    const result = await multipart.parse(event);
-    console.log('📁 Files received:', Object.keys(result.files || {}));
-    console.log('📝 Form fields:', Object.keys(result || {}));
-
-    if (!result.files || !result.files.file1 || !result.files.file2) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Both file1 and file2 are required' }),
-      };
-    }
-
-    const file1Buffer = result.files.file1.content;
-    const file2Buffer = result.files.file2.content;
-    const scriptName = result.scriptName;
+    console.log('🧪 MINIMAL TEST: Returning basic test data...');
     
-    console.log('✅ Files parsed successfully');
-    console.log('📊 File 1 size:', file1Buffer.length, 'bytes');
-    console.log('📊 File 2 size:', file2Buffer.length, 'bytes');
-    console.log('📜 Script name:', scriptName);
-
-    // Get the CLIENT_ID from environment variables to identify which scripts to use
-    const clientId = process.env.CLIENT_ID;
-    console.log('🔍 Client ID from environment:', clientId);
-
-    // Get user's software profile
-    const softwareProfileId = await getUserSoftwareProfile(clientId);
-    const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
-    console.log('✅ Using software profile:', softwareProfile.displayName);
-
-    let processedData;
-
-    // TEMPORARY: Force simple comparison to isolate 502 error
-    console.log('🔄 TEMPORARY: Using simple comparison only...');
-    processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
-    
-    // DISABLED: Try to load and execute dynamic script if scriptName is provided
-    /*if (scriptName && clientId) {
-      console.log('🔧 Attempting to load dynamic script...');
-      try {
-        const dynamicResult = await loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer);
-        if (dynamicResult && Array.isArray(dynamicResult) && dynamicResult.length > 0) {
-          processedData = dynamicResult;
-          console.log('✅ Dynamic script executed successfully');
-        } else {
-          console.log('⚠️ Dynamic script returned invalid data, falling back to simple comparison');
-          throw new Error('Invalid dynamic script result');
-        }
-      } catch (dynamicError) {
-        console.warn('⚠️ Dynamic script execution failed:', dynamicError.message);
-        console.log('🔄 Falling back to simple comparison...');
-        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
-      }
-    } else {
-      console.log('🔄 No script name provided, using simple comparison...');
-      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
-    }*/
-    
-    console.log('✅ Processing complete, rows generated:', processedData.length);
+    // MINIMAL TEST: Just return static test data
+    const testData = [
+      ['Card Brand', 'Count in File 1', 'Count in File 2'],
+      ['Visa', 5, 7],
+      ['Mastercard', 3, 4],
+      ['American Express', 1, 2]
+    ];
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        result: processedData,
-        message: 'Processing completed successfully',
-        rowCount: processedData.length,
-        usedDynamicScript: scriptName ? true : false,
-        softwareProfile: softwareProfile.displayName,
-        insightsConfig: softwareProfile.insightsConfig
+        result: testData,
+        message: 'MINIMAL TEST: Static data returned successfully',
+        rowCount: testData.length,
+        usedDynamicScript: false,
+        softwareProfile: 'Test Mode'
       }),
     };
 
