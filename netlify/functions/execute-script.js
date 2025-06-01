@@ -1,23 +1,30 @@
-const multipart = require('lambda-multipart-parser');
-const XLSX = require('xlsx');
 const { initializeApp } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const { getAuth } = require('firebase-admin/auth');
 
-// Initialize Firebase Admin
+// Simplified Firebase initialization - make it optional to avoid crashes
 const admin = require('firebase-admin');
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    })
-  });
+let db = null;
+try {
+  if (!admin.apps.length) {
+    // Only initialize if environment variables are available
+    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+        })
+      });
+      db = getFirestore();
+    }
+  } else {
+    db = getFirestore();
+  }
+} catch (error) {
+  console.log('⚠️ Firebase initialization failed, proceeding without database:', error.message);
 }
-
-const db = getFirestore();
 
 // Software Profiles Configuration
 const SOFTWARE_PROFILES = {
@@ -127,6 +134,7 @@ exports.handler = async function(event, context) {
   console.log('🚀 Execute-script function called');
   console.log('🌐 Request origin:', event.headers.origin || event.headers.Origin || 'none');
   console.log('🔧 Request method:', event.httpMethod);
+  console.log('📦 Event body preview:', event.body ? event.body.substring(0, 100) + '...' : 'empty');
   
   // PERMISSIVE CORS: Allow all Netlify apps and localhost
   const headers = {
@@ -149,6 +157,7 @@ exports.handler = async function(event, context) {
   }
 
   if (event.httpMethod !== 'POST') {
+    console.log('❌ Method not allowed:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
@@ -160,8 +169,18 @@ exports.handler = async function(event, context) {
     console.log('📋 Parsing JSON request data...');
     let requestData;
     
+    if (!event.body) {
+      console.log('❌ No request body provided');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No request body provided' }),
+      };
+    }
+    
     try {
       requestData = JSON.parse(event.body);
+      console.log('✅ JSON parsed successfully');
     } catch (parseError) {
       console.error('❌ Failed to parse JSON:', parseError);
       return {
@@ -174,6 +193,7 @@ exports.handler = async function(event, context) {
     console.log('📝 Request data keys:', Object.keys(requestData || {}));
 
     if (!requestData.file1Data || !requestData.file2Data) {
+      console.log('❌ Missing required data fields');
       return {
         statusCode: 400,
         headers,
@@ -195,6 +215,7 @@ exports.handler = async function(event, context) {
     console.log('🔍 Client ID from environment:', clientId);
 
     // Get user's software profile
+    console.log('🔄 Looking up software profile...');
     const softwareProfileId = await getUserSoftwareProfile(clientId);
     const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
     console.log('✅ Using software profile:', softwareProfile.displayName);
@@ -202,12 +223,12 @@ exports.handler = async function(event, context) {
     let processedData;
 
     // FORCE simple comparison for now to avoid dynamic script issues
-    console.log('🔄 Using simple comparison...');
+    console.log('🔄 Starting simple comparison...');
     processedData = simpleComparisonFromData(file1Data, file2Data, softwareProfile.id);
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
-    return {
+    const response = {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
@@ -220,8 +241,12 @@ exports.handler = async function(event, context) {
       }),
     };
 
+    console.log('✅ Sending successful response');
+    return response;
+
   } catch (error) {
     console.error('❌ Error in execute-script:', error);
+    console.error('❌ Stack trace:', error.stack);
     return {
       statusCode: 500,
       headers,
@@ -234,10 +259,16 @@ exports.handler = async function(event, context) {
   }
 };
 
-// Get user's software profile from database
+// Get user's software profile from database (with fallback if database unavailable)
 async function getUserSoftwareProfile(clientId) {
   try {
     console.log('🔍 Looking up software profile for clientId:', clientId);
+    
+    // If database is not available, return default
+    if (!db) {
+      console.log('⚠️ Database not available, using default profile');
+      return 'daysmart_salon';
+    }
     
     // Query usage collection for user with matching businessName or subdomain
     const usageRef = db.collection('usage');
