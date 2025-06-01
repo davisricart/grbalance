@@ -1460,68 +1460,73 @@ Warning:
 
       showNotification('info', 'Redeploying Site', `Starting site redeploy for ${user.businessName || user.email}...`);
 
-      // Check if we're in local development mode
-      const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      
-      if (isLocalDevelopment) {
-        // Local development simulation
-        console.log('🏠 Local development detected - simulating site redeploy');
-        console.log('📋 Redeploy details:', {
-          clientId,
-          clientName: user.businessName || user.email,
-          siteId,
-          siteUrl: siteUrls[user.id]
+      try {
+        // Always try the production API first
+        const response = await fetch('/.netlify/functions/redeploy-client-site', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            siteId: siteId,
+            clientId: clientId,
+            clientName: user.businessName || user.email
+          }),
         });
-        
-        // Simulate deployment delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        showNotification('success', 'Site Redeploy Simulated!', 
-          `✅ ${user.businessName || user.email}'s site redeploy has been simulated successfully!\n\n` +
-          `🔗 Site URL: ${siteUrls[user.id]}\n\n` +
-          `🧪 Local Testing Mode: The site would now use the dynamic script system and show the same format as Script Testing.\n\n` +
-          `ℹ️ In production, this would deploy the updated NEW_Customer template with:\n` +
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || `HTTP ${response.status}: ${result.message || 'Failed to redeploy site'}`);
+        }
+
+        showNotification('success', 'Site Redeployed Successfully!', 
+          `✅ ${user.businessName || user.email}'s site has been updated with the latest template!\n\n` +
+          `🔗 Site URL: ${result.siteUrl}\n\n` +
+          `🎯 The site now uses the dynamic script system and will show the same simple format as Script Testing.\n\n` +
+          `📋 Changes Applied:\n` +
           `• Dynamic script loading from Firebase\n` +
           `• Updated React components\n` +
           `• Same simple table format as Script Testing\n\n` +
-          `To test the format fix, visit the client site and run a script comparison.`
+          `✨ Visit the client site now to see the updated format!`
         );
+
+        console.log('✅ Site redeploy successful:', result);
+
+      } catch (error: any) {
+        console.error('❌ Production redeploy failed:', error);
         
-        console.log('✅ Local redeploy simulation completed');
-        return;
+        // If production fails, check if we're in local development
+        const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (isLocalDevelopment) {
+          // Local development fallback simulation
+          console.log('🏠 Falling back to local development simulation');
+          
+          // Simulate deployment delay
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          showNotification('info', 'Local Development Mode', 
+            `⚠️ Production API failed: ${error.message}\n\n` +
+            `🧪 Local Simulation: The site would be updated with:\n` +
+            `• Dynamic script loading from Firebase\n` +
+            `• Updated React components\n` +
+            `• Same simple table format as Script Testing\n\n` +
+            `🚀 To actually update the live site, deploy this admin panel to Netlify and try again.`
+          );
+          
+          console.log('✅ Local redeploy simulation completed');
+          return;
+        } else {
+          // We're in production but the API failed
+          throw error;
+        }
       }
-
-      // Production redeploy (only runs when deployed to Netlify)
-      const response = await fetch('/.netlify/functions/redeploy-client-site', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          siteId: siteId,
-          clientId: clientId,
-          clientName: user.businessName || user.email
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to redeploy site');
-      }
-
-      showNotification('success', 'Site Redeployed!', 
-        `✅ ${user.businessName || user.email}'s site has been updated with the latest template!\n\n` +
-        `🔗 Site URL: ${result.siteUrl}\n\n` +
-        `The site now uses the dynamic script system and will show the same format as Script Testing.`
-      );
-
-      console.log('✅ Site redeploy successful:', result);
 
     } catch (error: any) {
       console.error('❌ Error redeploying site:', error);
       showNotification('error', 'Redeploy Failed', 
-        `Failed to redeploy site for ${user.businessName || user.email}: ${error.message}`
+        `Failed to redeploy site for ${user.businessName || user.email}:\n\n${error.message}\n\nPlease check the Netlify function logs for more details.`
       );
     }
   };
