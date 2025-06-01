@@ -1,17 +1,15 @@
+functionsDirectory = "C:\\Users\\Davis\\Documents\\grbalance\\netlify\\functions"
+functionsDirectoryOrigin = "config-v1"
 redirectsOrigin = "config"
 plugins = []
 headers = []
 
-[functions]
-
-[functions."*"]
-
 [build]
-publish = "C:\\Users\\Davis\\Desktop\\NEW_customer\\project\\project\\dist"
+publish = "C:\\Users\\Davis\\Documents\\grbalance\\dist"
 publishOrigin = "config"
 commandOrigin = "config"
-base = "C:\\Users\\Davis\\Desktop\\NEW_customer\\project\\project"
 command = "npm run build"
+functions = "C:\\Users\\Davis\\Documents\\grbalance\\netlify\\functions"
 
 [build.environment]
 
@@ -27,9 +25,31 @@ command = "npm run build"
 
 [build.services]
 
+[dev]
+command = "vite"
+targetPort = 5177.0
+port = 8893.0
+publish = "dist"
+
+[functions]
+
+[functions."*"]
+
 [[redirects]]
 from = "/*"
 to = "/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/api/*"
+to = "/.netlify/functions/:splat"
 status = 200.0
 force = false
 
