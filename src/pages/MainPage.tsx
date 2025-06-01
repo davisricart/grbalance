@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { FileSpreadsheet, Download, AlertCircle, LogOut, BarChart3, TrendingUp, DollarSign, Lightbulb, CheckCircle, XCircle, Users } from 'lucide-react';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc, runTransaction, collection, query, where, getDocs } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
@@ -38,31 +38,82 @@ export default function MainPage({ user }: MainPageProps) {
     const clientId = urlParams.get('client');
     
     if (clientId) {
-      // Load client-specific scripts
+      // Load client-specific scripts from Firebase
       console.log(`Loading scripts for client: ${clientId}`);
-      loadClientScripts(clientId);
+      loadClientScriptsFromFirebase(clientId);
     } else {
-      // For local development, just use the default script without trying to fetch from API
-      console.log('Setting up default scripts for local development');
-      setAvailableScripts(['Standard Reconciliation']);
-      setScript('Standard Reconciliation');
+      // For local development, start with no scripts
+      console.log('Local development mode - no default scripts');
+      setAvailableScripts([]);
+      setScript('');
     }
   }, []);
 
-  const loadClientScripts = (clientId: string) => {
-    // Mock client-specific scripts for testing
-    const clientScripts: { [key: string]: string[] } = {
-      'demo': ['Standard Reconciliation', 'DaySmart + Square'],
-      'tonys-pizza': ['Pizza POS Reconciliation', 'Square Integration'],
-      'salon-pro': ['Salon Management System', 'Payment Hub Analysis'],
-      'retail-store': ['Retail POS Sync', 'Multi-Location Report']
-    };
+  const loadClientScriptsFromFirebase = async (clientId: string) => {
+    try {
+      console.log('🔍 Loading scripts from Firebase for client:', clientId);
+      
+      // First, try to find the user by matching the clientId with their business name or ID
+      const usageCollection = collection(db, 'usage');
+      const clientQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated']));
+      const snapshot = await getDocs(clientQuery);
+      
+      let userDoc: any = null;
+      snapshot.forEach((doc) => {
+        const userData = doc.data();
+        const userClientId = userData.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || doc.id;
+        
+        if (userClientId === clientId || doc.id === clientId) {
+          userDoc = { id: doc.id, ...userData };
+        }
+      });
+      
+      if (!userDoc) {
+        console.log('❌ Client not found in Firebase, using empty script list');
+        setAvailableScripts([]);
+        setScript('');
+        return;
+      }
+      
+      console.log('✅ Found client in Firebase:', userDoc.businessName || userDoc.email);
+      
+      // Get deployed scripts for this client
+      const deployedScripts = userDoc.deployedScripts || [];
+      console.log('📜 Raw deployed scripts:', deployedScripts);
+      
+      // Extract script names from both old string format and new object format
+      const scriptNames = deployedScripts.map((script: any) => {
+        if (typeof script === 'string') {
+          return script;
+        } else if (script && script.name) {
+          return script.name;
+        }
+        return null;
+      }).filter(Boolean);
+      
+      console.log('✅ Available scripts for client:', scriptNames);
+      
+      if (scriptNames.length > 0) {
+        setAvailableScripts(scriptNames);
+        setScript(scriptNames[0]); // Select first script by default
+      } else {
+        console.log('ℹ️ No scripts deployed for this client');
+        setAvailableScripts([]);
+        setScript('');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error loading scripts from Firebase:', error);
+      // Fallback to empty array if Firebase fails
+      setAvailableScripts([]);
+      setScript('');
+    }
+  };
 
-    const scripts = clientScripts[clientId] || ['Standard Reconciliation'];
-    setAvailableScripts(scripts);
-    setScript(scripts[0] || '');
-    
-    console.log(`Loaded ${scripts.length} scripts for client ${clientId}:`, scripts);
+  const loadClientScripts = (clientId: string) => {
+    // DEPRECATED: This function is replaced by loadClientScriptsFromFirebase
+    // Keeping for backward compatibility but now loads from Firebase
+    loadClientScriptsFromFirebase(clientId);
   };
 
   const handleSignOut = async () => {
@@ -181,15 +232,32 @@ export default function MainPage({ user }: MainPageProps) {
       try {
         await updateProgress(50, 'Connecting to processing engine...');
         
-        // Try the redirect first
-        response = await fetch(`/api/scripts/${script}/execute`, {
-          method: 'POST',
-          body: formData,
-        });
-        data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Redirect failed');
+        // For deployed scripts, try to execute them on the client's site
+        if (availableScripts.includes(script)) {
+          console.log(`Executing deployed script: ${script}`);
+          
+          // Try to execute the deployed script using the execute-script endpoint
+          response = await fetch(`/.netlify/functions/execute-script`, {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            data = await response.json();
+          } else {
+            throw new Error('Script execution failed');
+          }
+        } else {
+          // Fallback to old API endpoint for backward compatibility
+          response = await fetch(`/api/scripts/${script}/execute`, {
+            method: 'POST',
+            body: formData,
+          });
+          data = await response.json();
+          
+          if (!response.ok) {
+            throw new Error(data.error || 'Redirect failed');
+          }
         }
       } catch (error) {
         await updateProgress(60, 'Switching to backup processor...');

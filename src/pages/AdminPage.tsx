@@ -227,6 +227,29 @@ const AdminPage: React.FC = () => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
+  // Override window.alert to prevent any popups and redirect to our notification system
+  useEffect(() => {
+    const originalAlert = window.alert;
+    window.alert = (message: any) => {
+      console.log('🚫 Intercepted alert:', message);
+      // Convert alert to our notification system
+      if (typeof message === 'string') {
+        if (message.toLowerCase().includes('success') || message.toLowerCase().includes('deployed')) {
+          showNotification('success', 'Operation Successful', message);
+        } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
+          showNotification('error', 'Operation Failed', message);
+        } else {
+          showNotification('info', 'System Message', message);
+        }
+      }
+    };
+    
+    // Cleanup on unmount
+    return () => {
+      window.alert = originalAlert;
+    };
+  }, []);
+
   // Fetch clients from Firebase
   const fetchClients = async () => {
     try {
