@@ -1,97 +1,117 @@
 // Simplified execute-script function without problematic dependencies
-exports.handler = async function(event, context) {
-  console.log('🚀 Execute-script function called');
-  console.log('🌐 Request origin:', event.headers.origin || event.headers.Origin || 'none');
-  console.log('🔧 Request method:', event.httpMethod);
-  console.log('📦 Event body preview:', event.body ? event.body.substring(0, 100) + '...' : 'empty');
-  
-  // PERMISSIVE CORS: Allow all Netlify apps and localhost
+exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-    'Access-Control-Max-Age': '86400',
   };
 
-  console.log('✅ CORS headers set for all origins');
-
-  // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    console.log('🔄 Handling CORS preflight request');
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'CORS preflight successful' }),
-    };
+    return { statusCode: 200, headers, body: 'OK' };
   }
 
   if (event.httpMethod !== 'POST') {
-    console.log('❌ Method not allowed:', event.httpMethod);
     return {
       statusCode: 405,
       headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
-    console.log('📋 Parsing JSON request data...');
-    let requestData;
-    
     if (!event.body) {
-      console.log('❌ No request body provided');
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'No request body provided' }),
+        body: JSON.stringify({ error: 'No request body' })
       };
     }
-    
+
+    let requestData;
     try {
       requestData = JSON.parse(event.body);
-      console.log('✅ JSON parsed successfully');
     } catch (parseError) {
-      console.error('❌ Failed to parse JSON:', parseError);
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
+        body: JSON.stringify({ error: 'Invalid JSON' })
       };
     }
 
-    console.log('📝 Request data keys:', Object.keys(requestData || {}));
-
     if (!requestData.file1Data || !requestData.file2Data) {
-      console.log('❌ Missing required data fields');
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Both file1Data and file2Data are required' }),
+        body: JSON.stringify({ error: 'Missing file data' })
       };
     }
 
     const file1Data = requestData.file1Data;
     const file2Data = requestData.file2Data;
-    const scriptName = requestData.script;
     
-    console.log('✅ JSON data parsed successfully');
-    console.log('📊 File 1 rows:', file1Data.length);
-    console.log('📊 File 2 rows:', file2Data.length);
-    console.log('📜 Script name:', scriptName);
-
-    // Simple comparison without external dependencies
-    console.log('🔄 Starting simple comparison...');
-    const processedData = simpleComparisonFromData(file1Data, file2Data);
+    const results = [['Card Brand', 'Count in File 1', 'Count in File 2']];
     
-    console.log('✅ Processing complete, rows generated:', processedData.length);
+    // Find card brand column in file 1
+    let cardBrandKey1 = null;
+    if (file1Data.length > 0) {
+      for (const key of Object.keys(file1Data[0])) {
+        if (String(key).toLowerCase().includes('card brand')) {
+          cardBrandKey1 = key;
+          break;
+        }
+      }
+    }
+    
+    // Find card brand column in file 2
+    let cardBrandKey2 = null;
+    if (file2Data.length > 0) {
+      for (const key of Object.keys(file2Data[0])) {
+        if (String(key).toLowerCase().includes('card brand')) {
+          cardBrandKey2 = key;
+          break;
+        }
+      }
+    }
 
-    const response = {
+    // Count brands in file 1
+    const counts1 = {};
+    if (cardBrandKey1) {
+      file1Data.forEach(row => {
+        if (row && row[cardBrandKey1]) {
+          const brand = String(row[cardBrandKey1]).trim();
+          if (brand) {
+            counts1[brand] = (counts1[brand] || 0) + 1;
+          }
+        }
+      });
+    }
+
+    // Count brands in file 2
+    const counts2 = {};
+    if (cardBrandKey2) {
+      file2Data.forEach(row => {
+        if (row && row[cardBrandKey2]) {
+          const brand = String(row[cardBrandKey2]).trim();
+          if (brand) {
+            counts2[brand] = (counts2[brand] || 0) + 1;
+          }
+        }
+      });
+    }
+
+    // Combine results
+    const allBrands = new Set([...Object.keys(counts1), ...Object.keys(counts2)]);
+    allBrands.forEach(brand => {
+      results.push([brand, counts1[brand] || 0, counts2[brand] || 0]);
+    });
+
+    return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        result: processedData,
+      body: JSON.stringify({
+        result: results,
         message: 'Processing completed successfully',
-        rowCount: processedData.length,
+        rowCount: results.length,
         usedDynamicScript: false,
         softwareProfile: 'Simple Comparison',
         insightsConfig: {
@@ -102,23 +122,17 @@ exports.handler = async function(event, context) {
           showRiskFactors: false,
           showBusinessIntelligence: false
         }
-      }),
+      })
     };
 
-    console.log('✅ Sending successful response');
-    return response;
-
   } catch (error) {
-    console.error('❌ Error in execute-script:', error);
-    console.error('❌ Stack trace:', error.stack);
     return {
       statusCode: 500,
       headers,
       body: JSON.stringify({ 
         error: 'Processing failed', 
-        message: error.message,
-        stack: error.stack 
-      }),
+        message: error.message 
+      })
     };
   }
 };
