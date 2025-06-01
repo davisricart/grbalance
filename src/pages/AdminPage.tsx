@@ -63,6 +63,15 @@ interface Script {
   clientId: string;
 }
 
+interface ScriptInfo {
+  name: string;
+  deployedAt: string;
+  size: number;
+  type: 'custom' | 'demo';
+  preview: string;
+  status: 'active' | 'inactive';
+}
+
 interface ConfirmationDialog {
   isOpen: boolean;
   title: string;
@@ -189,6 +198,9 @@ const AdminPage: React.FC = () => {
   // Add state for preview mode
   const [previewMode, setPreviewMode] = useState<'development' | 'client'>('development');
 
+  // Add deployed scripts state
+  const [deployedScripts, setDeployedScripts] = useState<{[userId: string]: (string | ScriptInfo)[]}>({});
+
   // Add notification state after other state declarations
   const [notifications, setNotifications] = useState<{id: string, type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, timestamp: number}[]>([]);
 
@@ -283,6 +295,7 @@ const AdminPage: React.FC = () => {
       const deletedUsersData: ApprovedUser[] = [];
       const urlsData: {[userId: string]: string} = {};
       const idsData: {[userId: string]: string} = {};
+      const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
       snapshot.forEach((doc) => {
         const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
@@ -303,6 +316,11 @@ const AdminPage: React.FC = () => {
         if (data.siteId) {
           idsData[doc.id] = data.siteId;
         }
+        
+        // Load deployed scripts if they exist
+        if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
+          scriptsData[doc.id] = data.deployedScripts;
+        }
       });
       
       console.log('✅ Approved/deactivated users fetched successfully:', approvedUsersData.length);
@@ -314,6 +332,7 @@ const AdminPage: React.FC = () => {
       setDeletedUsers(deletedUsersData);
       setSiteUrls(urlsData);
       setSiteIds(idsData);
+      setDeployedScripts(scriptsData);
     } catch (error: any) {
       console.error('🚨 FIREBASE ERROR in fetchApprovedUsers:');
       console.error('🚨 Error Code:', error.code);
@@ -535,21 +554,16 @@ const AdminPage: React.FC = () => {
       await updateDoc(usageDocRef, updateData);
       console.log('✅ Updated usage collection successfully');
 
-      // Remove from pendingUsers collection
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await deleteDoc(pendingDocRef);
-      console.log('✅ Deleted from pendingUsers collection successfully');
-
-      console.log('✅ User approved successfully');
+      showNotification('success', 'User Details Updated', 'User details updated successfully!');
       
-      // Refresh both lists
-      console.log('🔄 Refreshing data...');
-      await fetchPendingUsers();
+      // Close modal and refresh data
+      setShowEditUser(false);
+      setSelectedUserForEdit(null);
       await fetchApprovedUsers();
-      console.log('✅ Data refresh completed');
       
-    } catch (error) {
-      console.error('🚨 Error approving user:', error);
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      showNotification('error', 'Update Failed', 'Failed to update user: ' + error.message);
     }
   };
 
@@ -820,7 +834,7 @@ WARNING:
         updatedAt: new Date()
       });
 
-      alert(`User details updated successfully!`);
+      showNotification('success', 'User Details Updated', 'User details updated successfully!');
       
       // Close modal and refresh data
       setShowEditUser(false);
@@ -829,7 +843,7 @@ WARNING:
       
     } catch (error: any) {
       console.error('Error updating user:', error);
-      alert('Failed to update user: ' + error.message);
+      showNotification('error', 'Update Failed', 'Failed to update user: ' + error.message);
     }
   };
 
@@ -843,7 +857,7 @@ WARNING:
       // Validate required fields
       if (!newClient.email || !newClient.businessName || !newClient.businessType) {
         console.error('🚨 Missing required fields');
-        alert('Please fill in all required fields: Email, Business Name, and Business Type');
+        showNotification('error', 'Missing Information', 'Please fill in all required fields: Email, Business Name, and Business Type');
         return;
       }
 
@@ -876,7 +890,7 @@ WARNING:
       await setDoc(doc(db, 'usage', clientId), clientData);
 
       console.log('✅ Client created successfully in Firebase');
-      alert('Client added successfully!');
+      showNotification('success', 'Client Added', 'Client added successfully!');
       
       setShowAddClient(false);
       setNewClient({ 
@@ -899,7 +913,7 @@ WARNING:
         message: error.message,
         stack: error.stack
       });
-      alert(`Error adding client: ${error.message || 'Unknown error'}`);
+      showNotification('error', 'Failed to Add Client', `Error adding client: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -1175,10 +1189,10 @@ Warning:
         siteUrl: siteUrls[user.id],
         clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
       });
-      alert('Site deleted successfully.');
+      showNotification('success', 'Website Deleted', 'Site deleted successfully.');
     } catch (err: any) {
       console.log('API deletion failed (expected in local testing):', err.message);
-      // Don't show error alert for local testing - just log it
+      // Don't show error notification for local testing - just log it
     }
     
     // Always clean up state, regardless of API success/failure
@@ -1208,12 +1222,12 @@ Warning:
       
       // Only show success message if this is local testing
       if (window.location.hostname === 'localhost') {
-        alert('Website state reset successfully (local testing mode)');
+        showNotification('info', 'Local Testing Mode', 'Website state reset successfully (local testing mode)');
       }
       
     } catch (stateErr: any) {
       console.error('Failed to clean up state:', stateErr);
-      alert('Failed to reset website state: ' + stateErr.message);
+      showNotification('error', 'State Cleanup Failed', 'Failed to reset website state: ' + stateErr.message);
     } finally {
       setProvisioning((prev) => ({ ...prev, [user.id]: false }));
     }
@@ -1222,37 +1236,89 @@ Warning:
   // Script deployment functions
   const handleDeployScript = async (user: ApprovedUser) => {
     if (!scriptDeployForm.scriptName || !scriptDeployForm.scriptContent) {
-      alert('Please provide both script name and content.');
+      showNotification('error', 'Missing Script Information', 'Please provide both script name and content.');
       return;
     }
 
     if (!siteUrls[user.id] || !siteIds[user.id]) {
-      alert('Please provision a website for this user first.');
+      showNotification('error', 'No Website Found', 'Please provision a website for this user first.');
       return;
     }
 
     setDeploying((prev) => ({ ...prev, [user.id]: true }));
     try {
-      const payload = {
-        siteId: siteIds[user.id],
-        scriptContent: scriptDeployForm.scriptContent,
-        scriptName: scriptDeployForm.scriptName,
-        clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
+      // Enhanced script tracking with more details
+      const scriptInfo: ScriptInfo = {
+        name: scriptDeployForm.scriptName,
+        deployedAt: new Date().toISOString(),
+        size: scriptDeployForm.scriptContent.length,
+        type: 'custom',
+        preview: scriptDeployForm.scriptContent.substring(0, 100) + (scriptDeployForm.scriptContent.length > 100 ? '...' : ''),
+        status: 'active'
       };
 
-      console.log('Deploying script with payload:', payload);
+      // Check if we're in local development
+      const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
       
-      const res = await axios.post(
-        '/.netlify/functions/deploy-script',
-        JSON.stringify(payload),
-        {
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        }
-      );
+      if (!isLocalDevelopment) {
+        // Only attempt actual deployment in production
+        const payload = {
+          siteId: siteIds[user.id],
+          scriptContent: scriptDeployForm.scriptContent,
+          scriptName: scriptDeployForm.scriptName,
+          clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
+        };
 
-      alert(`Script "${scriptDeployForm.scriptName}" deployed successfully to ${user.businessName || user.email}!`);
+        console.log('Deploying script with payload:', payload);
+        
+        const res = await axios.post(
+          '/.netlify/functions/deploy-script',
+          JSON.stringify(payload),
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
+        );
+      } else {
+        // Local development mode - simulate deployment
+        console.log('🏠 Local development detected - simulating script deployment');
+        console.log('📜 Script would be deployed:', {
+          name: scriptDeployForm.scriptName,
+          size: scriptDeployForm.scriptContent.length,
+          clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
+        });
+      }
+
+      const usageDocRef = doc(db, 'usage', user.id);
+      const currentScripts = deployedScripts[user.id] || [];
+      
+      // Store detailed script info instead of just names
+      const updatedScripts = [...currentScripts.filter(script => {
+        if (typeof script === 'string') {
+          return script !== scriptDeployForm.scriptName;
+        } else {
+          return script.name !== scriptDeployForm.scriptName;
+        }
+      }), scriptInfo];
+      
+      await updateDoc(usageDocRef, {
+        deployedScripts: updatedScripts,
+        lastScriptDeployment: new Date(),
+        updatedAt: new Date()
+      });
+
+      // Update local state
+      setDeployedScripts(prev => ({
+        ...prev,
+        [user.id]: updatedScripts
+      }));
+
+      if (isLocalDevelopment) {
+        showNotification('success', 'Script Tracked Successfully', `"${scriptDeployForm.scriptName}" tracked for ${user.businessName || user.email}! (Local testing mode - script tracking only)`);
+      } else {
+        showNotification('success', 'Script Deployed Successfully', `"${scriptDeployForm.scriptName}" deployed to ${user.businessName || user.email}!`);
+      }
       
       // Clear form and close modal
       setScriptDeployForm({ scriptName: '', scriptContent: '' });
@@ -1265,9 +1331,58 @@ Warning:
       if (data?.error) msg += data.error;
       else if (data?.message) msg += data.message;
       else msg += err.message || JSON.stringify(data) || 'Unknown error';
-      alert(msg);
+      
+      showNotification('error', 'Script Deployment Failed', msg);
     } finally {
       setDeploying((prev) => ({ ...prev, [user.id]: false }));
+    }
+  };
+
+  // Add function to delete individual scripts
+  const handleDeleteScript = async (userId: string, scriptName: string) => {
+    try {
+      console.log(`🗑️ Deleting script "${scriptName}" for user ${userId}`);
+      
+      const usageDocRef = doc(db, 'usage', userId);
+      const currentScripts = deployedScripts[userId] || [];
+      
+      console.log('Current scripts before deletion:', currentScripts);
+      
+      // Handle both old string format and new object format
+      const updatedScripts = currentScripts.filter(script => {
+        if (typeof script === 'string') {
+          return script !== scriptName;
+        } else {
+          return script.name !== scriptName;
+        }
+      });
+      
+      console.log('Updated scripts after filtering:', updatedScripts);
+      
+      await updateDoc(usageDocRef, {
+        deployedScripts: updatedScripts,
+        lastScriptUpdate: new Date(),
+        updatedAt: new Date()
+      });
+
+      // Update local state
+      setDeployedScripts(prev => ({
+        ...prev,
+        [userId]: updatedScripts
+      }));
+
+      console.log('🔔 Calling showNotification...');
+      console.log('🔔 Notification function:', typeof showNotification);
+      console.log('🔔 Notifications state:', notifications);
+      
+      showNotification('success', 'Script Removed', `"${scriptName}" has been removed from the user's available scripts.`);
+      
+      console.log('🔔 showNotification called successfully');
+      
+    } catch (error: any) {
+      console.error('Error deleting script:', error);
+      console.log('🔔 Calling showNotification for error...');
+      showNotification('error', 'Failed to Remove Script', error.message);
     }
   };
 
@@ -2028,6 +2143,84 @@ Features:
                         </div>
                       </div>
 
+                      {/* Available Scripts Section */}
+                      {siteUrls[user.id] && (
+                        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                          <div className="text-blue-700 text-sm font-semibold mb-3 flex items-center gap-2">
+                            <Upload className="w-4 h-4" />
+                            Available Scripts ({deployedScripts[user.id]?.length || 0})
+                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                              What user sees on their website
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {deployedScripts[user.id] && deployedScripts[user.id].length > 0 ? (
+                              deployedScripts[user.id].map((script, index) => {
+                                // Handle both old string format and new object format
+                                const scriptName = typeof script === 'string' ? script : script.name;
+                                const scriptInfo = typeof script === 'object' ? script : null;
+                                
+                                return (
+                                  <div
+                                    key={`${user.id}-${scriptName}-${index}`}
+                                    className="bg-white border border-blue-200 rounded-lg p-3 shadow-sm"
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="font-medium text-gray-900">{scriptName}</span>
+                                          {scriptInfo?.status === 'active' && (
+                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                                              Active
+                                            </span>
+                                          )}
+                                        </div>
+                                        
+                                        {scriptInfo && (
+                                          <div className="text-xs text-gray-600 space-y-1">
+                                            <div>Deployed: {new Date(scriptInfo.deployedAt).toLocaleString()}</div>
+                                            <div>Size: {scriptInfo.size} characters | Type: {scriptInfo.type}</div>
+                                            {scriptInfo.preview && (
+                                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs font-mono text-gray-700 border-l-2 border-blue-400">
+                                                <div className="text-blue-600 font-semibold mb-1">Script Preview:</div>
+                                                {scriptInfo.preview}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      <button
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          console.log(`🗑️ Delete button clicked for script: "${scriptName}" on user: ${user.id}`);
+                                          handleDeleteScript(user.id, scriptName);
+                                        }}
+                                        className="ml-3 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1 transition-all"
+                                        title={`Remove ${scriptName}`}
+                                      >
+                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <div className="text-center py-4 text-blue-600 bg-blue-50 rounded-lg border border-blue-200">
+                                <Upload className="w-8 h-8 mx-auto mb-2 text-blue-400" />
+                                <div className="font-medium mb-1">No scripts deployed yet</div>
+                                <div className="text-sm text-blue-500">
+                                  Use "Deploy Script" to add custom analysis scripts to their website
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Admin Notes */}
                       {(user as any).adminNotes && (
                         <div className="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400">
@@ -2040,6 +2233,7 @@ Features:
                       <div className="flex flex-wrap gap-2">
                         {/* Edit button - always available */}
                         <button
+                          type="button"
                           onClick={() => handleEditUser(user)}
                           className="inline-flex items-center gap-2 bg-gray-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-700"
                         >
@@ -2053,6 +2247,7 @@ Features:
                             {/* Provision Website button (only if not already provisioned) */}
                             {!siteUrls[user.id] && (
                               <button
+                                type="button"
                                 onClick={() => handleConfirmProvisionWebsite(user)}
                                 className="inline-flex items-center gap-2 bg-emerald-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-emerald-700 disabled:opacity-50"
                                 disabled={provisioning[user.id]}
@@ -2065,6 +2260,7 @@ Features:
                             {/* Deploy Script button (only if site is provisioned) */}
                             {siteUrls[user.id] && (
                               <button
+                                type="button"
                                 onClick={() => handleConfirmDeployScript(user)}
                                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
                                 disabled={deploying[user.id]}
@@ -2077,6 +2273,7 @@ Features:
                             {/* Delete Website button (only if site is provisioned) */}
                             {siteUrls[user.id] && (
                               <button
+                                type="button"
                                 onClick={() => handleConfirmDeleteWebsite(user)}
                                 className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm hover:bg-red-200 disabled:opacity-50"
                                 disabled={provisioning[user.id]}
@@ -2087,6 +2284,7 @@ Features:
                             )}
                             
                             <button
+                              type="button"
                               onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
                               className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm hover:bg-orange-200"
                             >
@@ -2096,6 +2294,7 @@ Features:
                             
                             {/* Delete User button */}
                             <button
+                              type="button"
                               onClick={() => handleDeleteUser(user.id, user.email)}
                               className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
                             >
@@ -2111,6 +2310,7 @@ Features:
                               Account Deactivated
                             </div>
                             <button
+                              type="button"
                               onClick={() => handleReactivateApprovedUser(user.id, user.email)}
                               className="inline-flex items-center gap-2 bg-green-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-green-700"
                             >
@@ -2120,6 +2320,7 @@ Features:
                             
                             {/* Delete User button for deactivated users too */}
                             <button
+                              type="button"
                               onClick={() => handleDeleteUser(user.id, user.email)}
                               className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
                             >
@@ -2641,13 +2842,13 @@ Features:
                                 setSelectedHeaders2(validCols2);
                                 
                                 console.log('✅ Column selections restored:', { validCols1, validCols2 });
-                                alert(`Script "${file.name}" loaded successfully! Results and column selections restored.`);
+                                showNotification('success', 'Script Loaded Successfully', `Script "${file.name}" loaded successfully! Results and column selections restored.`);
                               } else {
                                 console.log('⚠️ Files not uploaded yet, only results restored');
-                                alert(`Script "${file.name}" loaded successfully! Results restored.\n\nTo restore column selections, upload your files first, then load the script again.`);
+                                showNotification('info', 'Script Loaded (Partial)', `Script "${file.name}" loaded successfully! Results restored.\n\nTo restore column selections, upload your files first, then load the script again.`);
                               }
                             } else {
-                              alert(`Script "${file.name}" loaded successfully! Results restored.`);
+                              showNotification('success', 'Script Loaded Successfully', `Script "${file.name}" loaded successfully! Results restored.`);
                             }
                             
                             // IMPORTANT: Reset the file input so it can be used again
@@ -2657,7 +2858,7 @@ Features:
                             
                           } catch (error) {
                             console.error('❌ Error loading script:', error);
-                            alert('Error loading script. Please make sure it\'s a valid script file saved from this tool.');
+                            showNotification('error', 'Script Load Failed', 'Error loading script. Please make sure it\'s a valid script file saved from this tool.');
                             
                             // Reset file input even on error
                             const input = e.target as HTMLInputElement;
@@ -2722,9 +2923,9 @@ console.log('✅ Script executed successfully');`;
                       document.body.removeChild(a);
                       URL.revokeObjectURL(url);
                       
-                      alert('Script saved! You can assign this to a client or continue building on it.');
+                      showNotification('success', 'Script Saved Successfully', 'Script saved! You can assign this to a client or continue building on it.');
                     } else {
-                      alert('No results to save yet. Generate some results first!');
+                      showNotification('warning', 'No Results to Save', 'No results to save yet. Generate some results first!');
                     }
                   }}
                   className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
@@ -3227,12 +3428,14 @@ console.log('✅ Script executed successfully');`;
               </div>
               <div className="flex justify-end space-x-3">
                 <button
+                  type="button"
                   onClick={closeConfirmation}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={() => {
                     confirmDialog.onConfirm();
                     closeConfirmation();
@@ -3254,70 +3457,85 @@ console.log('✅ Script executed successfully');`;
                 Deploy Script for {selectedUserForScript.businessName || selectedUserForScript.email}
               </h3>
               
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Script Name
-                  </label>
-                  <input
-                    type="text"
-                    value={scriptDeployForm.scriptName}
-                    onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptName: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="e.g., reconciliation-script-v1.js"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Script Content
-                  </label>
-                  
-                  {/* File Upload Option */}
-                  <div className="mb-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept=".js,.ts,.mjs"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                              const content = event.target?.result as string;
-                              setScriptDeployForm({
-                                ...scriptDeployForm, 
-                                scriptContent: content,
-                                scriptName: scriptDeployForm.scriptName || file.name
-                              });
-                            };
-                            reader.readAsText(file);
-                          }
-                        }}
-                        className="hidden"
-                        id="script-file-upload"
-                      />
-                      <label
-                        htmlFor="script-file-upload"
-                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <Upload className="w-4 h-4" />
-                        Upload Script File
-                      </label>
-                      <span className="text-sm text-gray-500">or paste/write code below</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Supports .js, .ts, .mjs files. File content will populate the editor below.
-                    </p>
+              {/* Add form wrapper with noValidate to prevent browser validation popups */}
+              <form 
+                noValidate
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  console.log('🔥 Form submit prevented');
+                  handleDeployScript(selectedUserForScript);
+                }}
+              >
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Script Name
+                    </label>
+                    <input
+                      type="text"
+                      value={scriptDeployForm.scriptName}
+                      onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptName: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="e.g., reconciliation-script-v1.js"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          console.log('🔥 Enter key prevented on script name input');
+                        }
+                      }}
+                    />
                   </div>
 
-                  {/* Script Content Textarea */}
-                  <textarea
-                    value={scriptDeployForm.scriptContent}
-                    onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptContent: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                    rows={15}
-                    placeholder="// Upload a file above or enter your JavaScript code here
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Script Content
+                    </label>
+                    
+                    {/* File Upload Option */}
+                    <div className="mb-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="file"
+                          accept=".js,.ts,.mjs"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const content = event.target?.result as string;
+                                setScriptDeployForm({
+                                  ...scriptDeployForm, 
+                                  scriptContent: content,
+                                  scriptName: scriptDeployForm.scriptName || file.name
+                                });
+                              };
+                              reader.readAsText(file);
+                            }
+                          }}
+                          className="hidden"
+                          id="script-file-upload"
+                        />
+                        <label
+                          htmlFor="script-file-upload"
+                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <Upload className="w-4 h-4" />
+                          Upload Script File
+                        </label>
+                        <span className="text-sm text-gray-500">or paste/write code below</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Supports .js, .ts, .mjs files. File content will populate the editor below.
+                      </p>
+                    </div>
+
+                    {/* Script Content Textarea */}
+                    <textarea
+                      value={scriptDeployForm.scriptContent}
+                      onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptContent: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                      rows={15}
+                      placeholder="// Upload a file above or enter your JavaScript code here
 function reconcileData() {
   // Your custom reconciliation logic
   console.log('Reconciliation script running...');
@@ -3325,21 +3543,27 @@ function reconcileData() {
 
 // Example usage
 reconcileData();"
-                  />
-                  
-                  {/* Quick Action Buttons */}
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setScriptDeployForm({...scriptDeployForm, scriptContent: ''})}
-                      className="text-xs px-2 py-1 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const template = `// ${scriptDeployForm.scriptName || 'Custom Script'}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                          e.preventDefault();
+                          console.log('🔥 Ctrl+Enter prevented on textarea');
+                        }
+                      }}
+                    />
+                    
+                    {/* Quick Action Buttons */}
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setScriptDeployForm({...scriptDeployForm, scriptContent: ''})}
+                        className="text-xs px-2 py-1 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const template = `// ${scriptDeployForm.scriptName || 'Custom Script'}
 // Generated: ${new Date().toLocaleDateString()}
 
 function reconcileData() {
@@ -3352,48 +3576,55 @@ function reconcileData() {
 
 // Auto-execute
 reconcileData();`;
-                        setScriptDeployForm({...scriptDeployForm, scriptContent: template});
-                      }}
-                      className="text-xs px-2 py-1 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
-                    >
-                      Insert Template
-                    </button>
+                          setScriptDeployForm({...scriptDeployForm, scriptContent: template});
+                        }}
+                        className="text-xs px-2 py-1 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
+                      >
+                        Insert Template
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-md">
+                    <h4 className="text-sm font-medium text-blue-900 mb-2">Deployment Info</h4>
+                    <p className="text-sm text-blue-700">
+                      <strong>Client:</strong> {selectedUserForScript.businessName || selectedUserForScript.email}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>Site URL:</strong> {siteUrls[selectedUserForScript.id] || 'No site provisioned'}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      <strong>Client ID:</strong> {selectedUserForScript.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || selectedUserForScript.id}
+                    </p>
                   </div>
                 </div>
-
-                <div className="bg-blue-50 p-4 rounded-md">
-                  <h4 className="text-sm font-medium text-blue-900 mb-2">Deployment Info</h4>
-                  <p className="text-sm text-blue-700">
-                    <strong>Client:</strong> {selectedUserForScript.businessName || selectedUserForScript.email}
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    <strong>Site URL:</strong> {siteUrls[selectedUserForScript.id] || 'No site provisioned'}
-                  </p>
-                  <p className="text-sm text-blue-700">
-                    <strong>Client ID:</strong> {selectedUserForScript.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || selectedUserForScript.id}
-                  </p>
+                
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDeployScript(false);
+                      setSelectedUserForScript(null);
+                      setScriptDeployForm({ scriptName: '', scriptContent: '' });
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      console.log('🔥 Deploy button clicked - handleDeployScript starting...');
+                      handleDeployScript(selectedUserForScript);
+                    }}
+                    disabled={deploying[selectedUserForScript.id] || !scriptDeployForm.scriptName || !scriptDeployForm.scriptContent}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {deploying[selectedUserForScript.id] ? 'Deploying...' : 'Deploy Script'}
+                  </button>
                 </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => {
-                    setShowDeployScript(false);
-                    setSelectedUserForScript(null);
-                    setScriptDeployForm({ scriptName: '', scriptContent: '' });
-                  }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleDeployScript(selectedUserForScript)}
-                  disabled={deploying[selectedUserForScript.id] || !scriptDeployForm.scriptName || !scriptDeployForm.scriptContent}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deploying[selectedUserForScript.id] ? 'Deploying...' : 'Deploy Script'}
-                </button>
-              </div>
+              </form>
             </div>
           </div>
         )}
