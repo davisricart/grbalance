@@ -1,135 +1,4 @@
-const { initializeApp } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
-const { getAuth } = require('firebase-admin/auth');
-
-// Simplified Firebase initialization - make it optional to avoid crashes
-const admin = require('firebase-admin');
-
-let db = null;
-try {
-  if (!admin.apps.length) {
-    // Only initialize if environment variables are available
-    if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
-      admin.initializeApp({
-        credential: admin.credential.cert({
-          projectId: process.env.FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-        })
-      });
-      db = getFirestore();
-    }
-  } else {
-    db = getFirestore();
-  }
-} catch (error) {
-  console.log('⚠️ Firebase initialization failed, proceeding without database:', error.message);
-}
-
-// Software Profiles Configuration
-const SOFTWARE_PROFILES = {
-  'daysmart_salon': {
-    id: 'daysmart_salon',
-    name: 'daysmart_salon',
-    displayName: 'DaySmart Salon Software',
-    dataStructure: {
-      dateColumn: ['Date', 'Transaction Date', 'Date Closed'],
-      amountColumn: ['Total Transaction Amount', 'Amount', 'Transaction Amount'],
-      customerColumn: ['Customer Name', 'Name', 'Client Name'],
-      cardBrandColumn: ['Card Brand', 'Card Type', 'Payment Method'],
-      feeColumn: ['Cash Discounting Amount', 'Processing Fee', 'Fee Amount']
-    },
-    insightsConfig: {
-      showInsights: true,
-      showPaymentTrends: true,
-      showCustomerBehavior: true,
-      showOperationalMetrics: true,
-      showRiskFactors: true,
-      showBusinessIntelligence: true
-    }
-  },
-  'square_pos': {
-    id: 'square_pos',
-    name: 'square_pos',
-    displayName: 'Square POS',
-    dataStructure: {
-      dateColumn: ['Date', 'Created at', 'Transaction Date'],
-      amountColumn: ['Gross Sales', 'Amount Money', 'Total'],
-      customerColumn: ['Customer Name', 'Buyer Name', 'Customer'],
-      cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
-      feeColumn: ['Fees', 'Processing Fee', 'Square Fees']
-    },
-    insightsConfig: {
-      showInsights: true,
-      showPaymentTrends: true,
-      showCustomerBehavior: false,
-      showOperationalMetrics: true,
-      showRiskFactors: true,
-      showBusinessIntelligence: true
-    }
-  },
-  'toast_pos': {
-    id: 'toast_pos',
-    name: 'toast_pos',
-    displayName: 'Toast POS (Restaurant)',
-    dataStructure: {
-      dateColumn: ['Business Date', 'Date', 'Order Date'],
-      amountColumn: ['Net Sales', 'Total', 'Order Total'],
-      customerColumn: ['Guest Name', 'Customer', 'Party Name'],
-      cardBrandColumn: ['Payment Type', 'Card Brand', 'Payment Method'],
-      feeColumn: ['Processing Fees', 'Card Fees', 'Payment Fees']
-    },
-    insightsConfig: {
-      showInsights: true,
-      showPaymentTrends: true,
-      showCustomerBehavior: false,
-      showOperationalMetrics: true,
-      showRiskFactors: true,
-      showBusinessIntelligence: true
-    }
-  },
-  'shopify_pos': {
-    id: 'shopify_pos',
-    name: 'shopify_pos',
-    displayName: 'Shopify POS',
-    dataStructure: {
-      dateColumn: ['Created at', 'Date', 'Order Date'],
-      amountColumn: ['Total Price', 'Subtotal', 'Total'],
-      customerColumn: ['Customer Email', 'Billing Name', 'Customer'],
-      cardBrandColumn: ['Payment Method', 'Gateway', 'Card Brand'],
-      feeColumn: ['Transaction Fee', 'Gateway Fee', 'Processing Fee']
-    },
-    insightsConfig: {
-      showInsights: true,
-      showPaymentTrends: true,
-      showCustomerBehavior: true,
-      showOperationalMetrics: true,
-      showRiskFactors: true,
-      showBusinessIntelligence: true
-    }
-  },
-  'custom_basic': {
-    id: 'custom_basic',
-    name: 'custom_basic',
-    displayName: 'Custom/Basic Format',
-    dataStructure: {
-      dateColumn: ['Date', 'Transaction Date', 'Created Date'],
-      amountColumn: ['Amount', 'Total', 'Transaction Amount'],
-      customerColumn: ['Customer', 'Name', 'Client'],
-      cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
-      feeColumn: ['Fee', 'Processing Fee', 'Charge']
-    },
-    insightsConfig: {
-      showInsights: false,
-      showPaymentTrends: false,
-      showCustomerBehavior: false,
-      showOperationalMetrics: false,
-      showRiskFactors: false,
-      showBusinessIntelligence: false
-    }
-  }
-};
-
+// Simplified execute-script function without problematic dependencies
 exports.handler = async function(event, context) {
   console.log('🚀 Execute-script function called');
   console.log('🌐 Request origin:', event.headers.origin || event.headers.Origin || 'none');
@@ -210,21 +79,9 @@ exports.handler = async function(event, context) {
     console.log('📊 File 2 rows:', file2Data.length);
     console.log('📜 Script name:', scriptName);
 
-    // Get the CLIENT_ID from environment variables to identify which scripts to use
-    const clientId = process.env.CLIENT_ID;
-    console.log('🔍 Client ID from environment:', clientId);
-
-    // Get user's software profile
-    console.log('🔄 Looking up software profile...');
-    const softwareProfileId = await getUserSoftwareProfile(clientId);
-    const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
-    console.log('✅ Using software profile:', softwareProfile.displayName);
-
-    let processedData;
-
-    // FORCE simple comparison for now to avoid dynamic script issues
+    // Simple comparison without external dependencies
     console.log('🔄 Starting simple comparison...');
-    processedData = simpleComparisonFromData(file1Data, file2Data, softwareProfile.id);
+    const processedData = simpleComparisonFromData(file1Data, file2Data);
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
@@ -236,8 +93,15 @@ exports.handler = async function(event, context) {
         message: 'Processing completed successfully',
         rowCount: processedData.length,
         usedDynamicScript: false,
-        softwareProfile: softwareProfile.displayName,
-        insightsConfig: softwareProfile.insightsConfig
+        softwareProfile: 'Simple Comparison',
+        insightsConfig: {
+          showInsights: false,
+          showPaymentTrends: false,
+          showCustomerBehavior: false,
+          showOperationalMetrics: false,
+          showRiskFactors: false,
+          showBusinessIntelligence: false
+        }
       }),
     };
 
@@ -259,54 +123,21 @@ exports.handler = async function(event, context) {
   }
 };
 
-// Get user's software profile from database (with fallback if database unavailable)
-async function getUserSoftwareProfile(clientId) {
-  try {
-    console.log('🔍 Looking up software profile for clientId:', clientId);
-    
-    // If database is not available, return default
-    if (!db) {
-      console.log('⚠️ Database not available, using default profile');
-      return 'daysmart_salon';
-    }
-    
-    // Query usage collection for user with matching businessName or subdomain
-    const usageRef = db.collection('usage');
-    const snapshot = await usageRef.get();
-    
-    let userProfile = null;
-    snapshot.forEach(doc => {
-      const userData = doc.data();
-      const userBusinessName = userData.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
-      
-      if (userBusinessName === clientId || userData.subdomain === clientId) {
-        userProfile = userData.softwareProfile;
-        console.log('✅ Found user with software profile:', userProfile);
-      }
-    });
-    
-    return userProfile || 'daysmart_salon'; // Default to DaySmart if not set
-  } catch (error) {
-    console.error('❌ Error fetching user software profile:', error);
-    return 'daysmart_salon'; // Default fallback
-  }
-}
-
-// Enhanced simple comparison function with software-specific parsing for JSON data
-function simpleComparisonFromData(file1Data, file2Data, softwareProfileId) {
+// Simplified comparison function with basic card brand detection
+function simpleComparisonFromData(file1Data, file2Data) {
     try {
-        console.log('🔄 Using simple comparison logic with software profile:', softwareProfileId);
-        const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
+        console.log('🔄 Using simple comparison logic');
         
         console.log('📊 File 1 sample:', file1Data[0]);
         console.log('📊 File 2 sample:', file2Data[0]);
-        console.log('🔧 Using profile data structure:', softwareProfile.dataStructure);
 
-        // Smart column detection using software profile
-        const findColumnInObject = (obj, possibleNames) => {
-            for (const name of possibleNames) {
-                for (const key of Object.keys(obj)) {
-                    if (String(key).toLowerCase().includes(name.toLowerCase())) {
+        // Smart column detection - look for common card brand column names
+        const findCardBrandKey = (obj) => {
+            const cardBrandPatterns = ['card brand', 'payment type', 'card type', 'payment method'];
+            for (const key of Object.keys(obj)) {
+                const keyLower = String(key).toLowerCase();
+                for (const pattern of cardBrandPatterns) {
+                    if (keyLower.includes(pattern)) {
                         return key;
                     }
                 }
@@ -314,9 +145,9 @@ function simpleComparisonFromData(file1Data, file2Data, softwareProfileId) {
             return null;
         };
 
-        // Find columns based on software profile using first row as sample
-        const cardBrandKey1 = file1Data.length > 0 ? findColumnInObject(file1Data[0], softwareProfile.dataStructure.cardBrandColumn) : null;
-        const cardBrandKey2 = file2Data.length > 0 ? findColumnInObject(file2Data[0], softwareProfile.dataStructure.cardBrandColumn) : null;
+        // Find card brand columns
+        const cardBrandKey1 = file1Data.length > 0 ? findCardBrandKey(file1Data[0]) : null;
+        const cardBrandKey2 = file2Data.length > 0 ? findCardBrandKey(file2Data[0]) : null;
         
         console.log('🎯 Card brand column keys - File1:', cardBrandKey1, 'File2:', cardBrandKey2);
 
