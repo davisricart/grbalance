@@ -32,6 +32,7 @@ exports.handler = async function(event, context) {
     console.log('📋 Parsing multipart form data...');
     const result = await multipart.parse(event);
     console.log('📁 Files received:', Object.keys(result.files || {}));
+    console.log('📝 Form fields:', Object.keys(result || {}));
 
     if (!result.files || !result.files.file1 || !result.files.file2) {
       return {
@@ -43,19 +44,40 @@ exports.handler = async function(event, context) {
 
     const file1Buffer = result.files.file1.content;
     const file2Buffer = result.files.file2.content;
+    const scriptName = result.scriptName;
     
     console.log('✅ Files parsed successfully');
     console.log('📊 File 1 size:', file1Buffer.length, 'bytes');
     console.log('📊 File 2 size:', file2Buffer.length, 'bytes');
+    console.log('📜 Script name:', scriptName);
 
     // Get the CLIENT_ID from environment variables to identify which scripts to use
     const clientId = process.env.CLIENT_ID;
     console.log('🔍 Client ID from environment:', clientId);
 
-    // For now, use the simple comparison function to match Script Testing format
-    console.log('🔧 Using simple comparison logic to match Script Testing format...');
-    
-    const processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
+    let processedData;
+
+    // Try to load and execute dynamic script if scriptName is provided
+    if (scriptName && clientId) {
+      console.log('🔧 Attempting to load dynamic script...');
+      try {
+        const dynamicResult = await loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer);
+        if (dynamicResult) {
+          processedData = dynamicResult;
+          console.log('✅ Dynamic script executed successfully');
+        } else {
+          throw new Error('Dynamic script returned null/undefined');
+        }
+      } catch (dynamicError) {
+        console.warn('⚠️ Dynamic script execution failed:', dynamicError.message);
+        console.log('🔄 Falling back to simple comparison...');
+        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
+      }
+    } else {
+      // Fall back to simple comparison
+      console.log('🔧 Using simple comparison logic (no dynamic script specified)...');
+      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
+    }
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
@@ -65,7 +87,8 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ 
         result: processedData,
         message: 'Processing completed successfully',
-        rowCount: processedData.length
+        rowCount: processedData.length,
+        usedDynamicScript: scriptName ? true : false
       }),
     };
 
@@ -82,6 +105,78 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
+// Load and execute dynamic script from Firebase
+async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer) {
+  console.log('🔍 Loading dynamic script for client:', clientId, 'script:', scriptName);
+  
+  try {
+    // Initialize Firebase Admin (if not already done)
+    const admin = require('firebase-admin');
+    
+    if (!admin.apps.length) {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+    
+    const db = admin.firestore();
+    
+    // Get all users and find the one with matching client ID
+    const usersSnapshot = await db.collection('usage').get();
+    
+    for (const userDoc of usersSnapshot.docs) {
+      const userData = userDoc.data();
+      const deployedScripts = userData.deployedScripts || [];
+      
+      // Find the script with matching name
+      for (const script of deployedScripts) {
+        if (typeof script === 'object' && script.name === scriptName && script.logic) {
+          console.log('🎯 Found dynamic script:', script.name);
+          
+          // Execute the stored JavaScript code
+          const scriptLogic = script.logic;
+          const generatedCode = scriptLogic.generatedCode;
+          
+          console.log('🔧 Executing dynamic script logic...');
+          
+          // Create a sandboxed execution environment
+          const sandbox = {
+            XLSX: XLSX,
+            console: console,
+            String: String,
+            Set: Set,
+            Array: Array,
+            Math: Math,
+            parseInt: parseInt,
+            parseFloat: parseFloat
+          };
+          
+          // Execute the generated code in a controlled environment
+          const vm = require('vm');
+          const context = vm.createContext(sandbox);
+          
+          // Execute the function definition
+          vm.runInContext(generatedCode, context);
+          
+          // Call the executeScript function
+          const result = sandbox.executeScript(XLSX, file1Buffer, file2Buffer);
+          
+          console.log('✅ Dynamic script executed, result:', result);
+          return result;
+        }
+      }
+    }
+    
+    console.log('❌ No matching dynamic script found');
+    return null;
+    
+  } catch (error) {
+    console.error('❌ Error loading dynamic script:', error);
+    throw error;
+  }
+}
 
 // Simple comparison function to match Script Testing format
 function simpleComparison(XLSX, file1, file2) {

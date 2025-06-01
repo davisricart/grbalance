@@ -70,6 +70,16 @@ interface ScriptInfo {
   type: 'custom' | 'demo';
   preview: string;
   status: 'active' | 'inactive';
+  // Enhanced fields for dynamic script execution
+  logic?: {
+    columnMappings: {
+      file1Column: string;
+      file2Column: string;
+    };
+    algorithm: 'simple-count' | 'full-reconciliation' | 'custom';
+    generatedCode: string; // The actual JavaScript logic
+    description: string;
+  };
 }
 
 interface ConfirmationDialog {
@@ -201,6 +211,18 @@ const AdminPage: React.FC = () => {
   // Add deployed scripts state
   const [deployedScripts, setDeployedScripts] = useState<{[userId: string]: (string | ScriptInfo)[]}>({});
 
+  // Enhanced state for dynamic script generation
+  const [currentScriptLogic, setCurrentScriptLogic] = useState<{
+    columnMappings: { file1Column: string; file2Column: string };
+    algorithm: string;
+    generatedCode: string;
+    description: string;
+  } | null>(null);
+
+  // Add state for client selection modal
+  const [showClientSelection, setShowClientSelection] = useState(false);
+  const [clientSelectionOptions, setClientSelectionOptions] = useState<ApprovedUser[]>([]);
+
   // Add notification state after other state declarations
   const [notifications, setNotifications] = useState<{id: string, type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, timestamp: number}[]>([]);
 
@@ -225,6 +247,12 @@ const AdminPage: React.FC = () => {
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  // Function to show client selection modal
+  const showClientSelectionModal = (users: ApprovedUser[]) => {
+    setClientSelectionOptions(users);
+    setShowClientSelection(true);
   };
 
   // Override window.alert to prevent any popups and redirect to our notification system
@@ -1277,7 +1305,14 @@ Warning:
         size: scriptDeployForm.scriptContent.length,
         type: 'custom',
         preview: scriptDeployForm.scriptContent.substring(0, 100) + (scriptDeployForm.scriptContent.length > 100 ? '...' : ''),
-        status: 'active'
+        status: 'active',
+        // Store the dynamic script logic if available
+        logic: currentScriptLogic ? {
+          columnMappings: currentScriptLogic.columnMappings,
+          algorithm: currentScriptLogic.algorithm as 'simple-count' | 'full-reconciliation' | 'custom',
+          generatedCode: currentScriptLogic.generatedCode,
+          description: currentScriptLogic.description
+        } : undefined
       };
 
       // Check if we're in local development
@@ -1347,6 +1382,9 @@ Warning:
       setScriptDeployForm({ scriptName: '', scriptContent: '' });
       setShowDeployScript(false);
       setSelectedUserForScript(null);
+      
+      // Clear the current script logic since it's been deployed
+      setCurrentScriptLogic(null);
       
     } catch (err: any) {
       const data = err.response?.data;
@@ -2649,6 +2687,88 @@ Features:
                     const col2 = selectedHeaders2[0];
                     console.log(`🔍 Comparing "${col1}" (File 1) vs "${col2}" (File 2)`);
                     
+                    // Generate the reusable JavaScript logic
+                    const generatedJavaScript = `
+function executeScript(XLSX, file1Buffer, file2Buffer) {
+  try {
+    // Process first file
+    const workbook1 = XLSX.read(file1Buffer, { cellDates: true });
+    const worksheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
+    const rawData1 = XLSX.utils.sheet_to_json(worksheet1, { header: 1 });
+    
+    const headers1 = rawData1[0] || [];
+    const rows1 = rawData1.slice(1);
+    
+    // Process second file  
+    const workbook2 = XLSX.read(file2Buffer, { cellDates: true });
+    const worksheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
+    const rawData2 = XLSX.utils.sheet_to_json(worksheet2, { header: 1 });
+    
+    const headers2 = rawData2[0] || [];
+    const rows2 = rawData2.slice(1);
+    
+    // Find target columns
+    const col1Index = headers1.findIndex(header => 
+      typeof header === "string" && header.toLowerCase().includes('${col1.toLowerCase()}')
+    );
+    
+    const col2Index = headers2.findIndex(header =>
+      typeof header === "string" && header.toLowerCase().includes('${col2.toLowerCase()}')
+    );
+    
+    if (col1Index === -1 || col2Index === -1) {
+      return [
+        ['${col1}', 'Count in ${col2}'],
+        ['Error', 'Required columns not found']
+      ];
+    }
+    
+    // Get unique values from first file
+    const uniqueValues = [...new Set(
+      rows1
+        .map(row => row[col1Index])
+        .filter(value => value && String(value).trim() !== '')
+        .map(value => String(value).trim())
+    )];
+    
+    // Count occurrences in second file (case-insensitive)
+    const counts = uniqueValues.map(value => {
+      const count = rows2.filter(row => {
+        const targetValue = row[col2Index];
+        if (!targetValue) return false;
+        return String(targetValue).toLowerCase() === value.toLowerCase();
+      }).length;
+      
+      return [value, count];
+    });
+    
+    // Return result in table format
+    return [
+      ['${col1}', 'Count in ${col2}'],
+      ...counts
+    ];
+    
+  } catch (error) {
+    return [
+      ['${col1}', 'Count in ${col2}'],
+      ['Error', 'Processing failed: ' + error.message]
+    ];
+  }
+}`;
+                    
+                    // Store the generated script logic for deployment
+                    setCurrentScriptLogic({
+                      columnMappings: {
+                        file1Column: col1,
+                        file2Column: col2
+                      },
+                      algorithm: 'simple-count',
+                      generatedCode: generatedJavaScript,
+                      description: `Count occurrences of "${col1}" values in "${col2}" (case-insensitive)`
+                    });
+                    
+                    console.log('💾 Script logic captured for deployment');
+                    
                     const uniqueValues = [...new Set(file1.rows.map((row: any) => row[col1]))];
                     console.log('🔢 Unique values in', col1, ':', uniqueValues);
                     
@@ -2673,25 +2793,6 @@ Features:
                     // Generate results for BOTH preview modes simultaneously
                     const devResultsArea = document.getElementById('results-testing-area');
                     const clientResultsArea = document.getElementById('results-testing-area-client');
-                    
-                    console.log('🎯 Results areas:', {
-                      development: devResultsArea,
-                      client: clientResultsArea,
-                      currentMode: previewMode
-                    });
-                    
-                    // Add more specific debugging
-                    if (!devResultsArea) {
-                      console.error('❌ Development results area NOT FOUND! Expected element with id="results-testing-area"');
-                    } else {
-                      console.log('✅ Development results area found:', devResultsArea);
-                    }
-                    
-                    if (!clientResultsArea) {
-                      console.error('❌ Client results area NOT FOUND! Expected element with id="results-testing-area-client"');
-                    } else {
-                      console.log('✅ Client results area found:', clientResultsArea);
-                    }
                     
                     // Prepare HTML for both modes
                     const devHtml = html; // Original simple HTML for development
@@ -2742,14 +2843,6 @@ Features:
                     }
                     
                     console.log('✅ Results displayed successfully in BOTH modes!');
-                    
-                    if (!devResultsArea && !clientResultsArea) {
-                      console.error('❌ Both results areas not found!');
-                    } else if (!devResultsArea) {
-                      console.error('❌ Development results area not found!');
-                    } else if (!clientResultsArea) {
-                      console.error('❌ Client results area not found!');
-                    }
                   }}
                   style={{ padding: '8px 16px', background: '#10b981', color: 'white', borderRadius: 4 }}
                 >
@@ -2955,6 +3048,92 @@ console.log('✅ Script executed successfully');`;
                 >
                   Save Progress
                 </button>
+                
+                <button
+                  onClick={() => {
+                    if (!currentScriptLogic) {
+                      showNotification('warning', 'No Script Generated', 'Generate results first to create a deployable script!');
+                      return;
+                    }
+                    
+                    // Show user selection modal instead of just capturing the script
+                    const approvedUsersWithSites = approvedUsers.filter(user => 
+                      user.status === 'approved' && siteUrls[user.id]
+                    );
+                    
+                    if (approvedUsersWithSites.length === 0) {
+                      showNotification('warning', 'No Sites Available', 'No approved users have provisioned websites yet. Provision a website first, then deploy scripts.');
+                      return;
+                    }
+                    
+                    // Pre-fill the script deployment form
+                    setScriptDeployForm({
+                      scriptName: currentScriptLogic.description.replace(/[^a-zA-Z0-9\s-_]/g, '').substring(0, 40).trim() + '-script',
+                      scriptContent: currentScriptLogic.generatedCode
+                    });
+                    
+                    // If only one user, deploy directly to them
+                    if (approvedUsersWithSites.length === 1) {
+                      const user = approvedUsersWithSites[0];
+                      setSelectedUserForScript(user);
+                      setShowDeployScript(true);
+                      showNotification('info', 'Ready to Deploy', `Script pre-loaded for ${user.businessName || user.email}. Review and deploy!`);
+                      return;
+                    }
+                    
+                    // Multiple users - show selection dialog
+                    const userOptions = approvedUsersWithSites.map(user => ({
+                      id: user.id,
+                      label: `${user.businessName || user.email} (${user.email})`,
+                      user: user
+                    }));
+                    
+                    // Create user list for display
+                    const usersList = approvedUsersWithSites.map(user => 
+                      `• ${user.businessName || user.email} (${user.email})`
+                    ).join('\n');
+                    
+                    showConfirmation(
+                      'Deploy Generated Script - Select Client',
+                      `Ready to deploy your generated script logic:
+
+📊 Script Details:
+• Name: ${currentScriptLogic.description.substring(0, 50)}...
+• Algorithm: ${currentScriptLogic.algorithm}
+• Column Mapping: ${currentScriptLogic.columnMappings.file1Column} → ${currentScriptLogic.columnMappings.file2Column}
+
+🎯 Available Users with Websites (${approvedUsersWithSites.length}):
+${usersList}
+
+A dropdown will appear to select which client gets this script.`,
+                      'Show Client Selection',
+                      'bg-green-600 text-white',
+                      () => {
+                        // Create and show a custom client selection modal
+                        showClientSelectionModal(approvedUsersWithSites);
+                      }
+                    );
+                  }}
+                  disabled={!currentScriptLogic}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    currentScriptLogic 
+                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Deploy Current Script
+                </button>
+                
+                {/* Script Status Indicator */}
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-2 h-2 rounded-full ${currentScriptLogic ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                  <span className={currentScriptLogic ? 'text-green-700' : 'text-gray-500'}>
+                    {currentScriptLogic ? 'Script Ready' : 'No Script Generated'}
+                  </span>
+                  {currentScriptLogic && (
+                    <span className="text-gray-400">({currentScriptLogic.algorithm})</span>
+                  )}
+                </div>
               </div>
               
               {/* Error Message Area */}
@@ -3480,6 +3659,24 @@ console.log('✅ Script executed successfully');`;
                 Deploy Script for {selectedUserForScript.businessName || selectedUserForScript.email}
               </h3>
               
+              {/* Show if script is pre-filled from Script Testing */}
+              {scriptDeployForm.scriptContent && currentScriptLogic && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-green-800 font-medium text-sm">Script Auto-Loaded from Testing</span>
+                  </div>
+                  <div className="text-green-700 text-sm space-y-1">
+                    <div><strong>Algorithm:</strong> {currentScriptLogic.algorithm}</div>
+                    <div><strong>Description:</strong> {currentScriptLogic.description}</div>
+                    <div><strong>Mapping:</strong> {currentScriptLogic.columnMappings.file1Column} → {currentScriptLogic.columnMappings.file2Column}</div>
+                  </div>
+                  <div className="text-green-600 text-xs mt-2">
+                    ✅ Ready to deploy! The script content below has been automatically filled with your generated logic.
+                  </div>
+                </div>
+              )}
+              
               {/* Add form wrapper with noValidate to prevent browser validation popups */}
               <form 
                 noValidate
@@ -3510,47 +3707,56 @@ console.log('✅ Script executed successfully');`;
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Script Content
-                    </label>
-                    
-                    {/* File Upload Option */}
-                    <div className="mb-3">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="file"
-                          accept=".js,.ts,.mjs"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (event) => {
-                                const content = event.target?.result as string;
-                                setScriptDeployForm({
-                                  ...scriptDeployForm, 
-                                  scriptContent: content,
-                                  scriptName: scriptDeployForm.scriptName || file.name
-                                });
-                              };
-                              reader.readAsText(file);
-                            }
-                          }}
-                          className="hidden"
-                          id="script-file-upload"
-                        />
-                        <label
-                          htmlFor="script-file-upload"
-                          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <Upload className="w-4 h-4" />
-                          Upload Script File
-                        </label>
-                        <span className="text-sm text-gray-500">or paste/write code below</span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Supports .js, .ts, .mjs files. File content will populate the editor below.
-                      </p>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Script Content
+                      </label>
+                      {scriptDeployForm.scriptContent && currentScriptLogic && (
+                        <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                          Auto-filled from testing
+                        </span>
+                      )}
                     </div>
+                    
+                    {/* File Upload Option - only show if not pre-filled */}
+                    {!scriptDeployForm.scriptContent && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            accept=".js,.ts,.mjs"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (event) => {
+                                  const content = event.target?.result as string;
+                                  setScriptDeployForm({
+                                    ...scriptDeployForm, 
+                                    scriptContent: content,
+                                    scriptName: scriptDeployForm.scriptName || file.name
+                                  });
+                                };
+                                reader.readAsText(file);
+                              }
+                            }}
+                            className="hidden"
+                            id="script-file-upload"
+                          />
+                          <label
+                            htmlFor="script-file-upload"
+                            className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <Upload className="w-4 h-4" />
+                            Upload Script File
+                          </label>
+                          <span className="text-sm text-gray-500">or paste/write code below</span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Supports .js, .ts, .mjs files. File content will populate the editor below.
+                        </p>
+                      </div>
+                    )}
 
                     {/* Script Content Textarea */}
                     <textarea
@@ -3558,14 +3764,7 @@ console.log('✅ Script executed successfully');`;
                       onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptContent: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                       rows={15}
-                      placeholder="// Upload a file above or enter your JavaScript code here
-function reconcileData() {
-  // Your custom reconciliation logic
-  console.log('Reconciliation script running...');
-}
-
-// Example usage
-reconcileData();"
+                      placeholder={scriptDeployForm.scriptContent ? "Script content loaded automatically..." : "// Upload a file above or enter your JavaScript code here\nfunction reconcileData() {\n  // Your custom reconciliation logic\n  console.log('Reconciliation script running...');\n}\n\n// Example usage\nreconcileData();"}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                           e.preventDefault();
@@ -3574,19 +3773,20 @@ reconcileData();"
                       }}
                     />
                     
-                    {/* Quick Action Buttons */}
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        type="button"
-                        onClick={() => setScriptDeployForm({...scriptDeployForm, scriptContent: ''})}
-                        className="text-xs px-2 py-1 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-                      >
-                        Clear
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const template = `// ${scriptDeployForm.scriptName || 'Custom Script'}
+                    {/* Quick Action Buttons - only show if not pre-filled */}
+                    {!currentScriptLogic && (
+                      <div className="flex gap-2 mt-2">
+                        <button
+                          type="button"
+                          onClick={() => setScriptDeployForm({...scriptDeployForm, scriptContent: ''})}
+                          className="text-xs px-2 py-1 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const template = `// ${scriptDeployForm.scriptName || 'Custom Script'}
 // Generated: ${new Date().toLocaleDateString()}
 
 function reconcileData() {
@@ -3599,13 +3799,14 @@ function reconcileData() {
 
 // Auto-execute
 reconcileData();`;
-                          setScriptDeployForm({...scriptDeployForm, scriptContent: template});
-                        }}
-                        className="text-xs px-2 py-1 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
-                      >
-                        Insert Template
-                      </button>
-                    </div>
+                            setScriptDeployForm({...scriptDeployForm, scriptContent: template});
+                          }}
+                          className="text-xs px-2 py-1 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
+                        >
+                          Insert Template
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-blue-50 p-4 rounded-md">
@@ -3628,7 +3829,10 @@ reconcileData();`;
                     onClick={() => {
                       setShowDeployScript(false);
                       setSelectedUserForScript(null);
-                      setScriptDeployForm({ scriptName: '', scriptContent: '' });
+                      // Don't clear scriptDeployForm if it came from testing
+                      if (!currentScriptLogic) {
+                        setScriptDeployForm({ scriptName: '', scriptContent: '' });
+                      }
                     }}
                     className="px-4 py-2 text-gray-600 hover:text-gray-800"
                   >
@@ -3642,9 +3846,14 @@ reconcileData();`;
                       handleDeployScript(selectedUserForScript);
                     }}
                     disabled={deploying[selectedUserForScript.id] || !scriptDeployForm.scriptName || !scriptDeployForm.scriptContent}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-4 py-2 rounded-md transition-colors font-medium ${
+                      scriptDeployForm.scriptContent && currentScriptLogic
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    {deploying[selectedUserForScript.id] ? 'Deploying...' : 'Deploy Script'}
+                    {deploying[selectedUserForScript.id] ? 'Deploying...' : 
+                     scriptDeployForm.scriptContent && currentScriptLogic ? '🚀 Deploy Generated Script' : 'Deploy Script'}
                   </button>
                 </div>
               </form>
@@ -3760,6 +3969,79 @@ reconcileData();`;
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                 >
                   Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Client Selection Modal for Script Deployment */}
+        {showClientSelection && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+              <h3 className="text-lg font-medium mb-4">Select Client for Script Deployment</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Choose which client gets the generated script:
+                  </label>
+                  <select
+                    id="client-selection-dropdown"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    defaultValue=""
+                  >
+                    <option value="" disabled>Select a client...</option>
+                    {clientSelectionOptions.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.businessName || user.email} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {currentScriptLogic && (
+                  <div className="bg-blue-50 p-3 rounded-md">
+                    <div className="text-sm text-blue-800">
+                      <div><strong>Script:</strong> {currentScriptLogic.description.substring(0, 50)}...</div>
+                      <div><strong>Algorithm:</strong> {currentScriptLogic.algorithm}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => {
+                    setShowClientSelection(false);
+                    setClientSelectionOptions([]);
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const dropdown = document.getElementById('client-selection-dropdown') as HTMLSelectElement;
+                    const selectedUserId = dropdown?.value;
+                    
+                    if (!selectedUserId) {
+                      showNotification('warning', 'No Client Selected', 'Please select a client to deploy the script to.');
+                      return;
+                    }
+                    
+                    const selectedUser = clientSelectionOptions.find(u => u.id === selectedUserId);
+                    if (selectedUser) {
+                      setSelectedUserForScript(selectedUser);
+                      setShowDeployScript(true);
+                      setShowClientSelection(false);
+                      setClientSelectionOptions([]);
+                      showNotification('info', 'Ready to Deploy', `Script pre-loaded for ${selectedUser.businessName || selectedUser.email}. Review and deploy!`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                >
+                  Deploy to Selected Client
                 </button>
               </div>
             </div>
