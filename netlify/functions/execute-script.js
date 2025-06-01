@@ -241,9 +241,9 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
   
   try {
     // Get all users and find the one with matching client ID
-    const usersSnapshot = await db.collection('usage').get();
+    const usageSnapshot = await db.collection('usage').get();
     
-    for (const userDoc of usersSnapshot.docs) {
+    for (const userDoc of usageSnapshot.docs) {
       const userData = userDoc.data();
       const deployedScripts = userData.deployedScripts || [];
       
@@ -258,7 +258,7 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
           
           console.log('🔧 Executing dynamic script logic...');
           
-          // Create a sandboxed execution environment
+          // Create a more complete sandbox environment
           const sandbox = {
             XLSX: XLSX,
             console: console,
@@ -267,21 +267,38 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
             Array: Array,
             Math: Math,
             parseInt: parseInt,
-            parseFloat: parseFloat
+            parseFloat: parseFloat,
+            Date: Date,
+            RegExp: RegExp,
+            JSON: JSON,
+            Object: Object,
+            Number: Number
           };
           
-          // Execute the generated code in a controlled environment
-          const vm = require('vm');
-          const context = vm.createContext(sandbox);
-          
-          // Execute the function definition
-          vm.runInContext(generatedCode, context);
-          
-          // Call the executeScript function
-          const result = sandbox.executeScript(XLSX, file1Buffer, file2Buffer);
-          
-          console.log('✅ Dynamic script executed, result:', result);
-          return result;
+          try {
+            // Execute the generated code in a controlled environment
+            const vm = require('vm');
+            const context = vm.createContext(sandbox);
+            
+            // Execute the function definition
+            vm.runInContext(generatedCode, context);
+            
+            // Call the executeScript function if it exists
+            if (typeof sandbox.executeScript === 'function') {
+              const result = sandbox.executeScript(XLSX, file1Buffer, file2Buffer);
+              console.log('✅ Dynamic script executed successfully');
+              return result;
+            } else {
+              console.log('⚠️ No executeScript function found, trying direct evaluation...');
+              // Try to evaluate the code directly
+              const result = vm.runInContext(`(${generatedCode})(XLSX, file1Buffer, file2Buffer)`, context);
+              return result;
+            }
+          } catch (execError) {
+            console.error('❌ Script execution error:', execError);
+            console.log('🔄 Falling back to simple comparison...');
+            return null;
+          }
         }
       }
     }

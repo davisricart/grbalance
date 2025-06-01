@@ -54,7 +54,34 @@ exports.handler = async function(event, context) {
 // Deployed: ${new Date().toISOString()}
 // Script: ${scriptName}
 
-${scriptContent}`;
+// Execute the custom reconciliation logic
+function executeCustomScript(XLSX, file1Buffer, file2Buffer) {
+${scriptContent}
+}
+
+// Main entry point for reconciliation
+function processFiles(XLSX, hubReport, salesReport) {
+  try {
+    console.log('🚀 Executing custom deployed script...');
+    const result = executeCustomScript(XLSX, hubReport, salesReport);
+    console.log('✅ Custom script executed successfully');
+    return result;
+  } catch (error) {
+    console.error('❌ Custom script failed:', error);
+    // Fallback to simple processing
+    return [
+      ['Error', 'Custom script failed'],
+      ['Message', error.message]
+    ];
+  }
+}
+
+// Export for use
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { processFiles };
+} else if (typeof window !== 'undefined') {
+  window.processFiles = processFiles;
+}`;
 
     // Add files to form data - create a basic site structure with the script
     const indexHtml = `<!DOCTYPE html>
@@ -73,7 +100,7 @@ ${scriptContent}`;
 
     // Add files to the form
     formData.append('index.html', indexHtml);
-    formData.append('script.js', scriptFileContent);
+    formData.append('reconciliation.js', scriptFileContent);
 
     // Step 2: Deploy the files to the site
     const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
