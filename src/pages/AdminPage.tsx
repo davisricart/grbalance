@@ -3095,8 +3095,6 @@ Features:
                     const generatedJavaScript = `
 function executeScript(XLSX, file1Buffer, file2Buffer) {
   try {
-    console.log('🚀 Executing generated script...');
-    
     // Process first file
     const workbook1 = XLSX.read(file1Buffer, { cellDates: true });
     const worksheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
@@ -3148,8 +3146,6 @@ function executeScript(XLSX, file1Buffer, file2Buffer) {
       return [value, count];
     });
     
-    console.log('✅ Generated script execution complete');
-    
     // Return result in table format
     return [
       ['${col1}', 'Count in ${col2}'],
@@ -3157,21 +3153,12 @@ function executeScript(XLSX, file1Buffer, file2Buffer) {
     ];
     
   } catch (error) {
-    console.error('❌ Generated script error:', error);
     return [
       ['${col1}', 'Count in ${col2}'],
       ['Error', 'Processing failed: ' + error.message]
     ];
   }
-}
-
-// Export for different environments
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { executeScript };
-} else if (typeof window !== 'undefined') {
-  window.executeScript = executeScript;
-}
-executeScript; // Return the function for VM execution`;
+}`;
                     
                     // Store the generated script logic for deployment
                     setCurrentScriptLogic({
@@ -3946,7 +3933,7 @@ A dropdown will appear to select which client gets this script.`,
                           {Object.entries(testResults.detectedColumns).map(([type, column]) => (
                             <div key={type} className="flex justify-between items-center">
                               <span className="capitalize font-medium">{type}:</span>
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{String(column)}</span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{column}</span>
                             </div>
                           ))}
                         </div>
