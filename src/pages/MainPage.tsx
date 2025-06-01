@@ -182,6 +182,27 @@ export default function MainPage({ user }: MainPageProps) {
     event.preventDefault();
   };
 
+  // Helper function to parse Excel file to JSON
+  const parseFileToJSON = async (file: File): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+          resolve(jsonData);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
   const handleCompare = async () => {
     const validationErrors: string[] = [];
     if (!file1) validationErrors.push("Please select the first file");
@@ -231,14 +252,9 @@ export default function MainPage({ user }: MainPageProps) {
 
       await updateProgress(10, 'Preparing files...');
 
-      const formData = new FormData();
-      formData.append('file1', file1!);
-      formData.append('file2', file2!);
-      
-      // Add script name if selected
-      if (script) {
-        formData.append('scriptName', script);
-      }
+      // Parse uploaded files to JSON data
+      const file1Data = await parseFileToJSON(file1!);
+      const file2Data = await parseFileToJSON(file2!);
 
       let data;
       let response;
@@ -246,10 +262,17 @@ export default function MainPage({ user }: MainPageProps) {
       try {
         await updateProgress(30, 'Uploading files...');
         
-        // Call the execute-script function
+        // Call the execute-script function with JSON data
         response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            script: script,
+            file1Data,
+            file2Data,
+          }),
         });
         
         if (response.ok) {
@@ -269,7 +292,7 @@ export default function MainPage({ user }: MainPageProps) {
         }
         
       } catch (error) {
-        console.warn('⚠️ Script execution failed:', error.message);
+        console.warn('⚠️ Script execution failed:', (error as Error).message);
         console.log('🔄 This means results will not match admin preview');
         
         // Only show error - don't fall back to local processing
