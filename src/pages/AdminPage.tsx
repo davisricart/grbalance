@@ -1447,6 +1447,85 @@ Warning:
     }
   };
 
+  // Redeploy entire client site with updated template
+  const redeployClientSite = async (user: ApprovedUser) => {
+    try {
+      const siteId = siteIds[user.id];
+      const clientId = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id;
+      
+      if (!siteId) {
+        showNotification('error', 'Error', 'Site ID not found. Please provision the website first.');
+        return;
+      }
+
+      showNotification('info', 'Redeploying Site', `Starting site redeploy for ${user.businessName || user.email}...`);
+
+      // Check if we're in local development mode
+      const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      
+      if (isLocalDevelopment) {
+        // Local development simulation
+        console.log('🏠 Local development detected - simulating site redeploy');
+        console.log('📋 Redeploy details:', {
+          clientId,
+          clientName: user.businessName || user.email,
+          siteId,
+          siteUrl: siteUrls[user.id]
+        });
+        
+        // Simulate deployment delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        showNotification('success', 'Site Redeploy Simulated!', 
+          `✅ ${user.businessName || user.email}'s site redeploy has been simulated successfully!\n\n` +
+          `🔗 Site URL: ${siteUrls[user.id]}\n\n` +
+          `🧪 Local Testing Mode: The site would now use the dynamic script system and show the same format as Script Testing.\n\n` +
+          `ℹ️ In production, this would deploy the updated NEW_Customer template with:\n` +
+          `• Dynamic script loading from Firebase\n` +
+          `• Updated React components\n` +
+          `• Same simple table format as Script Testing\n\n` +
+          `To test the format fix, visit the client site and run a script comparison.`
+        );
+        
+        console.log('✅ Local redeploy simulation completed');
+        return;
+      }
+
+      // Production redeploy (only runs when deployed to Netlify)
+      const response = await fetch('/.netlify/functions/redeploy-client-site', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId: siteId,
+          clientId: clientId,
+          clientName: user.businessName || user.email
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to redeploy site');
+      }
+
+      showNotification('success', 'Site Redeployed!', 
+        `✅ ${user.businessName || user.email}'s site has been updated with the latest template!\n\n` +
+        `🔗 Site URL: ${result.siteUrl}\n\n` +
+        `The site now uses the dynamic script system and will show the same format as Script Testing.`
+      );
+
+      console.log('✅ Site redeploy successful:', result);
+
+    } catch (error: any) {
+      console.error('❌ Error redeploying site:', error);
+      showNotification('error', 'Redeploy Failed', 
+        `Failed to redeploy site for ${user.businessName || user.email}: ${error.message}`
+      );
+    }
+  };
+
   const extractSiteIdFromUrl = (url: string): string | null => {
     // This function is now deprecated since we store site IDs directly
     try {
@@ -2320,15 +2399,44 @@ Features:
                             
                             {/* Deploy Script button (only if site is provisioned) */}
                             {siteUrls[user.id] && (
-                              <button
-                                type="button"
-                                onClick={() => handleConfirmDeployScript(user)}
-                                className="inline-flex items-center gap-2 bg-blue-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
-                                disabled={deploying[user.id]}
-                              >
-                                <Upload className="w-4 h-4" />
-                                {deploying[user.id] ? 'Deploying...' : 'Deploy Script'}
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedUserForScript(user);
+                                    setShowDeployScript(true);
+                                  }}
+                                  disabled={!siteUrls[user.id]}
+                                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                    siteUrls[user.id] 
+                                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                  title={siteUrls[user.id] ? 'Deploy a new script to this client' : 'Provision website first'}
+                                >
+                                  Deploy Script
+                                </button>
+                                
+                                <button
+                                  onClick={() => {
+                                    showConfirmation(
+                                      'Redeploy Client Site',
+                                      `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• The site will use the new Script Testing format\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
+                                      'Redeploy Site',
+                                      'bg-green-600 text-white',
+                                      () => redeployClientSite(user)
+                                    );
+                                  }}
+                                  disabled={!siteUrls[user.id]}
+                                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                                    siteUrls[user.id] 
+                                      ? 'bg-green-500 text-white hover:bg-green-600' 
+                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  }`}
+                                  title={siteUrls[user.id] ? 'Redeploy entire site with updated template' : 'Provision website first'}
+                                >
+                                  Redeploy Site
+                                </button>
+                              </div>
                             )}
                             
                             {/* Delete Website button (only if site is provisioned) */}
