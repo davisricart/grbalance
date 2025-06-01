@@ -52,11 +52,10 @@ exports.handler = async function(event, context) {
     const clientId = process.env.CLIENT_ID;
     console.log('🔍 Client ID from environment:', clientId);
 
-    // For now, use the embedded standardReconciliation function
-    // In the future, this could be enhanced to load custom deployed scripts
-    console.log('🔧 Using embedded reconciliation logic...');
+    // For now, use the simple comparison function to match Script Testing format
+    console.log('🔧 Using simple comparison logic to match Script Testing format...');
     
-    const processedData = standardReconciliation(XLSX, file1Buffer, file2Buffer);
+    const processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
@@ -64,7 +63,7 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        data: processedData,
+        result: processedData,
         message: 'Processing completed successfully',
         rowCount: processedData.length
       }),
@@ -84,167 +83,86 @@ exports.handler = async function(event, context) {
   }
 };
 
-// Embedded standardReconciliation function
-function standardReconciliation(XLSX, file1, file2) {
-    // Helper function to format date for comparison
-    function formatDateForComparison(date) {
-        if (!(date instanceof Date) || isNaN(date)) {
-            return '';
-        }
-        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    }
-    
-    // Define the allowed columns
-    const allowedColumns = [
-        "Date",
-        "Transaction Source",
-        "Transaction Type",
-        "Account Number",
-        "DBA",
-        "Invoice",
-        "Auth",
-        "BRIC",
-        "Sold By",
-        "Customer Name",
-        "Total Transaction Amount",
-        "Payment Amount",
-        "Authorized Amount",
-        "Tip",
-        "$ Discount",
-        "% Discount",
-        "$ Tax",
-        "Cash Discounting Amount",
-        "State Tax",
-        "County Tax",
-        "City Tax",
-        "Custom Tax",
-        "Payment Type",
-        "Card Brand",
-        "First 6",
-        "Last 4",
-        "Comment"
-    ];
-    
-    // Step 1: Process First File
-    const workbook1 = XLSX.read(file1, {
-        cellDates: true,
-        dateNF: 'yyyy-mm-dd'
-    });
-    
-    const sheetName1 = workbook1.SheetNames[0];
-    const worksheet1 = workbook1.Sheets[sheetName1];
-    const rawData = XLSX.utils.sheet_to_json(worksheet1, { header: 1 });
-    
-    // Filter columns and process data
-    const headers = rawData[0] || [];
-    const columnsToKeepIndices = [];
-    
-    headers.forEach((header, index) => {
-        if (allowedColumns.includes(header)) {
-            columnsToKeepIndices.push(index);
-        }
-    });
-    
-    const filteredData = [];
-    const filteredHeaders = columnsToKeepIndices.map(index => headers[index]);
-    filteredData.push(filteredHeaders);
-    
-    for (let i = 1; i < rawData.length; i++) {
-        const row = rawData[i];
-        const filteredRow = columnsToKeepIndices.map(index => 
-            index < row.length ? row[index] : "");
-        filteredData.push(filteredRow);
-    }
-    
-    // Convert to JSON format
-    const jsonData1 = [];
-    for (let i = 1; i < filteredData.length; i++) {
-        const obj = {};
-        filteredData[0].forEach((header, index) => {
-            obj[header] = filteredData[i][index];
-        });
-        jsonData1.push(obj);
-    }
-    
-    // Step 2: Process Second File (if provided)
-    let jsonData2 = [];
-    let file2Headers = [];
-    let dateClosedIndex = -1;
-    let nameIndex = -1;
-    let amountIndex = -1;
-    
-    if (file2) {
-        const workbook2 = XLSX.read(file2, {
-            cellDates: true,
-            dateNF: 'yyyy-mm-dd'
-        });
+// Simple comparison function to match Script Testing format
+function simpleComparison(XLSX, file1, file2) {
+    try {
+        console.log('🔄 Using simple comparison logic to match Script Testing format');
         
-        const sheetName2 = workbook2.SheetNames[0];
-        const worksheet2 = workbook2.Sheets[sheetName2];
-        const data = XLSX.utils.sheet_to_json(worksheet2, { header: 1 });
+        // Process first file
+        const workbook1 = XLSX.read(file1, { cellDates: true });
+        const worksheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
+        const rawData1 = XLSX.utils.sheet_to_json(worksheet1, { header: 1 });
         
-        file2Headers = data[0] || [];
+        const headers1 = rawData1[0] || [];
+        const rows1 = rawData1.slice(1);
         
-        dateClosedIndex = file2Headers.findIndex(header => 
-            typeof header === "string" && header.trim().toLowerCase() === "date closed"
+        // Process second file  
+        const workbook2 = XLSX.read(file2, { cellDates: true });
+        const worksheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
+        const rawData2 = XLSX.utils.sheet_to_json(worksheet2, { header: 1 });
+        
+        const headers2 = rawData2[0] || [];
+        const rows2 = rawData2.slice(1);
+        
+        // Find Card Brand column in first file
+        const cardBrandIndex = headers1.findIndex(header => 
+            typeof header === "string" && header.toLowerCase().includes('card') && header.toLowerCase().includes('brand')
         );
         
-        nameIndex = file2Headers.findIndex(header => 
-            typeof header === "string" && header.trim().toLowerCase() === "name"
+        // Find Name column in second file  
+        const nameIndex = headers2.findIndex(header =>
+            typeof header === "string" && header.toLowerCase().includes('name')
         );
         
-        amountIndex = file2Headers.findIndex(header => 
-            typeof header === "string" && header.trim().toLowerCase() === "amount"
-        );
-        
-        jsonData2 = data.slice(1);
-        
-        if (amountIndex !== -1) {
-            jsonData2.forEach(row => {
-                if (amountIndex < row.length && row[amountIndex] !== undefined) {
-                    let amount = row[amountIndex];
-                    if (typeof amount === "string") {
-                        amount = amount.replace(/[^0-9.-]+/g, "");
-                    }
-                    row[amountIndex] = parseFloat(amount) || 0;
-                }
-            });
+        if (cardBrandIndex === -1 || nameIndex === -1) {
+            console.warn('Required columns not found, using fallback');
+            return [
+                ['Card Brand', 'Count in Name'],
+                ['Error', 'Required columns not found'],
+                ['Note', 'Please ensure files have Card Brand and Name columns']
+            ];
         }
-    }
-    
-    // Step 3: Create results with simplified logic for now
-    const columnsToKeep = ["Date", "Customer Name", "Total Transaction Amount", "Cash Discounting Amount", "Card Brand"];
-    const newColumns = ["Total (-) Fee"];
-    
-    const resultData = [columnsToKeep.concat(newColumns)];
-    
-    jsonData1.forEach(row => {
-        const filteredRow = [];
         
-        columnsToKeep.forEach(column => {
-            if (column === "Date") {
-                if (row[column] instanceof Date) {
-                    const date = row[column];
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    filteredRow.push(`${month}/${day}/${year}`);
-                } else {
-                    filteredRow.push(row[column] !== undefined ? row[column] : "");
-                }
-            } else {
-                filteredRow.push(row[column] !== undefined ? row[column] : "");
-            }
+        console.log(`Found Card Brand at index ${cardBrandIndex}, Name at index ${nameIndex}`);
+        
+        // Get unique card brands from first file
+        const uniqueCardBrands = [...new Set(
+            rows1
+                .map(row => row[cardBrandIndex])
+                .filter(brand => brand && String(brand).trim() !== '')
+                .map(brand => String(brand).trim())
+        )];
+        
+        console.log('Unique card brands:', uniqueCardBrands);
+        
+        // Count occurrences in second file (case-insensitive)
+        const counts = uniqueCardBrands.map(cardBrand => {
+            const count = rows2.filter(row => {
+                const nameValue = row[nameIndex];
+                if (!nameValue) return false;
+                return String(nameValue).toLowerCase() === cardBrand.toLowerCase();
+            }).length;
+            
+            return [cardBrand, count];
         });
         
-        // Calculate K-R value (Total - Discount)
-        const totalAmount = parseFloat(row["Total Transaction Amount"]) || 0;
-        const discountAmount = parseFloat(row["Cash Discounting Amount"]) || 0;
-        const krValue = totalAmount - discountAmount;
+        // Create result in the same format as Script Testing
+        const result = [
+            ['Card Brand', 'Count in Name'],
+            ...counts
+        ];
         
-        filteredRow.push(krValue.toFixed(2));
-        resultData.push(filteredRow);
-    });
-    
-    return resultData;
-} 
+        console.log('Generated result:', result);
+        return result;
+        
+    } catch (error) {
+        console.error('Error in simple comparison:', error);
+        return [
+            ['Card Brand', 'Count in Name'],
+            ['Error', 'Processing failed'],
+            ['Message', error.message || 'Unknown error']
+        ];
+    }
+}
+
+// Embedded standardReconciliation function 
