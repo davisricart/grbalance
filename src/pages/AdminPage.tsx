@@ -3267,17 +3267,57 @@ console.log('✅ Script executed successfully');`;
                     placeholder="e.g., reconciliation-script-v1.js"
                   />
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Script Content
                   </label>
+                  
+                  {/* File Upload Option */}
+                  <div className="mb-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept=".js,.ts,.mjs"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                              const content = event.target?.result as string;
+                              setScriptDeployForm({
+                                ...scriptDeployForm, 
+                                scriptContent: content,
+                                scriptName: scriptDeployForm.scriptName || file.name
+                              });
+                            };
+                            reader.readAsText(file);
+                          }
+                        }}
+                        className="hidden"
+                        id="script-file-upload"
+                      />
+                      <label
+                        htmlFor="script-file-upload"
+                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Upload Script File
+                      </label>
+                      <span className="text-sm text-gray-500">or paste/write code below</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Supports .js, .ts, .mjs files. File content will populate the editor below.
+                    </p>
+                  </div>
+
+                  {/* Script Content Textarea */}
                   <textarea
                     value={scriptDeployForm.scriptContent}
                     onChange={(e) => setScriptDeployForm({...scriptDeployForm, scriptContent: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
                     rows={15}
-                    placeholder="// Enter your JavaScript code here
+                    placeholder="// Upload a file above or enter your JavaScript code here
 function reconcileData() {
   // Your custom reconciliation logic
   console.log('Reconciliation script running...');
@@ -3286,6 +3326,39 @@ function reconcileData() {
 // Example usage
 reconcileData();"
                   />
+                  
+                  {/* Quick Action Buttons */}
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setScriptDeployForm({...scriptDeployForm, scriptContent: ''})}
+                      className="text-xs px-2 py-1 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      Clear
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const template = `// ${scriptDeployForm.scriptName || 'Custom Script'}
+// Generated: ${new Date().toLocaleDateString()}
+
+function reconcileData() {
+  console.log('🚀 Reconciliation script starting...');
+  
+  // Your custom logic here
+  
+  console.log('✅ Reconciliation complete');
+}
+
+// Auto-execute
+reconcileData();`;
+                        setScriptDeployForm({...scriptDeployForm, scriptContent: template});
+                      }}
+                      className="text-xs px-2 py-1 text-blue-600 border border-blue-300 rounded hover:bg-blue-50"
+                    >
+                      Insert Template
+                    </button>
+                  </div>
                 </div>
 
                 <div className="bg-blue-50 p-4 rounded-md">
