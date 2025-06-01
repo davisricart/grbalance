@@ -106,15 +106,17 @@ exports.handler = async function(event, context) {
     }
 
     // Step 2: Wait a moment for site to be fully created
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Step 3: Set environment variable CLIENT_ID for the site with retry logic (optional)
     let envResult = null;
+    let envWarning = null;
     try {
-      envResult = await setEnvVarWithRetry(site.id, clientId, NETLIFY_TOKEN, 3);
+      envResult = await setEnvVarWithRetry(site.id, clientId, NETLIFY_TOKEN, 2);
       console.log('✅ Environment variable set successfully');
     } catch (e) {
-      console.warn('⚠️ Failed to set environment variable, but site was created successfully:', e.result);
+      console.warn('⚠️ Failed to set environment variable, but site was created successfully:', e);
+      envWarning = `Environment variable not set: ${e.result || e.message}`;
       // Don't fail the entire provisioning - the site is created and functional
     }
 
@@ -126,8 +128,8 @@ exports.handler = async function(event, context) {
         siteUrl: site.ssl_url,
         siteId: site.id,
         siteName: site.name,
-        envVarSet: envResult || "Environment variable not set - can be configured manually in Netlify dashboard",
-        warning: envResult ? null : "Environment variable CLIENT_ID was not set automatically. Please set it manually in the Netlify dashboard."
+        envVarSet: envResult ? "Environment variable set successfully" : false,
+        warning: envWarning || (envResult ? null : "Environment variable CLIENT_ID was not set automatically. Please set it manually in the Netlify dashboard.")
       })
     };
 

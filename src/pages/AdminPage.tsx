@@ -189,6 +189,32 @@ const AdminPage: React.FC = () => {
   // Add state for preview mode
   const [previewMode, setPreviewMode] = useState<'development' | 'client'>('development');
 
+  // Add notification state after other state declarations
+  const [notifications, setNotifications] = useState<{id: string, type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, timestamp: number}[]>([]);
+
+  // Add notification helper functions
+  const showNotification = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => {
+    const id = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const notification = {
+      id,
+      type,
+      title,
+      message,
+      timestamp: Date.now()
+    };
+    
+    setNotifications(prev => [...prev, notification]);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  };
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   // Fetch clients from Firebase
   const fetchClients = async () => {
     try {
@@ -1037,7 +1063,7 @@ WARNING:
   const handleProvisionWebsite = async (user: ApprovedUser) => {
     // Check if site already exists
     if (siteUrls[user.id] && siteIds[user.id]) {
-      alert(`Website already provisioned for ${user.businessName || user.email}: ${siteUrls[user.id]}`);
+      showNotification('warning', 'Website Already Exists', `Website already provisioned for ${user.businessName || user.email}: ${siteUrls[user.id]}`);
       return;
     }
 
@@ -1073,14 +1099,25 @@ WARNING:
         updatedAt: new Date()
       });
       
-      alert(`Site provisioned: ${res.data.siteUrl}`);
+      showNotification('success', 'Website Provisioned Successfully', `Site provisioned: ${res.data.siteUrl}`);
     } catch (err: any) {
       const data = err.response?.data;
       let msg = 'Provisioning failed: ';
       if (data?.error) msg += data.error;
       else if (data?.message) msg += data.message;
       else msg += err.message || JSON.stringify(data) || 'Unknown error';
-      alert(msg);
+      
+      // Show detailed error information
+      const status = err.response?.status || 'Unknown';
+      showNotification('error', `Provisioning Failed (${status})`, msg);
+      
+      console.error('Provisioning error details:', {
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        message: err.message,
+        full: err
+      });
     } finally {
       setProvisioning((prev) => ({ ...prev, [user.id]: false }));
     }
@@ -1412,6 +1449,72 @@ Features:
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Notification Container */}
+      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
+        {notifications.map((notification) => (
+          <div
+            key={notification.id}
+            className={`relative rounded-lg shadow-lg p-4 border ${
+              notification.type === 'success' ? 'bg-green-50 border-green-200' :
+              notification.type === 'error' ? 'bg-red-50 border-red-200' :
+              notification.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+              'bg-blue-50 border-blue-200'
+            } transform transition-all duration-300 ease-in-out`}
+            style={{
+              animation: 'slideIn 0.3s ease-out'
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-3">
+                <div className={`flex-shrink-0 ${
+                  notification.type === 'success' ? 'text-green-600' :
+                  notification.type === 'error' ? 'text-red-600' :
+                  notification.type === 'warning' ? 'text-yellow-600' :
+                  'text-blue-600'
+                }`}>
+                  {notification.type === 'success' && <UserCheck className="w-5 h-5" />}
+                  {notification.type === 'error' && <Trash2 className="w-5 h-5" />}
+                  {notification.type === 'warning' && <Upload className="w-5 h-5" />}
+                  {notification.type === 'info' && <User className="w-5 h-5" />}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-sm font-medium ${
+                    notification.type === 'success' ? 'text-green-900' :
+                    notification.type === 'error' ? 'text-red-900' :
+                    notification.type === 'warning' ? 'text-yellow-900' :
+                    'text-blue-900'
+                  }`}>
+                    {notification.title}
+                  </div>
+                  <div className={`mt-1 text-sm ${
+                    notification.type === 'success' ? 'text-green-700' :
+                    notification.type === 'error' ? 'text-red-700' :
+                    notification.type === 'warning' ? 'text-yellow-700' :
+                    'text-blue-700'
+                  }`}>
+                    {notification.message}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => removeNotification(notification.id)}
+                className={`flex-shrink-0 ml-4 ${
+                  notification.type === 'success' ? 'text-green-400 hover:text-green-600' :
+                  notification.type === 'error' ? 'text-red-400 hover:text-red-600' :
+                  notification.type === 'warning' ? 'text-yellow-400 hover:text-yellow-600' :
+                  'text-blue-400 hover:text-blue-600'
+                }`}
+              >
+                <span className="sr-only">Close</span>
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
