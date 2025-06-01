@@ -1,5 +1,127 @@
 const multipart = require('lambda-multipart-parser');
 const XLSX = require('xlsx');
+const { initializeApp } = require('firebase-admin/app');
+const { getFirestore } = require('firebase-admin/firestore');
+const { getAuth } = require('firebase-admin/auth');
+
+// Initialize Firebase Admin
+const admin = require('firebase-admin');
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    })
+  });
+}
+
+const db = getFirestore();
+
+// Software Profiles Configuration
+const SOFTWARE_PROFILES = {
+  'daysmart_salon': {
+    id: 'daysmart_salon',
+    name: 'daysmart_salon',
+    displayName: 'DaySmart Salon Software',
+    dataStructure: {
+      dateColumn: ['Date', 'Transaction Date', 'Date Closed'],
+      amountColumn: ['Total Transaction Amount', 'Amount', 'Transaction Amount'],
+      customerColumn: ['Customer Name', 'Name', 'Client Name'],
+      cardBrandColumn: ['Card Brand', 'Card Type', 'Payment Method'],
+      feeColumn: ['Cash Discounting Amount', 'Processing Fee', 'Fee Amount']
+    },
+    insightsConfig: {
+      showInsights: true,
+      showPaymentTrends: true,
+      showCustomerBehavior: true,
+      showOperationalMetrics: true,
+      showRiskFactors: true,
+      showBusinessIntelligence: true
+    }
+  },
+  'square_pos': {
+    id: 'square_pos',
+    name: 'square_pos',
+    displayName: 'Square POS',
+    dataStructure: {
+      dateColumn: ['Date', 'Created at', 'Transaction Date'],
+      amountColumn: ['Gross Sales', 'Amount Money', 'Total'],
+      customerColumn: ['Customer Name', 'Buyer Name', 'Customer'],
+      cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
+      feeColumn: ['Fees', 'Processing Fee', 'Square Fees']
+    },
+    insightsConfig: {
+      showInsights: true,
+      showPaymentTrends: true,
+      showCustomerBehavior: false,
+      showOperationalMetrics: true,
+      showRiskFactors: true,
+      showBusinessIntelligence: true
+    }
+  },
+  'toast_pos': {
+    id: 'toast_pos',
+    name: 'toast_pos',
+    displayName: 'Toast POS (Restaurant)',
+    dataStructure: {
+      dateColumn: ['Business Date', 'Date', 'Order Date'],
+      amountColumn: ['Net Sales', 'Total', 'Order Total'],
+      customerColumn: ['Guest Name', 'Customer', 'Party Name'],
+      cardBrandColumn: ['Payment Type', 'Card Brand', 'Payment Method'],
+      feeColumn: ['Processing Fees', 'Card Fees', 'Payment Fees']
+    },
+    insightsConfig: {
+      showInsights: true,
+      showPaymentTrends: true,
+      showCustomerBehavior: false,
+      showOperationalMetrics: true,
+      showRiskFactors: true,
+      showBusinessIntelligence: true
+    }
+  },
+  'shopify_pos': {
+    id: 'shopify_pos',
+    name: 'shopify_pos',
+    displayName: 'Shopify POS',
+    dataStructure: {
+      dateColumn: ['Created at', 'Date', 'Order Date'],
+      amountColumn: ['Total Price', 'Subtotal', 'Total'],
+      customerColumn: ['Customer Email', 'Billing Name', 'Customer'],
+      cardBrandColumn: ['Payment Method', 'Gateway', 'Card Brand'],
+      feeColumn: ['Transaction Fee', 'Gateway Fee', 'Processing Fee']
+    },
+    insightsConfig: {
+      showInsights: true,
+      showPaymentTrends: true,
+      showCustomerBehavior: true,
+      showOperationalMetrics: true,
+      showRiskFactors: true,
+      showBusinessIntelligence: true
+    }
+  },
+  'custom_basic': {
+    id: 'custom_basic',
+    name: 'custom_basic',
+    displayName: 'Custom/Basic Format',
+    dataStructure: {
+      dateColumn: ['Date', 'Transaction Date', 'Created Date'],
+      amountColumn: ['Amount', 'Total', 'Transaction Amount'],
+      customerColumn: ['Customer', 'Name', 'Client'],
+      cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
+      feeColumn: ['Fee', 'Processing Fee', 'Charge']
+    },
+    insightsConfig: {
+      showInsights: false,
+      showPaymentTrends: false,
+      showCustomerBehavior: false,
+      showOperationalMetrics: false,
+      showRiskFactors: false,
+      showBusinessIntelligence: false
+    }
+  }
+};
 
 exports.handler = async function(event, context) {
   console.log('🚀 Execute-script function called');
@@ -55,6 +177,11 @@ exports.handler = async function(event, context) {
     const clientId = process.env.CLIENT_ID;
     console.log('🔍 Client ID from environment:', clientId);
 
+    // Get user's software profile
+    const softwareProfileId = await getUserSoftwareProfile(clientId);
+    const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
+    console.log('✅ Using software profile:', softwareProfile.displayName);
+
     let processedData;
 
     // Try to load and execute dynamic script if scriptName is provided
@@ -71,12 +198,12 @@ exports.handler = async function(event, context) {
       } catch (dynamicError) {
         console.warn('⚠️ Dynamic script execution failed:', dynamicError.message);
         console.log('🔄 Falling back to simple comparison...');
-        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
+        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfileId);
       }
     } else {
-      // Fall back to simple comparison
-      console.log('🔧 Using simple comparison logic (no dynamic script specified)...');
-      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer);
+      // Fall back to simple comparison with software profile
+      console.log('🔧 Using simple comparison logic with software profile...');
+      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfileId);
     }
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
@@ -88,7 +215,9 @@ exports.handler = async function(event, context) {
         result: processedData,
         message: 'Processing completed successfully',
         rowCount: processedData.length,
-        usedDynamicScript: scriptName ? true : false
+        usedDynamicScript: scriptName ? true : false,
+        softwareProfile: softwareProfile.displayName,
+        insightsConfig: softwareProfile.insightsConfig
       }),
     };
 
@@ -111,18 +240,6 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
   console.log('🔍 Loading dynamic script for client:', clientId, 'script:', scriptName);
   
   try {
-    // Initialize Firebase Admin (if not already done)
-    const admin = require('firebase-admin');
-    
-    if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
-    
-    const db = admin.firestore();
-    
     // Get all users and find the one with matching client ID
     const usersSnapshot = await db.collection('usage').get();
     
@@ -178,10 +295,38 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
   }
 }
 
-// Simple comparison function to match Script Testing format
-function simpleComparison(XLSX, file1, file2) {
+// Get user's software profile from database
+async function getUserSoftwareProfile(clientId) {
+  try {
+    console.log('🔍 Looking up software profile for clientId:', clientId);
+    
+    // Query usage collection for user with matching businessName or subdomain
+    const usageRef = db.collection('usage');
+    const snapshot = await usageRef.get();
+    
+    let userProfile = null;
+    snapshot.forEach(doc => {
+      const userData = doc.data();
+      const userBusinessName = userData.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
+      
+      if (userBusinessName === clientId || userData.subdomain === clientId) {
+        userProfile = userData.softwareProfile;
+        console.log('✅ Found user with software profile:', userProfile);
+      }
+    });
+    
+    return userProfile || 'daysmart_salon'; // Default to DaySmart if not set
+  } catch (error) {
+    console.error('❌ Error fetching user software profile:', error);
+    return 'daysmart_salon'; // Default fallback
+  }
+}
+
+// Enhanced simple comparison function with software-specific parsing
+function simpleComparison(XLSX, file1, file2, softwareProfileId) {
     try {
-        console.log('🔄 Using simple comparison logic to match Script Testing format');
+        console.log('🔄 Using simple comparison logic with software profile:', softwareProfileId);
+        const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
         
         // Process first file
         const workbook1 = XLSX.read(file1, { cellDates: true });
@@ -198,72 +343,78 @@ function simpleComparison(XLSX, file1, file2) {
         
         const headers2 = rawData2[0] || [];
         const rows2 = rawData2.slice(1);
-        
+
         console.log('📊 File 1 headers:', headers1);
         console.log('📊 File 2 headers:', headers2);
+        console.log('🔧 Using profile data structure:', softwareProfile.dataStructure);
+
+        // Smart column detection using software profile
+        const findColumnIndex = (headers, possibleNames) => {
+            for (const name of possibleNames) {
+                const index = headers.findIndex(h => 
+                    String(h).toLowerCase().includes(name.toLowerCase())
+                );
+                if (index >= 0) return index;
+            }
+            return -1;
+        };
+
+        // Find columns based on software profile
+        const cardBrandIndex1 = findColumnIndex(headers1, softwareProfile.dataStructure.cardBrandColumn);
+        const cardBrandIndex2 = findColumnIndex(headers2, softwareProfile.dataStructure.cardBrandColumn);
         
-        // Find Card Brand columns (flexible matching)
-        const cardBrandCol1 = headers1.findIndex(header => 
-            typeof header === "string" && header.toLowerCase().includes('card')
-        );
-        
-        const cardBrandCol2 = headers2.findIndex(header =>
-            typeof header === "string" && (
-                header.toLowerCase().includes('card') || 
-                header.toLowerCase().includes('name') ||
-                header.toLowerCase().includes('type')
-            )
-        );
-        
-        console.log('🎯 Card brand columns found:', { col1: cardBrandCol1, col2: cardBrandCol2 });
-        
-        if (cardBrandCol1 === -1 || cardBrandCol2 === -1) {
-            console.log('⚠️ Card brand columns not found, using simple fallback');
-            return [
-                ['Card Brand', 'Count in Name'],
-                ['Visa', 46],
-                ['Mastercard', 3],
-                ['Discover', 0],
-                ['American Express', 4]
-            ];
+        console.log('🎯 Card brand column indices - File1:', cardBrandIndex1, 'File2:', cardBrandIndex2);
+
+        // Count occurrences in both files
+        const cardBrandCounts1 = {};
+        const cardBrandCounts2 = {};
+
+        // Process file 1
+        if (cardBrandIndex1 >= 0) {
+            rows1.forEach(row => {
+                if (row && row[cardBrandIndex1]) {
+                    const brand = String(row[cardBrandIndex1]).trim();
+                    if (brand && !brand.toLowerCase().includes('cash')) {
+                        cardBrandCounts1[brand] = (cardBrandCounts1[brand] || 0) + 1;
+                    }
+                }
+            });
         }
+
+        // Process file 2
+        if (cardBrandIndex2 >= 0) {
+            rows2.forEach(row => {
+                if (row && row[cardBrandIndex2]) {
+                    const brand = String(row[cardBrandIndex2]).trim();
+                    if (brand && !brand.toLowerCase().includes('cash')) {
+                        cardBrandCounts2[brand] = (cardBrandCounts2[brand] || 0) + 1;
+                    }
+                }
+            });
+        }
+
+        // Get all unique card brands
+        const allBrands = new Set([...Object.keys(cardBrandCounts1), ...Object.keys(cardBrandCounts2)]);
         
-        // Get unique values from first file
-        const uniqueValues = [...new Set(
-            rows1
-                .map(row => row[cardBrandCol1])
-                .filter(value => value && String(value).trim() !== '')
-                .map(value => String(value).trim())
-        )];
+        // Create simple result table: [['Card Brand', 'Count in File 1', 'Count in File 2']]
+        const results = [['Card Brand', 'Count in File 1', 'Count in File 2']];
         
-        console.log('🔢 Unique card brands from file 1:', uniqueValues);
-        
-        // Count occurrences in second file (case-insensitive)
-        const counts = uniqueValues.map(value => {
-            const count = rows2.filter(row => {
-                const targetValue = row[cardBrandCol2];
-                if (!targetValue) return false;
-                return String(targetValue).toLowerCase() === value.toLowerCase();
-            }).length;
-            
-            return [value, count];
+        allBrands.forEach(brand => {
+            const count1 = cardBrandCounts1[brand] || 0;
+            const count2 = cardBrandCounts2[brand] || 0;
+            results.push([brand, count1, count2]);
         });
+
+        console.log('✅ Simple comparison completed successfully');
+        console.log('📊 Results preview:', results.slice(0, 3));
         
-        console.log('📊 Final counts:', counts);
-        
-        // Return result in simple table format (matching Script Testing)
-        return [
-            ['Card Brand', 'Count in Name'],
-            ...counts
-        ];
-        
+        return results;
     } catch (error) {
         console.error('❌ Error in simple comparison:', error);
+        // Return a basic error result
         return [
-            ['Card Brand', 'Count in Name'],
-            ['Error', 'Processing failed']
+            ['Card Brand', 'Count in File 1', 'Count in File 2'],
+            ['Error', 'Could not process files', 'Please check file format']
         ];
     }
-}
-
-// Embedded standardReconciliation function 
+} 

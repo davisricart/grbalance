@@ -48,13 +48,14 @@ interface ApprovedUser {
   email: string;
   businessName?: string;
   businessType?: string;
-  subscriptionTier: string;
+  subscriptionTier?: string;
   billingCycle?: string;
   comparisonsUsed: number;
   comparisonsLimit: number;
   status: string;
   approvedAt: string;
   createdAt: string;
+  softwareProfile?: string; // NEW: Software profile ID
 }
 
 interface Script {
@@ -89,6 +90,34 @@ interface ConfirmationDialog {
   confirmText: string;
   confirmStyle: string;
   onConfirm: () => void;
+}
+
+// Enhanced interfaces for software configuration
+interface SoftwareProfile {
+  id: string;
+  name: string;
+  displayName: string;
+  dataStructure: {
+    dateColumn: string[];
+    amountColumn: string[];
+    customerColumn: string[];
+    cardBrandColumn: string[];
+    feeColumn: string[];
+  };
+  insightsConfig: {
+    showInsights: boolean;
+    showPaymentTrends: boolean;
+    showCustomerBehavior: boolean;
+    showOperationalMetrics: boolean;
+    showRiskFactors: boolean;
+    showBusinessIntelligence: boolean;
+  };
+  availableTabs: {
+    overview: boolean;
+    insights: boolean;
+    details: boolean;
+    reports: boolean;
+  };
 }
 
 const AdminPage: React.FC = () => {
@@ -861,7 +890,7 @@ WARNING:
     setEditUserForm({
       businessName: user.businessName || '',
       businessType: user.businessType || '',
-      subscriptionTier: user.subscriptionTier,
+      subscriptionTier: user.subscriptionTier || 'professional',
       billingCycle: user.billingCycle || 'monthly',
       adminNotes: (user as any).adminNotes || ''
     });
@@ -1602,6 +1631,166 @@ Features:
     return matchesSearch && matchesStatus && matchesTier;
   });
 
+  // Predefined Software Profiles
+  const SOFTWARE_PROFILES: SoftwareProfile[] = [
+    {
+      id: 'daysmart_salon',
+      name: 'daysmart_salon',
+      displayName: 'DaySmart Salon Software',
+      dataStructure: {
+        dateColumn: ['Date', 'Transaction Date', 'Date Closed'],
+        amountColumn: ['Total Transaction Amount', 'Amount', 'Transaction Amount'],
+        customerColumn: ['Customer Name', 'Name', 'Client Name'],
+        cardBrandColumn: ['Card Brand', 'Card Type', 'Payment Method'],
+        feeColumn: ['Cash Discounting Amount', 'Processing Fee', 'Fee Amount']
+      },
+      insightsConfig: {
+        showInsights: true,
+        showPaymentTrends: true,
+        showCustomerBehavior: true,
+        showOperationalMetrics: true,
+        showRiskFactors: true,
+        showBusinessIntelligence: true
+      },
+      availableTabs: {
+        overview: true,
+        insights: true,
+        details: true,
+        reports: true
+      }
+    },
+    {
+      id: 'square_pos',
+      name: 'square_pos',
+      displayName: 'Square POS',
+      dataStructure: {
+        dateColumn: ['Date', 'Created at', 'Transaction Date'],
+        amountColumn: ['Gross Sales', 'Amount Money', 'Total'],
+        customerColumn: ['Customer Name', 'Buyer Name', 'Customer'],
+        cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
+        feeColumn: ['Fees', 'Processing Fee', 'Square Fees']
+      },
+      insightsConfig: {
+        showInsights: true,
+        showPaymentTrends: true,
+        showCustomerBehavior: false, // Square doesn't always have customer names
+        showOperationalMetrics: true,
+        showRiskFactors: true,
+        showBusinessIntelligence: true
+      },
+      availableTabs: {
+        overview: true,
+        insights: true,
+        details: true,
+        reports: false
+      }
+    },
+    {
+      id: 'toast_pos',
+      name: 'toast_pos',
+      displayName: 'Toast POS (Restaurant)',
+      dataStructure: {
+        dateColumn: ['Business Date', 'Date', 'Order Date'],
+        amountColumn: ['Net Sales', 'Total', 'Order Total'],
+        customerColumn: ['Guest Name', 'Customer', 'Party Name'],
+        cardBrandColumn: ['Payment Type', 'Card Brand', 'Payment Method'],
+        feeColumn: ['Processing Fees', 'Card Fees', 'Payment Fees']
+      },
+      insightsConfig: {
+        showInsights: true,
+        showPaymentTrends: true,
+        showCustomerBehavior: false, // Restaurants often don't track individual customers
+        showOperationalMetrics: true,
+        showRiskFactors: true,
+        showBusinessIntelligence: true
+      },
+      availableTabs: {
+        overview: true,
+        insights: true,
+        details: true,
+        reports: true
+      }
+    },
+    {
+      id: 'shopify_pos',
+      name: 'shopify_pos',
+      displayName: 'Shopify POS',
+      dataStructure: {
+        dateColumn: ['Created at', 'Date', 'Order Date'],
+        amountColumn: ['Total Price', 'Subtotal', 'Total'],
+        customerColumn: ['Customer Email', 'Billing Name', 'Customer'],
+        cardBrandColumn: ['Payment Method', 'Gateway', 'Card Brand'],
+        feeColumn: ['Transaction Fee', 'Gateway Fee', 'Processing Fee']
+      },
+      insightsConfig: {
+        showInsights: true,
+        showPaymentTrends: true,
+        showCustomerBehavior: true,
+        showOperationalMetrics: true,
+        showRiskFactors: true,
+        showBusinessIntelligence: true
+      },
+      availableTabs: {
+        overview: true,
+        insights: true,
+        details: true,
+        reports: true
+      }
+    },
+    {
+      id: 'custom_basic',
+      name: 'custom_basic',
+      displayName: 'Custom/Basic Format',
+      dataStructure: {
+        dateColumn: ['Date', 'Transaction Date', 'Created Date'],
+        amountColumn: ['Amount', 'Total', 'Transaction Amount'],
+        customerColumn: ['Customer', 'Name', 'Client'],
+        cardBrandColumn: ['Card Brand', 'Payment Type', 'Card Type'],
+        feeColumn: ['Fee', 'Processing Fee', 'Charge']
+      },
+      insightsConfig: {
+        showInsights: false, // Disabled by default for custom formats
+        showPaymentTrends: false,
+        showCustomerBehavior: false,
+        showOperationalMetrics: false,
+        showRiskFactors: false,
+        showBusinessIntelligence: false
+      },
+      availableTabs: {
+        overview: true,
+        insights: false,
+        details: true,
+        reports: false
+      }
+    }
+  ];
+
+  // Update user software profile
+  const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
+    try {
+      await updateDoc(doc(db, 'approvedUsers', userId), {
+        softwareProfile: profileId
+      });
+      
+      // Update local state
+      setApprovedUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, softwareProfile: profileId } : user
+      ));
+      
+      showNotification('success', 'Success', 'Software profile updated successfully!');
+    } catch (error) {
+      console.error('Error updating software profile:', error);
+      showNotification('error', 'Error', 'Failed to update software profile.');
+    }
+  };
+
+  // Get software profile display name
+  const getSoftwareProfileName = (profileId?: string) => {
+    if (!profileId) return 'Not Set';
+    const profile = SOFTWARE_PROFILES.find(p => p.id === profileId);
+    return profile ? profile.displayName : 'Unknown Profile';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -2235,7 +2424,7 @@ Features:
                       </div>
 
                       {/* User Details Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm">
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4 text-sm">
                         <div>
                           <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Business</div>
                           <div className="mt-1">
@@ -2263,6 +2452,25 @@ Features:
                             <div className="text-gray-500">
                               {getDaysAgo(user.createdAt)} days ago
                             </div>
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Software Profile</div>
+                          <div className="mt-1">
+                            <div className="text-gray-900 text-xs">{getSoftwareProfileName(user.softwareProfile)}</div>
+                            <select
+                              value={user.softwareProfile || ''}
+                              onChange={(e) => updateUserSoftwareProfile(user.id, e.target.value)}
+                              className="text-xs border border-gray-300 rounded px-2 py-1 mt-1 w-full max-w-[150px]"
+                            >
+                              <option value="">Select Software...</option>
+                              {SOFTWARE_PROFILES.map(profile => (
+                                <option key={profile.id} value={profile.id}>
+                                  {profile.displayName}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
 
