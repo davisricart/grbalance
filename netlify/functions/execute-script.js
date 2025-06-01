@@ -189,21 +189,21 @@ exports.handler = async function(event, context) {
       console.log('🔧 Attempting to load dynamic script...');
       try {
         const dynamicResult = await loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer);
-        if (dynamicResult) {
+        if (dynamicResult && Array.isArray(dynamicResult) && dynamicResult.length > 0) {
           processedData = dynamicResult;
           console.log('✅ Dynamic script executed successfully');
         } else {
-          throw new Error('Dynamic script returned null/undefined');
+          console.log('⚠️ Dynamic script returned invalid data, falling back to simple comparison');
+          throw new Error('Invalid dynamic script result');
         }
       } catch (dynamicError) {
         console.warn('⚠️ Dynamic script execution failed:', dynamicError.message);
         console.log('🔄 Falling back to simple comparison...');
-        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfileId);
+        processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
       }
     } else {
-      // Fall back to simple comparison with software profile
-      console.log('🔧 Using simple comparison logic with software profile...');
-      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfileId);
+      console.log('🔄 No script name provided, using simple comparison...');
+      processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
     }
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
@@ -276,26 +276,47 @@ async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buff
           };
           
           try {
-            // Execute the generated code in a controlled environment
+            // Execute the generated code in a controlled environment with timeout
             const vm = require('vm');
             const context = vm.createContext(sandbox);
             
-            // Execute the function definition
-            vm.runInContext(generatedCode, context);
+            // Set a reasonable timeout for script execution (10 seconds)
+            const timeout = 10000;
+            
+            // Execute the function definition with timeout
+            vm.runInContext(generatedCode, context, { timeout });
             
             // Call the executeScript function if it exists
             if (typeof sandbox.executeScript === 'function') {
+              console.log('🎯 Calling executeScript function...');
               const result = sandbox.executeScript(XLSX, file1Buffer, file2Buffer);
-              console.log('✅ Dynamic script executed successfully');
-              return result;
+              
+              // Validate result
+              if (result && Array.isArray(result) && result.length > 0) {
+                console.log('✅ Dynamic script executed successfully');
+                return result;
+              } else {
+                console.log('⚠️ Script returned invalid result format');
+                return null;
+              }
             } else {
               console.log('⚠️ No executeScript function found, trying direct evaluation...');
-              // Try to evaluate the code directly
-              const result = vm.runInContext(`(${generatedCode})(XLSX, file1Buffer, file2Buffer)`, context);
-              return result;
+              // Try to evaluate the code directly with timeout
+              const result = vm.runInContext(`(${generatedCode})(XLSX, file1Buffer, file2Buffer)`, context, { timeout });
+              
+              // Validate result
+              if (result && Array.isArray(result) && result.length > 0) {
+                return result;
+              } else {
+                console.log('⚠️ Direct evaluation returned invalid result');
+                return null;
+              }
             }
           } catch (execError) {
-            console.error('❌ Script execution error:', execError);
+            console.error('❌ Script execution error:', execError.message);
+            if (execError.message.includes('timeout')) {
+              console.log('⏰ Script execution timed out');
+            }
             console.log('🔄 Falling back to simple comparison...');
             return null;
           }
