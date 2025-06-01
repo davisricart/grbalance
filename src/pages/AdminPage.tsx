@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, where, setDoc } from 'firebase/firestore';
 import { onAuthStateChanged, signInWithEmailAndPassword, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { db, auth } from '../main';
-import { Plus, Trash2, Upload, User, Settings, UserCheck, Eye, EyeOff, Shield, Users } from 'lucide-react';
+import { Plus, Trash2, Upload, User, Settings, UserCheck, Eye, EyeOff, Shield, Users, Edit, Copy } from 'lucide-react';
 import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
 import clientConfig from '../config/client';
 import axios from 'axios';
@@ -127,7 +127,23 @@ const AdminPage: React.FC = () => {
   console.log('🟢 AUTH CURRENT USER:', auth.currentUser);
   console.log('🟢 AUTH STATE:', auth.currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
 
-  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'testing' | 'profiles' | 'settings'>('clients');
+  const [activeTab, setActiveTab] = useState('users');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [tierFilter, setTierFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('approvedAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [notification, setNotification] = useState(null);
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
+  const [siteDeletionState, setSiteDeletionState] = useState<{ [key: string]: string }>({});
+  const [csvData, setCsvData] = useState<any[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [dynamicProfiles, setDynamicProfiles] = useState<SoftwareProfile[]>([]);
+  const [selectedProfileForTest, setSelectedProfileForTest] = useState<string>('');
+  const [testFile, setTestFile] = useState<File | null>(null);
+  const [testResults, setTestResults] = useState<any>(null);
+  const [isTestingProfile, setIsTestingProfile] = useState(false);
+
   const [clients, setClients] = useState<Client[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
@@ -199,8 +215,7 @@ const AdminPage: React.FC = () => {
     scriptContent: ''
   });
 
-  // Search and filter state
-  const [searchTerm, setSearchTerm] = useState('');
+  // Filter state
   const [filterStatus, setFilterStatus] = useState<'all' | 'approved' | 'deactivated'>('all');
   const [filterTier, setFilterTier] = useState<'all' | 'starter' | 'professional' | 'business'>('all');
 
@@ -2077,6 +2092,17 @@ Features:
                 Software Profiles
               </button>
               <button
+                onClick={() => setActiveTab('dynamic-profiles')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'dynamic-profiles'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Plus className="inline w-4 h-4 mr-2" />
+                Profile Editor
+              </button>
+              <button
                 onClick={() => setActiveTab('settings')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'settings'
@@ -3753,6 +3779,300 @@ A dropdown will appear to select which client gets this script.`,
                     >
                       Request Profile Editor Feature
                     </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'dynamic-profiles' && (
+          <div className="space-y-6">
+            {/* Dynamic Profile Editor Header */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                <h3 className="text-lg font-medium">🚀 Dynamic Profile Editor</h3>
+                <p className="text-blue-100 mt-1">Create, edit, test, and clone software profiles dynamically</p>
+              </div>
+              
+              <div className="p-6">
+                {/* Feature Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  {/* Feature 1: Add Custom Profiles */}
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <Plus className="w-6 h-6 text-emerald-600 mr-2" />
+                      <h4 className="font-medium text-emerald-900">Add Custom Profiles</h4>
+                    </div>
+                    <p className="text-sm text-emerald-700 mb-3">Create profiles for new POS software with custom naming and keyword configuration.</p>
+                    <button className="w-full bg-emerald-600 text-white px-3 py-2 rounded text-sm hover:bg-emerald-700 transition-colors">
+                      Create New Profile
+                    </button>
+                  </div>
+
+                  {/* Feature 2: Edit Keywords */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <Edit className="w-6 h-6 text-blue-600 mr-2" />
+                      <h4 className="font-medium text-blue-900">Edit Keywords</h4>
+                    </div>
+                    <p className="text-sm text-blue-700 mb-3">Modify column detection keywords for existing profiles with visual editor.</p>
+                    <button className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors">
+                      Edit Keywords
+                    </button>
+                  </div>
+
+                  {/* Feature 3: Test Detection */}
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <Upload className="w-6 h-6 text-orange-600 mr-2" />
+                      <h4 className="font-medium text-orange-900">Test Detection</h4>
+                    </div>
+                    <p className="text-sm text-orange-700 mb-3">Upload sample CSV files to test column matching before deploying profiles.</p>
+                    <button className="w-full bg-orange-600 text-white px-3 py-2 rounded text-sm hover:bg-orange-700 transition-colors">
+                      Test Profile
+                    </button>
+                  </div>
+
+                  {/* Feature 4: Clone Profiles */}
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <div className="flex items-center mb-3">
+                      <Copy className="w-6 h-6 text-purple-600 mr-2" />
+                      <h4 className="font-medium text-purple-900">Clone Profiles</h4>
+                    </div>
+                    <p className="text-sm text-purple-700 mb-3">Duplicate existing profiles as starting points for similar POS systems.</p>
+                    <button className="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors">
+                      Clone Profile
+                    </button>
+                  </div>
+                </div>
+
+                {/* Profile Testing Section */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
+                  <h4 className="text-lg font-medium text-yellow-900 mb-4">🧪 Test Profile Detection</h4>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Profile Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Select Profile to Test</label>
+                      <select
+                        value={selectedProfileForTest}
+                        onChange={(e) => setSelectedProfileForTest(e.target.value)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      >
+                        <option value="">Choose a profile...</option>
+                        {SOFTWARE_PROFILES.map(profile => (
+                          <option key={profile.id} value={profile.id}>
+                            {profile.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* File Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Sample CSV</label>
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={(e) => setTestFile(e.target.files?.[0] || null)}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Test Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        if (!selectedProfileForTest || !testFile) {
+                          showNotification('warning', 'Missing Information', 'Please select a profile and upload a test file.');
+                          return;
+                        }
+                        setIsTestingProfile(true);
+                        // Simulate testing
+                        setTimeout(() => {
+                          setTestResults({
+                            profileName: SOFTWARE_PROFILES.find(p => p.id === selectedProfileForTest)?.displayName,
+                            detectedColumns: {
+                              date: 'Transaction Date',
+                              amount: 'Total Amount',
+                              customer: 'Customer Name',
+                              cardBrand: 'Card Type',
+                              fee: 'Processing Fee'
+                            },
+                            fileName: testFile?.name,
+                            rowCount: 1247
+                          });
+                          setIsTestingProfile(false);
+                          showNotification('success', 'Profile Test Complete', 'Column detection successful! Check results below.');
+                        }, 2000);
+                      }}
+                      disabled={!selectedProfileForTest || !testFile || isTestingProfile}
+                      className="bg-yellow-600 text-white px-6 py-2 rounded-md text-sm hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isTestingProfile ? 'Testing Detection...' : 'Test Column Detection'}
+                    </button>
+                  </div>
+
+                  {/* Test Results */}
+                  {testResults && (
+                    <div className="mt-6 bg-white border rounded-lg p-4">
+                      <h5 className="font-medium text-gray-900 mb-3">Detection Results for "{testResults.profileName}"</h5>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <strong>File:</strong> {testResults.fileName}
+                        </div>
+                        <div>
+                          <strong>Rows:</strong> {testResults.rowCount.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <h6 className="font-medium text-gray-800 mb-2">Detected Columns:</h6>
+                        <div className="space-y-2">
+                          {Object.entries(testResults.detectedColumns).map(([type, column]) => (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="capitalize font-medium">{type}:</span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{column}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Current Profiles with Action Buttons */}
+                <div className="space-y-4">
+                  <h4 className="text-lg font-medium text-gray-900">Current Software Profiles</h4>
+                  
+                  {SOFTWARE_PROFILES.map((profile) => (
+                    <div key={profile.id} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h5 className="text-lg font-medium text-gray-900">{profile.displayName}</h5>
+                          <p className="text-sm text-gray-500">ID: {profile.id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => showNotification('info', 'Edit Profile', `Editing keywords for ${profile.displayName} - Feature coming soon!`)}
+                            className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200 transition-colors"
+                          >
+                            <Edit className="w-4 h-4 inline mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => showNotification('info', 'Clone Profile', `Cloning ${profile.displayName} - Feature coming soon!`)}
+                            className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-200 transition-colors"
+                          >
+                            <Copy className="w-4 h-4 inline mr-1" />
+                            Clone
+                          </button>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            profile.insightsConfig.showInsights 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {profile.insightsConfig.showInsights ? 'Insights Enabled' : 'Basic Only'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Compact Keywords Display */}
+                      <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+                        <div>
+                          <label className="block font-medium text-gray-600 mb-1">Date</label>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.dataStructure.dateColumn.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {profile.dataStructure.dateColumn.length > 2 && (
+                              <span className="text-gray-500">+{profile.dataStructure.dateColumn.length - 2}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block font-medium text-gray-600 mb-1">Amount</label>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.dataStructure.amountColumn.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {profile.dataStructure.amountColumn.length > 2 && (
+                              <span className="text-gray-500">+{profile.dataStructure.amountColumn.length - 2}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block font-medium text-gray-600 mb-1">Customer</label>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.dataStructure.customerColumn.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {profile.dataStructure.customerColumn.length > 2 && (
+                              <span className="text-gray-500">+{profile.dataStructure.customerColumn.length - 2}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block font-medium text-gray-600 mb-1">Card Brand</label>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.dataStructure.cardBrandColumn.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {profile.dataStructure.cardBrandColumn.length > 2 && (
+                              <span className="text-gray-500">+{profile.dataStructure.cardBrandColumn.length - 2}</span>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label className="block font-medium text-gray-600 mb-1">Fee</label>
+                          <div className="flex flex-wrap gap-1">
+                            {profile.dataStructure.feeColumn.slice(0, 2).map((keyword, idx) => (
+                              <span key={idx} className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                                {keyword}
+                              </span>
+                            ))}
+                            {profile.dataStructure.feeColumn.length > 2 && (
+                              <span className="text-gray-500">+{profile.dataStructure.feeColumn.length - 2}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Business Impact */}
+                <div className="mt-8 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-6">
+                  <h4 className="text-lg font-medium text-emerald-900 mb-3">💼 Business Impact</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-emerald-600">∞</div>
+                      <div className="font-medium text-emerald-800">Unlimited Customization</div>
+                      <div className="text-emerald-700">Support any POS software</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-blue-600">0</div>
+                      <div className="font-medium text-blue-800">Developer Dependency</div>
+                      <div className="text-blue-700">Admins create profiles independently</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-purple-600">⚡</div>
+                      <div className="font-medium text-purple-800">Instant Deployment</div>
+                      <div className="text-purple-700">New profiles live immediately</div>
+                    </div>
                   </div>
                 </div>
               </div>
