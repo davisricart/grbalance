@@ -802,188 +802,128 @@ export default function MainPage({ user }: MainPageProps) {
               <div className="mt-6">
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* Current Session Insights */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-6 max-w-lg">
-                      <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                        <BarChart3 className="h-5 w-5 mr-2" />
-                        Current Session Insights
-                      </h3>
-                      
-
-
-                                            {/* Business Insights */}
-                      {analysis && rawFileData?.file1Data && (
-                        <div className="bg-emerald-50 rounded-lg p-4">
-                          <h4 className="text-md font-medium text-emerald-900 mb-3 flex items-center">
-                            <DollarSign className="h-4 w-4 mr-2" />
-                            Payment Method Distribution
-                          </h4>
-                          <div className="space-y-2">
-                            {(() => {
-                              // Calculate from raw file data (total population, not just discrepancies)
-                              const file1Headers = rawFileData.file1Data[0] || [];
-                              const file1Rows = rawFileData.file1Data.slice(1);
-                              const brandIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('card') && String(h).toLowerCase().includes('brand'));
-                              const amountIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('total') && String(h).toLowerCase().includes('transaction'));
-                              
-                              const brandDistribution: { [key: string]: { count: number; amount: number } } = {};
-                              let totalCount = 0;
-                              
-                              file1Rows.forEach((row: any[]) => {
-                                if (row && row.length > Math.max(brandIndex, amountIndex) && row[brandIndex]) {
-                                  const brand = String(row[brandIndex] || 'Unknown').trim();
-                                  const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
-                                  
-                                  if (!brandDistribution[brand]) {
-                                    brandDistribution[brand] = { count: 0, amount: 0 };
-                                  }
-                                  brandDistribution[brand].count++;
-                                  brandDistribution[brand].amount += amount;
-                                  totalCount++;
-                                }
-                              });
-                              
-                              return Object.entries(brandDistribution).map(([brand, data]) => {
-                                const percentage = totalCount > 0 ? (data.count / totalCount) * 100 : 0;
-                              return (
-                                <div key={brand} className="flex justify-between items-center">
-                                    <span className="text-emerald-700">{brand}:</span>
-                                    <span className="font-medium text-emerald-900">{percentage.toFixed(1)}% (${data.amount.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })})</span>
-                                </div>
-                              );
-                              });
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Detailed Results Table */}
+                    {/* Simple Script Results - EXACTLY like admin preview */}
                     <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h2 className="text-lg font-medium text-gray-700">Detailed Results</h2>
-                <button
-                  type="button"
-                  onClick={downloadResults}
-                  className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Download
-                </button>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      {results[0]?.map((header, i) => (
-                        <th
-                          key={i}
-                          className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                      <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                        <h2 className="text-lg font-medium text-gray-700">Results</h2>
+                        <button
+                          type="button"
+                          onClick={downloadResults}
+                          className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
                         >
-                          {header}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {results.slice(1).map((row, i) => {
-                      // Check if this is a header row within the table body
-                      const currentRowFirstCell = String(row[0] || '').trim().toLowerCase();
-                      const secondCell = String(row[1] || '').trim().toLowerCase();
-                      const thirdCell = String(row[2] || '').trim().toLowerCase();
-                      
-                      // Detect various types of headers within the table body:
-                      // 1. Summary section headers: "Card Brand", "Hub Report", "Sales Report", "Difference"
-                      // 2. Any row that looks like headers (multiple capitalized words in sequence)
-                      // 3. Rows where first cell contains "brand" and second contains "report"
-                      const isHeaderRow = currentRowFirstCell.includes('card brand') || 
-                                         (currentRowFirstCell.includes('card') && secondCell.includes('hub')) ||
-                                         (currentRowFirstCell.includes('brand') && secondCell.includes('report')) ||
-                                         (secondCell.includes('hub report') || secondCell.includes('sales report')) ||
-                                         // Check if this looks like a header row (multiple title-case words)
-                                         (row.length >= 3 && 
-                                          String(row[0]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
-                                          String(row[1]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
-                                          String(row[2]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/));
-                      
-                      // Check if this is an empty separator row
-                      const isEmptyRow = Array.isArray(row) && row.every(cell => !cell || String(cell).trim() === '');
-                      
-                      if (isEmptyRow) {
-                        return (
-                          <tr key={i} className="h-4">
-                            <td colSpan={row.length} className="px-6 py-2 bg-gray-25"></td>
-                          </tr>
-                        );
-                      }
-                      
-                      if (isHeaderRow) {
-                        return (
-                          <tr key={i} className="bg-gray-50 border-b border-gray-200">
-                            {row.map((cell, j) => (
-                              <th
-                                key={j}
-                                className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
-                              >
-                                {cell}
-                              </th>
-                            ))}
-                          </tr>
-                        );
-                      }
-                      
-                      return (
-                        <tr key={i} className="hover:bg-gray-50 transition-colors duration-150">
-                          {row.map((cell, j) => {
-                                  const cellStr = String(cell || '').trim();
-                                  const isNumber = typeof cell === 'number' || 
-                                           (!isNaN(Number(cellStr.replace(/[$,]/g, ''))) && cellStr !== '' && cellStr !== null);
-                            const numValue = Number(cellStr.replace(/[$,]/g, ''));
-                                  
-                                  let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
-                                  
-                            // Check if this is in the summary section
-                            const isInSummarySection = results.some((r, idx) => 
-                              idx < i + 1 && Array.isArray(r) && 
-                              String(r[0] || '').toLowerCase().includes('card brand')
-                            );
-                            
-                            // Get the header for this column to identify Total (-) Fee column
-                            const header = results[0]?.[j];
-                            const headerStr = String(header || '').trim().toLowerCase();
-                            const isTotalFeeColumn = headerStr.includes('total') && headerStr.includes('fee');
-                            
-                            // Apply coloring to specific columns
-                            if (isNumber) {
-                              // Color the "Total (-) Fee" column in the top section (positive = green, negative = red)
-                              if (isTotalFeeColumn && !isInSummarySection) {
-                                if (numValue > 0) {
-                                  cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                } else if (numValue < 0) {
-                                      cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                }
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                              {results[0]?.map((header, i) => (
+                                <th
+                                  key={i}
+                                  className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                                >
+                                  {header}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-100">
+                            {results.slice(1).map((row, i) => {
+                              // Check if this is a header row within the table body
+                              const currentRowFirstCell = String(row[0] || '').trim().toLowerCase();
+                              const secondCell = String(row[1] || '').trim().toLowerCase();
+                              
+                              // Detect various types of headers within the table body
+                              const isHeaderRow = currentRowFirstCell.includes('card brand') || 
+                                                 (currentRowFirstCell.includes('card') && secondCell.includes('hub')) ||
+                                                 (currentRowFirstCell.includes('brand') && secondCell.includes('report')) ||
+                                                 (secondCell.includes('hub report') || secondCell.includes('sales report')) ||
+                                                 // Check if this looks like a header row (multiple title-case words)
+                                                 (row.length >= 3 && 
+                                                  String(row[0]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
+                                                  String(row[1]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
+                                                  String(row[2]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/));
+                              
+                              // Check if this is an empty separator row
+                              const isEmptyRow = Array.isArray(row) && row.every(cell => !cell || String(cell).trim() === '');
+                              
+                              if (isEmptyRow) {
+                                return (
+                                  <tr key={i} className="h-4">
+                                    <td colSpan={row.length} className="px-6 py-2 bg-gray-25"></td>
+                                  </tr>
+                                );
                               }
-                              // Color the "Difference" column in the summary section (positive = green, negative = red)
-                              else if (isInSummarySection && j === 3) {
-                                if (numValue > 0) {
-                                  cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                } else if (numValue < 0) {
-                                      cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                }
+                              
+                              if (isHeaderRow) {
+                                return (
+                                  <tr key={i} className="bg-gray-50 border-b border-gray-200">
+                                    {row.map((cell, j) => (
+                                      <th
+                                        key={j}
+                                        className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                                      >
+                                        {cell}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                );
+                              }
+                              
+                              return (
+                                <tr key={i} className="hover:bg-gray-50 transition-colors duration-150">
+                                  {row.map((cell, j) => {
+                                    const cellStr = String(cell || '').trim();
+                                    const isNumber = typeof cell === 'number' || 
+                                             (!isNaN(Number(cellStr.replace(/[$,]/g, ''))) && cellStr !== '' && cellStr !== null);
+                                    const numValue = Number(cellStr.replace(/[$,]/g, ''));
+                                            
+                                    let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
+                                    
+                                    // Check if this is in the summary section
+                                    const isInSummarySection = results.some((r, idx) => 
+                                      idx < i + 1 && Array.isArray(r) && 
+                                      String(r[0] || '').toLowerCase().includes('card brand')
+                                    );
+                                    
+                                    // Get the header for this column to identify Total (-) Fee column
+                                    const header = results[0]?.[j];
+                                    const headerStr = String(header || '').trim().toLowerCase();
+                                    const isTotalFeeColumn = headerStr.includes('total') && headerStr.includes('fee');
+                                    
+                                    // Apply coloring to specific columns
+                                    if (isNumber) {
+                                      // Color the "Total (-) Fee" column in the top section (positive = green, negative = red)
+                                      if (isTotalFeeColumn && !isInSummarySection) {
+                                        if (numValue > 0) {
+                                          cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                                        } else if (numValue < 0) {
+                                          cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
+                                        }
+                                      }
+                                      // Color the "Difference" column in the summary section (positive = green, negative = red)
+                                      else if (isInSummarySection && j === 3) {
+                                        if (numValue > 0) {
+                                          cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
+                                        } else if (numValue < 0) {
+                                          cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
+                                        }
+                                      }
                                     }
-                                  }
-                                  
-                          return (
-                                    <td key={j} className={cellClass}>
-                              {cell}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                    
+                                    return (
+                                      <td key={j} className={cellClass}>
+                                        {cell}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
