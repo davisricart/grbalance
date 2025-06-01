@@ -94,18 +94,18 @@ const SOFTWARE_PROFILES = {
     id: 'custom_basic',
     displayName: 'Custom',
     insightsConfig: {
-      showInsights: false,
-      showPaymentTrends: false,
-      showCustomerBehavior: false,
-      showOperationalMetrics: false,
-      showRiskFactors: false,
-      showBusinessIntelligence: false
+      showInsights: true,
+      showPaymentTrends: true,
+      showCustomerBehavior: true,
+      showOperationalMetrics: true,
+      showRiskFactors: true,
+      showBusinessIntelligence: true
     },
     availableTabs: {
       overview: true,
-      insights: false,
+      insights: true,
       details: true,
-      reports: false
+      reports: true
     }
   }
 };
@@ -163,12 +163,18 @@ exports.handler = async function(event, context) {
     const softwareProfileId = userData.softwareProfile || 'custom_basic';
     const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['custom_basic'];
     
+    // Check user's individual insights setting first, then fall back to profile setting
+    const userShowInsights = userData.showInsights !== undefined ? userData.showInsights : softwareProfile.availableTabs.insights;
+    
     // Return client configuration
     const config = {
       clientId: clientId,
       softwareProfile: softwareProfileId,
       softwareProfileName: softwareProfile.displayName,
-      availableTabs: softwareProfile.availableTabs,
+      availableTabs: {
+        ...softwareProfile.availableTabs,
+        insights: userShowInsights // Override with user-specific setting
+      },
       insightsConfig: softwareProfile.insightsConfig
     };
 

@@ -56,6 +56,7 @@ interface ApprovedUser {
   approvedAt: string;
   createdAt: string;
   softwareProfile?: string; // NEW: Software profile ID
+  showInsights?: boolean; // NEW: Individual control for insights tab
 }
 
 interface Script {
@@ -1796,6 +1797,28 @@ Features:
     }
   };
 
+  // Update user insights setting
+  const updateUserInsightsSetting = async (userId: string, showInsights: boolean) => {
+    try {
+      await updateDoc(doc(db, 'usage', userId), {
+        showInsights: showInsights,
+        updatedAt: new Date()
+      });
+      
+      // Update local state
+      setApprovedUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, showInsights: showInsights } : user
+      ));
+      
+      showNotification('success', 'Insights Setting Updated', 
+        `Insights tab ${showInsights ? 'enabled' : 'disabled'} for this client.`
+      );
+    } catch (error) {
+      console.error('Error updating insights setting:', error);
+      showNotification('error', 'Error', 'Failed to update insights setting.');
+    }
+  };
+
   // Get software profile display name
   const getSoftwareProfileName = (profileId?: string) => {
     if (!profileId) return 'Not Set';
@@ -2494,6 +2517,17 @@ Features:
                                 </option>
                               ))}
                             </select>
+                            <div className="mt-2">
+                              <label className="flex items-center gap-2 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={user.showInsights ?? true}
+                                  onChange={(e) => updateUserInsightsSetting(user.id, e.target.checked)}
+                                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="text-gray-700">Show Insights Tab</span>
+                              </label>
+                            </div>
                           </div>
                         </div>
 
