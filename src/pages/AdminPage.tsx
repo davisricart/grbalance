@@ -126,7 +126,7 @@ const AdminPage: React.FC = () => {
   console.log('🟢 AUTH CURRENT USER:', auth.currentUser);
   console.log('🟢 AUTH STATE:', auth.currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
 
-  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'testing' | 'settings'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'testing' | 'profiles' | 'settings'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
@@ -2032,6 +2032,17 @@ Features:
                 Script Testing
               </button>
               <button
+                onClick={() => setActiveTab('profiles')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'profiles'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Shield className="inline w-4 h-4 mr-2" />
+                Software Profiles
+              </button>
+              <button
                 onClick={() => setActiveTab('settings')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'settings'
@@ -3549,6 +3560,154 @@ A dropdown will appear to select which client gets this script.`,
                       <span>Powered by GR Balance</span>
                       <span>Data processed securely</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'profiles' && (
+          <div className="space-y-6">
+            {/* Software Profiles Management */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">Software Profiles Management</h3>
+                <p className="text-sm text-gray-500 mt-1">Configure how data is parsed for different POS software</p>
+              </div>
+              
+              <div className="p-6">
+                {/* How It Works Section */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <h4 className="text-lg font-medium text-blue-900 mb-3">🧠 How Smart Column Detection Works</h4>
+                  <div className="space-y-2 text-sm text-blue-800">
+                    <p><strong>1. Automatic Matching:</strong> When a file is uploaded, the system searches for column headers containing these keywords</p>
+                    <p><strong>2. Case-Insensitive:</strong> "Date", "date", "DATE" all match</p>
+                    <p><strong>3. Partial Matching:</strong> "Transaction Date" matches "Date" keyword</p>
+                    <p><strong>4. First Match Wins:</strong> Uses the first column found that contains any keyword</p>
+                    <p><strong>5. Fallback Options:</strong> Multiple keywords provide backup options if first one isn't found</p>
+                  </div>
+                </div>
+
+                {/* Current Profiles */}
+                <div className="space-y-6">
+                  {SOFTWARE_PROFILES.map((profile) => (
+                    <div key={profile.id} className="border border-gray-200 rounded-lg p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h4 className="text-lg font-medium text-gray-900">{profile.displayName}</h4>
+                          <p className="text-sm text-gray-500">ID: {profile.id}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            profile.insightsConfig.showInsights 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {profile.insightsConfig.showInsights ? 'Insights Enabled' : 'Basic Only'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Column Detection Keywords */}
+                      <div className="space-y-4">
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Column Detection Keywords</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Date Columns</label>
+                              <div className="text-xs bg-gray-50 rounded p-2 border">
+                                {profile.dataStructure.dateColumn.map((keyword, idx) => (
+                                  <div key={idx} className="inline-block bg-blue-100 text-blue-800 px-2 py-1 rounded mr-1 mb-1">
+                                    {keyword}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Amount Columns</label>
+                              <div className="text-xs bg-gray-50 rounded p-2 border">
+                                {profile.dataStructure.amountColumn.map((keyword, idx) => (
+                                  <div key={idx} className="inline-block bg-green-100 text-green-800 px-2 py-1 rounded mr-1 mb-1">
+                                    {keyword}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Customer Columns</label>
+                              <div className="text-xs bg-gray-50 rounded p-2 border">
+                                {profile.dataStructure.customerColumn.map((keyword, idx) => (
+                                  <div key={idx} className="inline-block bg-purple-100 text-purple-800 px-2 py-1 rounded mr-1 mb-1">
+                                    {keyword}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Card Brand Columns</label>
+                              <div className="text-xs bg-gray-50 rounded p-2 border">
+                                {profile.dataStructure.cardBrandColumn.map((keyword, idx) => (
+                                  <div key={idx} className="inline-block bg-orange-100 text-orange-800 px-2 py-1 rounded mr-1 mb-1">
+                                    {keyword}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Fee Columns</label>
+                              <div className="text-xs bg-gray-50 rounded p-2 border">
+                                {profile.dataStructure.feeColumn.map((keyword, idx) => (
+                                  <div key={idx} className="inline-block bg-red-100 text-red-800 px-2 py-1 rounded mr-1 mb-1">
+                                    {keyword}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tab Configuration */}
+                        <div>
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Available Features</h5>
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(profile.availableTabs).map(([tab, enabled]) => (
+                              <span key={tab} className={`px-2 py-1 rounded text-xs font-medium ${
+                                enabled 
+                                  ? 'bg-emerald-100 text-emerald-800' 
+                                  : 'bg-gray-100 text-gray-500'
+                              }`}>
+                                {enabled ? '✓' : '✗'} {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Future Enhancement Note */}
+                <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-yellow-800 mb-2">🚀 Future Enhancement: Dynamic Profile Editor</h4>
+                  <div className="text-sm text-yellow-700 space-y-1">
+                    <p>• <strong>Add Custom Profiles:</strong> Create profiles for new POS software</p>
+                    <p>• <strong>Edit Keywords:</strong> Modify column detection keywords</p>
+                    <p>• <strong>Test Detection:</strong> Upload sample files to test column matching</p>
+                    <p>• <strong>Clone Profiles:</strong> Duplicate existing profiles as starting points</p>
+                    <p>• <strong>Import/Export:</strong> Share profiles between admin accounts</p>
+                  </div>
+                  <div className="mt-3">
+                    <button 
+                      onClick={() => showNotification('info', 'Feature Coming Soon', 'Dynamic profile editing will be available in the next update!')}
+                      className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
+                    >
+                      Request Profile Editor Feature
+                    </button>
                   </div>
                 </div>
               </div>
