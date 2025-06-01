@@ -157,26 +157,37 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    console.log('📋 Parsing multipart form data...');
-    const result = await multipart.parse(event);
-    console.log('📁 Files received:', Object.keys(result.files || {}));
-    console.log('📝 Form fields:', Object.keys(result || {}));
-
-    if (!result.files || !result.files.file1 || !result.files.file2) {
+    console.log('📋 Parsing JSON request data...');
+    let requestData;
+    
+    try {
+      requestData = JSON.parse(event.body);
+    } catch (parseError) {
+      console.error('❌ Failed to parse JSON:', parseError);
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Both file1 and file2 are required' }),
+        body: JSON.stringify({ error: 'Invalid JSON in request body' }),
       };
     }
 
-    const file1Buffer = result.files.file1.content;
-    const file2Buffer = result.files.file2.content;
-    const scriptName = result.scriptName;
+    console.log('📝 Request data keys:', Object.keys(requestData || {}));
+
+    if (!requestData.file1Data || !requestData.file2Data) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Both file1Data and file2Data are required' }),
+      };
+    }
+
+    const file1Data = requestData.file1Data;
+    const file2Data = requestData.file2Data;
+    const scriptName = requestData.script;
     
-    console.log('✅ Files parsed successfully');
-    console.log('📊 File 1 size:', file1Buffer.length, 'bytes');
-    console.log('📊 File 2 size:', file2Buffer.length, 'bytes');
+    console.log('✅ JSON data parsed successfully');
+    console.log('📊 File 1 rows:', file1Data.length);
+    console.log('📊 File 2 rows:', file2Data.length);
     console.log('📜 Script name:', scriptName);
 
     // Get the CLIENT_ID from environment variables to identify which scripts to use
@@ -192,7 +203,7 @@ exports.handler = async function(event, context) {
 
     // FORCE simple comparison for now to avoid dynamic script issues
     console.log('🔄 Using simple comparison...');
-    processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
+    processedData = simpleComparisonFromData(file1Data, file2Data, softwareProfile.id);
     
     console.log('✅ Processing complete, rows generated:', processedData.length);
 
@@ -250,58 +261,43 @@ async function getUserSoftwareProfile(clientId) {
   }
 }
 
-// Enhanced simple comparison function with software-specific parsing
-function simpleComparison(XLSX, file1, file2, softwareProfileId) {
+// Enhanced simple comparison function with software-specific parsing for JSON data
+function simpleComparisonFromData(file1Data, file2Data, softwareProfileId) {
     try {
         console.log('🔄 Using simple comparison logic with software profile:', softwareProfileId);
         const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
         
-        // Process first file
-        const workbook1 = XLSX.read(file1, { cellDates: true });
-        const worksheet1 = workbook1.Sheets[workbook1.SheetNames[0]];
-        const rawData1 = XLSX.utils.sheet_to_json(worksheet1, { header: 1 });
-        
-        const headers1 = rawData1[0] || [];
-        const rows1 = rawData1.slice(1);
-        
-        // Process second file  
-        const workbook2 = XLSX.read(file2, { cellDates: true });
-        const worksheet2 = workbook2.Sheets[workbook2.SheetNames[0]];
-        const rawData2 = XLSX.utils.sheet_to_json(worksheet2, { header: 1 });
-        
-        const headers2 = rawData2[0] || [];
-        const rows2 = rawData2.slice(1);
-
-        console.log('📊 File 1 headers:', headers1);
-        console.log('📊 File 2 headers:', headers2);
+        console.log('📊 File 1 sample:', file1Data[0]);
+        console.log('📊 File 2 sample:', file2Data[0]);
         console.log('🔧 Using profile data structure:', softwareProfile.dataStructure);
 
         // Smart column detection using software profile
-        const findColumnIndex = (headers, possibleNames) => {
+        const findColumnInObject = (obj, possibleNames) => {
             for (const name of possibleNames) {
-                const index = headers.findIndex(h => 
-                    String(h).toLowerCase().includes(name.toLowerCase())
-                );
-                if (index >= 0) return index;
+                for (const key of Object.keys(obj)) {
+                    if (String(key).toLowerCase().includes(name.toLowerCase())) {
+                        return key;
+                    }
+                }
             }
-            return -1;
+            return null;
         };
 
-        // Find columns based on software profile
-        const cardBrandIndex1 = findColumnIndex(headers1, softwareProfile.dataStructure.cardBrandColumn);
-        const cardBrandIndex2 = findColumnIndex(headers2, softwareProfile.dataStructure.cardBrandColumn);
+        // Find columns based on software profile using first row as sample
+        const cardBrandKey1 = file1Data.length > 0 ? findColumnInObject(file1Data[0], softwareProfile.dataStructure.cardBrandColumn) : null;
+        const cardBrandKey2 = file2Data.length > 0 ? findColumnInObject(file2Data[0], softwareProfile.dataStructure.cardBrandColumn) : null;
         
-        console.log('🎯 Card brand column indices - File1:', cardBrandIndex1, 'File2:', cardBrandIndex2);
+        console.log('🎯 Card brand column keys - File1:', cardBrandKey1, 'File2:', cardBrandKey2);
 
         // Count occurrences in both files
         const cardBrandCounts1 = {};
         const cardBrandCounts2 = {};
 
         // Process file 1
-        if (cardBrandIndex1 >= 0) {
-            rows1.forEach(row => {
-                if (row && row[cardBrandIndex1]) {
-                    const brand = String(row[cardBrandIndex1]).trim();
+        if (cardBrandKey1) {
+            file1Data.forEach(row => {
+                if (row && row[cardBrandKey1]) {
+                    const brand = String(row[cardBrandKey1]).trim();
                     if (brand && !brand.toLowerCase().includes('cash')) {
                         cardBrandCounts1[brand] = (cardBrandCounts1[brand] || 0) + 1;
                     }
@@ -310,10 +306,10 @@ function simpleComparison(XLSX, file1, file2, softwareProfileId) {
         }
 
         // Process file 2
-        if (cardBrandIndex2 >= 0) {
-            rows2.forEach(row => {
-                if (row && row[cardBrandIndex2]) {
-                    const brand = String(row[cardBrandIndex2]).trim();
+        if (cardBrandKey2) {
+            file2Data.forEach(row => {
+                if (row && row[cardBrandKey2]) {
+                    const brand = String(row[cardBrandKey2]).trim();
                     if (brand && !brand.toLowerCase().includes('cash')) {
                         cardBrandCounts2[brand] = (cardBrandCounts2[brand] || 0) + 1;
                     }
