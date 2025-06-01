@@ -246,10 +246,8 @@ export default function MainPage({ user }: MainPageProps) {
       try {
         await updateProgress(30, 'Uploading files...');
         
-        // PRIORITY 1: Try to execute using the script execution function (same as admin preview)
-        console.log('🎯 Executing script to match admin preview results...');
-        
-        response = await fetch(`/.netlify/functions/execute-script`, {
+        // Call the execute-script function
+        response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
           method: 'POST',
           body: formData,
         });
