@@ -60,6 +60,14 @@ This platform serves multiple clients through a unified admin dashboard while ma
 - Deactivate/reactivate user accounts
 - Edit user details, subscription tiers, and billing cycles
 - Add private admin notes for internal tracking
+- **Software Profile Assignment**: Configure client-specific POS system profiles
+- **Individual Insights Control**: Toggle insights tab on/off per client
+
+**Software Profiles Management:**
+- Visual display of all available software profiles with keyword detection
+- Color-coded keyword chips for automatic column mapping
+- Feature availability indicators for each profile type
+- Configure profiles for: DaySmart Salon, Square POS, Toast, Shopify, Custom
 
 **Search & Filter System:**
 - Real-time search by email, business name, or user ID
@@ -118,6 +126,52 @@ This platform serves multiple clients through a unified admin dashboard while ma
 - Automatic site updates
 - Error handling and rollback
 
+### 🎛️ Software Profiles System
+
+**Dynamic Script Storage Enhancement:**
+The platform supports unlimited software types through intelligent profile-based configuration, eliminating the need for manual script development for each new POS system.
+
+**Available Profiles:**
+- **DaySmart Salon Software**: Beauty/salon industry POS
+- **Square POS**: General retail and restaurant 
+- **Toast POS**: Restaurant-focused system
+- **Shopify POS**: E-commerce and retail
+- **Custom/Basic Format**: Flexible configuration for any system
+
+**Smart Column Detection:**
+```javascript
+// Automatic data parsing with keyword matching
+const columnKeywords = {
+  date: ['date', 'time', 'timestamp', 'created'],
+  amount: ['amount', 'total', 'net', 'gross', 'value'],
+  customer: ['customer', 'client', 'name', 'buyer'],
+  cardBrand: ['card', 'brand', 'type', 'method'],
+  fee: ['fee', 'charge', 'cost', 'commission']
+};
+
+// Case-insensitive partial matching
+// First match wins approach
+// Multiple keyword fallback options
+```
+
+**Profile Configuration:**
+Each software profile contains:
+- **Column Detection Keywords**: Arrays of possible column names for automatic parsing
+- **Insights Configuration**: Which analytical features to enable/disable  
+- **Available Tabs**: Which UI tabs should be visible (Overview, Insights, Details, Reports)
+- **Display Names**: Software-specific tab naming for quality control
+
+**Individual Insights Control:**
+- Admin can override profile defaults for each client
+- Toggle insights tab on/off regardless of software profile
+- Flexible configuration for clients with specific needs
+- Quality control through software-specific naming (e.g., "Square POS Insights")
+
+**Business Impact:**
+- **Before**: Manual developer work required for each new script/software type
+- **After**: Automatic detection and configuration based on software profiles  
+- **Result**: Infinite customization without bottlenecks, complete SaaS platform capability
+
 ## 🗂️ Database Structure
 
 ### Firebase Collections
@@ -154,6 +208,15 @@ usage: {
     siteUrl: "https://example-corp-abc123.netlify.app",
     siteId: "netlify-site-id",
     siteName: "example-corp-abc123",
+    
+    // Software profile configuration
+    softwareProfile: "daysmartSalon", // daysmartSalon, square, toast, shopify, custom_basic
+    softwareProfileConfig: {
+      availableTabs: { overview: true, insights: true, details: true, reports: true },
+      insightsConfig: { showInsights: true, showPaymentTrends: true, /* ... */ },
+      dataStructure: { /* column keywords and detection rules */ }
+    },
+    showInsights: true, // Individual override for insights tab (optional)
     
     // Admin management
     adminNotes: "Special requirements for this client",
@@ -213,6 +276,40 @@ Response:
   "deployUrl": "https://example-corp-abc123.netlify.app",
   "deployId": "deploy-abc123",
   "scriptName": "reconciliation-v1.js"
+}
+```
+
+**Client Configuration:**
+   ```bash
+GET /.netlify/functions/get-client-config?clientId=example-corp
+Content-Type: application/json
+
+Response:
+{
+  "clientId": "example-corp",
+  "softwareProfile": "daysmartSalon",
+  "softwareProfileName": "DaySmart Salon Software",
+  "availableTabs": {
+    "overview": true,
+    "insights": true,
+    "details": true,
+    "reports": true
+  },
+  "insightsConfig": {
+    "showInsights": true,
+    "showPaymentTrends": true,
+    "showCustomerBehavior": true,
+    "showOperationalMetrics": true,
+    "showRiskFactors": true,
+    "showBusinessIntelligence": true
+  },
+  "dataStructure": {
+    "dateColumn": ["date", "time", "timestamp"],
+    "amountColumn": ["amount", "total", "net"],
+    "customerColumn": ["customer", "client", "name"],
+    "cardBrandColumn": ["card", "brand", "type"],
+    "feeColumn": ["fee", "charge", "cost"]
+  }
 }
 ```
 
@@ -318,6 +415,14 @@ npm run preview
 - Update business information and subscription tiers
 - Add private admin notes for internal tracking
 - Adjust usage limits based on new subscription
+- **Assign Software Profiles**: Configure client's POS system type
+- **Control Insights Access**: Toggle insights tab on/off per client
+
+**Software Profile Management:**
+- Select from predefined profiles (DaySmart, Square, Toast, Shopify, Custom)
+- Automatic column detection configuration applied
+- Software-specific tab naming for quality control
+- Individual insights override regardless of profile defaults
 
 **Website Management:**  
 - View client site status and URLs
@@ -489,6 +594,10 @@ npm run preview
 - ✅ Responsive mobile-friendly design
 - ✅ Warning confirmations for all destructive actions
 - ✅ State persistence across page refreshes
+- ✅ **Software Profiles System**: Dynamic POS system configuration
+- ✅ **Smart Column Detection**: Automatic data parsing with keyword matching
+- ✅ **Individual Insights Control**: Per-client insights tab toggle
+- ✅ **Quality Control Features**: Software-specific tab naming
 
 **Ready for Production**: ✅ All core features implemented and tested
 
