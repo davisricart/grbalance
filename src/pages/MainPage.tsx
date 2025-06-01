@@ -843,7 +843,7 @@ export default function MainPage({ user }: MainPageProps) {
                               {results[0]?.map((header, i) => (
                                 <th
                                   key={i}
-                                  className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                                  className="px-6 py-4 text-left text-sm font-semibold text-gray-700 tracking-wider"
                                 >
                                   {header}
                                 </th>
@@ -884,7 +884,7 @@ export default function MainPage({ user }: MainPageProps) {
                                     {row.map((cell, j) => (
                                       <th
                                         key={j}
-                                        className="px-6 py-4 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider"
+                                        className="px-6 py-4 text-left text-sm font-semibold text-gray-700 tracking-wider"
                                       >
                                         {cell}
                                       </th>
