@@ -126,15 +126,45 @@ const SOFTWARE_PROFILES = {
 exports.handler = async function(event, context) {
   console.log('🚀 Execute-script function called');
   
+  // Get the origin of the request
+  const origin = event.headers.origin || event.headers.Origin;
+  console.log('🌐 Request origin:', origin);
+  
+  // Allow requests from:
+  // - Admin site (grbalance.netlify.app)
+  // - Client sites (*.netlify.app)
+  // - Local development (localhost)
+  const allowedOrigins = [
+    'https://grbalance.netlify.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:5178',
+    'http://localhost:5179',
+    'http://localhost:5180',
+    'http://localhost:5181'
+  ];
+  
+  // Check if origin is a Netlify app domain or in allowed list
+  const isNetlifyApp = origin && origin.includes('.netlify.app');
+  const isAllowedOrigin = allowedOrigins.includes(origin);
+  const allowOrigin = isNetlifyApp || isAllowedOrigin;
+  
+  console.log('✅ Origin allowed:', allowOrigin, '- Origin:', origin);
+  
   // Set CORS headers
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowOrigin ? origin : 'https://grbalance.netlify.app',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'false'
   };
 
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
+    console.log('🔄 Handling CORS preflight request');
     return {
       statusCode: 200,
       headers,
