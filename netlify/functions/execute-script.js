@@ -151,25 +151,55 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    console.log('🧪 MINIMAL TEST: Returning basic test data...');
+    console.log('📋 Parsing multipart form data...');
+    const result = await multipart.parse(event);
+    console.log('📁 Files received:', Object.keys(result.files || {}));
+    console.log('📝 Form fields:', Object.keys(result || {}));
+
+    if (!result.files || !result.files.file1 || !result.files.file2) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Both file1 and file2 are required' }),
+      };
+    }
+
+    const file1Buffer = result.files.file1.content;
+    const file2Buffer = result.files.file2.content;
+    const scriptName = result.scriptName;
     
-    // MINIMAL TEST: Just return static test data
-    const testData = [
-      ['Card Brand', 'Count in File 1', 'Count in File 2'],
-      ['Visa', 5, 7],
-      ['Mastercard', 3, 4],
-      ['American Express', 1, 2]
-    ];
+    console.log('✅ Files parsed successfully');
+    console.log('📊 File 1 size:', file1Buffer.length, 'bytes');
+    console.log('📊 File 2 size:', file2Buffer.length, 'bytes');
+    console.log('📜 Script name:', scriptName);
+
+    // Get the CLIENT_ID from environment variables to identify which scripts to use
+    const clientId = process.env.CLIENT_ID;
+    console.log('🔍 Client ID from environment:', clientId);
+
+    // Get user's software profile
+    const softwareProfileId = await getUserSoftwareProfile(clientId);
+    const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['daysmart_salon'];
+    console.log('✅ Using software profile:', softwareProfile.displayName);
+
+    let processedData;
+
+    // FORCE simple comparison for now to avoid dynamic script issues
+    console.log('🔄 Using simple comparison...');
+    processedData = simpleComparison(XLSX, file1Buffer, file2Buffer, softwareProfile.id);
+    
+    console.log('✅ Processing complete, rows generated:', processedData.length);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ 
-        result: testData,
-        message: 'MINIMAL TEST: Static data returned successfully',
-        rowCount: testData.length,
+        result: processedData,
+        message: 'Processing completed successfully',
+        rowCount: processedData.length,
         usedDynamicScript: false,
-        softwareProfile: 'Test Mode'
+        softwareProfile: softwareProfile.displayName,
+        insightsConfig: softwareProfile.insightsConfig
       }),
     };
 
@@ -186,104 +216,6 @@ exports.handler = async function(event, context) {
     };
   }
 };
-
-// Load and execute dynamic script from Firebase
-async function loadAndExecuteDynamicScript(clientId, scriptName, XLSX, file1Buffer, file2Buffer) {
-  console.log('🔍 Loading dynamic script for client:', clientId, 'script:', scriptName);
-  
-  try {
-    // Get all users and find the one with matching client ID
-    const usageSnapshot = await db.collection('usage').get();
-    
-    for (const userDoc of usageSnapshot.docs) {
-      const userData = userDoc.data();
-      const deployedScripts = userData.deployedScripts || [];
-      
-      // Find the script with matching name
-      for (const script of deployedScripts) {
-        if (typeof script === 'object' && script.name === scriptName && script.logic) {
-          console.log('🎯 Found dynamic script:', script.name);
-          
-          // Execute the stored JavaScript code
-          const scriptLogic = script.logic;
-          const generatedCode = scriptLogic.generatedCode;
-          
-          console.log('🔧 Executing dynamic script logic...');
-          
-          // Create a more complete sandbox environment
-          const sandbox = {
-            XLSX: XLSX,
-            console: console,
-            String: String,
-            Set: Set,
-            Array: Array,
-            Math: Math,
-            parseInt: parseInt,
-            parseFloat: parseFloat,
-            Date: Date,
-            RegExp: RegExp,
-            JSON: JSON,
-            Object: Object,
-            Number: Number
-          };
-          
-          try {
-            // Execute the generated code in a controlled environment with timeout
-            const vm = require('vm');
-            const context = vm.createContext(sandbox);
-            
-            // Set a reasonable timeout for script execution (10 seconds)
-            const timeout = 10000;
-            
-            // Execute the function definition with timeout
-            vm.runInContext(generatedCode, context, { timeout });
-            
-            // Call the executeScript function if it exists
-            if (typeof sandbox.executeScript === 'function') {
-              console.log('🎯 Calling executeScript function...');
-              const result = sandbox.executeScript(XLSX, file1Buffer, file2Buffer);
-              
-              // Validate result
-              if (result && Array.isArray(result) && result.length > 0) {
-                console.log('✅ Dynamic script executed successfully');
-                return result;
-              } else {
-                console.log('⚠️ Script returned invalid result format');
-                return null;
-              }
-            } else {
-              console.log('⚠️ No executeScript function found, trying direct evaluation...');
-              // Try to evaluate the code directly with timeout
-              const result = vm.runInContext(`(${generatedCode})(XLSX, file1Buffer, file2Buffer)`, context, { timeout });
-              
-              // Validate result
-              if (result && Array.isArray(result) && result.length > 0) {
-                return result;
-              } else {
-                console.log('⚠️ Direct evaluation returned invalid result');
-                return null;
-              }
-            }
-          } catch (execError) {
-            console.error('❌ Script execution error:', execError.message);
-            if (execError.message.includes('timeout')) {
-              console.log('⏰ Script execution timed out');
-            }
-            console.log('🔄 Falling back to simple comparison...');
-            return null;
-          }
-        }
-      }
-    }
-    
-    console.log('❌ No matching dynamic script found');
-    return null;
-    
-  } catch (error) {
-    console.error('❌ Error loading dynamic script:', error);
-    throw error;
-  }
-}
 
 // Get user's software profile from database
 async function getUserSoftwareProfile(clientId) {
