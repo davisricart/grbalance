@@ -20,7 +20,7 @@ const db = getFirestore();
 const SOFTWARE_PROFILES = {
   'daysmart_salon': {
     id: 'daysmart_salon',
-    displayName: 'DaySmart Salon Software',
+    displayName: 'DaySmart Salon',
     insightsConfig: {
       showInsights: true,
       showPaymentTrends: true,
@@ -56,7 +56,7 @@ const SOFTWARE_PROFILES = {
   },
   'toast_pos': {
     id: 'toast_pos',
-    displayName: 'Toast POS (Restaurant)',
+    displayName: 'Toast POS',
     insightsConfig: {
       showInsights: true,
       showPaymentTrends: true,
@@ -92,7 +92,7 @@ const SOFTWARE_PROFILES = {
   },
   'custom_basic': {
     id: 'custom_basic',
-    displayName: 'Custom/Basic Format',
+    displayName: 'Custom',
     insightsConfig: {
       showInsights: false,
       showPaymentTrends: false,
@@ -111,85 +111,80 @@ const SOFTWARE_PROFILES = {
 };
 
 exports.handler = async function(event, context) {
+  // Enable CORS
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Methods": "GET, OPTIONS"
   };
 
   // Handle preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers, body: "" };
   }
 
-  if (event.httpMethod !== 'GET') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+  if (event.httpMethod !== "GET") {
+    return { statusCode: 405, headers, body: "Method Not Allowed" };
   }
 
   try {
-    // Get CLIENT_ID from environment variables
-    const clientId = process.env.CLIENT_ID;
+    const clientId = event.queryStringParameters?.clientId;
     
     if (!clientId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Client ID not configured' }),
+        body: JSON.stringify({ error: 'Client ID is required' })
       };
     }
 
-    console.log('🔍 Looking up configuration for clientId:', clientId);
-    
-    // Query usage collection for user with matching businessName or subdomain
-    const usageRef = db.collection('usage');
-    const snapshot = await usageRef.get();
-    
-    let userProfile = null;
+    // Find user by client ID
+    const usersSnapshot = await db.collection('usage').get();
     let userData = null;
-    snapshot.forEach(doc => {
+    
+    usersSnapshot.forEach((doc) => {
       const data = doc.data();
       const userBusinessName = data.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || '';
       
       if (userBusinessName === clientId || data.subdomain === clientId) {
-        userProfile = data.softwareProfile;
-        userData = data;
-        console.log('✅ Found user with software profile:', userProfile);
+        userData = { id: doc.id, ...data };
       }
     });
     
-    // Use default profile if not set
-    const profileId = userProfile || 'daysmart_salon';
-    const profile = SOFTWARE_PROFILES[profileId] || SOFTWARE_PROFILES['daysmart_salon'];
+    if (!userData) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'Client not found' })
+      };
+    }
+
+    // Get software profile
+    const softwareProfileId = userData.softwareProfile || 'custom_basic';
+    const softwareProfile = SOFTWARE_PROFILES[softwareProfileId] || SOFTWARE_PROFILES['custom_basic'];
     
+    // Return client configuration
+    const config = {
+      clientId: clientId,
+      softwareProfile: softwareProfileId,
+      softwareProfileName: softwareProfile.displayName,
+      availableTabs: softwareProfile.availableTabs,
+      insightsConfig: softwareProfile.insightsConfig
+    };
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        clientId,
-        softwareProfile: profile,
-        businessName: userData?.businessName || 'Unknown Business',
-        businessType: userData?.businessType || 'Unknown Type',
-        message: 'Client configuration retrieved successfully'
-      }),
+      body: JSON.stringify(config)
     };
 
   } catch (error) {
-    console.error('❌ Error getting client config:', error);
+    console.error('Error getting client config:', error);
+    
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        error: 'Failed to get client configuration', 
-        message: error.message 
-      }),
+      body: JSON.stringify({ error: 'Failed to get client configuration' })
     };
   }
 }; 
