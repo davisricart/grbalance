@@ -3933,7 +3933,7 @@ A dropdown will appear to select which client gets this script.`,
                           {Object.entries(testResults.detectedColumns).map(([type, column]) => (
                             <div key={type} className="flex justify-between items-center">
                               <span className="capitalize font-medium">{type}:</span>
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{column}</span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{String(column)}</span>
                             </div>
                           ))}
                         </div>

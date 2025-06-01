@@ -3,11 +3,16 @@ exports.handler = async (event, context) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
   };
 
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: 'OK' };
+    return {
+      statusCode: 200,
+      headers,
+      body: ''
+    };
   }
 
   if (event.httpMethod !== 'POST') {
@@ -49,7 +54,8 @@ exports.handler = async (event, context) => {
     const file1Data = requestData.file1Data;
     const file2Data = requestData.file2Data;
     
-    const results = [['Card Brand', 'Count in File 1', 'Count in File 2']];
+    // Match admin preview format: 2 columns
+    const results = [['Card Brand', 'Count in Name']];
     
     // Find card brand column in file 1
     let cardBrandKey1 = null;
@@ -62,47 +68,44 @@ exports.handler = async (event, context) => {
       }
     }
     
-    // Find card brand column in file 2
-    let cardBrandKey2 = null;
+    // Find name column in file 2  
+    let nameKey2 = null;
     if (file2Data.length > 0) {
       for (const key of Object.keys(file2Data[0])) {
-        if (String(key).toLowerCase().includes('card brand')) {
-          cardBrandKey2 = key;
+        if (String(key).toLowerCase().includes('name')) {
+          nameKey2 = key;
           break;
         }
       }
     }
 
-    // Count brands in file 1
-    const counts1 = {};
+    // Get unique card brands from file 1
+    const uniqueCardBrands = new Set();
     if (cardBrandKey1) {
       file1Data.forEach(row => {
         if (row && row[cardBrandKey1]) {
           const brand = String(row[cardBrandKey1]).trim();
           if (brand) {
-            counts1[brand] = (counts1[brand] || 0) + 1;
+            uniqueCardBrands.add(brand);
           }
         }
       });
     }
 
-    // Count brands in file 2
-    const counts2 = {};
-    if (cardBrandKey2) {
-      file2Data.forEach(row => {
-        if (row && row[cardBrandKey2]) {
-          const brand = String(row[cardBrandKey2]).trim();
-          if (brand) {
-            counts2[brand] = (counts2[brand] || 0) + 1;
+    // Count how many times each card brand appears in file 2's Name column (case-insensitive)
+    uniqueCardBrands.forEach(cardBrand => {
+      let count = 0;
+      if (nameKey2) {
+        file2Data.forEach(row => {
+          if (row && row[nameKey2]) {
+            const name = String(row[nameKey2]).toLowerCase();
+            if (name.includes(cardBrand.toLowerCase())) {
+              count++;
+            }
           }
-        }
-      });
-    }
-
-    // Combine results
-    const allBrands = new Set([...Object.keys(counts1), ...Object.keys(counts2)]);
-    allBrands.forEach(brand => {
-      results.push([brand, counts1[brand] || 0, counts2[brand] || 0]);
+        });
+      }
+      results.push([cardBrand, count]);
     });
 
     return {
