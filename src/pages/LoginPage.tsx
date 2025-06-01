@@ -58,7 +58,7 @@ export default function LoginPage() {
           navigate(`/app?client=${existingClient}`);
         } else {
           // Default redirect to main app
-          navigate('/app');
+      navigate('/app');
         }
       }
     } catch (error: any) {

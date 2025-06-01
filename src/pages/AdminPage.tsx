@@ -7,6 +7,15 @@ import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/fireb
 import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
+import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
+
+// Add this at the top of the file, after imports
+declare global {
+  interface Window {
+    uploadedFile1?: any;
+    uploadedFile2?: any;
+  }
+}
 
 const TIER_LIMITS = {
   starter: 50,
@@ -69,7 +78,7 @@ const AdminPage: React.FC = () => {
   console.log('🟢 AUTH CURRENT USER:', auth.currentUser);
   console.log('🟢 AUTH STATE:', auth.currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
 
-  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'settings'>('clients');
+  const [activeTab, setActiveTab] = useState<'clients' | 'pending' | 'approved' | 'deleted' | 'testing' | 'settings'>('clients');
   const [clients, setClients] = useState<Client[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
@@ -156,6 +165,29 @@ const AdminPage: React.FC = () => {
     billingCycle: 'monthly',
     adminNotes: ''
   });
+
+  // Add script testing state
+  const [testingForm, setTestingForm] = useState({
+    selectedUser: '',
+    scriptContent: '',
+    previewMode: 'desktop' as 'desktop' | 'tablet' | 'mobile'
+  });
+
+  // Add state for file uploads at the top of AdminPage component
+  const [testFile1, setTestFile1] = useState<File | null>(null);
+  const [testFile2, setTestFile2] = useState<File | null>(null);
+  const [testFile1Info, setTestFile1Info] = useState<ParsedFileData | null>(null);
+  const [testFile2Info, setTestFile2Info] = useState<ParsedFileData | null>(null);
+  const [testFile1Error, setTestFile1Error] = useState<string>('');
+  const [testFile2Error, setTestFile2Error] = useState<string>('');
+  const [testFileLoading, setTestFileLoading] = useState<{file1: boolean, file2: boolean}>({file1: false, file2: false});
+
+  // Add state for selected headers
+  const [selectedHeaders1, setSelectedHeaders1] = useState<string[]>([]);
+  const [selectedHeaders2, setSelectedHeaders2] = useState<string[]>([]);
+
+  // Add state for preview mode
+  const [previewMode, setPreviewMode] = useState<'development' | 'client'>('development');
 
   // Fetch clients from Firebase
   const fetchClients = async () => {
@@ -579,7 +611,17 @@ const AdminPage: React.FC = () => {
   const handleApprovePendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Approve User Account',
-      `Are you sure you want to approve ${userEmail}?\n\nThis will:\n• Grant them full access to their subscription plan\n• Allow them to use all platform features\n• Send them login credentials\n\nThis action cannot be easily undone.`,
+      `Are you sure you want to approve ${userEmail}?
+
+This will:
+• Grant them full access to their subscription plan
+• Allow them to use all platform features
+• Send them login credentials
+
+Important:
+• This action cannot be easily undone
+• User will gain immediate access
+• They will receive email notification`,
       'Approve User',
       'bg-green-600 text-white',
       () => approvePendingUser(userId)
@@ -589,7 +631,17 @@ const AdminPage: React.FC = () => {
   const handleRejectPendingUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Permanently Reject User',
-      `Are you sure you want to reject ${userEmail}?\n\nThis will:\n• Permanently delete their account\n• Remove all their registration data\n• They will need to register again\n\nTHIS ACTION CANNOT BE UNDONE.`,
+      `Are you sure you want to reject ${userEmail}?
+
+This will:
+• Permanently delete their account
+• Remove all their registration data
+• Require them to register again if they want access
+
+Warning:
+• THIS ACTION CANNOT BE UNDONE
+• All user data will be lost
+• User will not be notified automatically`,
       'Reject & Delete',
       'bg-red-600 text-white',
       () => rejectPendingUser(userId)
@@ -600,7 +652,17 @@ const AdminPage: React.FC = () => {
     console.log('🔥 handleDeactivateApprovedUser called for:', userEmail);
     showConfirmation(
       'Temporarily Deactivate User',
-      `Are you sure you want to deactivate ${userEmail}?\n\nThis will:\n• Remove their access to all services\n• Set their usage limit to 0\n• Keep their account data intact\n\nThey can be reactivated later if needed.`,
+      `Are you sure you want to deactivate ${userEmail}?
+
+This will:
+• Remove their access to all services
+• Set their usage limit to 0
+• Keep their account data intact
+
+Benefits:
+• User can be reactivated later
+• No data loss occurs
+• Preserves user history and settings`,
       'Deactivate User',
       'bg-orange-600 text-white',
       () => deactivateApprovedUser(userId)
@@ -611,7 +673,17 @@ const AdminPage: React.FC = () => {
   const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Reactivate User Account',
-      `Are you sure you want to reactivate the account for ${userEmail}?\n\nThis will:\n• Restore full access to their subscription\n• Re-enable their comparison limits\n• Allow them to use the platform again\n\nUser will regain access immediately.`,
+      `Are you sure you want to reactivate the account for ${userEmail}?
+
+This will:
+• Restore full access to their subscription
+• Re-enable their comparison limits
+• Allow them to use the platform again
+
+Result:
+• User will regain access immediately
+• All previous data will be restored
+• Usage limits will be reset to subscription tier`,
       'Reactivate User',
       'bg-green-600 hover:bg-green-700',
       () => reactivateApprovedUser(userId)
@@ -622,7 +694,18 @@ const AdminPage: React.FC = () => {
   const handleDeleteUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Delete User Account',
-      `Are you sure you want to delete the account for ${userEmail}?\n\nThis will:\n• Move user to "Deleted" tab\n• Preserve all data for recovery\n• Remove access to platform\n• Keep Netlify site (use "Delete Website" first if needed)\n\nThis is a soft delete - user can be restored later.`,
+      `Are you sure you want to delete the account for ${userEmail}?
+
+This will:
+• Move user to "Deleted" tab
+• Preserve all data for recovery
+• Remove access to platform
+• Keep Netlify site intact
+
+Important:
+• This is a soft delete - user can be restored later
+• Use "Delete Website" first if you want to remove their site
+• User data is preserved for compliance`,
       'Delete User',
       'bg-red-600 hover:bg-red-700',
       () => deleteUser(userId)
@@ -636,7 +719,18 @@ const AdminPage: React.FC = () => {
     
     showConfirmation(
       'Restore User Account',
-      `Are you sure you want to restore the account for ${userEmail}?\n\nThis will:\n• Move user back to "Approved" tab\n• Restore full subscription access\n• Re-enable comparison limits based on tier\n• Allow platform access immediately\n\nUser will regain access immediately.`,
+      `Are you sure you want to restore the account for ${userEmail}?
+
+This will:
+• Move user back to "Approved" tab
+• Restore full subscription access
+• Re-enable comparison limits based on tier
+• Allow platform access immediately
+
+Result:
+• User will regain access immediately
+• All data and settings will be restored
+• Usage history will be preserved`,
       'Restore User',
       'bg-green-600 hover:bg-green-700',
       () => restoreUser(userId)
@@ -651,7 +745,19 @@ const AdminPage: React.FC = () => {
     
     showConfirmation(
       'PERMANENT DELETION - IRREVERSIBLE',
-      `Are you sure you want to permanently delete ALL data for ${userEmail}?\n\nThis will COMPLETELY REMOVE:\n• User account from Firebase database\n• Netlify website and all deployed scripts (${hasNetlifySite} site found)\n• All user data and history\n• All admin notes and records\n\nTHIS ACTION IS 100% IRREVERSIBLE.\nUser will be completely erased from all systems.`,
+      `Are you sure you want to permanently delete ALL data for ${userEmail}?
+
+This will COMPLETELY REMOVE:
+• User account from Firebase database
+• Netlify website and all deployed scripts (${hasNetlifySite} site found)
+• All user data and history
+• All admin notes and records
+
+WARNING:
+• THIS ACTION IS 100% IRREVERSIBLE
+• User will be completely erased from all systems
+• No recovery will be possible
+• Consider data retention compliance requirements`,
       'DELETE EVERYTHING',
       'bg-red-600 hover:bg-red-700',
       () => permanentlyDeleteUser(userId)
@@ -984,7 +1090,18 @@ const AdminPage: React.FC = () => {
   const handleConfirmProvisionWebsite = (user: ApprovedUser) => {
     showConfirmation(
       'Provision New Website',
-      `Are you sure you want to provision a website for ${user.businessName || user.email}?\n\nThis will:\n• Create a new Netlify site\n• Generate a unique client portal URL\n• Set up environment variables\n• Enable script deployment capabilities\n\nEach user can only have ONE website.\nThis process may take 30-60 seconds.`,
+      `Are you sure you want to provision a website for ${user.businessName || user.email}?
+
+This will:
+• Create a new Netlify site
+• Generate a unique client portal URL
+• Set up environment variables
+• Enable script deployment capabilities
+
+Important Notes:
+• Each user can only have ONE website
+• This process may take 30-60 seconds
+• The website will be immediately available once created`,
       'Provision Website',
       'bg-emerald-600 text-white',
       () => handleProvisionWebsite(user)
@@ -995,7 +1112,18 @@ const AdminPage: React.FC = () => {
   const handleConfirmDeleteWebsite = (user: ApprovedUser) => {
     showConfirmation(
       'Permanently Delete Website',
-      `Are you sure you want to delete the website for ${user.businessName || user.email}?\n\nThis will:\n• Permanently remove their Netlify site\n• Delete all deployed scripts\n• Remove the client portal URL\n• Cannot be undone\n\nThe user will lose access to their custom portal.\nYou can provision a new website afterward if needed.`,
+      `Are you sure you want to delete the website for ${user.businessName || user.email}?
+
+This will:
+• Permanently remove their Netlify site
+• Delete all deployed scripts
+• Remove the client portal URL
+• Cannot be undone
+
+Warning:
+• The user will lose access to their custom portal
+• You can provision a new website afterward if needed
+• All custom configurations will be lost`,
       'Delete Website',
       'bg-red-600 text-white',
       () => handleDeleteWebsite(user)
@@ -1125,7 +1253,18 @@ const AdminPage: React.FC = () => {
   const handleConfirmDeployScript = (user: ApprovedUser) => {
     showConfirmation(
       'Deploy Custom Script',
-      `Ready to deploy a custom script for ${user.businessName || user.email}?\n\nThis will:\n• Open the script deployment editor\n• Allow you to write/paste JavaScript code\n• Deploy the script to their website\n• Update their client portal\n\nYou can deploy multiple scripts and update them anytime.`,
+      `Ready to deploy a custom script for ${user.businessName || user.email}?
+
+This will:
+• Open the script deployment editor
+• Allow you to write/paste JavaScript code
+• Deploy the script to their website
+• Update their client portal
+
+Features:
+• You can deploy multiple scripts
+• Scripts can be updated anytime
+• Changes are applied immediately`,
       'Open Script Editor',
       'bg-blue-600 text-white',
       () => {
@@ -1327,6 +1466,17 @@ const AdminPage: React.FC = () => {
               >
                 <Users className="inline w-4 h-4 mr-2" />
                 Deleted Users ({deletedUsers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('testing')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'testing'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <Upload className="inline w-4 h-4 mr-2" />
+                Script Testing
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
@@ -1993,6 +2143,591 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
+        {activeTab === 'testing' && (
+          <div className="space-y-6">
+            {/* File Uploads */}
+            <div className="flex flex-col md:flex-row gap-6 mb-4">
+              {/* File 1 */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload File 1</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0] || null;
+                    setTestFile1(file);
+                    setTestFile1Error('');
+                    setTestFile1Info(null);
+                    if (file) {
+                      setTestFileLoading(l => ({...l, file1: true}));
+                      try {
+                        const parsed = await parseFile(file);
+                        FileStore.store('file1', parsed);
+                        setTestFile1Info(parsed);
+                      } catch (err: any) {
+                        setTestFile1Error(err.message || 'Failed to parse file');
+                      } finally {
+                        setTestFileLoading(l => ({...l, file1: false}));
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 file:cursor-pointer"
+                />
+                {testFileLoading.file1 && <div className="text-xs text-emerald-600 mt-1">Parsing file...</div>}
+                {testFile1Info && (
+                  <>
+                    <div className="mt-2 text-xs text-gray-700 bg-emerald-50 border border-emerald-100 rounded p-2">
+                      <div><b>{testFile1Info.filename}</b> ({testFile1Info.summary.totalRows} rows, {testFile1Info.summary.columns} columns)</div>
+                      <div>Headers: <span className="break-all">{testFile1Info.headers.join(', ')}</span></div>
+                    </div>
+                    {/* Clickable header selector for File 1 */}
+                    <div className="mt-2">
+                      <div className="text-xs font-semibold mb-1">Select columns from File 1:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {testFile1Info.headers.map((header) => (
+                          <button
+                            key={header}
+                            type="button"
+                            className={`px-2 py-1 rounded border text-xs ${selectedHeaders1.includes(header) ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'}`}
+                            onClick={() => {
+                              setSelectedHeaders1((prev) =>
+                                prev.includes(header)
+                                  ? prev.filter((h) => h !== header)
+                                  : [...prev, header]
+                              );
+                            }}
+                          >
+                            {header}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {testFile1Error && <div className="text-xs text-red-600 mt-1">{testFile1Error}</div>}
+              </div>
+              {/* File 2 */}
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Upload File 2</label>
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0] || null;
+                    setTestFile2(file);
+                    setTestFile2Error('');
+                    setTestFile2Info(null);
+                    if (file) {
+                      setTestFileLoading(l => ({...l, file2: true}));
+                      try {
+                        const parsed = await parseFile(file);
+                        FileStore.store('file2', parsed);
+                        setTestFile2Info(parsed);
+                      } catch (err: any) {
+                        setTestFile2Error(err.message || 'Failed to parse file');
+                      } finally {
+                        setTestFileLoading(l => ({...l, file2: false}));
+                      }
+                    }
+                  }}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 file:cursor-pointer"
+                />
+                {testFileLoading.file2 && <div className="text-xs text-emerald-600 mt-1">Parsing file...</div>}
+                {testFile2Info && (
+                  <>
+                    <div className="mt-2 text-xs text-gray-700 bg-emerald-50 border border-emerald-100 rounded p-2">
+                      <div><b>{testFile2Info.filename}</b> ({testFile2Info.summary.totalRows} rows, {testFile2Info.summary.columns} columns)</div>
+                      <div>Headers: <span className="break-all">{testFile2Info.headers.join(', ')}</span></div>
+                    </div>
+                    {/* Clickable header selector for File 2 */}
+                    <div className="mt-2">
+                      <div className="text-xs font-semibold mb-1">Select columns from File 2:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {testFile2Info.headers.map((header) => (
+                          <button
+                            key={header}
+                            type="button"
+                            className={`px-2 py-1 rounded border text-xs ${selectedHeaders2.includes(header) ? 'bg-blue-600 text-white border-blue-700' : 'bg-white text-blue-700 border-blue-200 hover:bg-blue-50'}`}
+                            onClick={() => {
+                              setSelectedHeaders2((prev) =>
+                                prev.includes(header)
+                                  ? prev.filter((h) => h !== header)
+                                  : [...prev, header]
+                              );
+                            }}
+                          >
+                            {header}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {testFile2Error && <div className="text-xs text-red-600 mt-1">{testFile2Error}</div>}
+              </div>
+            </div>
+            {/* Prompt Box and Generate Results Button */}
+            <div style={{ marginBottom: 16 }}>
+              <label htmlFor="analysis-instruction" className="block text-sm font-medium text-gray-700 mb-2">
+                Analysis Instructions
+              </label>
+              <textarea
+                id="analysis-instruction"
+                placeholder="Describe your calculation or comparison here... (e.g., 'Compare card brand frequencies between files', 'Find missing transactions', 'Calculate discrepancies')"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none transition duration-200 text-sm"
+                style={{ minHeight: 80 }}
+                rows={3}
+              />
+            </div>
+            <div className="mt-4 space-y-4">
+              {/* Results Controls */}
+              <div className="flex flex-wrap gap-2 items-center">
+                <button
+                  onClick={() => {
+                    console.log('🔄 Generate Results button clicked!');
+                    
+                    // Clear any previous error
+                    const errorArea = document.getElementById('generate-results-error');
+                    if (errorArea) errorArea.style.display = 'none';
+                    
+                    // Access parsed files from FileStore and expose globally
+                    const file1 = FileStore.get('file1');
+                    const file2 = FileStore.get('file2');
+                    console.log('📁 File 1:', file1);
+                    console.log('📁 File 2:', file2);
+                    console.log('🎯 Selected headers 1:', selectedHeaders1);
+                    console.log('🎯 Selected headers 2:', selectedHeaders2);
+                    
+                    window.uploadedFile1 = file1;
+                    window.uploadedFile2 = file2;
+                    if (!file1 || !file2) {
+                      if (errorArea) {
+                        errorArea.innerHTML = '⚠️ Please upload both files first!';
+                        errorArea.style.display = 'block';
+                      }
+                      return;
+                    }
+                    if (selectedHeaders1.length === 0 || selectedHeaders2.length === 0) {
+                      if (errorArea) {
+                        errorArea.innerHTML = '⚠️ Please select at least one column from each file!';
+                        errorArea.style.display = 'block';
+                      }
+                      return;
+                    }
+                    
+                    console.log('✅ All checks passed, generating results...');
+                    
+                    // Example: For each unique value in the first selected header from file1, count how many times it appears in the first selected header from file2
+                    const col1 = selectedHeaders1[0];
+                    const col2 = selectedHeaders2[0];
+                    console.log(`🔍 Comparing "${col1}" (File 1) vs "${col2}" (File 2)`);
+                    
+                    const uniqueValues = [...new Set(file1.rows.map((row: any) => row[col1]))];
+                    console.log('🔢 Unique values in', col1, ':', uniqueValues);
+                    
+                    // FIX: Case-insensitive matching
+                    const counts = uniqueValues.map((val) => ({
+                      value: val,
+                      count: file2.rows.filter((row: any) => 
+                        String(row[col2]).toLowerCase() === String(val).toLowerCase()
+                      ).length
+                    }));
+                    console.log('📊 Counts (case-insensitive):', counts);
+                    
+                    let html = `<div class='mb-2 text-sm font-semibold'>How many times each unique value from "${col1}" in File 1 appears in "${col2}" in File 2 (case-insensitive):</div>`;
+                    html += '<table style="margin:16px 0;border-collapse:collapse;width:100%"><tr><th style="border:1px solid #ccc;padding:8px">' + col1 + '</th><th style="border:1px solid #ccc;padding:8px">Count in ' + col2 + '</th></tr>';
+                    counts.forEach(({value, count}) => {
+                      html += `<tr><td style="border:1px solid #ccc;padding:8px">${value}</td><td style="border:1px solid #ccc;padding:8px">${count}</td></tr>`;
+                    });
+                    html += '</table>';
+                    
+                    console.log('🎨 Generated HTML:', html);
+                    
+                    // Generate results for BOTH preview modes simultaneously
+                    const devResultsArea = document.getElementById('results-testing-area');
+                    const clientResultsArea = document.getElementById('results-testing-area-client');
+                    
+                    console.log('🎯 Results areas:', {
+                      development: devResultsArea,
+                      client: clientResultsArea,
+                      currentMode: previewMode
+                    });
+                    
+                    // Add more specific debugging
+                    if (!devResultsArea) {
+                      console.error('❌ Development results area NOT FOUND! Expected element with id="results-testing-area"');
+                    } else {
+                      console.log('✅ Development results area found:', devResultsArea);
+                    }
+                    
+                    if (!clientResultsArea) {
+                      console.error('❌ Client results area NOT FOUND! Expected element with id="results-testing-area-client"');
+                    } else {
+                      console.log('✅ Client results area found:', clientResultsArea);
+                    }
+                    
+                    // Prepare HTML for both modes
+                    const devHtml = html; // Original simple HTML for development
+                    
+                    // Enhanced HTML for client preview mode
+                    const clientHtml = html
+                      .replace(/style="margin:16px 0;border-collapse:collapse;width:100%"/g, 
+                        'class="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"')
+                      .replace(/style="border:1px solid #ccc;padding:8px"/g, 
+                        'class="px-4 py-3 text-left border-b border-gray-200 bg-gray-50 font-medium text-gray-700 border-r border-gray-200 last:border-r-0"')
+                      .replace(/<tr>/g, '<tr class="hover:bg-gray-50">')
+                      .replace(/<td style="border:1px solid #ccc;padding:8px">/g, 
+                        '<td class="px-4 py-3 border-b border-gray-200 text-gray-900 border-r border-gray-200 last:border-r-0">');
+                    
+                    // Wrap client HTML in styled container
+                    const finalClientHtml = `
+                      <div class="space-y-6">
+                        <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                          <div class="flex items-center gap-2 mb-2">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                            <span class="text-emerald-800 font-medium text-sm">Analysis Complete</span>
+                          </div>
+                          ${clientHtml.replace(/class='mb-2 text-sm font-semibold'/, 'class="text-emerald-700 font-medium"')}
+                        </div>
+                      </div>
+                    `;
+                    
+                    // Check if we should append or replace
+                    const appendMode = (document.getElementById('append-mode') as HTMLInputElement)?.checked;
+                    
+                    // Update BOTH areas
+                    if (devResultsArea) {
+                      if (appendMode && devResultsArea.innerHTML.trim() !== '' && !devResultsArea.innerHTML.includes('Results will appear here')) {
+                        const separator = '<hr style="margin: 20px 0; border: 1px solid #ddd;">';
+                        devResultsArea.innerHTML += separator + devHtml;
+                      } else {
+                        devResultsArea.innerHTML = devHtml;
+                      }
+                    }
+                    
+                    if (clientResultsArea) {
+                      if (appendMode && clientResultsArea.innerHTML.trim() !== '' && !clientResultsArea.innerHTML.includes('Ready for Analysis')) {
+                        const separator = '<div class="border-t border-gray-200 my-6"></div>';
+                        clientResultsArea.innerHTML += separator + finalClientHtml;
+                      } else {
+                        clientResultsArea.innerHTML = finalClientHtml;
+                      }
+                    }
+                    
+                    console.log('✅ Results displayed successfully in BOTH modes!');
+                    
+                    if (!devResultsArea && !clientResultsArea) {
+                      console.error('❌ Both results areas not found!');
+                    } else if (!devResultsArea) {
+                      console.error('❌ Development results area not found!');
+                    } else if (!clientResultsArea) {
+                      console.error('❌ Client results area not found!');
+                    }
+                  }}
+                  style={{ padding: '8px 16px', background: '#10b981', color: 'white', borderRadius: 4 }}
+                >
+                  Generate Results
+                </button>
+                
+                <label className="flex items-center gap-2 text-sm">
+                  <input 
+                    type="checkbox" 
+                    id="append-mode"
+                    className="rounded"
+                  />
+                  Append to existing results (keep building)
+                </label>
+                
+                <button
+                  onClick={() => {
+                    const devResultsArea = document.getElementById('results-testing-area');
+                    const clientResultsArea = document.getElementById('results-testing-area-client');
+                    
+                    if (devResultsArea) {
+                      devResultsArea.innerHTML = '<div class="text-gray-500 text-sm">Results cleared. Ready for new analysis.</div>';
+                    }
+                    
+                    if (clientResultsArea) {
+                      clientResultsArea.innerHTML = `
+                        <div class="text-center py-12">
+                          <div class="text-emerald-600 text-lg font-medium mb-2">Ready for Analysis</div>
+                          <div class="text-gray-500 text-sm">Click "Generate Results" to see your comparison data in client format</div>
+                        </div>
+                      `;
+                    }
+                    
+                    console.log('🗑️ Results cleared in both areas');
+                  }}
+                  className="px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600"
+                >
+                  Clear Results
+                </button>
+                
+                <button
+                  onClick={() => {
+                    // Clear file uploads
+                    setTestFile1(null);
+                    setTestFile2(null);
+                    setTestFile1Info(null);
+                    setTestFile2Info(null);
+                    setTestFile1Error('');
+                    setTestFile2Error('');
+                    setSelectedHeaders1([]);
+                    setSelectedHeaders2([]);
+                    FileStore.clear();
+                    
+                    // Clear file inputs
+                    const file1Input = document.querySelector('input[type="file"]') as HTMLInputElement;
+                    const file2Input = document.querySelectorAll('input[type="file"]')[1] as HTMLInputElement;
+                    if (file1Input) file1Input.value = '';
+                    if (file2Input) file2Input.value = '';
+                    
+                    console.log('🗑️ All uploads cleared');
+                  }}
+                  className="px-3 py-1 bg-orange-500 text-white rounded text-sm hover:bg-orange-600"
+                >
+                  Clear Uploads
+                </button>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".js"
+                    id="script-upload"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        console.log('📂 File selected for loading:', file.name);
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                          try {
+                            const scriptContent = event.target?.result as string;
+                            console.log('📜 Loading script content...');
+                            
+                            // Always restore results first (this works without files)
+                            const htmlMatch = scriptContent.match(/innerHTML = `(.+)`;/s);
+                            if (htmlMatch) {
+                              const savedHtml = htmlMatch[1].replace(/\\`/g, '`');
+                              const resultsArea = document.getElementById('results-testing-area');
+                              if (resultsArea) {
+                                resultsArea.innerHTML = savedHtml;
+                                console.log('✅ Script results restored!');
+                              } else {
+                                console.error('❌ Results area not found');
+                              }
+                            }
+                            
+                            // Try to restore column selections (only if files are uploaded)
+                            const file1ColsMatch = scriptContent.match(/\/\/ File 1 columns: (.+)/);
+                            const file2ColsMatch = scriptContent.match(/\/\/ File 2 columns: (.+)/);
+                            
+                            if (file1ColsMatch && file2ColsMatch) {
+                              const file1Cols = file1ColsMatch[1].split(', ').filter(col => col.trim());
+                              const file2Cols = file2ColsMatch[1].split(', ').filter(col => col.trim());
+                              
+                              // Only restore selections if files are currently uploaded
+                              const file1Info = testFile1Info;
+                              const file2Info = testFile2Info;
+                              
+                              if (file1Info && file2Info) {
+                                const validCols1 = file1Cols.filter(col => file1Info.headers.includes(col));
+                                const validCols2 = file2Cols.filter(col => file2Info.headers.includes(col));
+                                
+                                setSelectedHeaders1(validCols1);
+                                setSelectedHeaders2(validCols2);
+                                
+                                console.log('✅ Column selections restored:', { validCols1, validCols2 });
+                                alert(`Script "${file.name}" loaded successfully! Results and column selections restored.`);
+                              } else {
+                                console.log('⚠️ Files not uploaded yet, only results restored');
+                                alert(`Script "${file.name}" loaded successfully! Results restored.\n\nTo restore column selections, upload your files first, then load the script again.`);
+                              }
+                            } else {
+                              alert(`Script "${file.name}" loaded successfully! Results restored.`);
+                            }
+                            
+                            // IMPORTANT: Reset the file input so it can be used again
+                            const input = e.target as HTMLInputElement;
+                            input.value = '';
+                            console.log('🔄 File input reset for next use');
+                            
+                          } catch (error) {
+                            console.error('❌ Error loading script:', error);
+                            alert('Error loading script. Please make sure it\'s a valid script file saved from this tool.');
+                            
+                            // Reset file input even on error
+                            const input = e.target as HTMLInputElement;
+                            input.value = '';
+                          }
+                        };
+                        reader.readAsText(file);
+                      } else {
+                        console.log('❌ No file selected');
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      console.log('🔍 Load Script button clicked');
+                      const input = document.getElementById('script-upload') as HTMLInputElement;
+                      if (input) {
+                        console.log('📂 Opening file dialog...');
+                        input.click();
+                      } else {
+                        console.error('❌ Script upload input not found');
+                      }
+                    }}
+                    className="px-3 py-1 bg-purple-500 text-white rounded text-sm hover:bg-purple-600"
+                  >
+                    Load Script
+                  </button>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    const resultsArea = document.getElementById('results-testing-area');
+                    if (resultsArea && resultsArea.innerHTML.trim() !== '') {
+                      // Create and download the current script
+                      const scriptContent = `// Generated comparison script
+// File 1 columns: ${selectedHeaders1.join(', ')}
+// File 2 columns: ${selectedHeaders2.join(', ')}
+// Generated on: ${new Date().toISOString()}
+
+console.log('🔄 Running comparison script...');
+
+const file1 = window.uploadedFile1;
+const file2 = window.uploadedFile2;
+
+if (!file1 || !file2) {
+  console.error('Files not loaded');
+  return;
+}
+
+// Current analysis results saved:
+document.getElementById('results-testing-area').innerHTML = \`${resultsArea.innerHTML.replace(/`/g, '\\`')}\`;
+
+console.log('✅ Script executed successfully');`;
+
+                      const blob = new Blob([scriptContent], { type: 'application/javascript' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `comparison-script-${Date.now()}.js`;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                      
+                      alert('Script saved! You can assign this to a client or continue building on it.');
+                    } else {
+                      alert('No results to save yet. Generate some results first!');
+                    }
+                  }}
+                  className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                >
+                  Save Progress
+                </button>
+              </div>
+              
+              {/* Error Message Area */}
+              <div
+                id="generate-results-error"
+                className="hidden bg-red-50 border border-red-200 rounded-md p-3 text-red-700 text-sm"
+                style={{ display: 'none' }}
+              >
+                {/* Error messages will be populated by JavaScript */}
+              </div>
+              
+              {/* Note about customization */}
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-blue-700 text-xs">
+                <strong>Note:</strong> The descriptive text shown in results (like "How many times each unique value...") is just example output. 
+                In live client scripts, this text will be customized for each specific business need and analysis type.
+              </div>
+              
+              {/* Results Display */}
+              <div className="space-y-4">
+                {/* Preview Mode Toggle */}
+                <div className="flex items-center gap-4 p-3 bg-white border rounded-lg">
+                  <span className="text-sm font-medium text-gray-700">Preview Mode:</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setPreviewMode('development')}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        previewMode === 'development'
+                          ? 'bg-gray-600 text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      📱 Development View
+                    </button>
+                    <button
+                      onClick={() => setPreviewMode('client')}
+                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                        previewMode === 'client'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                      }`}
+                    >
+                      🌐 Client Preview
+                    </button>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {previewMode === 'development' 
+                      ? 'Simple view for building and testing' 
+                      : 'Exactly how clients will see results'
+                    }
+                  </div>
+                </div>
+
+                {/* Results Area - Development Mode */}
+                <div 
+                  id="results-testing-area" 
+                  className={`p-4 bg-gray-50 border rounded-md min-h-[100px] ${
+                    previewMode === 'development' ? 'block' : 'hidden'
+                  }`}
+                >
+                  <div className="text-gray-500 text-sm">Results will appear here after clicking "Generate Results"</div>
+                </div>
+
+                {/* Results Area - Client Preview Mode */}
+                <div className={`bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden ${
+                  previewMode === 'client' ? 'block' : 'hidden'
+                }`}>
+                  {/* GR Balance Header */}
+                  <div className="bg-gradient-to-r from-emerald-600 to-emerald-700 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-white text-xl font-bold">Payment Reconciliation Results</h2>
+                        <p className="text-emerald-100 text-sm">Automated analysis and comparison</p>
+                      </div>
+                      <div className="text-emerald-100 text-xs">
+                        Generated: {new Date().toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Client Results Content */}
+                  <div id="results-testing-area-client" className="p-6 min-h-[200px] bg-white">
+                    <div className="text-center py-12">
+                      <div className="text-emerald-600 text-lg font-medium mb-2">Ready for Analysis</div>
+                      <div className="text-gray-500 text-sm">Click "Generate Results" to see your comparison data in client format</div>
+                    </div>
+                  </div>
+                  
+                  {/* Client Footer */}
+                  <div className="bg-gray-50 px-6 py-3 border-t">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Powered by GR Balance</span>
+                      <span>Data processed securely</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'settings' && (
           <div className="space-y-6">
             {/* Account Settings */}
@@ -2358,24 +3093,50 @@ const AdminPage: React.FC = () => {
         {/* Confirmation Dialog */}
         {confirmDialog.isOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="bg-white rounded-lg p-6 w-full max-w-lg">
               <h3 className="text-lg font-medium mb-4">{confirmDialog.title}</h3>
-              <p className="text-gray-700 mb-4">{confirmDialog.message}</p>
+              <div className="text-gray-700 mb-6 space-y-3">
+                {confirmDialog.message.split('\n\n').map((paragraph, index) => (
+                  <div key={index}>
+                    {paragraph.split('\n').map((line, lineIndex) => {
+                      if (line.startsWith('• ')) {
+                        // Handle bullet points
+                        return (
+                          <div key={lineIndex} className="flex items-start gap-2 ml-2">
+                            <span className="text-emerald-600 font-bold text-sm mt-0.5">•</span>
+                            <span className="text-sm">{line.substring(2)}</span>
+                          </div>
+                        );
+                      } else if (line.trim() === '') {
+                        // Handle empty lines
+                        return <div key={lineIndex} className="h-2"></div>;
+                      } else {
+                        // Handle regular text lines
+                        return (
+                          <div key={lineIndex} className="text-sm leading-relaxed">
+                            {line}
+                          </div>
+                        );
+                      }
+                    })}
+                  </div>
+                ))}
+              </div>
               <div className="flex justify-end space-x-3">
+                <button
+                  onClick={closeConfirmation}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={() => {
                     confirmDialog.onConfirm();
                     closeConfirmation();
                   }}
-                  className={`px-4 py-2 ${confirmDialog.confirmStyle} rounded-md hover:bg-opacity-80`}
+                  className={`px-4 py-2 ${confirmDialog.confirmStyle} rounded-md hover:bg-opacity-90 transition-colors font-medium`}
                 >
                   {confirmDialog.confirmText}
-                </button>
-                <button
-                  onClick={closeConfirmation}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
                 </button>
               </div>
             </div>

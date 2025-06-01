@@ -177,7 +177,7 @@ const TIER_LIMITS = {
 ### Netlify Functions
 
 **Site Provisioning:**
-```bash
+   ```bash
 POST /.netlify/functions/provision-client
 Content-Type: application/json
 
@@ -196,7 +196,7 @@ Response:
 ```
 
 **Script Deployment:**
-```bash
+   ```bash
 POST /.netlify/functions/deploy-script
 Content-Type: application/json
 

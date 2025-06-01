@@ -1,17 +1,17 @@
 # netlify.toml
 
 [build]
-  command = "npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+command = "npm run build"
+publish = "dist"
+functions = "netlify/functions"
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
-  status = 200
+  status = 200 
 
-[dev]
-  command = "vite"
+  [dev]
+    command = "vite"
   targetPort = 5177
   port = 8893
-  publish = "dist"
+    publish = "dist"
