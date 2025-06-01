@@ -1768,8 +1768,9 @@ Features:
   // Update user software profile
   const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
     try {
-      await updateDoc(doc(db, 'approvedUsers', userId), {
-        softwareProfile: profileId
+      await updateDoc(doc(db, 'usage', userId), {
+        softwareProfile: profileId,
+        updatedAt: new Date()
       });
       
       // Update local state
