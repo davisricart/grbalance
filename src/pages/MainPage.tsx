@@ -33,9 +33,26 @@ export default function MainPage({ user }: MainPageProps) {
   const file2Ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check for client parameter in URL
+    // Check for client parameter in URL first
     const urlParams = new URLSearchParams(window.location.search);
-    const clientId = urlParams.get('client');
+    let clientId = urlParams.get('client');
+    
+    // If no client parameter, try to get from environment variable (for deployed sites)
+    if (!clientId) {
+      // For deployed Netlify sites, the CLIENT_ID should be available
+      // This is a fallback for when the URL doesn't have the ?client= parameter
+      const hostname = window.location.hostname;
+      if (hostname.includes('netlify.app') && !hostname.includes('localhost')) {
+        // Extract client ID from subdomain (e.g., salon-pizza-nkfevo -> salon-pizza)
+        const subdomain = hostname.split('.')[0];
+        const parts = subdomain.split('-');
+        if (parts.length >= 2) {
+          // Remove the random suffix (last part) to get the client name
+          const clientParts = parts.slice(0, -1);
+          clientId = clientParts.join('-');
+        }
+      }
+    }
     
     if (clientId) {
       // Load client-specific scripts from Firebase
