@@ -49,7 +49,9 @@ export default function MainPage({ user }: MainPageProps) {
         if (parts.length >= 2) {
           // Remove the random suffix (last part) to get the client name
           const clientParts = parts.slice(0, -1);
-          clientId = clientParts.join('-');
+          const extractedName = clientParts.join('-');
+          // Convert to the same format used in Firebase (no spaces, no hyphens)
+          clientId = extractedName.replace(/[-\s]/g, '').toLowerCase();
         }
       }
     }
