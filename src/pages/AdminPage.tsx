@@ -1768,8 +1768,17 @@ Features:
   // Update user software profile
   const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
     try {
+      // Get the selected profile details
+      const selectedProfile = SOFTWARE_PROFILES.find(p => p.id === profileId);
+      
       await updateDoc(doc(db, 'usage', userId), {
         softwareProfile: profileId,
+        // Store the complete profile configuration
+        softwareProfileConfig: selectedProfile ? {
+          availableTabs: selectedProfile.availableTabs,
+          insightsConfig: selectedProfile.insightsConfig,
+          dataStructure: selectedProfile.dataStructure
+        } : null,
         updatedAt: new Date()
       });
       
@@ -1778,7 +1787,9 @@ Features:
         user.id === userId ? { ...user, softwareProfile: profileId } : user
       ));
       
-      showNotification('success', 'Success', 'Software profile updated successfully!');
+      showNotification('success', 'Software Profile Updated', 
+        `Software profile updated successfully! ${selectedProfile?.insightsConfig.showInsights ? 'Insights tab will be available' : 'Insights tab will be hidden'} for this client.`
+      );
     } catch (error) {
       console.error('Error updating software profile:', error);
       showNotification('error', 'Error', 'Failed to update software profile.');
