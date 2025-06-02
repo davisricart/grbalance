@@ -4330,12 +4330,12 @@ A dropdown will appear to select which client gets this script.`,
                       {newClient.billingCycle === 'annual' ? ' (Billed as $182/year)' : ''}
                     </option>
                     <option value="professional">
-                      Professional - {newClient.billingCycle === 'annual' ? '$23' : '$29'}/month
-                      {newClient.billingCycle === 'annual' ? ' (Billed as $277/year)' : ''}
+                      Professional - {newClient.billingCycle === 'annual' ? '$27' : '$34'}/month
+                      {newClient.billingCycle === 'annual' ? ' (Billed as $324/year)' : ''}
                     </option>
                     <option value="business">
-                      Business - {newClient.billingCycle === 'annual' ? '$39' : '$49'}/month
-                      {newClient.billingCycle === 'annual' ? ' (Billed as $470/year)' : ''}
+                      Business - {newClient.billingCycle === 'annual' ? '$47' : '$59'}/month
+                      {newClient.billingCycle === 'annual' ? ' (Billed as $564/year)' : ''}
                     </option>
                   </select>
                 </div>

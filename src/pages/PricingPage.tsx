@@ -28,8 +28,8 @@ export default function PricingPage() {
     },
     {
       name: 'Professional',
-      monthlyPrice: 29,
-      annualPrice: 23, // Simplified to $23 (21% off)
+      monthlyPrice: 34,
+      annualPrice: 27, // Simplified to $27 (21% off)
       originalPrice: 35, // Strikethrough price
       description: 'Most chosen - saves $1,200+ yearly',
       savings: 'Save $1,200+ annually',
@@ -48,8 +48,8 @@ export default function PricingPage() {
     },
     {
       name: 'Business',
-      monthlyPrice: 49,
-      annualPrice: 39, // Simplified to $39 (20% off)
+      monthlyPrice: 59,
+      annualPrice: 47, // Simplified to $47 (20% off)
       description: 'For high-volume salon businesses',
       savings: 'Save $2,500+ annually',
       comparisons: 150,

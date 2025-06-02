@@ -30,8 +30,8 @@ const SUBSCRIPTION_TIERS = [
   },
   {
     name: 'Professional',
-    monthlyPrice: 29,
-    annualPrice: 23, // 21% off
+    monthlyPrice: 34,
+    annualPrice: 27, // 21% off
     comparisons: TIER_LIMITS.professional,
     popular: true,
     features: [
@@ -46,8 +46,8 @@ const SUBSCRIPTION_TIERS = [
   },
   {
     name: 'Business',
-    monthlyPrice: 49,
-    annualPrice: 39, // 20% off
+    monthlyPrice: 59,
+    annualPrice: 47, // 20% off
     comparisons: TIER_LIMITS.business,
     features: [
       '150 file comparisons per month',
