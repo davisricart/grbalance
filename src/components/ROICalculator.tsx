@@ -15,7 +15,7 @@ export default function ROICalculator() {
   const annualTimeCost = hoursPerWeek * (hourlyRate || parseInt(customRate) || 0) * 52;
   const annualErrorCost = (monthlyErrorsCaught + monthlyErrorsMissed) * 12;
   const totalAnnualCost = annualTimeCost + annualErrorCost;
-  const professionalPlanCost = 348 + 497; // $845 Year 1
+  const professionalPlanCost = 408 + 497; // $905 Year 1 ($34/month * 12 + setup)
   const netSavings = totalAnnualCost - professionalPlanCost;
   const roiPercentage = totalAnnualCost > 0 ? Math.round((netSavings / professionalPlanCost) * 100) : 0;
 
@@ -26,7 +26,7 @@ export default function ROICalculator() {
 
   // Suggest plan based on volume (hours per week)
   const suggestedPlan = hoursPerWeek <= 2 ? 'Starter' : hoursPerWeek <= 6 ? 'Professional' : 'Business';
-  const suggestedPlanCost = hoursPerWeek <= 2 ? 228 : hoursPerWeek <= 6 ? 348 : 588;
+  const suggestedPlanCost = hoursPerWeek <= 2 ? 228 : hoursPerWeek <= 6 ? 408 : 708;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -180,7 +180,7 @@ export default function ROICalculator() {
                 <div className="border-t pt-3 mt-4">
                   <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
                     <span className="font-medium text-emerald-900">Our {suggestedPlan} Plan</span>
-                    <span className="font-semibold text-emerald-900">{formatCurrency(348)}/year + $497 setup</span>
+                    <span className="font-semibold text-emerald-900">{formatCurrency(408)}/year + $497 setup</span>
                   </div>
 
                   <div className="flex items-center justify-between p-3 bg-emerald-100 rounded-lg mt-2">

@@ -48,8 +48,8 @@
 ### **Pricing Strategy**
 **Subscription Tiers**:
 - **Starter**: $19/month ($15 annual) - 50 reconciliations
-- **Professional**: $39/month ($29 annual) - 100 reconciliations  
-- **Business**: $69/month ($52 annual) - 200 reconciliations
+- **Professional**: $34/month ($27 annual) - 100 reconciliations  
+- **Business**: $59/month ($47 annual) - 200 reconciliations
 - **Enterprise**: $149/month ($112 annual) - Unlimited + premium features
 
 **Additional Revenue Streams**:
@@ -247,7 +247,7 @@
 ### **Primary Revenue KPIs**
 - **Monthly Recurring Revenue (MRR)**: Target 15-25% monthly growth
 - **Annual Recurring Revenue (ARR)**: $75K-100K Year 1 target
-- **Average Revenue Per User (ARPU)**: $29 → $45 progression
+- **Average Revenue Per User (ARPU)**: $34 → $50 progression
 - **Customer Lifetime Value (LTV)**: $152-1,617 by tier
 
 ### **Customer Success KPIs**
