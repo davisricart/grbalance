@@ -1,5 +1,6 @@
 // PAGE MARKER: Landing Page Component
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle } from 'lucide-react';
 import ROICalculator from '../components/ROICalculator';
@@ -7,6 +8,67 @@ import ROICalculator from '../components/ROICalculator';
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Salon Payment Reconciliation Software | DaySmart & Square Automation | GR Balance</title>
+        <meta name="description" content="Automated salon payment reconciliation for DaySmart, Square, Stripe. Catch $8,400+ yearly in processing errors. Save 12+ hours monthly. 99.9% accuracy. 14-day free trial." />
+        <meta name="keywords" content="salon reconciliation software, DaySmart reconciliation, Square payment reconciliation, salon payment processing, beauty salon software, payment discrepancy detection, salon accounting automation, salon fee reconciliation" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Salon Payment Reconciliation Software | Catch $8,400+ Yearly in Processing Errors" />
+        <meta property="og:description" content="Automated reconciliation for DaySmart, Square, Stripe salon payments. Save 12+ hours monthly, catch hidden fees. 99.9% accuracy guaranteed." />
+        <meta property="og:url" content="https://grbalance.netlify.app/" />
+        <meta property="og:image" content="https://grbalance.netlify.app/images/salon-reconciliation-og.png" />
+        <meta property="og:site_name" content="GR Balance" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Salon Payment Reconciliation Software | Catch $8,400+ Yearly" />
+        <meta name="twitter:description" content="Automated reconciliation for DaySmart, Square, Stripe salon payments. Save 12+ hours monthly, catch hidden fees." />
+        <meta name="twitter:image" content="https://grbalance.netlify.app/images/salon-reconciliation-twitter.png" />
+        
+        {/* Additional SEO tags */}
+        <meta name="robots" content="index, follow" />
+        <meta name="googlebot" content="index, follow" />
+        <meta name="author" content="GR Balance" />
+        <meta name="copyright" content="GR Balance 2025" />
+        <link rel="canonical" href="https://grbalance.netlify.app/" />
+        
+        {/* Local Business Schema */}
+        <script type="application/ld+json">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              "name": "GR Balance",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "description": "Automated payment reconciliation software for beauty salons using DaySmart, Square, and Stripe payment processors",
+              "offers": {
+                "@type": "Offer",
+                "price": "19",
+                "priceCurrency": "USD",
+                "priceSpecification": {
+                  "@type": "UnitPriceSpecification",
+                  "price": "19.00",
+                  "priceCurrency": "USD",
+                  "unitText": "MONTH"
+                }
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "reviewCount": "47"
+              },
+              "publisher": {
+                "@type": "Organization",
+                "name": "GR Balance"
+              }
+            }
+          `}
+        </script>
+      </Helmet>
+      
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
         {/* Launch Special Banner */}
         <div className="mb-8">

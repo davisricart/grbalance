@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Helmet } from 'react-helmet';
 import { FileSpreadsheet, Upload, Play, CheckCircle, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 
 interface DemoFileSet {
@@ -209,7 +210,56 @@ export default function InteractiveDemoPage() {
 
   if (step === 'select') {
     return (
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 py-12">
+        <Helmet>
+          <title>Interactive Demo - Salon Payment Reconciliation | See Real Results | GR Balance</title>
+          <meta name="description" content="Try our salon reconciliation software with real sample data. See how we catch $2,890+ in processing errors and save 15+ hours monthly. Free interactive demo for DaySmart & Square users." />
+          <meta name="keywords" content="salon reconciliation demo, DaySmart demo, payment reconciliation trial, salon software demo, free reconciliation test, beauty salon payment processing demo" />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
+          <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
+          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
+          <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
+          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          
+          <meta name="robots" content="index, follow" />
+          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          
+          {/* FAQ Schema for Demo Page */}
+          <script type="application/ld+json">
+            {`
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "How does the salon reconciliation demo work?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Our interactive demo uses real salon transaction data samples to show exactly how our reconciliation software works. You can choose from small, medium, or large salon datasets and see live processing results."
+                    }
+                  },
+                  {
+                    "@type": "Question", 
+                    "name": "What will I see in the demo results?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "The demo shows real discrepancies found in salon payment data, including processing fee errors, missing transactions, and rate discrepancies. You'll see exactly how much money our software can recover for your salon."
+                    }
+                  }
+                ]
+              }
+            `}
+          </script>
+        </Helmet>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -261,7 +311,56 @@ export default function InteractiveDemoPage() {
 
   if (step === 'preview' && selectedFileSet) {
     return (
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 py-12">
+        <Helmet>
+          <title>Interactive Demo - Salon Payment Reconciliation | See Real Results | GR Balance</title>
+          <meta name="description" content="Try our salon reconciliation software with real sample data. See how we catch $2,890+ in processing errors and save 15+ hours monthly. Free interactive demo for DaySmart & Square users." />
+          <meta name="keywords" content="salon reconciliation demo, DaySmart demo, payment reconciliation trial, salon software demo, free reconciliation test, beauty salon payment processing demo" />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
+          <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
+          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
+          <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
+          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          
+          <meta name="robots" content="index, follow" />
+          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          
+          {/* FAQ Schema for Demo Page */}
+          <script type="application/ld+json">
+            {`
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "How does the salon reconciliation demo work?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Our interactive demo uses real salon transaction data samples to show exactly how our reconciliation software works. You can choose from small, medium, or large salon datasets and see live processing results."
+                    }
+                  },
+                  {
+                    "@type": "Question", 
+                    "name": "What will I see in the demo results?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "The demo shows real discrepancies found in salon payment data, including processing fee errors, missing transactions, and rate discrepancies. You'll see exactly how much money our software can recover for your salon."
+                    }
+                  }
+                ]
+              }
+            `}
+          </script>
+        </Helmet>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-4">
@@ -398,7 +497,56 @@ export default function InteractiveDemoPage() {
 
   if (step === 'processing') {
     return (
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 py-12">
+        <Helmet>
+          <title>Interactive Demo - Salon Payment Reconciliation | See Real Results | GR Balance</title>
+          <meta name="description" content="Try our salon reconciliation software with real sample data. See how we catch $2,890+ in processing errors and save 15+ hours monthly. Free interactive demo for DaySmart & Square users." />
+          <meta name="keywords" content="salon reconciliation demo, DaySmart demo, payment reconciliation trial, salon software demo, free reconciliation test, beauty salon payment processing demo" />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
+          <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
+          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
+          <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
+          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          
+          <meta name="robots" content="index, follow" />
+          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          
+          {/* FAQ Schema for Demo Page */}
+          <script type="application/ld+json">
+            {`
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "How does the salon reconciliation demo work?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Our interactive demo uses real salon transaction data samples to show exactly how our reconciliation software works. You can choose from small, medium, or large salon datasets and see live processing results."
+                    }
+                  },
+                  {
+                    "@type": "Question", 
+                    "name": "What will I see in the demo results?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "The demo shows real discrepancies found in salon payment data, including processing fee errors, missing transactions, and rate discrepancies. You'll see exactly how much money our software can recover for your salon."
+                    }
+                  }
+                ]
+              }
+            `}
+          </script>
+        </Helmet>
         <div className="max-w-2xl mx-auto text-center">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
             <div className="animate-spin h-12 w-12 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-6"></div>
@@ -422,7 +570,56 @@ export default function InteractiveDemoPage() {
 
   if (step === 'results' && selectedFileSet) {
     return (
-      <div className="py-12 px-4 sm:px-6 lg:px-8">
+      <div className="min-h-screen bg-gray-50 py-12">
+        <Helmet>
+          <title>Interactive Demo - Salon Payment Reconciliation | See Real Results | GR Balance</title>
+          <meta name="description" content="Try our salon reconciliation software with real sample data. See how we catch $2,890+ in processing errors and save 15+ hours monthly. Free interactive demo for DaySmart & Square users." />
+          <meta name="keywords" content="salon reconciliation demo, DaySmart demo, payment reconciliation trial, salon software demo, free reconciliation test, beauty salon payment processing demo" />
+          
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
+          <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
+          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
+          <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
+          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          
+          <meta name="robots" content="index, follow" />
+          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          
+          {/* FAQ Schema for Demo Page */}
+          <script type="application/ld+json">
+            {`
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                "mainEntity": [
+                  {
+                    "@type": "Question",
+                    "name": "How does the salon reconciliation demo work?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "Our interactive demo uses real salon transaction data samples to show exactly how our reconciliation software works. You can choose from small, medium, or large salon datasets and see live processing results."
+                    }
+                  },
+                  {
+                    "@type": "Question", 
+                    "name": "What will I see in the demo results?",
+                    "acceptedAnswer": {
+                      "@type": "Answer",
+                      "text": "The demo shows real discrepancies found in salon payment data, including processing fee errors, missing transactions, and rate discrepancies. You'll see exactly how much money our software can recover for your salon."
+                    }
+                  }
+                ]
+              }
+            `}
+          </script>
+        </Helmet>
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
@@ -432,8 +629,6 @@ export default function InteractiveDemoPage() {
               Here's what we found in your {selectedFileSet.name.toLowerCase()} data - {selectedFileSet.results.discrepancies} discrepancies identified with ${selectedFileSet.results.moneyRecovered.toLocaleString()} in potential savings.
             </p>
           </div>
-
-
 
           {/* Sample Discrepancies */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">

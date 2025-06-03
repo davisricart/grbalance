@@ -1,8 +1,9 @@
 // PAGE MARKER: Contact Page Component
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Send, AlertCircle, MessageSquare, Clock, Home, CheckSquare } from 'lucide-react';
 import emailjs from '@emailjs/browser';
+import { Helmet } from 'react-helmet';
 
 export default function ContactPage() {
   const navigate = useNavigate();
@@ -71,6 +72,47 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Contact Salon Reconciliation Support | Get Help with DaySmart & Square Issues | GR Balance</title>
+        <meta name="description" content="Get expert support for salon payment reconciliation issues. Contact GR Balance for DaySmart, Square, Stripe reconciliation help. Technical support, billing, and account assistance available." />
+        <meta name="keywords" content="salon reconciliation support, DaySmart help, Square payment support, salon software support, payment processing help, reconciliation technical support, salon accounting support" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Contact Salon Reconciliation Support | Expert Help Available" />
+        <meta property="og:description" content="Get expert support for salon payment reconciliation. Contact us for DaySmart, Square, Stripe help. Fast response times." />
+        <meta property="og:url" content="https://grbalance.netlify.app/contact" />
+        <meta property="og:image" content="https://grbalance.netlify.app/images/contact-support.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Contact Salon Reconciliation Support" />
+        <meta name="twitter:description" content="Expert support for salon payment reconciliation issues. Fast response times for DaySmart, Square, Stripe problems." />
+        <meta name="twitter:image" content="https://grbalance.netlify.app/images/contact-twitter.png" />
+        
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://grbalance.netlify.app/contact" />
+        
+        {/* Organization Schema */}
+        <script type="application/ld+json">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "GR Balance",
+              "description": "Automated payment reconciliation software for beauty salons",
+              "url": "https://grbalance.netlify.app",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer support",
+                "availableLanguage": "English",
+                "areaServed": "US"
+              },
+              "sameAs": []
+            }
+          `}
+        </script>
+      </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

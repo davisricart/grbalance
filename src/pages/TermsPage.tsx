@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, FileText } from 'lucide-react';
 
@@ -7,6 +8,13 @@ export default function TermsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Terms of Service | Salon Reconciliation Software Legal Terms | GR Balance</title>
+        <meta name="description" content="Terms of Service for GR Balance salon reconciliation software. Legal terms, user agreements, and service conditions for beauty salon payment processing software." />
+        <meta name="keywords" content="terms of service, legal terms, user agreement, salon software terms, payment processing terms, service conditions, user rights, data usage" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://grbalance.netlify.app/terms" />
+      </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

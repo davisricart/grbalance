@@ -6,6 +6,7 @@ import { auth, db } from '../main';
 import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Building } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import clientConfig from '../config/client';
+import { Helmet } from 'react-helmet';
 
 const TIER_LIMITS = {
   starter: 50,
@@ -238,6 +239,47 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Start Free Trial | Salon Reconciliation Software Signup | GR Balance</title>
+        <meta name="description" content="Start your 14-day free trial of GR Balance salon reconciliation software. Sign up for automated DaySmart, Square, Stripe payment reconciliation. No setup fees until July 2025." />
+        <meta name="keywords" content="salon software free trial, reconciliation software signup, DaySmart free trial, salon payment reconciliation trial, beauty salon software registration, free salon accounting trial" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Start Free Trial | Salon Reconciliation Software" />
+        <meta property="og:description" content="14-day free trial of automated salon payment reconciliation. No setup fees until July 2025. Sign up risk-free." />
+        <meta property="og:url" content="https://grbalance.netlify.app/register" />
+        <meta property="og:image" content="https://grbalance.netlify.app/images/free-trial-signup.png" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Start Free Trial | Salon Reconciliation Software" />
+        <meta name="twitter:description" content="14-day free trial of automated salon payment reconciliation. Sign up risk-free today." />
+        <meta name="twitter:image" content="https://grbalance.netlify.app/images/trial-twitter.png" />
+        
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://grbalance.netlify.app/register" />
+        
+        {/* Offer Schema */}
+        <script type="application/ld+json">
+          {`
+            {
+              "@context": "https://schema.org",
+              "@type": "Offer",
+              "name": "GR Balance Free Trial",
+              "description": "14-day free trial of salon reconciliation software with setup fee waived",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock",
+              "validThrough": "2025-07-01",
+              "seller": {
+                "@type": "Organization",
+                "name": "GR Balance"
+              }
+            }
+          `}
+        </script>
+      </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
             <Link 

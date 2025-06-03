@@ -1,4 +1,5 @@
 import React from 'react';
+import { Helmet } from 'react-helmet';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Home, Shield } from 'lucide-react';
 
@@ -7,6 +8,13 @@ export default function PrivacyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Privacy Policy | Salon Data Protection & Security | GR Balance</title>
+        <meta name="description" content="Privacy Policy for GR Balance salon reconciliation software. Learn how we protect your salon's financial data, payment information, and maintain GDPR compliance." />
+        <meta name="keywords" content="privacy policy, data protection, salon data security, financial data privacy, GDPR compliance, payment data protection, salon information security" />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href="https://grbalance.netlify.app/privacy" />
+      </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../main';
 import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import clientConfig from '../config/client';
+import { Helmet } from 'react-helmet';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -105,6 +106,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
+      <Helmet>
+        <title>Login to Salon Reconciliation Account | Access Your Dashboard | GR Balance</title>
+        <meta name="description" content="Login to your GR Balance salon reconciliation account. Access your dashboard, view reconciliation reports, and manage your salon's payment processing data securely." />
+        <meta name="keywords" content="salon account login, reconciliation dashboard, GR Balance login, salon software access, payment reconciliation account, secure salon login" />
+        <meta name="robots" content="noindex, nofollow" />
+        <link rel="canonical" href="https://grbalance.netlify.app/login" />
+      </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
