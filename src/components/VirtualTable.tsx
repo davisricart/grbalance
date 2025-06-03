@@ -57,7 +57,7 @@ export const VirtualTable: React.FC<VirtualTableProps> = ({
         <div>
           Showing {visibleData.length} of {paginationInfo.showingRows} rows
           {paginationInfo.totalRows > maxRows && (
-            <span className="text-amber-600 ml-2">
+            <span className="text-gray-500 ml-2">
               ({paginationInfo.totalRows - maxRows} more rows available)
             </span>
           )}

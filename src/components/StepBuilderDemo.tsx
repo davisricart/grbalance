@@ -501,32 +501,32 @@ export const StepBuilderDemo: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       {/* Hero Section */}
-      <div className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-100 rounded-2xl p-8 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-2xl p-8 shadow-sm">
         <div className="text-center mb-8">
-          <h2 className="text-3xl font-light text-emerald-900 mb-3">
+          <h2 className="text-3xl font-light text-gray-900 mb-3">
             🧪 Visual Step Builder
           </h2>
-          <p className="text-emerald-700 text-lg font-light max-w-2xl mx-auto leading-relaxed">
+          <p className="text-gray-600 text-lg font-light max-w-2xl mx-auto leading-relaxed">
             Build reconciliation workflows step-by-step with complete transparency and safe iteration
           </p>
         </div>
 
         {/* Performance Info */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-blue-600 text-lg">⚡</span>
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <span className="text-gray-600 text-lg">⚡</span>
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">Performance Optimized</h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-500">
                   Chunked processing • Virtual scrolling • Memory efficient • Large file support
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-blue-600 font-medium">
+              <div className="text-xs text-gray-600 font-medium">
                 Max file size: 50MB
               </div>
               <div className="text-xs text-gray-500">
@@ -537,15 +537,15 @@ export const StepBuilderDemo: React.FC = () => {
         </div>
         
         {/* Import Script Section */}
-        <div className="bg-white rounded-xl border border-amber-200 p-4 mb-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <span className="text-amber-600 text-lg">📂</span>
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                <span className="text-gray-600 text-lg">📂</span>
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">Continue Previous Work</h3>
-                <p className="text-sm text-gray-600">Import a previously exported script to continue where you left off</p>
+                <p className="text-sm text-gray-500">Import a previously exported script to continue where you left off</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -565,11 +565,11 @@ export const StepBuilderDemo: React.FC = () => {
                 <div className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   isLoadingScript 
                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-amber-600 text-white hover:bg-amber-700 shadow-sm hover:shadow-md'
+                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
                 }`}>
                   {isLoadingScript ? (
                     <div className="flex items-center gap-2">
-                      <div className="animate-spin w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full"></div>
+                      <div className="animate-spin w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full"></div>
                       <span>Importing...</span>
                     </div>
                   ) : (
@@ -587,7 +587,7 @@ export const StepBuilderDemo: React.FC = () => {
         {/* File Selection Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           {/* File 1 Card */}
-          <div className="bg-white rounded-xl border border-emerald-100 p-6 hover:shadow-md transition-all duration-200">
+          <div className="bg-white rounded-xl border border-emerald-100 p-6 hover:border-emerald-300 transition-all duration-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                 <span className="text-emerald-600 font-semibold">1</span>
@@ -668,8 +668,8 @@ export const StepBuilderDemo: React.FC = () => {
                       type="button"
                       className={`px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
                         selectedHeaders1.includes(header) 
-                          ? 'bg-emerald-500 text-white shadow-sm hover:bg-emerald-600' 
-                          : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50 hover:border-emerald-300'
+                          ? 'bg-emerald-600 text-white' 
+                          : 'bg-white text-emerald-700 border border-emerald-200 hover:border-emerald-300'
                       }`}
                       onClick={() => {
                         setSelectedHeaders1((prev) =>
@@ -693,7 +693,7 @@ export const StepBuilderDemo: React.FC = () => {
           </div>
           
           {/* File 2 Card */}
-          <div className="bg-white rounded-xl border border-blue-100 p-6 hover:shadow-md transition-all duration-200">
+          <div className="bg-white rounded-xl border border-blue-100 p-6 hover:border-blue-300 transition-all duration-200">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                 <span className="text-blue-600 font-semibold">2</span>
@@ -774,8 +774,8 @@ export const StepBuilderDemo: React.FC = () => {
                       type="button"
                       className={`px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
                         selectedHeaders2.includes(header) 
-                          ? 'bg-blue-600 text-white shadow-sm hover:bg-blue-700' 
-                          : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 hover:border-blue-300'
+                          ? 'bg-blue-600 text-white' 
+                          : 'bg-white text-blue-700 border border-blue-200 hover:border-blue-300'
                       }`}
                       onClick={() => {
                         setSelectedHeaders2((prev) =>
@@ -886,8 +886,8 @@ export const StepBuilderDemo: React.FC = () => {
       {/* Data Preview - Performance Optimized */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-            <span className="text-emerald-600 text-lg">📊</span>
+          <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+            <span className="text-gray-600 text-lg">📊</span>
           </div>
           <div>
             <h3 className="font-medium text-gray-900">
