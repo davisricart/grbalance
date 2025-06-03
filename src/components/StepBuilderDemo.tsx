@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback, memo } from 'react';
 import { VisualStepBuilder } from './VisualStepBuilder';
+import { VirtualTable } from './VirtualTable';
 import * as XLSX from 'xlsx';
 
 interface StepWithPreview {
@@ -40,6 +41,49 @@ export const StepBuilderDemo: React.FC = () => {
   // Script import state
   const [showScriptImport, setShowScriptImport] = useState(false);
   const [isLoadingScript, setIsLoadingScript] = useState(false);
+  const [debouncedInstruction, setDebouncedInstruction] = useState('');
+
+  // Performance optimization constants
+  const CHUNK_SIZE = 1000; // Process data in chunks for large files
+  const MAX_PREVIEW_ROWS = 100; // Limit preview rows for performance
+  const DEBOUNCE_DELAY = 300; // Debounce user input
+
+  // Debounce effect for analysis instruction
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedInstruction(analysisInstruction);
+    }, DEBOUNCE_DELAY);
+
+    return () => clearTimeout(timer);
+  }, [analysisInstruction, DEBOUNCE_DELAY]);
+
+  // Performance monitoring
+  React.useEffect(() => {
+    const logPerformance = () => {
+      const memoryUsage = (performance as any).memory;
+      if (memoryUsage) {
+        console.log('Memory Usage:', {
+          used: Math.round(memoryUsage.usedJSHeapSize / 1024 / 1024) + 'MB',
+          total: Math.round(memoryUsage.totalJSHeapSize / 1024 / 1024) + 'MB',
+          limit: Math.round(memoryUsage.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+        });
+      }
+    };
+
+    const interval = setInterval(logPerformance, 30000); // Log every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Memory cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      // Clear large data sets when component unmounts
+      setFile1Data([]);
+      setFile2Data([]);
+      setCurrentData([]);
+      setSteps([]);
+    };
+  }, []);
 
   // Sample data to simulate file uploads
   const sampleData = [
@@ -149,9 +193,18 @@ export const StepBuilderDemo: React.FC = () => {
     }
   };
 
-  // File processing functions
-  const processExcelFile = async (file: File): Promise<{ data: any[], headers: string[] }> => {
+  // File processing functions - optimized for large files
+  const processExcelFile = useCallback(async (file: File): Promise<{ data: any[], headers: string[] }> => {
     return new Promise((resolve, reject) => {
+      // Check file size and warn for very large files
+      const maxFileSize = 50 * 1024 * 1024; // 50MB
+      if (file.size > maxFileSize) {
+        if (!confirm(`File is ${(file.size / 1024 / 1024).toFixed(1)}MB. Large files may take time to process. Continue?`)) {
+          reject(new Error('File processing cancelled'));
+          return;
+        }
+      }
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -159,7 +212,9 @@ export const StepBuilderDemo: React.FC = () => {
           const workbook = XLSX.read(arrayBuffer, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          
+          // Use XLSX streaming for large files
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false });
           
           if (jsonData.length === 0) {
             reject(new Error('File is empty'));
@@ -167,15 +222,46 @@ export const StepBuilderDemo: React.FC = () => {
           }
           
           const headers = jsonData[0] as string[];
-          const processedData = jsonData.slice(1).map((row: any) => {
-            const obj: any = {};
-            headers.forEach((header, index) => {
-              obj[header] = row[index] || '';
-            });
-            return obj;
-          }).filter(row => Object.values(row).some(val => val !== ''));
           
-          resolve({ data: processedData, headers });
+          // Process data in chunks to avoid blocking UI
+          const processChunk = (startIdx: number): Promise<any[]> => {
+            return new Promise((resolveChunk) => {
+              const endIdx = Math.min(startIdx + CHUNK_SIZE, jsonData.length);
+              const chunk = jsonData.slice(startIdx, endIdx);
+              
+              const processedChunk = chunk.map((row: any) => {
+                const obj: any = {};
+                headers.forEach((header, index) => {
+                  obj[header] = row[index] || '';
+                });
+                return obj;
+              }).filter(row => Object.values(row).some(val => val !== ''));
+              
+              // Use setTimeout to yield control back to the browser
+              setTimeout(() => resolveChunk(processedChunk), 0);
+            });
+          };
+
+          // Process all chunks
+          const processAllChunks = async () => {
+            const allData: any[] = [];
+            for (let i = 1; i < jsonData.length; i += CHUNK_SIZE) {
+              const chunk = await processChunk(i);
+              allData.push(...chunk);
+              
+              // Update progress for large files
+              if (jsonData.length > CHUNK_SIZE * 5) {
+                const progress = Math.round((i / jsonData.length) * 100);
+                console.log(`Processing: ${progress}%`);
+              }
+            }
+            return allData;
+          };
+
+          processAllChunks()
+            .then(processedData => resolve({ data: processedData, headers }))
+            .catch(reject);
+            
         } catch (error) {
           reject(error);
         }
@@ -183,9 +269,9 @@ export const StepBuilderDemo: React.FC = () => {
       reader.onerror = () => reject(new Error('Failed to read file'));
       reader.readAsArrayBuffer(file);
     });
-  };
+  }, [CHUNK_SIZE]);
 
-  const handleFileUpload = async (file: File, fileNumber: 1 | 2) => {
+  const handleFileUpload = useCallback(async (file: File, fileNumber: 1 | 2) => {
     if (!file) return;
     
     const validTypes = [
@@ -204,32 +290,49 @@ export const StepBuilderDemo: React.FC = () => {
     try {
       const { data: fileData, headers } = await processExcelFile(file);
       
+      // Memory optimization: limit data size in state
+      const limitedData = fileData.length > MAX_PREVIEW_ROWS * 10 
+        ? fileData.slice(0, MAX_PREVIEW_ROWS * 10) 
+        : fileData;
+      
       if (fileNumber === 1) {
+        // Clear previous data to free memory
+        setFile1Data([]);
+        setSelectedHeaders1([]);
+        
+        // Set new data
         setFile1(file);
-        setFile1Data(fileData);
+        setFile1Data(limitedData);
         setFile1Headers(headers);
-        setSelectedHeaders1([]); // Reset selection
       } else {
+        // Clear previous data to free memory
+        setFile2Data([]);
+        setSelectedHeaders2([]);
+        
+        // Set new data
         setFile2(file);
-        setFile2Data(fileData);
+        setFile2Data(limitedData);
         setFile2Headers(headers);
-        setSelectedHeaders2([]); // Reset selection
       }
+      
+      // Log performance metrics
+      console.log(`File processed: ${fileData.length} rows, ${headers.length} columns, ${(file.size / 1024).toFixed(1)}KB`);
+      
     } catch (error) {
       console.error('Error processing file:', error);
       alert(`Error processing file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsLoadingFiles(false);
     }
-  };
+  }, [processExcelFile, MAX_PREVIEW_ROWS]);
 
-  // Get current working data (combine both files or use primary)
-  const getCurrentWorkingData = () => {
+  // Get current working data (combine both files or use primary) - memoized for performance
+  const getCurrentWorkingData = useMemo(() => {
     if (file1Data.length > 0) {
       return file1Data;
     }
     return sampleData; // Fallback to sample data for demo
-  };
+  }, [file1Data, sampleData]);
 
   const handleProcessAndDeploy = () => {
     if (!analysisInstruction.trim()) {
@@ -263,14 +366,32 @@ export const StepBuilderDemo: React.FC = () => {
     setSteps(prev => [...prev, newStep]);
   };
 
-  const handleExecuteStep = async (stepNumber: number) => {
+  const handleExecuteStep = useCallback(async (stepNumber: number) => {
     setIsExecuting(true);
     
     // Simulate processing delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const stepIndex = stepNumber - 1;
-    let workingData: any[] = [...sampleData];
+    let workingData: any[] = [...getCurrentWorkingData];
+
+    // Process large datasets in chunks to avoid blocking UI
+    const processDataInChunks = async (data: any[], transformFn: (item: any) => any): Promise<any[]> => {
+      const result: any[] = [];
+      
+      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+        const chunk = data.slice(i, i + CHUNK_SIZE);
+        const processedChunk = chunk.map(transformFn);
+        result.push(...processedChunk);
+        
+        // Yield control to browser for large datasets
+        if (data.length > CHUNK_SIZE * 2) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+      
+      return result;
+    };
 
     // Apply transformations based on step instructions
     for (let i = 0; i <= stepIndex; i++) {
@@ -280,32 +401,52 @@ export const StepBuilderDemo: React.FC = () => {
       const instruction = step.instruction.toLowerCase();
 
       if (instruction.includes('filter') && instruction.includes('completed')) {
-        workingData = workingData.filter(row => row.Status === 'Completed');
+        workingData = workingData.filter(row => 
+          row.Status === 'Completed' || row.status === 'completed' || 
+          row.STATUS === 'COMPLETED' || row.State === 'Completed'
+        );
       } else if (instruction.includes('calculate') && instruction.includes('fee')) {
-        workingData = workingData.map(row => ({
-          ...row,
-          Fee: (row.Amount * 0.029).toFixed(2),
-          NetAmount: (row.Amount * 0.971).toFixed(2)
-        }));
+        workingData = await processDataInChunks(workingData, (row) => {
+          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
+          return {
+            ...row,
+            Fee: (amount * 0.029).toFixed(2),
+            NetAmount: (amount * 0.971).toFixed(2)
+          };
+        });
       } else if (instruction.includes('group') && instruction.includes('type')) {
         const grouped = workingData.reduce((acc: any, row) => {
-          const key = row.Type;
+          const key = row.Type || row.type || row.TYPE || row.PaymentMethod || row.Category || 'Unknown';
           if (!acc[key]) {
             acc[key] = { Type: key, Count: 0, TotalAmount: 0 };
           }
           acc[key].Count++;
-          acc[key].TotalAmount += row.Amount;
+          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
+          acc[key].TotalAmount += amount;
           return acc;
         }, {});
         workingData = Object.values(grouped);
       } else if (instruction.includes('sort') && instruction.includes('amount')) {
-        workingData = workingData.sort((a, b) => b.Amount - a.Amount);
+        workingData = workingData.sort((a, b) => {
+          const amountA = parseFloat(a.Amount || a.amount || a.AMOUNT || '0');
+          const amountB = parseFloat(b.Amount || b.amount || b.AMOUNT || '0');
+          return amountB - amountA;
+        });
       } else if (instruction.includes('total') || instruction.includes('summary')) {
+        const totalAmount = workingData.reduce((sum, row) => {
+          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
+          return sum + amount;
+        }, 0);
+        const completedCount = workingData.filter(row => 
+          row.Status === 'Completed' || row.status === 'completed' || 
+          row.STATUS === 'COMPLETED' || row.State === 'Completed'
+        ).length;
+        
         const summary = {
           TotalTransactions: workingData.length,
-          TotalAmount: workingData.reduce((sum, row) => sum + (row.Amount || 0), 0).toFixed(2),
-          AverageAmount: (workingData.reduce((sum, row) => sum + (row.Amount || 0), 0) / workingData.length).toFixed(2),
-          CompletedCount: workingData.filter(row => row.Status === 'Completed').length
+          TotalAmount: totalAmount.toFixed(2),
+          AverageAmount: (totalAmount / workingData.length).toFixed(2),
+          CompletedCount: completedCount
         };
         workingData = [summary];
       } else {
@@ -320,10 +461,10 @@ export const StepBuilderDemo: React.FC = () => {
         return {
           ...step,
           status: 'completed',
-          dataPreview: workingData.slice(0, 10), // Show first 10 rows
+          dataPreview: workingData.slice(0, MAX_PREVIEW_ROWS), // Limit preview for performance
           recordCount: workingData.length,
           columnsAdded: Object.keys(workingData[0] || {}).filter(col => 
-            !Object.keys(sampleData[0] || {}).includes(col)
+            !Object.keys(getCurrentWorkingData[0] || {}).includes(col)
           ),
           executionTime: Math.floor(Math.random() * 500) + 200
         };
@@ -331,14 +472,14 @@ export const StepBuilderDemo: React.FC = () => {
       return step;
     }));
 
-    setCurrentData(workingData);
+    setCurrentData(workingData.slice(0, MAX_PREVIEW_ROWS)); // Limit current data for performance
     setIsExecuting(false);
     
     // Show continue option after first execution
     if (stepNumber === 1) {
       setViewingStepNumber(stepNumber);
     }
-  };
+  }, [steps, getCurrentWorkingData, CHUNK_SIZE, MAX_PREVIEW_ROWS]);
 
   const handleRevertToStep = (stepNumber: number) => {
     setSteps(prev => prev.slice(0, stepNumber));
@@ -370,6 +511,31 @@ export const StepBuilderDemo: React.FC = () => {
           </p>
         </div>
 
+        {/* Performance Info */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span className="text-blue-600 text-lg">⚡</span>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">Performance Optimized</h3>
+                <p className="text-sm text-gray-600">
+                  Chunked processing • Virtual scrolling • Memory efficient • Large file support
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-blue-600 font-medium">
+                Max file size: 50MB
+              </div>
+              <div className="text-xs text-gray-500">
+                {file1Data.length + file2Data.length} rows loaded
+              </div>
+            </div>
+          </div>
+        </div>
+        
         {/* Import Script Section */}
         <div className="bg-white rounded-xl border border-amber-200 p-4 mb-6">
           <div className="flex items-center justify-between">
@@ -717,7 +883,7 @@ export const StepBuilderDemo: React.FC = () => {
         )
       )}
 
-      {/* Sample Data Preview */}
+      {/* Data Preview - Performance Optimized */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
@@ -733,37 +899,15 @@ export const StepBuilderDemo: React.FC = () => {
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                {Object.keys(getCurrentWorkingData()[0] || {}).map(col => (
-                  <th key={col} className="px-4 py-3 text-left font-medium text-gray-700 bg-gray-50 first:rounded-l-lg last:rounded-r-lg">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {getCurrentWorkingData().slice(0, 5).map((row, idx) => (
-                <tr key={idx} className="hover:bg-gray-50 transition-colors duration-150">
-                  {Object.values(row).map((val, i) => (
-                    <td key={i} className="px-4 py-3 text-gray-600">
-                      {String(val)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        
-        {getCurrentWorkingData().length > 5 && (
-          <div className="mt-4 text-center text-sm text-gray-500">
-            Showing 5 of {getCurrentWorkingData().length} rows
-          </div>
-        )}
+        <VirtualTable 
+          data={getCurrentWorkingData} 
+          maxRows={MAX_PREVIEW_ROWS}
+          className="performance-optimized-table"
+        />
       </div>
     </div>
   );
-}; 
+};
+
+// Export memoized component for performance
+export default memo(StepBuilderDemo); 

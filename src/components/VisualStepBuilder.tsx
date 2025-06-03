@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { FiPlay, FiPause, FiSkipBack, FiPlus, FiEye, FiTrash2, FiCheck, FiClock, FiArrowRight } from 'react-icons/fi';
 
 interface StepWithPreview {
@@ -40,7 +40,8 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
   const [isAddingStep, setIsAddingStep] = useState(false);
   const [confirmingRevert, setConfirmingRevert] = useState<number | null>(null);
 
-  const getStepIcon = (step: StepWithPreview) => {
+  // Memoized step status functions for performance
+  const getStepIcon = useCallback((step: StepWithPreview) => {
     switch (step.status) {
       case 'completed': return <FiCheck className="text-green-500" />;
       case 'testing': return <FiClock className="text-yellow-500 animate-spin" />;
@@ -48,9 +49,9 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
       case 'reverted': return <FiSkipBack className="text-gray-400" />;
       default: return <FiPause className="text-gray-400" />;
     }
-  };
+  }, []);
 
-  const getStepStatusColor = (step: StepWithPreview) => {
+  const getStepStatusColor = useCallback((step: StepWithPreview) => {
     switch (step.status) {
       case 'completed': return 'bg-green-100 border-green-300';
       case 'testing': return 'bg-yellow-100 border-yellow-300';
@@ -58,9 +59,9 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
       case 'reverted': return 'bg-gray-100 border-gray-300';
       default: return 'bg-gray-50 border-gray-200';
     }
-  };
+  }, []);
 
-  const handleViewStep = (stepNumber: number) => {
+  const handleViewStep = useCallback((stepNumber: number) => {
     if (viewingStepNumbers.has(stepNumber)) {
       setViewingStepNumbers(prev => {
         const newSet = new Set(prev);
@@ -75,17 +76,18 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
       });
       onViewStep(stepNumber);
     }
-  };
+  }, [viewingStepNumbers, onViewStep]);
 
-  const handleAddStep = () => {
+  const handleAddStep = useCallback(() => {
     if (newStepInstruction.trim()) {
       onAddStep(newStepInstruction.trim());
       setNewStepInstruction('');
       setIsAddingStep(false);
     }
-  };
+  }, [newStepInstruction, onAddStep]);
 
-  const renderDataPreview = (data: any[], stepNumber: number) => {
+  // Memoized data preview renderer for performance
+  const renderDataPreview = useCallback((data: any[], stepNumber: number) => {
     if (!data || data.length === 0) return <div className="text-gray-500 text-sm">No data preview</div>;
 
     const columns = Object.keys(data[0] || {});
@@ -127,7 +129,7 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
         )}
       </div>
     );
-  };
+  }, []);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -296,4 +298,7 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
       )}
     </div>
   );
-}; 
+};
+
+// Memoized export for performance optimization
+export default memo(VisualStepBuilder); 
