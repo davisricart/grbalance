@@ -48,6 +48,9 @@ export const StepBuilderDemo: React.FC = () => {
   const MAX_PREVIEW_ROWS = 100; // Limit preview rows for performance
   const DEBOUNCE_DELAY = 300; // Debounce user input
 
+  // Add state for dynamic file naming
+  const [currentResponseFile, setCurrentResponseFile] = useState<string>('claude-response.js');
+
   // Debounce effect for analysis instruction
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -342,12 +345,24 @@ export const StepBuilderDemo: React.FC = () => {
 
     console.log('🚀 Starting deployment process...');
     
-    // CRITICAL: Clean up old files first for fresh start
-    cleanupCommunicationFiles().then(() => {
+    // Generate unique filename IMMEDIATELY (no async timing issues)
+    const timestamp = Date.now();
+    const newFileName = `claude-response-${timestamp}.js`;
+    
+    console.log('🧹 Preparing for fresh response...');
+    console.log(`✅ Ready for fresh response file: ${newFileName}`);
+    console.log(`📝 Next: CREATE public/claude-communication/${newFileName} with new code`);
+    console.log('🎯 This ensures no old code contamination!');
+    
+    // Set the filename immediately and synchronously  
+    setCurrentResponseFile(newFileName);
+    
+    // CRITICAL: Clean up old files with the NEW filename
+    cleanupCommunicationFilesWithName(newFileName).then(() => {
       console.log('🎯 Starting fresh - no old response files exist');
       
-      // Generate Claude communication file
-      generateClaudePromptFile();
+      // Generate Claude communication file with the correct filename
+      generateClaudePromptFileWithName(newFileName);
       
       // Create the first step IMMEDIATELY
       const newStep: StepWithPreview = {
@@ -370,27 +385,46 @@ export const StepBuilderDemo: React.FC = () => {
       console.log('👀 Starting response monitoring...');
       
       // Start watching for Claude's response
-      startWatchingForResponse();
+      startWatchingForResponse(newFileName);
     });
   };
 
-  const readClaudeResponseFile = async (): Promise<string | null> => {
+  const readClaudeResponseFile = async (fileNameToRead?: string): Promise<string | null> => {
+    // Use passed filename or current state (fallback)
+    const targetFile = fileNameToRead || currentResponseFile;
+    
     try {
-      console.log('🔍 Reading Claude response file...');
+      console.log(`🔍 Reading Claude response file: ${targetFile}`);
       
-      // Try to read the actual response file first
-      const response = await fetch('/claude-communication/claude-response.js');
-      if (response.ok) {
-        const responseText = await response.text();
-        console.log('✅ Found Claude response file!');
-        return responseText;
+      // FORCE timestamped file reading - NO fallbacks to old files
+      if (targetFile === 'claude-response.js') {
+        console.log('❌ ERROR: Still using old filename! This should be timestamped!');
+        return null;
       }
       
-      console.log('❌ No Claude response file found yet');
-      return null;
+      // Try to read the timestamped response file with aggressive cache busting
+      const cacheBuster = Date.now() + Math.random();
+      const response = await fetch(`/claude-communication/${targetFile}?v=${cacheBuster}&t=${Date.now()}`, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+      
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log('✅ Found fresh timestamped Claude response file!');
+        console.log('📄 File content preview:', responseText.substring(0, 150) + '...');
+        return responseText;
+      } else {
+        console.log(`❌ Timestamped file ${targetFile} not found (${response.status})`);
+        return null;
+      }
       
     } catch (error) {
-      console.log('❌ Error reading Claude response file:', error);
+      console.log('❌ Error reading timestamped Claude response file:', error);
       return null;
     }
   };
@@ -399,17 +433,44 @@ export const StepBuilderDemo: React.FC = () => {
     try {
       console.log('🧹 Preparing for fresh response...');
       
+      // Generate unique filename for this request
+      const timestamp = Date.now();
+      const newFileName = `claude-response-${timestamp}.js`;
+      setCurrentResponseFile(newFileName);
+      
       // Clear browser cache to ensure fresh file read
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         for (const cacheName of cacheNames) {
           const cache = await caches.open(cacheName);
-          await cache.delete('/claude-communication/claude-response.js');
+          // Clear all claude response files
+          await cache.delete(`/claude-communication/claude-response.js`);
+          await cache.delete(`/claude-communication/${newFileName}`);
         }
       }
       
-      console.log('✅ Ready for fresh response file');
-      console.log('📝 Next: Overwrite public/claude-communication/claude-response.js with new code');
+      console.log(`✅ Ready for fresh response file: ${newFileName}`);
+      console.log(`📝 Next: CREATE public/claude-communication/${newFileName} with new code`);
+      console.log('🎯 This ensures no old code contamination!');
+      
+    } catch (error) {
+      console.warn('⚠️ Cache cleanup warning (continuing anyway):', error);
+    }
+  };
+
+  // New function that accepts filename parameter
+  const cleanupCommunicationFilesWithName = async (fileName: string) => {
+    try {
+      // Clear browser cache to ensure fresh file read
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const cacheName of cacheNames) {
+          const cache = await caches.open(cacheName);
+          // Clear all claude response files
+          await cache.delete(`/claude-communication/claude-response.js`);
+          await cache.delete(`/claude-communication/${fileName}`);
+        }
+      }
       
     } catch (error) {
       console.warn('⚠️ Cache cleanup warning (continuing anyway):', error);
@@ -446,7 +507,7 @@ REQUIREMENTS:
 - Handle edge cases (null, undefined, empty strings)
 
 RESPONSE FORMAT:
-Please create 'claude-response.js' in the /claude-communication/ directory with ONLY executable code.
+Please create '${currentResponseFile}' in the /claude-communication/ directory with ONLY executable code.
 
 EXAMPLE RESPONSE FILE CONTENT:
 // Your JavaScript transformation code here
@@ -460,6 +521,9 @@ Note: This is an automated system. The code you write will be executed directly.
 
 ⚡ URGENT: This is a live request from the Visual Step Builder!
 User is waiting for your response to continue their analysis workflow.
+
+🎯 IMPORTANT: Use filename: ${currentResponseFile}
+This ensures no contamination from previous requests!
 `;
 
     // Create the actual communication directory and files
@@ -472,7 +536,8 @@ User is waiting for your response to continue their analysis workflow.
         body: JSON.stringify({ 
           content: promptContent,
           instruction: analysisInstruction,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          responseFileName: currentResponseFile
         })
       });
 
@@ -499,19 +564,119 @@ User is waiting for your response to continue their analysis workflow.
       console.log('📋 END PROMPT');
       console.log('');
       console.log('🎯 ACTION REQUIRED:');
-      console.log('1. OVERWRITE: public/claude-communication/claude-response.js');
-      console.log('2. REPLACE all content with your new JavaScript code');
+      console.log(`1. CREATE: public/claude-communication/${currentResponseFile}`);
+      console.log('2. ADD your new JavaScript code to this FRESH file');
       console.log('3. SAVE the file');
       console.log('4. System will auto-detect and execute immediately');
       console.log('');
-      console.log('💡 TIP: Just overwrite the existing file - no deletion needed!');
+      console.log('💡 TIP: Brand new file prevents any old code contamination!');
     }
     
     return promptContent;
   };
 
-  const startWatchingForResponse = () => {
+  // New function that accepts filename parameter
+  const generateClaudePromptFileWithName = async (fileName: string) => {
+    if (!getCurrentWorkingData || getCurrentWorkingData.length === 0) {
+      throw new Error('No primary dataset available for analysis');
+    }
+
+    // Get actual column names from the data
+    const columns = Object.keys(getCurrentWorkingData[0] || {});
+    const sampleData = getCurrentWorkingData.slice(0, 3);
+    
+    const promptContent = `🤖 CLAUDE PROMPT - Data Transformation Request
+============================================
+
+INSTRUCTION: "${analysisInstruction}"
+
+AVAILABLE COLUMNS: ${columns.join(', ')}
+
+SAMPLE DATA (first 3 rows):
+${JSON.stringify(sampleData, null, 2)}
+
+DATA SIZE: ${getCurrentWorkingData.length} total rows
+
+REQUIREMENTS:
+- Generate executable JavaScript code
+- Input variable: 'workingData' (array of objects)  
+- Return the transformed array
+- Handle case-insensitive column matching
+- Use functional programming (map, filter, reduce)
+- Handle edge cases (null, undefined, empty strings)
+
+RESPONSE FORMAT:
+Please create '${fileName}' in the /claude-communication/ directory with ONLY executable code.
+
+EXAMPLE RESPONSE FILE CONTENT:
+// Your JavaScript transformation code here
+const result = workingData
+  .filter(row => /* your filter logic */)
+  .map(row => /* your transformation logic */);
+
+return result;
+
+Note: This is an automated system. The code you write will be executed directly.
+
+⚡ URGENT: This is a live request from the Visual Step Builder!
+User is waiting for your response to continue their analysis workflow.
+
+🎯 IMPORTANT: Use filename: ${fileName}
+This ensures no contamination from previous requests!
+`;
+
+    // Create the actual communication directory and files
+    try {
+      // In a real implementation, this would write to the server
+      // For now, we'll simulate by writing to the public directory via a fetch request
+      await fetch('/api/claude-communication/write-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: promptContent,
+          instruction: analysisInstruction,
+          timestamp: new Date().toISOString(),
+          responseFileName: fileName
+        })
+      });
+
+      console.log('📝 Claude prompt file generated and saved!');
+      console.log('💌 Message sent to Claude - waiting for response...');
+      
+    } catch (error) {
+      console.warn('⚠️ Could not write to server, using fallback...');
+      
+      // Fallback: Create downloadable file AND log the content for you to see
+      const blob = new Blob([promptContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'claude-prompt.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('📋 PROMPT FOR CLAUDE:');
+      console.log(promptContent);
+      console.log('📋 END PROMPT');
+      console.log('');
+      console.log('🎯 ACTION REQUIRED:');
+      console.log(`1. CREATE: public/claude-communication/${fileName}`);
+      console.log('2. ADD your new JavaScript code to this FRESH file');
+      console.log('3. SAVE the file');
+      console.log('4. System will auto-detect and execute immediately');
+      console.log('');
+      console.log('💡 TIP: Brand new file prevents any old code contamination!');
+    }
+    
+    return promptContent;
+  };
+
+  const startWatchingForResponse = (timestampedFileName: string) => {
     console.log('👀 Starting automated response monitoring...');
+    console.log(`🎯 Watching for file: ${timestampedFileName}`);
     const startTime = performance.now(); // Track performance
     
     let pollCount = 0;
@@ -526,7 +691,8 @@ User is waiting for your response to continue their analysis workflow.
       pollCount++;
       console.log(`🔍 Poll attempt ${pollCount}/150 - Checking for response file...`);
       
-      const code = await readClaudeResponseFile();
+      // Pass the timestamped filename directly
+      const code = await readClaudeResponseFile(timestampedFileName);
       if (code) {
         isResolved = true; // Mark as resolved
         clearInterval(pollInterval);
@@ -1247,6 +1413,7 @@ ADVANCED EXAMPLES (use copy-paste method):
                   setSelectedHeaders2([]);
                   setShowSuccessModal(false);
                   setIsFinished(false);
+                  setCurrentResponseFile('claude-response.js');
                 }}
                 className="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-all duration-200"
               >
