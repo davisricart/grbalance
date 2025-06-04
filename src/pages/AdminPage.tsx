@@ -301,6 +301,20 @@ const AdminPage: React.FC = () => {
   const [isExecutingStep, setIsExecutingStep] = useState(false);
   const [viewingStepNumber, setViewingStepNumber] = useState<number | null>(null);
 
+  // Enhanced state management for better UX
+  const [operationLoading, setOperationLoading] = useState<{ [key: string]: boolean }>({});
+  const [lastActivity, setLastActivity] = useState<Date | null>(null);
+  const [isProcessingScript, setIsProcessingScript] = useState(false);
+  
+  // Loading helper functions
+  const setOperationState = (operation: string, isLoading: boolean) => {
+    setOperationLoading(prev => ({ ...prev, [operation]: isLoading }));
+  };
+
+  const trackActivity = () => {
+    setLastActivity(new Date());
+  };
+
   // Add notification helper functions
   const showNotification = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => {
     const id = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -2173,7 +2187,8 @@ function processStep${index + 1}(data) {
       
     } catch (error) {
       console.error('Error initializing Visual Step Builder:', error);
-      showNotification('error', 'Initialization Failed', error.message || 'Could not process uploaded files');
+      const errorMessage = error instanceof Error ? error.message : 'Could not process uploaded files';
+      showNotification('error', 'Initialization Failed', errorMessage);
     }
   };
 
@@ -2239,7 +2254,8 @@ function processStep${index + 1}(data) {
       
     } catch (error) {
       console.error(`Error executing step ${stepNumber}:`, error);
-      showNotification('error', 'Step Execution Failed', error.message || 'Could not process step');
+      const errorMessage = error instanceof Error ? error.message : 'Could not process step';
+      showNotification('error', 'Step Execution Failed', errorMessage);
     } finally {
       setIsExecutingStep(false);
     }
@@ -2457,66 +2473,41 @@ function processStep${index + 1}(data) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Notification Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-md">
+      {/* Enhanced Toast Notification System */}
+      <div className="fixed top-4 right-4 z-50 space-y-2">
         {notifications.map((notification) => (
           <div
             key={notification.id}
-            className={`relative rounded-lg shadow-lg p-4 border ${
-              notification.type === 'success' ? 'bg-green-50 border-green-200' :
-              notification.type === 'error' ? 'bg-red-50 border-red-200' :
-              notification.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-              'bg-blue-50 border-blue-200'
-            } transform transition-all duration-300 ease-in-out`}
-            style={{
-              animation: 'slideIn 0.3s ease-out'
-            }}
+            className={`max-w-sm w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 transform transition-all duration-300 ${
+              notification.type === 'success' ? 'border-l-4 border-green-400' :
+              notification.type === 'error' ? 'border-l-4 border-red-400' :
+              notification.type === 'warning' ? 'border-l-4 border-yellow-400' :
+              'border-l-4 border-blue-400'
+            }`}
           >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-3">
-                <div className={`flex-shrink-0 ${
-                  notification.type === 'success' ? 'text-green-600' :
-                  notification.type === 'error' ? 'text-red-600' :
-                  notification.type === 'warning' ? 'text-yellow-600' :
-                  'text-blue-600'
-                }`}>
-                  {notification.type === 'success' && <UserCheck className="w-5 h-5" />}
-                  {notification.type === 'error' && <Trash2 className="w-5 h-5" />}
-                  {notification.type === 'warning' && <Upload className="w-5 h-5" />}
-                  {notification.type === 'info' && <User className="w-5 h-5" />}
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  {notification.type === 'success' && <CheckCircle className="h-6 w-6 text-green-400" />}
+                  {notification.type === 'error' && <AlertCircle className="h-6 w-6 text-red-400" />}
+                  {notification.type === 'warning' && <AlertCircle className="h-6 w-6 text-yellow-400" />}
+                  {notification.type === 'info' && <HelpCircle className="h-6 w-6 text-blue-400" />}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className={`text-sm font-medium ${
-                    notification.type === 'success' ? 'text-green-900' :
-                    notification.type === 'error' ? 'text-red-900' :
-                    notification.type === 'warning' ? 'text-yellow-900' :
-                    'text-blue-900'
-                  }`}>
-                    {notification.title}
-                  </div>
-                  <div className={`mt-1 text-sm ${
-                    notification.type === 'success' ? 'text-green-700' :
-                    notification.type === 'error' ? 'text-red-700' :
-                    notification.type === 'warning' ? 'text-yellow-700' :
-                    'text-blue-700'
-                  }`}>
-                    {notification.message}
+                <div className="ml-3 w-0 flex-1 pt-0.5">
+                  <p className="text-sm font-medium text-gray-900">{notification.title}</p>
+                  <p className="mt-1 text-sm text-gray-500">{notification.message}</p>
+                  <div className="mt-2 text-xs text-gray-400">
+                    {new Date(notification.timestamp).toLocaleTimeString()}
                   </div>
                 </div>
               </div>
+            </div>
+            <div className="flex border-l border-gray-200">
               <button
                 onClick={() => removeNotification(notification.id)}
-                className={`flex-shrink-0 ml-4 ${
-                  notification.type === 'success' ? 'text-green-400 hover:text-green-600' :
-                  notification.type === 'error' ? 'text-red-400 hover:text-red-600' :
-                  notification.type === 'warning' ? 'text-yellow-400 hover:text-yellow-600' :
-                  'text-blue-400 hover:text-blue-600'
-                }`}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-gray-600 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <span className="sr-only">Close</span>
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
@@ -2575,7 +2566,7 @@ function processStep${index + 1}(data) {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                <Users className="inline w-4 h-4 mr-2" />
+                <FiUsers className="inline w-4 h-4 mr-2" />
                 Deleted Users ({deletedUsers.length})
               </button>
               <button
@@ -2621,6 +2612,17 @@ function processStep${index + 1}(data) {
               >
                 <Settings className="inline w-4 h-4 mr-2" />
                 Account Settings
+              </button>
+              <button
+                onClick={() => setActiveTab('analytics')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'analytics'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <BarChart3 className="inline w-4 h-4 mr-2" />
+                Analytics
               </button>
             </nav>
           </div>
@@ -4046,7 +4048,7 @@ ${currentScriptLogic.generatedCode}
                   {/* Feature 2: Edit Keywords */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center mb-3">
-                      <Edit className="w-6 h-6 text-blue-600 mr-2" />
+                      <Edit3 className="w-6 h-6 text-blue-600 mr-2" />
                       <h4 className="font-medium text-blue-900">Edit Keywords</h4>
                     </div>
                     <p className="text-sm text-blue-700 mb-3">Modify column detection keywords for existing profiles with visual editor.</p>
@@ -4191,7 +4193,7 @@ ${currentScriptLogic.generatedCode}
                             onClick={() => showNotification('info', 'Edit Profile', `Editing keywords for ${profile.displayName} - Feature coming soon!`)}
                             className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200 transition-colors"
                           >
-                            <Edit className="w-4 h-4 inline mr-1" />
+                            <Edit3 className="w-4 h-4 inline mr-1" />
                             Edit
                           </button>
                           <button
@@ -4482,6 +4484,196 @@ ${currentScriptLogic.generatedCode}
                     <li>• Email changes may require verification</li>
                     <li>• Keep your credentials secure and don't share them</li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Analytics Dashboard */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">📊 Admin Analytics Dashboard</h3>
+                <p className="text-sm text-gray-500 mt-1">Track system usage and performance metrics</p>
+              </div>
+              
+              <div className="p-6">
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <FiUsers className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm text-blue-600 font-medium">Total Users</p>
+                        <p className="text-2xl font-bold text-blue-900">
+                          {approvedUsers.length + pendingUsers.length + deletedUsers.length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <FiUserCheck className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm text-green-600 font-medium">Active Users</p>
+                        <p className="text-2xl font-bold text-green-900">{approvedUsers.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-yellow-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-yellow-100 rounded-lg">
+                        <Clock className="w-6 h-6 text-yellow-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm text-yellow-600 font-medium">Pending</p>
+                        <p className="text-2xl font-bold text-yellow-900">{pendingUsers.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <BarChart3 className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div className="ml-4">
+                        <p className="text-sm text-purple-600 font-medium">Total Comparisons</p>
+                        <p className="text-2xl font-bold text-purple-900">
+                          {approvedUsers.reduce((total, user) => total + (user.comparisonsUsed || 0), 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Usage Distribution Chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Subscription Tiers</h4>
+                    <div className="space-y-3">
+                      {['starter', 'professional', 'business'].map(tier => {
+                        const count = approvedUsers.filter(u => u.subscriptionTier === tier).length;
+                        const percentage = approvedUsers.length > 0 ? (count / approvedUsers.length) * 100 : 0;
+                        return (
+                          <div key={tier} className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700 capitalize">{tier}</span>
+                            <div className="flex items-center space-x-2">
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full ${
+                                    tier === 'starter' ? 'bg-blue-500' : 
+                                    tier === 'professional' ? 'bg-green-500' : 'bg-purple-500'
+                                  }`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                              <span className="text-sm text-gray-600">{count}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Recent Activity</h4>
+                    <div className="space-y-3">
+                      {[...approvedUsers, ...pendingUsers]
+                        .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+                        .slice(0, 5)
+                        .map((user, idx) => (
+                          <div key={user.id} className="flex items-center justify-between py-2 border-b border-gray-200 last:border-b-0">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{user.businessName || user.email}</p>
+                              <p className="text-xs text-gray-500">{parseDate(user.createdAt)?.toLocaleDateString()}</p>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              ('status' in user && user.status === 'approved') ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {('status' in user ? user.status : 'pending') || 'pending'}
+                            </span>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Export and Tools */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-lg font-medium text-blue-900">Data Export & Tools</h4>
+                      <p className="text-sm text-blue-700">Export user data and generate reports</p>
+                    </div>
+                    <div className="flex space-x-3">
+                      <button
+                        onClick={() => {
+                          const csvContent = [
+                            ['Email', 'Business Name', 'Status', 'Tier', 'Comparisons Used', 'Created Date'].join(','),
+                            ...approvedUsers.map(user => [
+                              user.email,
+                              user.businessName || '',
+                              user.status,
+                              user.subscriptionTier || '',
+                              user.comparisonsUsed || 0,
+                              parseDate(user.createdAt)?.toLocaleDateString() || ''
+                            ].join(','))
+                          ].join('\n');
+                          
+                          const blob = new Blob([csvContent], { type: 'text/csv' });
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.setAttribute('hidden', '');
+                          a.setAttribute('href', url);
+                          a.setAttribute('download', `users-export-${new Date().toISOString().split('T')[0]}.csv`);
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          
+                          showNotification('success', 'Export Complete', 'User data exported successfully');
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Export CSV
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          const now = new Date();
+                          const report = {
+                            generatedAt: now.toISOString(),
+                            totalUsers: approvedUsers.length + pendingUsers.length + deletedUsers.length,
+                            activeUsers: approvedUsers.length,
+                            pendingUsers: pendingUsers.length,
+                            deletedUsers: deletedUsers.length,
+                            totalComparisons: approvedUsers.reduce((sum, user) => sum + (user.comparisonsUsed || 0), 0),
+                            tierDistribution: {
+                              starter: approvedUsers.filter(u => u.subscriptionTier === 'starter').length,
+                              professional: approvedUsers.filter(u => u.subscriptionTier === 'professional').length,
+                              business: approvedUsers.filter(u => u.subscriptionTier === 'business').length
+                            }
+                          };
+                          
+                          navigator.clipboard.writeText(JSON.stringify(report, null, 2));
+                          showNotification('success', 'Report Copied', 'Analytics report copied to clipboard');
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors"
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy Report
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
