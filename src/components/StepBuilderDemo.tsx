@@ -444,19 +444,35 @@ Note: This is an automated system. The code you write will be executed directly.
 
   const startWatchingForResponse = () => {
     console.log('👀 Starting automated response monitoring...');
+    const startTime = performance.now(); // Track performance
+    
+    let pollCount = 0;
+    let isResolved = false; // Prevent race condition
     
     // Set up polling to check for Claude's response
     const pollInterval = setInterval(async () => {
+      if (isResolved) return; // Prevent double execution
+      
+      pollCount++;
+      console.log(`🔍 Poll attempt ${pollCount}/150 - Checking for response file...`);
+      
       const code = await readClaudeResponseFile();
       if (code) {
+        isResolved = true; // Mark as resolved
         clearInterval(pollInterval);
-        console.log('🎉 Claude response received! Executing automation...');
+        const responseTime = performance.now() - startTime;
+        console.log(`🎉 Claude response received in ${responseTime.toFixed(0)}ms! Executing automation...`);
+        console.log('📄 Response file content preview:', code.substring(0, 100) + '...');
         await executeClaudeCode(code);
+      } else {
+        console.log(`❌ Poll ${pollCount}: No response file found yet`);
       }
-    }, 2000); // Check every 2 seconds
+    }, 200); // Check every 200ms (10x faster!)
     
     // Fallback timeout after 30 seconds
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      if (isResolved) return; // Don't run fallback if already resolved
+      isResolved = true;
       clearInterval(pollInterval);
       console.log('⏰ Timeout reached, using fallback logic');
       handleExecuteStepWithFallback(1);
