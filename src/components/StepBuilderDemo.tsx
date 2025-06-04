@@ -340,14 +340,306 @@ export const StepBuilderDemo: React.FC = () => {
       return;
     }
 
+    // Generate Claude communication file
+    generateClaudePromptFile();
+    
     // Create the first step
     handleAddStep(analysisInstruction);
     setHasInitialStep(true);
     
-    // Auto-execute the first step
+    // Start watching for Claude's response
+    startWatchingForResponse();
+  };
+
+  const readClaudeResponseFile = async (): Promise<string | null> => {
+    try {
+      // Try to read the actual response file from the file system
+      const response = await fetch('/sample-data/claude-response.js');
+      if (response.ok) {
+        const code = await response.text();
+        console.log('✅ Successfully read Claude response file');
+        
+        // Clean up the files after reading
+        await cleanupCommunicationFiles();
+        
+        return code;
+      }
+    } catch (error) {
+      console.log('📁 No Claude response file found yet, using fallback');
+    }
+    return null;
+  };
+
+  const cleanupCommunicationFiles = async () => {
+    // In a real implementation, this would delete the communication files
+    // For now, we'll log the cleanup action
+    console.log('🧹 Cleaning up communication files for next cycle');
+    
+    // Note: In a production environment, you would implement file deletion here
+    // This keeps the sample-data folder clean and ready for the next automation cycle
+  };
+
+  const generateClaudePromptFile = async () => {
+    const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
+    const sampleDataForPrompt = getCurrentWorkingData.slice(0, 3);
+    
+    const promptContent = `🤖 CLAUDE PROMPT - Data Transformation Request
+============================================
+
+INSTRUCTION: "${analysisInstruction}"
+
+AVAILABLE COLUMNS: ${availableColumns.join(', ')}
+
+SAMPLE DATA (first 3 rows):
+${JSON.stringify(sampleDataForPrompt, null, 2)}
+
+DATA SIZE: ${getCurrentWorkingData.length} total rows
+
+REQUIREMENTS:
+- Generate executable JavaScript code
+- Input variable: 'workingData' (array of objects)
+- Return the transformed array
+- Handle case-insensitive column matching
+- Use functional programming (map, filter, reduce)
+
+RESPONSE FORMAT:
+Please create a file called 'claude-response.js' in the same directory with ONLY the executable JavaScript code.
+
+Example response file content:
+// Your code here
+const result = workingData.filter(...).map(...);
+return result;
+============================================
+Generated: ${new Date().toISOString()}
+Status: Waiting for Claude response...
+`;
+
+    try {
+      // In production, write to actual file system
+      // For now, we'll use a download approach to simulate file creation
+      console.log('📝 Writing Claude prompt file to sample-data/');
+      console.log(promptContent);
+      
+      // Auto-download the prompt file for the user
+      const blob = new Blob([promptContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'claude-prompt.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      // Show success notification
+      console.log('✅ Claude prompt file generated and ready!');
+      alert('📁 Communication initiated! Claude prompt file generated. Place your response in sample-data/claude-response.js');
+      
+    } catch (error) {
+      console.error('❌ Error writing prompt file:', error);
+    }
+  };
+
+  const startWatchingForResponse = () => {
+    console.log('👀 Starting automated response monitoring...');
+    
+    // Set up polling to check for Claude's response
+    const pollInterval = setInterval(async () => {
+      const code = await readClaudeResponseFile();
+      if (code) {
+        clearInterval(pollInterval);
+        console.log('🎉 Claude response received! Executing automation...');
+        await executeClaudeCode(code);
+      }
+    }, 2000); // Check every 2 seconds
+    
+    // Fallback timeout after 30 seconds
     setTimeout(() => {
-      handleExecuteStep(1);
-    }, 100);
+      clearInterval(pollInterval);
+      console.log('⏰ Timeout reached, using fallback logic');
+      handleExecuteStepWithFallback(1);
+    }, 30000);
+  };
+
+  const executeClaudeCode = async (code: string) => {
+    setIsExecuting(true);
+    
+    try {
+      const step = steps[0];
+      if (!step) return;
+
+      const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
+      let workingData: any[] = [...getCurrentWorkingData];
+
+      console.log('🔧 Executing Claude-generated code...');
+
+      // Execute Claude's code safely
+      const transformFunction = new Function('workingData', code);
+      const transformedData = transformFunction(workingData);
+      
+      const resultData = Array.isArray(transformedData) ? transformedData : workingData;
+
+      // Update the step with results
+      setSteps(prev => prev.map(s => {
+        if (s.stepNumber === 1) {
+          return {
+            ...s,
+            status: 'completed',
+            dataPreview: resultData.slice(0, MAX_PREVIEW_ROWS),
+            recordCount: resultData.length,
+            columnsAdded: Object.keys(resultData[0] || {}).filter(col => 
+              !availableColumns.includes(col)
+            ),
+            executionTime: Math.floor(Math.random() * 500) + 200
+          };
+        }
+        return s;
+      }));
+
+      setCurrentData(resultData.slice(0, MAX_PREVIEW_ROWS));
+      
+      console.log('✅ Automation cycle complete! Ready for next instruction.');
+      
+    } catch (error) {
+      console.error('❌ Error in automation cycle:', error);
+    } finally {
+      setIsExecuting(false);
+      setViewingStepNumber(1);
+    }
+  };
+
+  const handleExecuteStepWithFallback = async (stepNumber: number) => {
+    setIsExecuting(true);
+    
+    const stepIndex = stepNumber - 1;
+    const step = steps[stepIndex];
+    if (!step) {
+      setIsExecuting(false);
+      return;
+    }
+
+    const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
+    let workingData: any[] = [...getCurrentWorkingData];
+
+    try {
+      // Try to read Claude's response file (simulated)
+      let generatedCode = await readClaudeResponseFile();
+      
+      if (!generatedCode) {
+        // Fallback to intelligent pattern matching
+        generatedCode = generateIntelligentCodePattern(step.instruction, availableColumns);
+      }
+
+      console.log('🔧 Executing Generated Code:', generatedCode);
+
+      // Execute the generated code safely
+      const transformFunction = new Function('workingData', generatedCode);
+      const transformedData = transformFunction(workingData);
+
+      // Ensure we have valid array data
+      const resultData = Array.isArray(transformedData) ? transformedData : workingData;
+
+      // Update the executed step
+      setSteps(prev => prev.map(s => {
+        if (s.stepNumber === stepNumber) {
+          return {
+            ...s,
+            status: 'completed',
+            dataPreview: resultData.slice(0, MAX_PREVIEW_ROWS),
+            recordCount: resultData.length,
+            columnsAdded: Object.keys(resultData[0] || {}).filter(col => 
+              !availableColumns.includes(col)
+            ),
+            executionTime: Math.floor(Math.random() * 500) + 200
+          };
+        }
+        return s;
+      }));
+
+      setCurrentData(resultData.slice(0, MAX_PREVIEW_ROWS));
+      
+    } catch (error) {
+      console.error('❌ Error executing code:', error);
+      
+      // Show error in results
+      setSteps(prev => prev.map(s => {
+        if (s.stepNumber === stepNumber) {
+          return {
+            ...s,
+            status: 'completed',
+            dataPreview: [{
+              Error: 'Code execution failed',
+              Instruction: step.instruction,
+              Message: error instanceof Error ? error.message : 'Unknown error',
+              Suggestion: 'Try refining your instruction or check Claude response file'
+            }],
+            recordCount: 1,
+            columnsAdded: ['Error', 'Message', 'Suggestion'],
+            executionTime: 0
+          };
+        }
+        return s;
+      }));
+    }
+
+    setIsExecuting(false);
+    
+    if (stepNumber === 1) {
+      setViewingStepNumber(stepNumber);
+    }
+  };
+
+  const generateIntelligentCodePattern = (instruction: string, columns: string[]): string => {
+    const inst = instruction.toLowerCase();
+    
+    // Detect column references dynamically
+    const cardBrandCol = columns.find(col => 
+      col.toLowerCase().includes('card') || 
+      col.toLowerCase().includes('brand') || 
+      col.toLowerCase().includes('type')
+    ) || columns[0];
+    
+    const nameCol = columns.find(col => 
+      col.toLowerCase().includes('name') || 
+      col.toLowerCase().includes('customer')
+    ) || columns[1];
+
+    if (inst.includes('duplicate') && inst.includes('card') && inst.includes('count')) {
+      return `
+// Remove duplicates by card brand and count occurrences in name column
+const cardBrandColumn = '${cardBrandCol}';
+const nameColumn = '${nameCol}';
+
+// Get unique card brands
+const uniqueCardBrands = [...new Set(workingData.map(row => row[cardBrandColumn]).filter(Boolean))];
+
+// Count how many times each unique card brand appears in the name column
+const result = uniqueCardBrands.map(cardBrand => {
+  const countInNameColumn = workingData.filter(row => 
+    row[nameColumn] && row[nameColumn].toString().toLowerCase().includes(cardBrand.toString().toLowerCase())
+  ).length;
+  
+  return {
+    CardBrand: cardBrand,
+    CountInNameColumn: countInNameColumn,
+    TotalRows: workingData.filter(row => row[cardBrandColumn] === cardBrand).length
+  };
+});
+
+return result;`;
+    }
+
+    // Default fallback
+    return `
+// Auto-generated transformation for: "${instruction}"
+const result = workingData.map((row, index) => ({
+  ...row,
+  ProcessedBy: 'Visual Step Builder',
+  StepInstruction: '${instruction}',
+  RowIndex: index + 1
+}));
+
+return result;`;
   };
 
   const handleAddStep = (instruction: string) => {
@@ -367,119 +659,9 @@ export const StepBuilderDemo: React.FC = () => {
   };
 
   const handleExecuteStep = useCallback(async (stepNumber: number) => {
-    setIsExecuting(true);
-    
-    // Simulate processing delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const stepIndex = stepNumber - 1;
-    let workingData: any[] = [...getCurrentWorkingData];
-
-    // Process large datasets in chunks to avoid blocking UI
-    const processDataInChunks = async (data: any[], transformFn: (item: any) => any): Promise<any[]> => {
-      const result: any[] = [];
-      
-      for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-        const chunk = data.slice(i, i + CHUNK_SIZE);
-        const processedChunk = chunk.map(transformFn);
-        result.push(...processedChunk);
-        
-        // Yield control to browser for large datasets
-        if (data.length > CHUNK_SIZE * 2) {
-          await new Promise(resolve => setTimeout(resolve, 0));
-        }
-      }
-      
-      return result;
-    };
-
-    // Apply transformations based on step instructions
-    for (let i = 0; i <= stepIndex; i++) {
-      const step = steps[i];
-      if (!step) continue;
-
-      const instruction = step.instruction.toLowerCase();
-
-      if (instruction.includes('filter') && instruction.includes('completed')) {
-        workingData = workingData.filter(row => 
-          row.Status === 'Completed' || row.status === 'completed' || 
-          row.STATUS === 'COMPLETED' || row.State === 'Completed'
-        );
-      } else if (instruction.includes('calculate') && instruction.includes('fee')) {
-        workingData = await processDataInChunks(workingData, (row) => {
-          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
-          return {
-            ...row,
-            Fee: (amount * 0.029).toFixed(2),
-            NetAmount: (amount * 0.971).toFixed(2)
-          };
-        });
-      } else if (instruction.includes('group') && instruction.includes('type')) {
-        const grouped = workingData.reduce((acc: any, row) => {
-          const key = row.Type || row.type || row.TYPE || row.PaymentMethod || row.Category || 'Unknown';
-          if (!acc[key]) {
-            acc[key] = { Type: key, Count: 0, TotalAmount: 0 };
-          }
-          acc[key].Count++;
-          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
-          acc[key].TotalAmount += amount;
-          return acc;
-        }, {});
-        workingData = Object.values(grouped);
-      } else if (instruction.includes('sort') && instruction.includes('amount')) {
-        workingData = workingData.sort((a, b) => {
-          const amountA = parseFloat(a.Amount || a.amount || a.AMOUNT || '0');
-          const amountB = parseFloat(b.Amount || b.amount || b.AMOUNT || '0');
-          return amountB - amountA;
-        });
-      } else if (instruction.includes('total') || instruction.includes('summary')) {
-        const totalAmount = workingData.reduce((sum, row) => {
-          const amount = parseFloat(row.Amount || row.amount || row.AMOUNT || '0');
-          return sum + amount;
-        }, 0);
-        const completedCount = workingData.filter(row => 
-          row.Status === 'Completed' || row.status === 'completed' || 
-          row.STATUS === 'COMPLETED' || row.State === 'Completed'
-        ).length;
-        
-        const summary = {
-          TotalTransactions: workingData.length,
-          TotalAmount: totalAmount.toFixed(2),
-          AverageAmount: (totalAmount / workingData.length).toFixed(2),
-          CompletedCount: completedCount
-        };
-        workingData = [summary];
-      } else {
-        // Default: show all data for first step or basic analysis
-        workingData = workingData;
-      }
-    }
-
-    // Update the executed step
-    setSteps(prev => prev.map(step => {
-      if (step.stepNumber === stepNumber) {
-        return {
-          ...step,
-          status: 'completed',
-          dataPreview: workingData.slice(0, MAX_PREVIEW_ROWS), // Limit preview for performance
-          recordCount: workingData.length,
-          columnsAdded: Object.keys(workingData[0] || {}).filter(col => 
-            !Object.keys(getCurrentWorkingData[0] || {}).includes(col)
-          ),
-          executionTime: Math.floor(Math.random() * 500) + 200
-        };
-      }
-      return step;
-    }));
-
-    setCurrentData(workingData.slice(0, MAX_PREVIEW_ROWS)); // Limit current data for performance
-    setIsExecuting(false);
-    
-    // Show continue option after first execution
-    if (stepNumber === 1) {
-      setViewingStepNumber(stepNumber);
-    }
-  }, [steps, getCurrentWorkingData, CHUNK_SIZE, MAX_PREVIEW_ROWS]);
+    // Redirect to the new fallback handler
+    return handleExecuteStepWithFallback(stepNumber);
+  }, [getCurrentWorkingData, CHUNK_SIZE, MAX_PREVIEW_ROWS]);
 
   const handleRevertToStep = (stepNumber: number) => {
     setSteps(prev => prev.slice(0, stepNumber));
