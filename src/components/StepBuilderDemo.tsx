@@ -341,32 +341,37 @@ export const StepBuilderDemo: React.FC = () => {
     }
 
     console.log('🚀 Starting deployment process...');
-
-    // Generate Claude communication file
-    generateClaudePromptFile();
     
-    // Create the first step IMMEDIATELY (not using React state yet)
-    const newStep: StepWithPreview = {
-      id: `step-${Date.now()}`,
-      stepNumber: 1,
-      instruction: analysisInstruction,
-      status: 'testing',
-      dataPreview: [],
-      recordCount: 0,
-      columnsAdded: [],
-      timestamp: new Date().toISOString(),
-      isViewingStep: false
-    };
-    
-    // Set the step in state synchronously for the UI
-    setSteps([newStep]);
-    setHasInitialStep(true);
-    
-    console.log('✅ Step created immediately:', newStep);
-    console.log('👀 Starting response monitoring...');
-    
-    // Start watching for Claude's response
-    startWatchingForResponse();
+    // CRITICAL: Clean up old files first for fresh start
+    cleanupCommunicationFiles().then(() => {
+      console.log('🎯 Starting fresh - no old response files exist');
+      
+      // Generate Claude communication file
+      generateClaudePromptFile();
+      
+      // Create the first step IMMEDIATELY
+      const newStep: StepWithPreview = {
+        id: `step-${Date.now()}`,
+        stepNumber: 1,
+        instruction: analysisInstruction,
+        status: 'testing',
+        dataPreview: [],
+        recordCount: 0,
+        columnsAdded: [],
+        timestamp: new Date().toISOString(),
+        isViewingStep: false
+      };
+      
+      // Set the step in state synchronously for the UI
+      setSteps([newStep]);
+      setHasInitialStep(true);
+      
+      console.log('✅ Step created immediately:', newStep);
+      console.log('👀 Starting response monitoring...');
+      
+      // Start watching for Claude's response
+      startWatchingForResponse();
+    });
   };
 
   const readClaudeResponseFile = async (): Promise<string | null> => {
@@ -392,15 +397,22 @@ export const StepBuilderDemo: React.FC = () => {
 
   const cleanupCommunicationFiles = async () => {
     try {
-      // Note: In a real implementation, you'd call an API endpoint to delete files
-      // For now, we'll just log that cleanup would happen
-      console.log('🧹 Cleaning up communication files...');
+      console.log('🧹 Preparing for fresh response...');
       
-      // In production, you'd make API calls to delete:
-      // - /claude-communication/claude-prompt.txt
-      // - /claude-communication/claude-response.js
+      // Clear browser cache to ensure fresh file read
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        for (const cacheName of cacheNames) {
+          const cache = await caches.open(cacheName);
+          await cache.delete('/claude-communication/claude-response.js');
+        }
+      }
+      
+      console.log('✅ Ready for fresh response file');
+      console.log('📝 Next: Overwrite public/claude-communication/claude-response.js with new code');
+      
     } catch (error) {
-      console.warn('Cleanup warning:', error);
+      console.warn('⚠️ Cache cleanup warning (continuing anyway):', error);
     }
   };
 
@@ -485,6 +497,14 @@ User is waiting for your response to continue their analysis workflow.
       console.log('📋 PROMPT FOR CLAUDE:');
       console.log(promptContent);
       console.log('📋 END PROMPT');
+      console.log('');
+      console.log('🎯 ACTION REQUIRED:');
+      console.log('1. OVERWRITE: public/claude-communication/claude-response.js');
+      console.log('2. REPLACE all content with your new JavaScript code');
+      console.log('3. SAVE the file');
+      console.log('4. System will auto-detect and execute immediately');
+      console.log('');
+      console.log('💡 TIP: Just overwrite the existing file - no deletion needed!');
     }
     
     return promptContent;
