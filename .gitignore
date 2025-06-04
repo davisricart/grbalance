@@ -31,3 +31,11 @@ dist-ssr
 sample-data/
 # Local Netlify folder
 .netlify
+
+# Claude Communication Directory - Never commit these files
+/claude-communication/
+claude-communication/
+public/claude-communication/claude-prompt.txt
+public/claude-communication/claude-response.js
+/public/claude-communication/claude-prompt.txt
+/public/claude-communication/claude-response.js

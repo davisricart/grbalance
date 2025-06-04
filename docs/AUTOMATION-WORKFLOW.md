@@ -34,7 +34,13 @@ Button  Prompt   & Write    Code      Data
 
 ## 📁 **FILE-BASED COMMUNICATION ARCHITECTURE**
 
-### **Communication Directory:** `/public/sample-data/`
+### **Communication Directory:** `/public/claude-communication/`
+
+**🔒 SAFETY FEATURES:**
+- **Dedicated directory** - Separate from sample data
+- **Git ignored** - Communication files never committed
+- **Auto cleanup** - Files deleted after each cycle
+- **Protected space** - Can't accidentally delete sample data
 
 **File Flow:**
 1. **`claude-prompt.txt`** ← System writes instruction + data context

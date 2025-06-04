@@ -353,91 +353,93 @@ export const StepBuilderDemo: React.FC = () => {
 
   const readClaudeResponseFile = async (): Promise<string | null> => {
     try {
-      // Try to read the actual response file from the file system
-      const response = await fetch('/sample-data/claude-response.js');
+      const response = await fetch('/claude-communication/claude-response.js');
       if (response.ok) {
         const code = await response.text();
-        console.log('✅ Successfully read Claude response file');
-        
-        // Clean up the files after reading
-        await cleanupCommunicationFiles();
-        
         return code;
       }
+      return null;
     } catch (error) {
-      console.log('📁 No Claude response file found yet, using fallback');
+      // File doesn't exist yet or other error
+      return null;
     }
-    return null;
   };
 
   const cleanupCommunicationFiles = async () => {
-    // In a real implementation, this would delete the communication files
-    // For now, we'll log the cleanup action
-    console.log('🧹 Cleaning up communication files for next cycle');
-    
-    // Note: In a production environment, you would implement file deletion here
-    // This keeps the sample-data folder clean and ready for the next automation cycle
+    try {
+      // Note: In a real implementation, you'd call an API endpoint to delete files
+      // For now, we'll just log that cleanup would happen
+      console.log('🧹 Cleaning up communication files...');
+      
+      // In production, you'd make API calls to delete:
+      // - /claude-communication/claude-prompt.txt
+      // - /claude-communication/claude-response.js
+    } catch (error) {
+      console.warn('Cleanup warning:', error);
+    }
   };
 
   const generateClaudePromptFile = async () => {
-    const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
-    const sampleDataForPrompt = getCurrentWorkingData.slice(0, 3);
+    if (!getCurrentWorkingData || getCurrentWorkingData.length === 0) {
+      throw new Error('No primary dataset available for analysis');
+    }
+
+    // Get actual column names from the data
+    const columns = Object.keys(getCurrentWorkingData[0] || {});
+    const sampleData = getCurrentWorkingData.slice(0, 3);
     
     const promptContent = `🤖 CLAUDE PROMPT - Data Transformation Request
 ============================================
 
 INSTRUCTION: "${analysisInstruction}"
 
-AVAILABLE COLUMNS: ${availableColumns.join(', ')}
+AVAILABLE COLUMNS: ${columns.join(', ')}
 
 SAMPLE DATA (first 3 rows):
-${JSON.stringify(sampleDataForPrompt, null, 2)}
+${JSON.stringify(sampleData, null, 2)}
 
 DATA SIZE: ${getCurrentWorkingData.length} total rows
 
 REQUIREMENTS:
 - Generate executable JavaScript code
-- Input variable: 'workingData' (array of objects)
+- Input variable: 'workingData' (array of objects)  
 - Return the transformed array
 - Handle case-insensitive column matching
 - Use functional programming (map, filter, reduce)
+- Handle edge cases (null, undefined, empty strings)
 
 RESPONSE FORMAT:
-Please create a file called 'claude-response.js' in the same directory with ONLY the executable JavaScript code.
+Please create 'claude-response.js' in the /claude-communication/ directory with ONLY executable code.
 
-Example response file content:
-// Your code here
-const result = workingData.filter(...).map(...);
+EXAMPLE RESPONSE FILE CONTENT:
+// Your JavaScript transformation code here
+const result = workingData
+  .filter(row => /* your filter logic */)
+  .map(row => /* your transformation logic */);
+
 return result;
-============================================
-Generated: ${new Date().toISOString()}
-Status: Waiting for Claude response...
+
+Note: This is an automated system. The code you write will be executed directly.
 `;
 
-    try {
-      // In production, write to actual file system
-      // For now, we'll use a download approach to simulate file creation
-      console.log('📝 Writing Claude prompt file to sample-data/');
-      console.log(promptContent);
-      
-      // Auto-download the prompt file for the user
-      const blob = new Blob([promptContent], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'claude-prompt.txt';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      // Show success notification
-      console.log('✅ Claude prompt file generated and ready!');
-      alert('📁 Communication initiated! Claude prompt file generated. Place your response in sample-data/claude-response.js');
-      
-    } catch (error) {
-      console.error('❌ Error writing prompt file:', error);
-    }
+    // In a real implementation, this would write to the server
+    // For demo purposes, we'll create a downloadable file
+    const blob = new Blob([promptContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    
+    // Create a temporary link to trigger download
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'claude-prompt.txt';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('📝 Claude prompt file generated!');
+    console.log('💡 In production, this would write to /claude-communication/claude-prompt.txt');
+    
+    return promptContent;
   };
 
   const startWatchingForResponse = () => {

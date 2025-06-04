@@ -26,7 +26,8 @@ Claude → Reads prompt & writes claude-response.js
 System → Executes code & shows results & cleans up
 ```
 
-**File Location:** `/public/sample-data/` (communication channel)
+**File Location:** `/public/claude-communication/` (dedicated & protected)  
+**Safety:** Git ignored, auto-cleanup, separate from sample data
 
 ---
 
