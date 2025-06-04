@@ -373,21 +373,19 @@ export const StepBuilderDemo: React.FC = () => {
     try {
       console.log('🔍 Reading Claude response file...');
       
-      // Instead of reading a static file, generate dynamic response based on current instruction
-      console.log('💡 Generating dynamic response for instruction:', analysisInstruction);
-      
-      const dynamicCode = generateIntelligentCodePattern(analysisInstruction, []);
-      
-      if (dynamicCode) {
-        console.log('✅ Dynamic response generated successfully');
-        return dynamicCode;
+      // Try to read the actual response file first
+      const response = await fetch('/claude-communication/claude-response.js');
+      if (response.ok) {
+        const responseText = await response.text();
+        console.log('✅ Found Claude response file!');
+        return responseText;
       }
       
-      console.log('❌ No dynamic response could be generated');
+      console.log('❌ No Claude response file found yet');
       return null;
       
     } catch (error) {
-      console.error('❌ Error generating dynamic response:', error);
+      console.log('❌ Error reading Claude response file:', error);
       return null;
     }
   };
@@ -447,24 +445,47 @@ const result = workingData
 return result;
 
 Note: This is an automated system. The code you write will be executed directly.
+
+⚡ URGENT: This is a live request from the Visual Step Builder!
+User is waiting for your response to continue their analysis workflow.
 `;
 
-    // In a real implementation, this would write to the server
-    // For demo purposes, we'll create a downloadable file
-    const blob = new Blob([promptContent], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    
-    // Create a temporary link to trigger download
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'claude-prompt.txt';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Create the actual communication directory and files
+    try {
+      // In a real implementation, this would write to the server
+      // For now, we'll simulate by writing to the public directory via a fetch request
+      await fetch('/api/claude-communication/write-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: promptContent,
+          instruction: analysisInstruction,
+          timestamp: new Date().toISOString()
+        })
+      });
 
-    console.log('📝 Claude prompt file generated!');
-    console.log('💡 In production, this would write to /claude-communication/claude-prompt.txt');
+      console.log('📝 Claude prompt file generated and saved!');
+      console.log('💌 Message sent to Claude - waiting for response...');
+      
+    } catch (error) {
+      console.warn('⚠️ Could not write to server, using fallback...');
+      
+      // Fallback: Create downloadable file AND log the content for you to see
+      const blob = new Blob([promptContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'claude-prompt.txt';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('📋 PROMPT FOR CLAUDE:');
+      console.log(promptContent);
+      console.log('📋 END PROMPT');
+    }
     
     return promptContent;
   };
@@ -1139,11 +1160,39 @@ return result;`;
           <label className="block text-lg font-medium text-gray-900 mb-4">
             Analysis Instructions
           </label>
+          
+          {/* Intelligence Level Indicator */}
+          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-600 text-xl">🧠</div>
+              <div>
+                <h4 className="font-medium text-blue-900 mb-2">Smart Analysis Guide</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <div><strong>✅ Automated (Instant):</strong> Count card brands (Visa, AmEx, Mastercard), basic filtering</div>
+                  <div><strong>🤖 Advanced (Copy-Paste):</strong> Complex logic, calculations, trends, custom transformations</div>
+                </div>
+                <div className="mt-3 text-xs text-blue-700 bg-blue-100 rounded px-2 py-1 inline-block">
+                  For advanced analysis: Copy instruction → Paste in Claude chat → Copy response back
+                </div>
+              </div>
+            </div>
+          </div>
+          
           <textarea
             value={analysisInstruction}
             onChange={(e) => setAnalysisInstruction(e.target.value)}
-            placeholder="Describe your reconciliation workflow... (e.g., 'Compare transaction amounts between datasets and identify discrepancies')"
-            className="w-full p-4 border border-gray-200 rounded-xl resize-none h-24 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+            placeholder="Describe your analysis... 
+
+AUTOMATED EXAMPLES:
+• How many Visa transactions do you see?
+• Count American Express instances in Card Brand column
+• Show unique card brands and their counts
+
+ADVANCED EXAMPLES (use copy-paste method):
+• Calculate monthly transaction trends and identify seasonal patterns
+• Find outliers that are 2+ standard deviations from mean
+• Cross-reference amounts with industry benchmarks"
+            className="w-full p-4 border border-gray-200 rounded-xl resize-none h-32 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
           />
           
           {/* Action Buttons */}
