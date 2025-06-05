@@ -345,14 +345,26 @@ export const StepBuilderDemo: React.FC = () => {
 
     console.log('🚀 Starting deployment process...');
     
-    // Generate unique filename IMMEDIATELY (no async timing issues)
-    const timestamp = Date.now();
+    // ✅ EXPOSE FILE DATA TO GLOBAL SCOPE for demo response file access
+    (window as any).aiFile1Data = file1Data.length > 0 ? file1Data : null;
+    (window as any).aiFile2Data = file2Data.length > 0 ? file2Data : null;
+    (window as any).workingData = getCurrentWorkingData;
+    
+    console.log('✅ Data exposed to global scope for demo response file:');
+    console.log('   - window.aiFile1Data:', file1Data.length, 'rows');
+    console.log('   - window.aiFile2Data:', file2Data.length, 'rows');
+    console.log('   - getCurrentWorkingData:', getCurrentWorkingData.length, 'rows');
+    
+    // DEMO MODE: Use fixed timestamp for smooth testing
+    // In production, this would be: const timestamp = Date.now();
+    const timestamp = 'DEMO-123456789';
     const newFileName = `claude-response-${timestamp}.js`;
     
     console.log('🧹 Preparing for fresh response...');
     console.log(`✅ Ready for fresh response file: ${newFileName}`);
     console.log(`📝 Next: CREATE public/claude-communication/${newFileName} with new code`);
     console.log('🎯 This ensures no old code contamination!');
+    console.log('🎭 DEMO MODE: Using fixed timestamp for smooth testing');
     
     // Set the filename immediately and synchronously  
     setCurrentResponseFile(newFileName);
