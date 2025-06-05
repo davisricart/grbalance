@@ -345,26 +345,25 @@ export const StepBuilderDemo: React.FC = () => {
 
     console.log('🚀 Starting deployment process...');
     
-    // ✅ EXPOSE FILE DATA TO GLOBAL SCOPE for demo response file access
+    // ✅ EXPOSE FILE DATA TO GLOBAL SCOPE for Claude response file access
     (window as any).aiFile1Data = file1Data.length > 0 ? file1Data : null;
     (window as any).aiFile2Data = file2Data.length > 0 ? file2Data : null;
     (window as any).workingData = getCurrentWorkingData;
     
-    console.log('✅ Data exposed to global scope for demo response file:');
+    console.log('✅ Data exposed to global scope for Claude response file:');
     console.log('   - window.aiFile1Data:', file1Data.length, 'rows');
     console.log('   - window.aiFile2Data:', file2Data.length, 'rows');
     console.log('   - getCurrentWorkingData:', getCurrentWorkingData.length, 'rows');
     
-    // DEMO MODE: Use fixed timestamp for smooth testing
-    // In production, this would be: const timestamp = Date.now();
-    const timestamp = 'DEMO-123456789';
+    // PRODUCTION MODE: Use real timestamps for live testing
+    const timestamp = Date.now();
     const newFileName = `claude-response-${timestamp}.js`;
     
     console.log('🧹 Preparing for fresh response...');
     console.log(`✅ Ready for fresh response file: ${newFileName}`);
     console.log(`📝 Next: CREATE public/claude-communication/${newFileName} with new code`);
     console.log('🎯 This ensures no old code contamination!');
-    console.log('🎭 DEMO MODE: Using fixed timestamp for smooth testing');
+    console.log('🚀 PRODUCTION MODE: Using real timestamps for live testing');
     
     // Set the filename immediately and synchronously  
     setCurrentResponseFile(newFileName);
@@ -1353,52 +1352,21 @@ return result;`;
           </div>
         </div>
 
-        {/* Analysis Instructions */}
+        {/* Minimal Analysis Input */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <label className="block text-lg font-medium text-gray-900 mb-4">
-            Analysis Instructions
-          </label>
-          
-          {/* Intelligence Level Indicator */}
-          <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="flex items-start gap-3">
-              <div className="text-blue-600 text-xl">🧠</div>
-              <div>
-                <h4 className="font-medium text-blue-900 mb-2">Smart Analysis Guide</h4>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <div><strong>✅ Automated (Instant):</strong> Count card brands (Visa, AmEx, Mastercard), basic filtering</div>
-                  <div><strong>🤖 Advanced (Copy-Paste):</strong> Complex logic, calculations, trends, custom transformations</div>
-                </div>
-                <div className="mt-3 text-xs text-blue-700 bg-blue-100 rounded px-2 py-1 inline-block">
-                  For advanced analysis: Copy instruction → Paste in Claude chat → Copy response back
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <textarea
-            value={analysisInstruction}
-            onChange={(e) => setAnalysisInstruction(e.target.value)}
-            placeholder="Describe your analysis... 
-
-AUTOMATED EXAMPLES:
-• How many Visa transactions do you see?
-• Count American Express instances in Card Brand column
-• Show unique card brands and their counts
-
-ADVANCED EXAMPLES (use copy-paste method):
-• Calculate monthly transaction trends and identify seasonal patterns
-• Find outliers that are 2+ standard deviations from mean
-• Cross-reference amounts with industry benchmarks"
-            className="w-full p-4 border border-gray-200 rounded-xl resize-none h-32 text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
-          />
-          
-          {/* Action Buttons */}
-          <div className="flex items-center gap-3 mt-6">
+          <div className="flex items-center gap-4">
+            <input
+              type="text"
+              value={analysisInstruction}
+              onChange={(e) => setAnalysisInstruction(e.target.value)}
+              placeholder="What analysis do you want? (e.g., count Mastercard instances)"
+              className="flex-1 p-4 border border-gray-200 rounded-xl text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all duration-200"
+            />
+            
             <button
               onClick={handleProcessAndDeploy}
               disabled={hasInitialStep || !analysisInstruction.trim() || (!file1 && file1Data.length === 0)}
-              className={`px-8 py-3 rounded-xl font-medium text-sm transition-all duration-200 ${
+              className={`px-8 py-4 rounded-xl font-medium text-sm transition-all duration-200 whitespace-nowrap ${
                 hasInitialStep || !analysisInstruction.trim() || (!file1 && file1Data.length === 0)
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md'
@@ -1406,12 +1374,6 @@ ADVANCED EXAMPLES (use copy-paste method):
             >
               🚀 Start Analysis
             </button>
-            
-            {!file1 && file1Data.length === 0 && (
-              <div className="text-sm text-gray-500">
-                Upload a file first to get started
-              </div>
-            )}
             
             {hasInitialStep && (
               <button
@@ -1427,43 +1389,59 @@ ADVANCED EXAMPLES (use copy-paste method):
                   setIsFinished(false);
                   setCurrentResponseFile('claude-response.js');
                 }}
-                className="px-6 py-3 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-all duration-200"
+                className="px-6 py-4 bg-white text-gray-600 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-all duration-200"
               >
                 🔄 Reset
               </button>
             )}
           </div>
+          
+          {!file1 && file1Data.length === 0 && (
+            <div className="mt-3 text-sm text-gray-500 text-center">
+              Upload a file first to get started
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Visual Step Builder Results */}
+      {/* CLEAN TWO-COLUMN LAYOUT - NO CLUTTER */}
       {steps.length > 0 ? (
-        <VisualStepBuilder
-          steps={steps}
-          onExecuteStep={handleExecuteStep}
-          onRevertToStep={handleRevertToStep}
-          onAddStep={handleAddStep}
-          onViewStep={handleViewStep}
-          currentStepData={currentData}
-          isExecuting={isExecuting}
-          onFinishScript={handleFinishScript}
-        />
-      ) : (
-        !hasInitialStep && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Left: Visual Script Builder */}
+          <VisualStepBuilder
+            steps={steps}
+            onExecuteStep={handleExecuteStep}
+            onRevertToStep={handleRevertToStep}
+            onAddStep={handleAddStep}
+            onViewStep={handleViewStep}
+            currentStepData={currentData}
+            isExecuting={isExecuting}
+            onFinishScript={handleFinishScript}
+          />
+
+          {/* Right: Client Preview */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-              <h4 className="text-lg font-medium text-gray-900">📊 Script Testing Results</h4>
-              <p className="text-sm text-gray-600 mt-1">Live processing results will appear here</p>
+            <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-200">
+              <h4 className="text-lg font-medium text-emerald-900">👥 Client Preview</h4>
+              <p className="text-sm text-emerald-700 mt-1">How your analysis will appear to end users</p>
             </div>
-            <div className="p-6 min-h-32">
-              <div className="text-center text-gray-500 py-8">
-                <div className="text-4xl mb-2">📋</div>
-                <div className="text-lg font-medium mb-2">Ready for Processing</div>
-                <div className="text-sm">Enter analysis instructions and click "🚀 Start Analysis"</div>
+            <div className="p-6 min-h-96" data-section="client-preview">
+              <div className="text-center text-emerald-600 py-16">
+                <div className="text-4xl mb-2">🎯</div>
+                <div className="text-lg font-medium mb-2">Awaiting Results</div>
+                <div className="text-sm text-emerald-700">Beautiful client-facing results will display here after analysis</div>
               </div>
             </div>
           </div>
-        )
+
+        </div>
+      ) : (
+        <div className="text-center text-gray-500 py-16">
+          <div className="text-4xl mb-4">🚀</div>
+          <div className="text-xl font-medium mb-2">Ready to Start</div>
+          <div className="text-gray-600">Click "🚀 Start Analysis" to begin your workflow</div>
+        </div>
       )}
     </div>
   );
