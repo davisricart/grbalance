@@ -20,7 +20,7 @@ import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiT
 import { 
   User, Users, Settings, Plus, Download, Search, Filter, Edit, 
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, 
-  UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
+  UserCheck, Shield, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
 import clientConfig from '../config/client';
