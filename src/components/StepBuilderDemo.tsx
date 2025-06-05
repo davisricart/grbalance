@@ -1498,5 +1498,4 @@ return result;`;
   );
 };
 
-// Export memoized component for performance
-export default memo(StepBuilderDemo); 
+export default StepBuilderDemo; 
