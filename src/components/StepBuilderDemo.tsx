@@ -47,6 +47,9 @@ export const StepBuilderDemo: React.FC = () => {
   const CHUNK_SIZE = 1000; // Process data in chunks for large files
   const MAX_PREVIEW_ROWS = 100; // Limit preview rows for performance
   const DEBOUNCE_DELAY = 300; // Debounce user input
+  const PERFORMANCE_LOG_INTERVAL = 5000; // Log every 5 seconds instead of 30 (faster lag detection)
+  const POLL_INTERVAL = 100; // Check every 100ms instead of 200ms (2x faster)
+  const MEMORY_CLEANUP_THRESHOLD = 80; // Trigger cleanup if memory usage > 80%
 
   // Add state for dynamic file naming
   const [currentResponseFile, setCurrentResponseFile] = useState<string>('claude-response.js');
@@ -60,22 +63,61 @@ export const StepBuilderDemo: React.FC = () => {
     return () => clearTimeout(timer);
   }, [analysisInstruction, DEBOUNCE_DELAY]);
 
-  // Performance monitoring
+  // AGGRESSIVE Performance monitoring - faster lag detection
   React.useEffect(() => {
     const logPerformance = () => {
       const memoryUsage = (performance as any).memory;
       if (memoryUsage) {
-        console.log('Memory Usage:', {
-          used: Math.round(memoryUsage.usedJSHeapSize / 1024 / 1024) + 'MB',
-          total: Math.round(memoryUsage.totalJSHeapSize / 1024 / 1024) + 'MB',
-          limit: Math.round(memoryUsage.jsHeapSizeLimit / 1024 / 1024) + 'MB'
+        const usedMB = Math.round(memoryUsage.usedJSHeapSize / 1024 / 1024);
+        const totalMB = Math.round(memoryUsage.totalJSHeapSize / 1024 / 1024);
+        const limitMB = Math.round(memoryUsage.jsHeapSizeLimit / 1024 / 1024);
+        const usagePercent = (usedMB / limitMB) * 100;
+        
+        console.log('🚀 FAST Memory Monitor:', {
+          used: usedMB + 'MB',
+          total: totalMB + 'MB', 
+          limit: limitMB + 'MB',
+          usage: Math.round(usagePercent) + '%'
         });
+        
+        // AGGRESSIVE: Auto-cleanup if memory usage is high
+        if (usagePercent > MEMORY_CLEANUP_THRESHOLD) {
+          console.log('⚠️ HIGH MEMORY USAGE! Triggering aggressive cleanup...');
+          performAggressiveCleanup();
+        }
       }
     };
 
-    const interval = setInterval(logPerformance, 30000); // Log every 30 seconds
+    const interval = setInterval(logPerformance, PERFORMANCE_LOG_INTERVAL); // 6x faster monitoring!
     return () => clearInterval(interval);
-  }, []);
+  }, [PERFORMANCE_LOG_INTERVAL, MEMORY_CLEANUP_THRESHOLD]);
+
+  // AGGRESSIVE memory cleanup function
+  const performAggressiveCleanup = () => {
+    console.log('🧹 AGGRESSIVE CLEANUP: Freeing memory...');
+    
+    // Clear large data arrays if they're too big
+    if (file1Data.length > 5000) {
+      setFile1Data(prev => prev.slice(0, 1000));
+      console.log('✂️ Trimmed file1Data from', file1Data.length, 'to 1000 rows');
+    }
+    if (file2Data.length > 5000) {
+      setFile2Data(prev => prev.slice(0, 1000));
+      console.log('✂️ Trimmed file2Data from', file2Data.length, 'to 1000 rows');
+    }
+    if (currentData.length > 500) {
+      setCurrentData(prev => prev.slice(0, 100));
+      console.log('✂️ Trimmed currentData from', currentData.length, 'to 100 rows');
+    }
+    
+    // Force garbage collection if available
+    if (window.gc) {
+      window.gc();
+      console.log('🗑️ Manual garbage collection triggered');
+    }
+    
+    console.log('✅ Aggressive cleanup complete');
+  };
 
   // Memory cleanup on unmount
   React.useEffect(() => {
@@ -700,7 +742,7 @@ This ensures no contamination from previous requests!
       if (isResolved) return; // Prevent double execution
       
       pollCount++;
-      console.log(`🔍 Poll attempt ${pollCount}/150 - Checking for response file...`);
+      console.log(`🔍 Poll attempt ${pollCount}/300 - Checking for response file... (FAST MODE)`);
       
       // Pass the timestamped filename directly
       const code = await readClaudeResponseFile(timestampedFileName);
@@ -716,7 +758,7 @@ This ensures no contamination from previous requests!
       } else {
         console.log(`❌ Poll ${pollCount}: No response file found yet`);
       }
-    }, 200); // Check every 200ms (10x faster!)
+    }, POLL_INTERVAL); // 2x faster polling!
     
     // Fallback timeout after 30 seconds
     timeoutId = setTimeout(() => {
@@ -1404,11 +1446,11 @@ return result;`;
         </div>
       </div>
 
-      {/* CLEAN TWO-COLUMN LAYOUT - NO CLUTTER */}
+      {/* CLEAN SINGLE-COLUMN LAYOUT - CLIENT PREVIEW UNDER VISUAL SCRIPT BUILDER */}
       {steps.length > 0 ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
           
-          {/* Left: Visual Script Builder */}
+          {/* Visual Script Builder - Full Width */}
           <VisualStepBuilder
             steps={steps}
             onExecuteStep={handleExecuteStep}
@@ -1420,7 +1462,7 @@ return result;`;
             onFinishScript={handleFinishScript}
           />
 
-          {/* Right: Client Preview */}
+          {/* Client Preview - Full Width Under Visual Script Builder */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-200">
               <h4 className="text-lg font-medium text-emerald-900">👥 Client Preview</h4>
