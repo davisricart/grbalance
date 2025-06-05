@@ -3425,41 +3425,8 @@ function processStep${index + 1}(data) {
 
         {activeTab === 'testing' && (
           <div className="space-y-6">
-            {/* Replace the entire file upload section with the beautiful component */}
+            {/* Clean single component - no redundant sections */}
             <StepBuilderDemo />
-            
-            {/* Keep the existing results sections */}
-            <div className="mt-6 space-y-4">
-              {/* Development View Results */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                  <h4 className="text-lg font-medium text-gray-900">📊 Script Testing Results</h4>
-                  <p className="text-sm text-gray-600 mt-1">Live processing results will appear here</p>
-                </div>
-                <div id="results-testing-area" className="p-6 min-h-32">
-                  <div className="text-center text-gray-500 py-8">
-                    <div className="text-4xl mb-2">📋</div>
-                    <div className="text-lg font-medium mb-2">Ready for Processing</div>
-                    <div className="text-sm">Select files, columns, and instructions, then click "🎯 PROCESS & DEPLOY"</div>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Client Preview Results */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="bg-blue-50 px-4 py-3 border-b border-blue-200">
-                  <h4 className="text-lg font-medium text-blue-900">👁️ Client Preview</h4>
-                  <p className="text-sm text-blue-700 mt-1">How the results will appear to your clients</p>
-                </div>
-                <div id="results-testing-area-client" className="p-6 min-h-32">
-                  <div className="text-center text-blue-500 py-8">
-                    <div className="text-4xl mb-2">🎯</div>
-                    <div className="text-lg font-medium mb-2">Client View Ready</div>
-                    <div className="text-sm">Professional client-facing results will be displayed here</div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
