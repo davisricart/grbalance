@@ -18,16 +18,16 @@ import {
 } from 'firebase/firestore';
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
-  User, Users, Settings, Plus, Download, Search, Filter, Edit, 
+  User, Users, Plus, Download, Search, Filter, Edit, 
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, 
-  UserCheck, Shield, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
+  UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
 import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
-import { StepBuilderDemo } from '../components/StepBuilderDemo';
+import StepBuilderDemo from '../components/StepBuilderDemo';
 import * as XLSX from 'xlsx';
 
 // Add this at the top of the file, after imports
