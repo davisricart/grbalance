@@ -1,62 +1,65 @@
-const fs = require('fs').promises;
-const path = require('path');
+import { promises as fs } from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-class WorkflowDiagnostic {
-    constructor() {
-        this.communicationDir = path.join(__dirname, 'public', 'claude-communication');
-        this.testSessionId = `test-${Date.now()}`;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const COMMUNICATION_DIR = path.join(__dirname, 'public', 'claude-communication');
+
+async function runDiagnostics() {
+    console.log('🔍 Running diagnostics...\n');
+
+    // Test 1: Check communication directory
+    try {
+        await fs.access(COMMUNICATION_DIR);
+        console.log('✅ Communication directory exists');
+    } catch (error) {
+        console.error('❌ Communication directory not found:', error.message);
+        return;
     }
 
-    async runDiagnostic() {
-        console.log('🔍 Starting Workflow Diagnostic');
-        try {
-            await this.checkDirectoryStructure();
-            await this.simulateRequest();
-            await this.waitForResponse();
-            console.log('✅ Diagnostic completed successfully!');
-        } catch (error) {
-            console.error('❌ Diagnostic failed:', error);
-        }
+    // Test 2: Create test request file
+    const testRequest = {
+        type: 'test',
+        timestamp: new Date().toISOString(),
+        content: 'This is a test request'
+    };
+
+    const requestPath = path.join(COMMUNICATION_DIR, 'claude-comm-request-test.txt');
+    try {
+        await fs.writeFile(requestPath, JSON.stringify(testRequest, null, 2));
+        console.log('✅ Test request file created');
+    } catch (error) {
+        console.error('❌ Failed to create test request:', error.message);
+        return;
     }
 
-    async checkDirectoryStructure() {
-        console.log('📁 Checking directory structure...');
-        try {
-            await fs.access(this.communicationDir);
-            console.log('✅ Communication directory exists');
-        } catch (error) {
-            console.log('Creating directory...');
-            await fs.mkdir(this.communicationDir, { recursive: true });
-        }
+    // Test 3: Wait for response
+    console.log('\n⏳ Waiting for watcher to process request (30 seconds)...');
+    await new Promise(resolve => setTimeout(resolve, 30000));
+
+    // Test 4: Check for response file
+    const responsePath = path.join(COMMUNICATION_DIR, 'claude-comm-response-test.txt');
+    try {
+        const responseContent = await fs.readFile(responsePath, 'utf-8');
+        const response = JSON.parse(responseContent);
+        console.log('✅ Response file received:', response);
+    } catch (error) {
+        console.error('❌ No response file found:', error.message);
+        return;
     }
 
-    async simulateRequest() {
-        console.log('📝 Simulating request...');
-        const requestFile = path.join(this.communicationDir, `claude-comm-request-${this.testSessionId}.txt`);
-        const requestContent = `Test instruction at ${new Date().toISOString()}`;
-        await fs.writeFile(requestFile, requestContent);
-        console.log(`✅ Request file created: ${path.basename(requestFile)}`);
+    // Cleanup
+    try {
+        await fs.unlink(requestPath);
+        await fs.unlink(responsePath);
+        console.log('\n🧹 Test files cleaned up');
+    } catch (error) {
+        console.warn('⚠️ Cleanup warning:', error.message);
     }
 
-    async waitForResponse() {
-        console.log('⏳ Waiting for response...');
-        const responseFile = path.join(this.communicationDir, `claude-comm-response-${this.testSessionId}.js`);
-        const maxWaitTime = 30000;
-        const checkInterval = 1000;
-        let elapsed = 0;
-        while (elapsed < maxWaitTime) {
-            try {
-                await fs.access(responseFile);
-                console.log('✅ Response file found!');
-                return;
-            } catch (error) {
-                process.stdout.write('.');
-                await new Promise(resolve => setTimeout(resolve, checkInterval));
-                elapsed += checkInterval;
-            }
-        }
-        throw new Error('Response file not created within 30 seconds');
-    }
+    console.log('\n✨ All tests completed!');
 }
 
-new WorkflowDiagnostic().runDiagnostic();
+runDiagnostics().catch(console.error);

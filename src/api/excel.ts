@@ -1,13 +1,28 @@
 import * as XLSX from 'xlsx';
+import { safeLoadFile } from '../utils/universalFileValidator';
 
 export async function fetchExcelFile(filename: string) {
   try {
-    const response = await fetch(`/sample-data/${filename}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch ${filename}`);
+    console.log(`🔒 Safe loading Excel file: ${filename}`);
+    
+    // Step 1: Universal validation before parsing
+    const validation = await safeLoadFile(`/sample-data/${filename}`);
+    
+    if (!validation.isValid) {
+      const errorMsg = validation.securityWarning 
+        ? `🚨 SECURITY: ${validation.error} - ${validation.securityWarning}`
+        : validation.error;
+      console.error(`❌ Blocked ${filename}:`, errorMsg);
+      return { 
+        headers: [], 
+        data: [], 
+        error: errorMsg,
+        blocked: true
+      };
     }
     
-    const arrayBuffer = await response.arrayBuffer();
+    // Step 2: File is validated - safe to parse
+    const arrayBuffer = validation.data as ArrayBuffer;
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
@@ -22,6 +37,7 @@ export async function fetchExcelFile(filename: string) {
     const headers = jsonData[0] as string[];
     const data = jsonData.slice(1);
     
+    console.log(`✅ Successfully loaded validated Excel: ${filename}`);
     return {
       headers,
       data,

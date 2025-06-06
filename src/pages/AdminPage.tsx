@@ -268,6 +268,8 @@ const AdminPage: React.FC = () => {
   const [testFile1Error, setTestFile1Error] = useState<string>('');
   const [testFile2Error, setTestFile2Error] = useState<string>('');
   const [testFileLoading, setTestFileLoading] = useState<{file1: boolean, file2: boolean}>({file1: false, file2: false});
+  const [profileTestError, setProfileTestError] = useState<string>('');
+  const [scriptDeployError, setScriptDeployError] = useState<string>('');
 
   // Add state for selected headers
   const [selectedHeaders1, setSelectedHeaders1] = useState<string[]>([]);
@@ -2369,6 +2371,52 @@ function processStep${index + 1}(data) {
     showNotification('info', 'Continue Building', 'Add your next step using the "Add Step" button below');
   };
 
+  const [file1Data, setFile1Data] = useState<any[]>([]);
+  const [file2Data, setFile2Data] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Validate and rehydrate file1Data from localStorage
+    const storedFile1 = localStorage.getItem('file1Data');
+    if (storedFile1) {
+      try {
+        const parsed = JSON.parse(storedFile1);
+        const firstRow = parsed[0] || {};
+        const headers = Object.keys(firstRow);
+        const gibberish = headers.length === 1 && /[\uFFFD\u0000-\u001F\u007F-\u009F]/.test(headers[0]);
+        if (headers.length === 0 || gibberish || headers[0].length > 100) {
+          setFile1Data([]);
+          localStorage.removeItem('file1Data');
+          showNotification && showNotification('error', 'File Validation Error', 'Previously uploaded file1 was invalid and has been cleared.');
+        } else {
+          setFile1Data(parsed);
+        }
+      } catch {
+        setFile1Data([]);
+        localStorage.removeItem('file1Data');
+      }
+    }
+    // Validate and rehydrate file2Data from localStorage
+    const storedFile2 = localStorage.getItem('file2Data');
+    if (storedFile2) {
+      try {
+        const parsed = JSON.parse(storedFile2);
+        const firstRow = parsed[0] || {};
+        const headers = Object.keys(firstRow);
+        const gibberish = headers.length === 1 && /[\uFFFD\u0000-\u001F\u007F-\u009F]/.test(headers[0]);
+        if (headers.length === 0 || gibberish || headers[0].length > 100) {
+          setFile2Data([]);
+          localStorage.removeItem('file2Data');
+          showNotification && showNotification('error', 'File Validation Error', 'Previously uploaded file2 was invalid and has been cleared.');
+        } else {
+          setFile2Data(parsed);
+        }
+      } catch {
+        setFile2Data([]);
+        localStorage.removeItem('file2Data');
+      }
+    }
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -3659,9 +3707,55 @@ function processStep${index + 1}(data) {
                       <input
                         type="file"
                         accept=".csv,.xlsx,.xls"
-                        onChange={(e) => setTestFile(e.target.files?.[0] || null)}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (!file) {
+                            setTestFile(null);
+                            return;
+                          }
+                          
+                          // Use bulletproof content-first validation
+                          const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+                          const validation = await bulletproofValidateFile(file);
+                          
+                          if (!validation.isValid) {
+                            const errorMsg = validation.securityWarning 
+                              ? `${validation.error} ${validation.securityWarning}`
+                              : validation.error || 'Invalid file. Please upload a valid Excel or CSV file.';
+                            
+                            // Show inline error message instead of popup
+                            setProfileTestError(errorMsg);
+                            setTestFile(null);
+                            e.target.value = '';
+                            
+                            // Clear error after 10 seconds
+                            setTimeout(() => setProfileTestError(''), 10000);
+                            return;
+                          }
+                          
+                          // Clear any previous errors on successful upload
+                          setProfileTestError('');
+                          
+                          setTestFile(file);
+                        }}
                         className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
                       />
+                      
+                      {/* Inline error message display */}
+                      {profileTestError && (
+                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mt-3 text-sm">
+                          <div className="flex items-start gap-3">
+                            <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                            <div className="flex-1">
+                              <div className="font-semibold text-red-800 mb-2">File Upload Error</div>
+                              <div className="text-red-700 mb-3">{profileTestError}</div>
+                              <div className="text-red-600 text-xs">
+                                <strong>Accepted file types:</strong> Excel (.xlsx, .xls) and CSV (.csv) files only
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -4355,9 +4449,27 @@ function processStep${index + 1}(data) {
                           <input
                             type="file"
                             accept=".js,.ts,.mjs"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+                                const validation = await bulletproofValidateFile(file);
+                                if (!validation.isValid) {
+                                  const errorMsg = validation.securityWarning 
+                                    ? `${validation.error} ${validation.securityWarning}`
+                                    : validation.error || 'Invalid file. Please upload a valid JavaScript or TypeScript file.';
+                                  
+                                  // Show inline error message instead of popup
+                                  setScriptDeployError(errorMsg);
+                                  e.target.value = '';
+                                  
+                                  // Clear error after 10 seconds
+                                  setTimeout(() => setScriptDeployError(''), 10000);
+                                  return;
+                                }
+                                
+                                // Clear any previous errors on successful upload
+                                setScriptDeployError('');
                                 const reader = new FileReader();
                                 reader.onload = (event) => {
                                   const content = event.target?.result as string;
@@ -4385,6 +4497,22 @@ function processStep${index + 1}(data) {
                         <p className="text-xs text-gray-500 mt-1">
                           Supports .js, .ts, .mjs files. File content will populate the editor below.
                         </p>
+                        
+                        {/* Inline error message display */}
+                        {scriptDeployError && (
+                          <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mt-3 text-sm">
+                            <div className="flex items-start gap-3">
+                              <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                              <div className="flex-1">
+                                <div className="font-semibold text-red-800 mb-2">File Upload Error</div>
+                                <div className="text-red-700 mb-3">{scriptDeployError}</div>
+                                <div className="text-red-600 text-xs">
+                                  <strong>Accepted file types:</strong> JavaScript (.js), TypeScript (.ts), or Module (.mjs) files only
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
 

@@ -12,6 +12,17 @@ export interface ParsedFileData {
 }
 
 export async function parseFile(file: File): Promise<ParsedFileData> {
+  // SECURITY: Validate file before parsing
+  const { bulletproofValidateFile } = await import('./bulletproofFileValidator');
+  const validation = await bulletproofValidateFile(file);
+  
+  if (!validation.isValid) {
+    const errorMsg = validation.securityWarning 
+      ? `🚨 SECURITY: ${validation.error} - ${validation.securityWarning}`
+      : validation.error || 'File validation failed';
+    throw new Error(errorMsg);
+  }
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -21,10 +32,10 @@ export async function parseFile(file: File): Promise<ParsedFileData> {
         let workbook: XLSX.WorkBook;
         
         if (file.name.endsWith('.csv')) {
-          // Parse CSV
+          // Parse validated CSV
           workbook = XLSX.read(data, { type: 'binary' });
         } else {
-          // Parse Excel
+          // Parse validated Excel
           workbook = XLSX.read(data, { type: 'array' });
         }
         
@@ -131,10 +142,25 @@ export class FileStore {
   
   static store(key: string, data: ParsedFileData) {
     this.files.set(key, data);
+    // Also store to localStorage for cross-component access
+    localStorage.setItem(`fileStore_${key}`, JSON.stringify(data));
   }
   
   static get(key: string): ParsedFileData | undefined {
-    return this.files.get(key);
+    // Try in-memory first, fallback to localStorage
+    let data = this.files.get(key);
+    if (!data) {
+      const stored = localStorage.getItem(`fileStore_${key}`);
+      if (stored) {
+        try {
+          data = JSON.parse(stored);
+          this.files.set(key, data); // Cache back to memory
+        } catch (error) {
+          console.error(`Failed to parse stored file data for key ${key}:`, error);
+        }
+      }
+    }
+    return data;
   }
   
   static clear() {

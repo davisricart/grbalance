@@ -3,6 +3,7 @@ import { VisualStepBuilder } from './VisualStepBuilder';
 import { VirtualTable } from './VirtualTable';
 import * as XLSX from 'xlsx';
 import { sendInstructionToFile, cancelAllActiveSessions } from '../utils/improved-file-communication';
+import { bulletproofValidateFile } from '../utils/bulletproofFileValidator';
 
 interface StepWithPreview {
   id: string;
@@ -38,6 +39,10 @@ const StepBuilderDemo: React.FC = () => {
   const [file1Headers, setFile1Headers] = useState<string[]>([]);
   const [file2Headers, setFile2Headers] = useState<string[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  
+  // Inline error handling state - separate for each file
+  const [file1Error, setFile1Error] = useState<string>('');
+  const [file2Error, setFile2Error] = useState<string>('');
 
   // Script import state
   const [showScriptImport, setShowScriptImport] = useState(false);
@@ -192,6 +197,29 @@ const StepBuilderDemo: React.FC = () => {
     setIsLoadingFiles(true);
     
     try {
+      // Bulletproof content-first validation
+      const validation = await bulletproofValidateFile(file);
+      if (!validation.isValid) {
+        // Simple, minimalistic error message
+        const errorMsg = 'This file is not accepted. Please upload Excel (.xlsx, .xls) or CSV files only.';
+        
+        // Set error for the correct file
+        const setErrorState = fileNumber === 1 ? setFile1Error : setFile2Error;
+        setErrorState(errorMsg);
+        setIsLoadingFiles(false);
+        
+        // Clear error after 10 seconds
+        setTimeout(() => setErrorState(''), 10000);
+        return;
+      }
+      
+      // Clear any previous errors on successful upload for the correct file
+      if (fileNumber === 1) {
+        setFile1Error('');
+      } else {
+        setFile2Error('');
+      }
+      
       const { data, headers } = await processFileWithChunking(file);
       
       if (fileNumber === 1) {
@@ -202,6 +230,9 @@ const StepBuilderDemo: React.FC = () => {
         
         (window as any).uploadedFile1 = data;
         (window as any).aiFile1Data = data;
+        
+        // Store to localStorage for AdminPage access
+        localStorage.setItem('file1Data', JSON.stringify(data));
       } else {
         setFile2(file);
         setFile2Data(data);
@@ -210,13 +241,28 @@ const StepBuilderDemo: React.FC = () => {
         
         (window as any).uploadedFile2 = data;
         (window as any).aiFile2Data = data;
+        
+        // Store to localStorage for AdminPage access
+        localStorage.setItem('file2Data', JSON.stringify(data));
       }
       
       console.log(`✅ File ${fileNumber} processed: ${data.length} rows, ${headers.length} columns`);
       
     } catch (error) {
       console.error(`❌ Error processing file ${fileNumber}:`, error);
-      alert('Error processing file. Please check the format and try again.');
+      
+      // Use improved error handling
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const userFriendlyMessage = errorMessage.includes('read') || errorMessage.includes('parse') 
+        ? 'Unable to read the file. Please ensure it\'s a valid Excel or CSV file and try again.'
+        : 'Error processing file. Please check the format and try again.';
+      
+      // Use notification system instead of alert
+      if (typeof window !== 'undefined' && (window as any).showNotification) {
+        (window as any).showNotification('error', 'File Upload Error', userFriendlyMessage);
+      } else {
+        alert(userFriendlyMessage);
+      }
     } finally {
       setIsLoadingFiles(false);
     }
@@ -350,6 +396,92 @@ const StepBuilderDemo: React.FC = () => {
   const generateIntelligentCodePattern = (instruction: string, columns: string[]): string => {
     const lowerInstruction = instruction.toLowerCase();
     
+    // Pattern 1: Card brand analysis
+    if (lowerInstruction.includes('card brand') || lowerInstruction.includes('payment')) {
+      return `
+        // Smart card brand detection across different column names
+        const findCardBrandColumn = (row) => {
+          const patterns = ['card brand', 'payment type', 'card type', 'payment method'];
+          for (const key of Object.keys(row)) {
+            const keyLower = String(key).toLowerCase();
+            for (const pattern of patterns) {
+              if (keyLower.includes(pattern)) return key;
+            }
+          }
+          return null;
+        };
+        
+        const cardBrandColumn = workingData.length > 0 ? findCardBrandColumn(workingData[0]) : null;
+        const cardBrandCounts = {};
+        
+        workingData.forEach(row => {
+          if (cardBrandColumn && row[cardBrandColumn]) {
+            const brand = String(row[cardBrandColumn]).trim();
+            if (brand && !brand.toLowerCase().includes('cash')) {
+              cardBrandCounts[brand] = (cardBrandCounts[brand] || 0) + 1;
+            }
+          }
+        });
+        
+        return Object.entries(cardBrandCounts).map(([brand, count]) => ({
+          'Card Brand': brand,
+          'Transaction Count': count,
+          'Percentage': ((count / workingData.length) * 100).toFixed(1) + '%',
+          'Analysis': 'Latest card brand distribution'
+        }));
+      `;
+    }
+    
+    // Pattern 2: Amount analysis
+    if (lowerInstruction.includes('amount') || lowerInstruction.includes('total') || lowerInstruction.includes('fee')) {
+      return `
+        // Smart amount column detection
+        const findAmountColumn = (row) => {
+          const patterns = ['amount', 'total', 'fee', 'price', 'cost'];
+          for (const key of Object.keys(row)) {
+            const keyLower = String(key).toLowerCase();
+            for (const pattern of patterns) {
+              if (keyLower.includes(pattern)) return key;
+            }
+          }
+          return null;
+        };
+        
+        const amountColumn = workingData.length > 0 ? findAmountColumn(workingData[0]) : null;
+        let totalAmount = 0;
+        let validRows = 0;
+        
+        const result = workingData.map(row => {
+          let amount = 0;
+          if (amountColumn && row[amountColumn]) {
+            amount = parseFloat(String(row[amountColumn]).replace(/[$,]/g, '')) || 0;
+            if (amount > 0) {
+              totalAmount += amount;
+              validRows++;
+            }
+          }
+          
+          return {
+            ...row,
+            'Parsed Amount': amount,
+            'Analysis': amount > 0 ? 'Valid amount' : 'Invalid/missing amount'
+          };
+        });
+        
+        // Add summary row
+        result.push({
+          'Summary': 'Total Analysis',
+          'Total Amount': totalAmount.toFixed(2),
+          'Valid Transactions': validRows,
+          'Average Amount': validRows > 0 ? (totalAmount / validRows).toFixed(2) : '0.00',
+          'Analysis': 'Latest amount analysis complete'
+        });
+        
+        return result;
+      `;
+    }
+    
+    // Pattern 3: Mastercard specific count
     if (lowerInstruction.includes('count') && lowerInstruction.includes('mastercard')) {
       return `
         const result = workingData.filter(row => {
@@ -358,34 +490,80 @@ const StepBuilderDemo: React.FC = () => {
         });
         
         return [{
-          'Analysis': 'Mastercard Count',
+          'Analysis': 'Mastercard Count Analysis',
           'Total Transactions': workingData.length,
           'Mastercard Transactions': result.length,
-          'Percentage': ((result.length / workingData.length) * 100).toFixed(1) + '%'
+          'Percentage': ((result.length / workingData.length) * 100).toFixed(1) + '%',
+          'Processing Date': new Date().toISOString()
         }];
       `;
     }
     
+    // Pattern 4: Date range analysis
+    if (lowerInstruction.includes('date') || lowerInstruction.includes('time') || lowerInstruction.includes('period')) {
+      return `
+        // Smart date column detection
+        const findDateColumn = (row) => {
+          const patterns = ['date', 'time', 'created', 'updated', 'transaction'];
+          for (const key of Object.keys(row)) {
+            const keyLower = String(key).toLowerCase();
+            for (const pattern of patterns) {
+              if (keyLower.includes(pattern)) return key;
+            }
+          }
+          return null;
+        };
+        
+        const dateColumn = workingData.length > 0 ? findDateColumn(workingData[0]) : null;
+        const dateCounts = {};
+        
+        workingData.forEach(row => {
+          if (dateColumn && row[dateColumn]) {
+            const dateStr = String(row[dateColumn]).substring(0, 10); // YYYY-MM-DD format
+            dateCounts[dateStr] = (dateCounts[dateStr] || 0) + 1;
+          }
+        });
+        
+        return Object.entries(dateCounts).map(([date, count]) => ({
+          'Date': date,
+          'Transaction Count': count,
+          'Analysis': 'Latest date distribution'
+        }));
+      `;
+    }
+    
+    // Pattern 5: Column management
     if (lowerInstruction.includes('delete') && lowerInstruction.includes('column')) {
-      const keepColumns = ['Card Brand', 'Type', 'Payment Method'];
+      const keepColumns = ['Card Brand', 'Type', 'Payment Method', 'Amount', 'Date', 'Customer Name'];
       return `
         return workingData.map(row => {
           const newRow = {};
           ${keepColumns.map(col => `
           if (row['${col}']) newRow['${col}'] = row['${col}'];
           `).join('')}
+          newRow['Analysis'] = 'Columns cleaned - kept essential fields';
           return newRow;
         });
       `;
     }
     
+    // Default pattern: Enhanced data summary with latest analysis
     return `
-      // Fallback: Return data with analysis summary
+      // Latest fallback analysis pattern
+      const columnTypes = {};
+      ${columns.map(col => `
+      columnTypes['${col}'] = typeof workingData[0]?.['${col}'];
+      `).join('')}
+      
       return [{
-        'Analysis': 'Data Summary',
+        'Analysis': 'Latest Data Summary',
         'Total Rows': workingData.length,
+        'Column Count': ${columns.length},
         'Columns': '${columns.join(', ')}',
-        'Instruction': '${instruction}'
+        'Column Types': JSON.stringify(columnTypes),
+        'Processing Date': new Date().toISOString(),
+        'Instruction': '${instruction}',
+        'Status': 'Processed with latest analysis patterns'
       }];
     `;
   };
@@ -435,6 +613,54 @@ const StepBuilderDemo: React.FC = () => {
     setShowSuccessModal(true);
     setIsFinished(true);
   };
+
+  useEffect(() => {
+    // Validate and rehydrate file1Data from localStorage
+    const storedFile1 = localStorage.getItem('file1Data');
+    if (storedFile1) {
+      try {
+        const parsed = JSON.parse(storedFile1);
+        // Heuristic: If only 1 column, gibberish header, or >100 rows with unreadable data, treat as invalid
+        const firstRow = parsed[0] || {};
+        const headers = Object.keys(firstRow);
+        const gibberish = headers.length === 1 && /[\uFFFD\u0000-\u001F\u007F-\u009F]/.test(headers[0]);
+        if (headers.length === 0 || gibberish || headers[0].length > 100) {
+          setFile1Data([]);
+          localStorage.removeItem('file1Data');
+          if (typeof window !== 'undefined' && (window as any).showNotification) {
+            (window as any).showNotification('error', 'File Validation Error', 'Previously uploaded file1 was invalid and has been cleared.');
+          }
+        } else {
+          setFile1Data(parsed);
+        }
+      } catch {
+        setFile1Data([]);
+        localStorage.removeItem('file1Data');
+      }
+    }
+    // Validate and rehydrate file2Data from localStorage
+    const storedFile2 = localStorage.getItem('file2Data');
+    if (storedFile2) {
+      try {
+        const parsed = JSON.parse(storedFile2);
+        const firstRow = parsed[0] || {};
+        const headers = Object.keys(firstRow);
+        const gibberish = headers.length === 1 && /[\uFFFD\u0000-\u001F\u007F-\u009F]/.test(headers[0]);
+        if (headers.length === 0 || gibberish || headers[0].length > 100) {
+          setFile2Data([]);
+          localStorage.removeItem('file2Data');
+          if (typeof window !== 'undefined' && (window as any).showNotification) {
+            (window as any).showNotification('error', 'File Validation Error', 'Previously uploaded file2 was invalid and has been cleared.');
+          }
+        } else {
+          setFile2Data(parsed);
+        }
+      } catch {
+        setFile2Data([]);
+        localStorage.removeItem('file2Data');
+      }
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -531,6 +757,16 @@ const StepBuilderDemo: React.FC = () => {
                   >
                     ✕
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Inline error message display for Primary Dataset */}
+            {file1Error && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                  <div className="text-red-700">{file1Error}</div>
                 </div>
               </div>
             )}
@@ -635,6 +871,16 @@ const StepBuilderDemo: React.FC = () => {
                   >
                     ✕
                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Inline error message display for Secondary Dataset */}
+            {file2Error && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                  <div className="text-red-700">{file2Error}</div>
                 </div>
               </div>
             )}

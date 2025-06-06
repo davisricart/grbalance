@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend AI Communication Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        .log { background: #f8f9fa; padding: 12px; margin: 8px 0; border-radius: 5px; border-left: 4px solid #007bff; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .warning { border-left-color: #ffc107; background: #fff3cd; }
+        button { padding: 12px 24px; margin: 8px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .disabled { background: #6c757d; cursor: not-allowed; }
+        #output { max-height: 500px; overflow-y: auto; margin-top: 20px; }
+        .status { font-weight: bold; padding: 8px; margin: 8px 0; border-radius: 4px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frontend AI Communication Integration Test</h1>
+        <p>This page tests the complete AI communication workflow exactly as the React frontend would.</p>
+        
+        <div class="test-section">
+            <h3>Communication Tests</h3>
+            <button onclick="testBasicCommunication()">🔄 Test Basic Communication</button>
+            <button onclick="testWithMetadata()">📊 Test with Metadata</button>
+            <button onclick="testErrorHandling()">⚠️ Test Error Handling</button>
+            <button onclick="clearLogs()">🧹 Clear Logs</button>
+        </div>
+
+        <div class="test-section">
+            <h3>File Simulation Tests</h3>
+            <button onclick="simulateFileUpload()">📁 Simulate File Upload</button>
+            <button onclick="testDataProcessing()">⚙️ Test Data Processing</button>
+            <button onclick="testFullWorkflow()">🚀 Test Complete Workflow</button>
+        </div>
+
+        <div id="status" class="status"></div>
+        <div id="output"></div>
+    </div>
+
+    <script>
+        // Simulate the exact file communication logic from the React app
+        class TestFileCommunication {
+            constructor() {
+                this.sessionId = this.generateSessionId();
+                this.isActive = false;
+                this.controller = null;
+                this.maxAttempts = 100;
+                this.baseDelay = 300;
+                this.maxDelay = 1000;
+                this.updateStatus('Ready for testing');
+            }
+
+            generateSessionId() {
+                const timestamp = Date.now();
+                const random = Math.random().toString(36).substring(2, 8);
+                return `test-${timestamp}-${random}`;
+            }
+
+            async sendInstruction(instruction, metadata = null) {
+                this.log(`🚀 Starting instruction: "${instruction.substring(0, 60)}..."`, 'success');
+                this.updateStatus('Processing...');
+
+                this.isActive = true;
+                this.controller = new AbortController();
+
+                try {
+                    // Step 1: Create request file (simulate backend API)
+                    const success = await this.createRequestFile(instruction, metadata);
+                    if (!success) {
+                        throw new Error('Failed to create request file');
+                    }
+
+                    // Step 2: Poll for response
+                    this.log('✅ Request created, polling for response...');
+                    const response = await this.pollForResponse();
+                    
+                    this.updateStatus('Completed successfully');
+                    this.log('🎉 Communication test completed successfully!', 'success');
+                    this.log(`📊 Response: ${response.response.substring(0, 150)}...`);
+                    
+                    return response;
+
+                } catch (error) {
+                    this.updateStatus(`Error: ${error.message}`);
+                    this.log(`❌ Error: ${error.message}`, 'error');
+                    throw error;
+                } finally {
+                    this.cleanup();
+                }
+            }
+
+            async createRequestFile(instruction, metadata) {
+                this.log('📝 Creating request file...');
+                
+                try {
+                    // Simulate writing to the communication directory
+                    const requestData = {
+                        instruction,
+                        sessionId: this.sessionId,
+                        timestamp: Date.now(),
+                        metadata
+                    };
+
+                    this.log(`🏷️  Using session ID: ${this.sessionId}`);
+                    
+                    // In a real test, this would write to the file system
+                    // For this demo, we'll simulate by creating a direct request
+                    const requestContent = JSON.stringify(requestData, null, 2);
+                    
+                    // Use fetch to write the request file through a simple endpoint
+                    const response = await fetch('/claude-communication/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'create_request',
+                            sessionId: this.sessionId,
+                            content: instruction
+                        })
+                    }).catch(() => {
+                        // If fetch fails, try creating the file directly
+                        return this.createRequestFileDirectly(instruction);
+                    });
+
+                    return true;
+
+                } catch (error) {
+                    this.log(`❌ Request creation failed: ${error.message}`, 'error');
+                    return false;
+                }
+            }
+
+            async createRequestFileDirectly(instruction) {
+                this.log('📝 Creating request file directly...');
+                
+                // Create a blob and download it to simulate file creation
+                const requestContent = instruction;
+                const fileName = `claude-comm-request-${this.sessionId}.txt`;
+                
+                // We'll simulate this by directly calling the file system
+                // In a real browser environment, this would require server cooperation
+                try {
+                    // Use the experimental File System Access API if available
+                    if ('showSaveFilePicker' in window) {
+                        const fileHandle = await window.showSaveFilePicker({
+                            suggestedName: fileName,
+                            types: [{
+                                description: 'Text files',
+                                accept: { 'text/plain': ['.txt'] }
+                            }]
+                        });
+                        
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(requestContent);
+                        await writable.close();
+                        
+                        this.log('✅ Request file created successfully via File System API');
+                        return true;
+                    }
+                } catch (error) {
+                    this.log('⚠️ File System API not available, using simulation', 'warning');
+                }
+                
+                return true; // Simulate success for testing
+            }
+
+            async pollForResponse() {
+                this.log('🔍 Starting response polling...');
+                
+                let attempt = 0;
+                let delay = this.baseDelay;
+
+                while (attempt < this.maxAttempts && this.isActive) {
+                    if (this.controller?.signal.aborted) {
+                        throw new Error('Session aborted');
+                    }
+
+                    attempt++;
+                    this.log(`📊 Polling attempt ${attempt}/${this.maxAttempts}...`);
+
+                    try {
+                        const responseUrl = `/claude-communication/claude-comm-response-${this.sessionId}.js?t=${Date.now()}`;
+                        
+                        const response = await fetch(responseUrl, { 
+                            method: 'GET',
+                            signal: this.controller?.signal 
+                        });
+
+                        if (response.ok) {
+                            this.log('✅ Response file found!', 'success');
+                            const responseText = await response.text();
+                            
+                            this.log(`📄 Response length: ${responseText.length} characters`);
+                            
+                            const parsedResponse = this.parseResponse(responseText);
+                            if (parsedResponse) {
+                                this.log('🎉 Response parsed successfully!', 'success');
+                                return parsedResponse;
+                            }
+                        }
+                    } catch (fetchError) {
+                        if (attempt % 10 === 0) {
+                            this.log(`⏳ Still waiting... (attempt ${attempt})`, 'warning');
+                        }
+                    }
+
+                    await this.delay(delay);
+                    delay = Math.min(delay * 1.2, this.maxDelay);
+                }
+
+                throw new Error(`Response timeout after ${this.maxAttempts} attempts`);
+            }
+
+            parseResponse(responseText) {
+                try {
+                    this.log('🔍 Parsing response...');
+                    
+                    // Look for the window.claudeResponse assignment
+                    const jsonMatch = responseText.match(/window\.claudeResponse\s*=\s*({[\s\S]*?});/);
+                    if (jsonMatch) {
+                        const jsonStr = jsonMatch[1];
+                        const data = JSON.parse(jsonStr);
+                        
+                        this.log('✅ JSON parsing successful!', 'success');
+                        
+                        return {
+                            success: true,
+                            sessionId: data.sessionId || this.sessionId,
+                            timestamp: data.timestamp || new Date().toISOString(),
+                            response: data.response || 'Response received',
+                            status: 'completed'
+                        };
+                    }
+
+                    this.log('⚠️ Could not parse response format', 'warning');
+                    return null;
+
+                } catch (error) {
+                    this.log(`❌ Response parsing error: ${error.message}`, 'error');
+                    return null;
+                }
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            cleanup() {
+                this.isActive = false;
+                if (this.controller) {
+                    this.controller.abort();
+                    this.controller = null;
+                }
+            }
+
+            log(message, type = 'info') {
+                const output = document.getElementById('output');
+                const div = document.createElement('div');
+                div.className = `log ${type}`;
+                div.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+                output.appendChild(div);
+                output.scrollTop = output.scrollHeight;
+                console.log(message);
+            }
+
+            updateStatus(message) {
+                const status = document.getElementById('status');
+                status.textContent = `Status: ${message}`;
+                status.className = 'status';
+            }
+        }
+
+        const testComm = new TestFileCommunication();
+
+        // Test functions
+        async function testBasicCommunication() {
+            try {
+                const instruction = "Perform a basic communication test. Analyze this request and provide a structured response demonstrating the AI communication pipeline is functioning correctly.";
+                await testComm.sendInstruction(instruction);
+            } catch (error) {
+                testComm.log(`❌ Basic communication test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWithMetadata() {
+            try {
+                const instruction = "Process this request with metadata. Include analysis of the provided context data in your response.";
+                const metadata = {
+                    files: ['test-file-1.xlsx', 'test-file-2.xlsx'],
+                    columns: ['Card Brand', 'Amount', 'Date'],
+                    userContext: { businessType: 'retail', dataSource: 'POS_system' }
+                };
+                await testComm.sendInstruction(instruction, metadata);
+            } catch (error) {
+                testComm.log(`❌ Metadata test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testErrorHandling() {
+            try {
+                // Test with empty instruction
+                await testComm.sendInstruction("");
+            } catch (error) {
+                testComm.log(`✅ Error handling test completed: ${error.message}`, 'warning');
+            }
+        }
+
+        async function simulateFileUpload() {
+            testComm.log('📁 Simulating file upload workflow...', 'success');
+            
+            // Simulate localStorage data as the frontend would have it
+            const mockFileData = [
+                { 'Card Brand': 'Visa', 'Amount': '25.50', 'Date': '2025-01-01' },
+                { 'Card Brand': 'Mastercard', 'Amount': '45.00', 'Date': '2025-01-02' },
+                { 'Card Brand': 'Amex', 'Amount': '120.75', 'Date': '2025-01-03' }
+            ];
+            
+            // Store in localStorage (simulating what happens after file upload)
+            localStorage.setItem('uploadedFileData', JSON.stringify(mockFileData));
+            localStorage.setItem('fileColumns', JSON.stringify(['Card Brand', 'Amount', 'Date']));
+            
+            testComm.log('✅ File data stored in localStorage');
+            testComm.log(`📊 Stored ${mockFileData.length} rows with columns: Card Brand, Amount, Date`);
+        }
+
+        async function testDataProcessing() {
+            try {
+                const fileData = JSON.parse(localStorage.getItem('uploadedFileData') || '[]');
+                const columns = JSON.parse(localStorage.getItem('fileColumns') || '[]');
+                
+                if (fileData.length === 0) {
+                    testComm.log('⚠️ No file data found. Run "Simulate File Upload" first.', 'warning');
+                    return;
+                }
+                
+                const instruction = `Analyze the uploaded data and provide insights. The data contains ${fileData.length} rows with columns: ${columns.join(', ')}. Focus on card brand distribution and transaction patterns.`;
+                
+                const metadata = {
+                    files: ['uploaded-data.xlsx'],
+                    columns: columns,
+                    rowCount: fileData.length,
+                    dataPreview: fileData.slice(0, 3)
+                };
+                
+                await testComm.sendInstruction(instruction, metadata);
+            } catch (error) {
+                testComm.log(`❌ Data processing test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testFullWorkflow() {
+            testComm.log('🚀 Starting complete workflow test...', 'success');
+            
+            try {
+                // Step 1: Simulate file upload
+                await simulateFileUpload();
+                await testComm.delay(1000);
+                
+                // Step 2: Process data
+                await testDataProcessing();
+                
+                testComm.log('🎉 Complete workflow test finished!', 'success');
+            } catch (error) {
+                testComm.log(`❌ Full workflow test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function clearLogs() {
+            document.getElementById('output').innerHTML = '';
+            testComm.updateStatus('Logs cleared');
+        }
+
+        // Initialize
+        testComm.log('🚀 Frontend AI Communication Test Tool loaded!', 'success');
+        testComm.log(`🏷️  Session ID: ${testComm.sessionId}`);
+        testComm.log('📝 Ready to test communication workflows');
+    </script>
+</body>
+</html>

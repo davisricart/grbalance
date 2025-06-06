@@ -22,6 +22,8 @@ export default function MainPage({ user }: MainPageProps) {
   const [availableScripts, setAvailableScripts] = useState<string[]>([]);
   const [status, setStatus] = useState('');
   const [warning, setWarning] = useState('');
+  const [file1Error, setFile1Error] = useState<string>('');
+  const [file2Error, setFile2Error] = useState<string>('');
   const [results, setResults] = useState<ResultRow[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'insights'>('overview');
   const [rawFileData, setRawFileData] = useState<{file1Data: any[], file2Data: any[]} | null>(null);
@@ -147,6 +149,42 @@ export default function MainPage({ user }: MainPageProps) {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
     const files = event.target.files;
     if (files && files[0]) {
+      // Determine which file is being uploaded
+      const isFile1 = setFile === setFile1;
+      const setErrorState = isFile1 ? setFile1Error : setFile2Error;
+      
+      // Robust file validation first
+      try {
+        const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+        const validation = await bulletproofValidateFile(files[0]);
+        
+        if (!validation.isValid) {
+          const errorMsg = validation.securityWarning 
+            ? `${validation.error} ${validation.securityWarning}`
+            : validation.error || 'Invalid file. Please upload a valid Excel or CSV file.';
+          
+          // Show inline error message instead of status
+          setErrorState(errorMsg);
+          event.target.value = ''; // Clear the input
+          
+          // Clear error after 10 seconds
+          setTimeout(() => setErrorState(''), 10000);
+          return;
+        }
+        
+        // Clear any previous errors on successful upload
+        setErrorState('');
+      } catch (validationError) {
+        const isFile1 = setFile === setFile1;
+        const setErrorState = isFile1 ? setFile1Error : setFile2Error;
+        setErrorState('File validation failed. Please try again.');
+        event.target.value = '';
+        
+        // Clear error after 10 seconds
+        setTimeout(() => setErrorState(''), 10000);
+        return;
+      }
+      
       setFile(files[0]);
       setStatus('');
       
@@ -159,12 +197,34 @@ export default function MainPage({ user }: MainPageProps) {
         
         // Store raw data for analysis
         if (setFile === setFile1) {
-          setRawFileData(prev => ({ file1Data: rawData, file2Data: prev?.file2Data || [] }));
+          const newRawData = { file1Data: rawData, file2Data: prev?.file2Data || [] };
+          setRawFileData(newRawData);
+          // Store raw data to localStorage for AdminPage access
+          localStorage.setItem('rawFile1Data', JSON.stringify(rawData));
         } else {
-          setRawFileData(prev => ({ file1Data: prev?.file1Data || [], file2Data: rawData }));
+          const newRawData = { file1Data: prev?.file1Data || [], file2Data: rawData };
+          setRawFileData(newRawData);
+          // Store raw data to localStorage for AdminPage access
+          localStorage.setItem('rawFile2Data', JSON.stringify(rawData));
         }
       } catch (error) {
         console.error('Error reading file for analysis:', error);
+        
+        // Provide user feedback for file reading errors
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const userMessage = errorMessage.includes('empty') || errorMessage.includes('no data')
+          ? 'The selected file appears to be empty or contains no data. Please choose a different file.'
+          : 'Unable to read the file. Please ensure it\'s a valid Excel or CSV file and try again.';
+        
+        setStatus(`File Error: ${userMessage}`);
+        
+        // Reset file selection
+        if (setFile === setFile1) {
+          setFile1(null);
+        } else {
+          setFile2(null);
+        }
+        event.target.value = '';
       }
     }
   };
@@ -255,6 +315,10 @@ export default function MainPage({ user }: MainPageProps) {
       // Parse uploaded files to JSON data
       const file1Data = await parseFileToJSON(file1!);
       const file2Data = await parseFileToJSON(file2!);
+      
+      // Store parsed data to localStorage for AdminPage access
+      localStorage.setItem('file1Data', JSON.stringify(file1Data));
+      localStorage.setItem('file2Data', JSON.stringify(file2Data));
 
       let data;
       let response;
@@ -262,7 +326,10 @@ export default function MainPage({ user }: MainPageProps) {
       try {
         await updateProgress(30, 'Uploading files...');
         
-        // Call the execute-script function with JSON data
+        // Call the execute-script function with JSON data (with timeout)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+        
         response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
           method: 'POST',
           headers: {
@@ -273,7 +340,10 @@ export default function MainPage({ user }: MainPageProps) {
             file1Data,
             file2Data,
           }),
+          signal: controller.signal
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           data = await response.json();
@@ -292,12 +362,19 @@ export default function MainPage({ user }: MainPageProps) {
         }
         
       } catch (error) {
-        console.warn('⚠️ Script execution failed:', (error as Error).message);
-        console.log('🔄 This means results will not match admin preview');
+        const errorMessage = (error as Error).message;
+        console.warn('⚠️ Script execution failed:', errorMessage);
         
-        // Only show error - don't fall back to local processing
-        // because local processing doesn't match admin preview
-        throw new Error('Unable to execute script. Results would not match admin preview. Please try again.');
+        // Provide specific error messages based on error type
+        if (errorMessage.includes('AbortError') || errorMessage.includes('timeout')) {
+          throw new Error('Request timed out. The analysis is taking longer than expected. Please try again.');
+        } else if (errorMessage.includes('fetch') || errorMessage.includes('network')) {
+          throw new Error('Network connection error. Please check your internet connection and try again.');
+        } else if (errorMessage.includes('500')) {
+          throw new Error('Server error occurred. Please try again in a few moments.');
+        } else {
+          throw new Error('Unable to execute analysis. Please try again or contact support if the issue persists.');
+        }
       }
       
       await updateProgress(95, 'Finalizing results...');
@@ -702,6 +779,22 @@ export default function MainPage({ user }: MainPageProps) {
                   Select File
                 </button>
               </div>
+              
+              {/* Inline error message display for file 1 */}
+              {file1Error && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mt-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-red-800 mb-2">File Upload Error</div>
+                      <div className="text-red-700 mb-3">{file1Error}</div>
+                      <div className="text-red-600 text-xs">
+                        <strong>Accepted file types:</strong> Excel (.xlsx, .xls) and CSV (.csv) files only
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="space-y-4">
               <label className="block text-sm font-medium text-gray-600">Upload Second File</label>
@@ -731,6 +824,22 @@ export default function MainPage({ user }: MainPageProps) {
                   Select File
                 </button>
               </div>
+              
+              {/* Inline error message display for file 2 */}
+              {file2Error && (
+                <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mt-3 text-sm">
+                  <div className="flex items-start gap-3">
+                    <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-red-800 mb-2">File Upload Error</div>
+                      <div className="text-red-700 mb-3">{file2Error}</div>
+                      <div className="text-red-600 text-xs">
+                        <strong>Accepted file types:</strong> Excel (.xlsx, .xls) and CSV (.csv) files only
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <div className="mt-6 max-w-xs">

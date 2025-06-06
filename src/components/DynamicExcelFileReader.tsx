@@ -51,20 +51,29 @@ export const DynamicExcelFileReader: React.FC<DynamicExcelFileReaderProps> = ({
     
     setLoading(true);
     try {
-      console.log(`📁 Loading file: ${fileName}`);
+      console.log(`🔒 Safe loading file: ${fileName}`);
       
-      // Fetch the file from public folder
-      const response = await fetch(`/sample-data/${fileName}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${fileName} (Status: ${response.status})`);
+      // UNIVERSAL VALIDATION - blocks ALL disguised files
+      const { safeLoadFile } = await import('../utils/universalFileValidator');
+      const validation = await safeLoadFile(`/sample-data/${fileName}`);
+      
+      if (!validation.isValid) {
+        const errorMsg = validation.securityWarning 
+          ? `🚨 SECURITY ALERT: ${validation.error}\n\n${validation.securityWarning}`
+          : validation.error || 'File validation failed';
+        console.error(`❌ BLOCKED file load: ${fileName}`, errorMsg);
+        onError(errorMsg);
+        return;
       }
+      
+      console.log(`✅ File validated: ${fileName}`);
       
       let headers: string[] = [];
       let data: any[] = [];
       
       if (fileName.toLowerCase().endsWith('.csv')) {
-        // Handle CSV files
-        const text = await response.text();
+        // Handle validated CSV files
+        const text = new TextDecoder().decode(validation.data as ArrayBuffer);
         const lines = text.split('\n').filter(line => line.trim());
         
         if (lines.length === 0) {
@@ -82,8 +91,8 @@ export const DynamicExcelFileReader: React.FC<DynamicExcelFileReaderProps> = ({
         });
         
       } else if (fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')) {
-        // Handle Excel files
-        const arrayBuffer = await response.arrayBuffer();
+        // Handle validated Excel files
+        const arrayBuffer = validation.data as ArrayBuffer;
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
@@ -107,8 +116,8 @@ export const DynamicExcelFileReader: React.FC<DynamicExcelFileReaderProps> = ({
           return rowObj;
         });
       } else {
-        // Handle text files (for preview only)
-        const text = await response.text();
+        // Handle validated text files (for preview only)
+        const text = new TextDecoder().decode(validation.data as ArrayBuffer);
         headers = ['Content'];
         data = [{ Content: text.substring(0, 500) + (text.length > 500 ? '...' : '') }];
       }

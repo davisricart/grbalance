@@ -23,20 +23,28 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
     
     setLoading(true);
     try {
-      console.log(`📁 Loading file: ${fileName}`);
+      console.log(`🔒 Safe loading file with universal validation: ${fileName}`);
       
-      // Fetch the file from public folder
-      const response = await fetch(`/sample-data/${fileName}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${fileName}`);
+      // UNIVERSAL VALIDATION - validates ALL files regardless of type
+      const { safeLoadFile } = await import('../utils/universalFileValidator');
+      const validation = await safeLoadFile(`/sample-data/${fileName}`);
+      
+      if (!validation.isValid) {
+        const errorMsg = validation.securityWarning 
+          ? `🚨 SECURITY ALERT: ${validation.error}\n\n${validation.securityWarning}`
+          : validation.error || 'File validation failed';
+        console.error(`❌ BLOCKED file load: ${fileName}`, errorMsg);
+        throw new Error(errorMsg);
       }
+      
+      console.log(`✅ File validated successfully: ${fileName}`);
       
       let headers: string[] = [];
       let data: any[] = [];
       
       if (fileName.toLowerCase().endsWith('.csv')) {
-        // Handle CSV files
-        const text = await response.text();
+        // Handle validated CSV files
+        const text = new TextDecoder().decode(validation.data as ArrayBuffer);
         const lines = text.split('\n').filter(line => line.trim());
         
         if (lines.length === 0) {
@@ -54,8 +62,8 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
         });
         
       } else {
-        // Handle Excel files (.xlsx)
-        const arrayBuffer = await response.arrayBuffer();
+        // Handle validated Excel files
+        const arrayBuffer = validation.data as ArrayBuffer;
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
