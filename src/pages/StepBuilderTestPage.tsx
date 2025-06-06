@@ -1,5 +1,5 @@
 import React from 'react';
-import { StepBuilderDemo } from '../components/StepBuilderDemo';
+import StepBuilderDemo from '../components/StepBuilderDemo';
 
 const StepBuilderTestPage: React.FC = () => {
   return (

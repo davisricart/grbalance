@@ -502,7 +502,7 @@ const StepBuilderDemo: React.FC = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="text-emerald-600 text-2xl mb-2">📊</div>
+                        <div className="text-emerald-600 text-2xl mb-2">📄</div>
                         <div className="text-sm font-medium text-emerald-700 mb-1">
                           Click to upload Excel or CSV
                         </div>

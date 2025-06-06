@@ -5,13 +5,12 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 5177,
-    // Proxy disabled for local testing
-    // proxy: {
-    //   '/api': {
-    //     target: 'http://localhost:3001',
-    //     changeOrigin: true
-    //   }
-    // }
+    port: 5178,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true
+      }
+    }
   }
 })

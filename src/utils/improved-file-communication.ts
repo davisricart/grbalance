@@ -25,7 +25,7 @@ export class ImprovedFileCommunication {
 
   constructor(config: Partial<CommunicationConfig> = {}) {
     this.config = {
-      baseDir: '/claude-communication',
+      baseDir: '/claude-communication',  // Files in public are served at root
       pollInterval: 250, // Reduced from 100ms to prevent overwhelming
       maxRetries: 120, // 30 seconds total (120 * 250ms)
       timeout: 30000, // 30 second timeout
@@ -199,29 +199,30 @@ export class ImprovedFileCommunication {
    */
   private async writeFile(path: string, content: string): Promise<void> {
     try {
-      // Create a temporary file first, then rename (atomic operation)
-      const tempPath = `${path}.tmp`;
-      
-      const response = await fetch(tempPath, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: content
+      const sessionId = path.split('-').pop()?.replace('.txt', '');
+      if (!sessionId) {
+        throw new Error('Invalid file path format');
+      }
+
+      const response = await fetch('http://localhost:3001/api/send-instruction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instruction: content,
+          sessionId
+        })
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`Failed to write file: ${response.statusText}`);
       }
 
-      // In a real implementation, you'd rename the temp file to the final path
-      // For browser environment, we'll write directly
-      await fetch(path, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'text/plain' },
-        body: content
-      });
-
+      console.log(`📝 File written successfully: ${path}`);
     } catch (error) {
-      throw new Error(`Failed to write ${path}: ${error}`);
+      console.error('Error writing file:', error);
+      throw error;
     }
   }
 
@@ -320,7 +321,7 @@ export class ImprovedFileCommunication {
 
 // Usage example:
 export const fileComm = new ImprovedFileCommunication({
-  baseDir: '/public/claude-communication',
+  baseDir: '/claude-communication',
   pollInterval: 200,
   maxRetries: 150,
   timeout: 30000
