@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GR Balance - Browser Compatibility Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .pass { color: green; } .fail { color: red; } .warn { color: orange; }
+        .results { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🌐 Browser Compatibility Test</h1>
+    <p>This page tests browser compatibility for GR Balance features.</p>
+    
+    <div class="test-section">
+        <h3>Browser Information</h3>
+        <div id="browser-info"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Feature Support Tests</h3>
+        <div id="feature-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>File API Tests</h3>
+        <div id="file-tests"></div>
+        <input type="file" id="test-file-input" accept=".csv,.xlsx" style="margin: 10px 0;">
+    </div>
+    
+    <div class="test-section">
+        <h3>Performance API Tests</h3>
+        <div id="performance-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>CSS and Animation Tests</h3>
+        <div id="css-tests"></div>
+        <div id="animation-test" style="width: 50px; height: 50px; background: blue; transition: all 0.3s;"></div>
+    </div>
+
+    <script>
+        class BrowserCompatibilityTester {
+            constructor() {
+                this.results = {};
+                this.runAllTests();
+            }
+
+            runAllTests() {
+                this.testBrowserInfo();
+                this.testFeatureSupport();
+                this.testFileAPI();
+                this.testPerformanceAPI();
+                this.testCSS();
+                this.generateReport();
+            }
+
+            testBrowserInfo() {
+                const info = {
+                    userAgent: navigator.userAgent,
+                    platform: navigator.platform,
+                    language: navigator.language,
+                    cookieEnabled: navigator.cookieEnabled,
+                    onLine: navigator.onLine,
+                    hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown'
+                };
+
+                const browserInfoDiv = document.getElementById('browser-info');
+                browserInfoDiv.innerHTML = Object.entries(info)
+                    .map(([key, value]) => `<strong>${key}:</strong> ${value}<br>`)
+                    .join('');
+            }
+
+            testFeatureSupport() {
+                const features = {
+                    'ES6 Classes': typeof class {} === 'function',
+                    'Arrow Functions': (() => true)(),
+                    'Promises': typeof Promise !== 'undefined',
+                    'Fetch API': typeof fetch !== 'undefined',
+                    'Local Storage': typeof localStorage !== 'undefined',
+                    'Session Storage': typeof sessionStorage !== 'undefined',
+                    'Web Workers': typeof Worker !== 'undefined',
+                    'Performance API': typeof performance !== 'undefined',
+                    'File API': typeof File !== 'undefined'
+                };
+
+                const featureTestsDiv = document.getElementById('feature-tests');
+                featureTestsDiv.innerHTML = Object.entries(features)
+                    .map(([feature, supported]) => {
+                        const status = supported ? 'pass' : 'fail';
+                        const icon = supported ? '✅' : '❌';
+                        return `<div class="${status}">${icon} ${feature}: ${supported ? 'Supported' : 'Not Supported'}</div>`;
+                    })
+                    .join('');
+
+                this.results.features = features;
+            }
+
+            testFileAPI() {
+                const fileTests = {
+                    'File Constructor': typeof File !== 'undefined',
+                    'FileReader': typeof FileReader !== 'undefined',
+                    'Blob': typeof Blob !== 'undefined',
+                    'FormData': typeof FormData !== 'undefined'
+                };
+
+                const fileTestsDiv = document.getElementById('file-tests');
+                fileTestsDiv.innerHTML = Object.entries(fileTests)
+                    .map(([test, supported]) => {
+                        const status = supported ? 'pass' : 'fail';
+                        const icon = supported ? '✅' : '❌';
+                        return `<div class="${status}">${icon} ${test}: ${supported ? 'Available' : 'Not Available'}</div>`;
+                    })
+                    .join('');
+
+                // Test actual file selection
+                const fileInput = document.getElementById('test-file-input');
+                fileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        fileTestsDiv.innerHTML += `<div class="pass">✅ File selection works: ${file.name} (${file.size} bytes)</div>`;
+                    }
+                });
+
+                this.results.fileAPI = fileTests;
+            }
+
+            testPerformanceAPI() {
+                const perfTests = {
+                    'performance.now()': typeof performance.now === 'function',
+                    'performance.memory': typeof performance.memory !== 'undefined',
+                    'PerformanceObserver': typeof PerformanceObserver !== 'undefined',
+                    'Navigation Timing': typeof performance.getEntriesByType === 'function'
+                };
+
+                const performanceTestsDiv = document.getElementById('performance-tests');
+                performanceTestsDiv.innerHTML = Object.entries(perfTests)
+                    .map(([test, supported]) => {
+                        const status = supported ? 'pass' : 'warn';
+                        const icon = supported ? '✅' : '⚠️';
+                        return `<div class="${status}">${icon} ${test}: ${supported ? 'Available' : 'Not Available'}</div>`;
+                    })
+                    .join('');
+
+                this.results.performance = perfTests;
+            }
+
+            testCSS() {
+                const cssTests = {
+                    'CSS Grid': CSS.supports('display', 'grid'),
+                    'CSS Flexbox': CSS.supports('display', 'flex'),
+                    'CSS Transitions': CSS.supports('transition', 'all 0.3s'),
+                    'CSS Transforms': CSS.supports('transform', 'translateX(10px)'),
+                    'CSS Variables': CSS.supports('color', 'var(--test)')
+                };
+
+                const cssTestsDiv = document.getElementById('css-tests');
+                cssTestsDiv.innerHTML = Object.entries(cssTests)
+                    .map(([test, supported]) => {
+                        const status = supported ? 'pass' : 'warn';
+                        const icon = supported ? '✅' : '⚠️';
+                        return `<div class="${status}">${icon} ${test}: ${supported ? 'Supported' : 'Not Supported'}</div>`;
+                    })
+                    .join('');
+
+                // Test animation
+                const animationTest = document.getElementById('animation-test');
+                animationTest.style.transform = 'translateX(100px)';
+                
+                this.results.css = cssTests;
+            }
+
+            generateReport() {
+                const report = {
+                    timestamp: new Date().toISOString(),
+                    userAgent: navigator.userAgent,
+                    results: this.results,
+                    summary: {
+                        totalTests: 0,
+                        passed: 0,
+                        failed: 0
+                    }
+                };
+
+                // Count results
+                Object.values(this.results).forEach(category => {
+                    Object.values(category).forEach(result => {
+                        report.summary.totalTests++;
+                        if (result) report.summary.passed++;
+                        else report.summary.failed++;
+                    });
+                });
+
+                console.log('🧪 Browser Compatibility Report:', report);
+                
+                // Show summary
+                const passRate = (report.summary.passed / report.summary.totalTests * 100).toFixed(1);
+                document.body.innerHTML += `
+                    <div class="test-section">
+                        <h3>📊 Test Summary</h3>
+                        <div class="results">
+                            <strong>Pass Rate:</strong> ${passRate}% (${report.summary.passed}/${report.summary.totalTests})<br>
+                            <strong>Timestamp:</strong> ${report.timestamp}<br>
+                            <strong>Status:</strong> ${passRate >= 90 ? '✅ Excellent' : passRate >= 75 ? '⚠️ Good' : '❌ Poor'} compatibility
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Start tests when page loads
+        window.addEventListener('load', () => {
+            new BrowserCompatibilityTester();
+        });
+    </script>
+</body>
+</html>

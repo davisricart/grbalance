@@ -1,0 +1,5 @@
+Name,Script_Test,HTML_Test
+<script>alert("XSS")</script>,Normal data,Safe content
+javascript:alert(1),<img src=x onerror=alert(1)>,<iframe src="javascript:alert(1)">
+${7*7},{{7*7}},<svg onload=alert(1)>
+Normal User,Safe Data,Regular Content

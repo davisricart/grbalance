@@ -1,0 +1,4 @@
+Customer_Name,Search_Query,Notes
+'; DROP TABLE users; --,1' OR '1'='1,Robert'); DELETE FROM accounts; --
+Normal Customer,SELECT * FROM products,Standard search
+Union Test,' UNION SELECT password FROM users --,Injection attempt

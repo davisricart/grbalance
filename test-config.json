@@ -1,0 +1,61 @@
+{
+  "project": {
+    "name": "GR Balance",
+    "version": "1.0.0",
+    "testingStarted": "2025-06-06T23:24:01.021Z"
+  },
+  "environments": {
+    "development": {
+      "url": "http://localhost:5180",
+      "backend": "http://localhost:3001",
+      "database": "development"
+    },
+    "staging": {
+      "url": "https://staging.grbalance.com",
+      "backend": "https://staging-api.grbalance.com",
+      "database": "staging"
+    },
+    "production": {
+      "url": "https://grbalance.com",
+      "backend": "https://api.grbalance.com",
+      "database": "production"
+    }
+  },
+  "testData": {
+    "sampleFiles": {
+      "small": "test-data/small-sample.csv",
+      "medium": "test-data/medium-5k-rows.csv",
+      "large": "test-data/large-20k-rows.csv",
+      "edge": "test-data/special-characters.csv",
+      "security": "test-data/xss-injection-test.csv"
+    }
+  },
+  "performance": {
+    "targets": {
+      "pageLoad": 3000,
+      "fileUpload": 5000,
+      "processing": 10000,
+      "memoryUsage": 500
+    }
+  },
+  "security": {
+    "xssTests": true,
+    "fileValidation": true,
+    "inputSanitization": true,
+    "sessionSecurity": true
+  },
+  "browsers": {
+    "chrome": {
+      "minVersion": "90"
+    },
+    "firefox": {
+      "minVersion": "85"
+    },
+    "safari": {
+      "minVersion": "14"
+    },
+    "edge": {
+      "minVersion": "90"
+    }
+  }
+}
