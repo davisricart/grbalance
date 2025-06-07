@@ -4,6 +4,7 @@ import { VirtualTable } from './VirtualTable';
 import * as XLSX from 'xlsx';
 import { sendInstructionToFile, cancelAllActiveSessions } from '../utils/improved-file-communication';
 import { bulletproofValidateFile } from '../utils/bulletproofFileValidator';
+import ClientPreviewTest from './ClientPreviewTest';
 
 interface StepWithPreview {
   id: string;
@@ -17,6 +18,70 @@ interface StepWithPreview {
   isViewingStep: boolean;
   executionTime?: number;
 }
+
+// Client Preview Component - Displays analysis results exactly like Visual Script Builder
+const ClientPreview: React.FC<{
+  currentData: any[];
+  steps: any[];
+  isExecuting: boolean;
+}> = ({ currentData, steps, isExecuting }) => {
+
+  // Determine what data to display - same logic as VisualStepBuilder
+  const displayData = useMemo(() => {
+    // Priority 1: currentData (set after successful execution)
+    if (currentData && currentData.length > 0) {
+      return currentData;
+    }
+    
+    // Priority 2: First step's dataPreview (fallback)
+    if (steps && steps.length > 0 && steps[0]?.dataPreview?.length > 0) {
+      return steps[0].dataPreview;
+    }
+    
+    return [];
+  }, [currentData, steps]);
+
+  return (
+    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-white">
+        <h4 className="text-lg font-semibold">👥 Client Preview</h4>
+        <p className="text-emerald-100 mt-1 text-sm">Professional view - exactly what your clients will see</p>
+      </div>
+      <div className="p-6">
+
+        {/* Render data or waiting message */}
+        {displayData.length > 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+            <div className="px-4 py-2 bg-emerald-50 text-xs text-emerald-700 border-b">
+              ✅ Displaying {displayData.length} rows (source: {currentData?.length > 0 ? 'currentData' : 'steps[0].dataPreview'})
+            </div>
+            <VirtualTable 
+              data={displayData} 
+              maxRows={100}
+              className="w-full"
+            />
+            <div className="px-4 py-2 bg-gray-50 text-xs text-gray-500 border-t">
+              Columns: {displayData.length > 0 ? Object.keys(displayData[0]).join(', ') : 'none'}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-emerald-600 py-16">
+            <div className="text-4xl mb-3">🎯</div>
+            <div className="text-lg font-medium mb-2 text-emerald-800">
+              {isExecuting ? 'Processing...' : 'Awaiting Results'}
+            </div>
+            <div className="text-sm text-emerald-700">
+              {isExecuting 
+                ? 'Analysis in progress, results will appear here' 
+                : 'Your analysis results will display here exactly as clients will see them'
+              }
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const StepBuilderDemo: React.FC = () => {
   const [steps, setSteps] = useState<any[]>([]);
@@ -43,6 +108,13 @@ const StepBuilderDemo: React.FC = () => {
   // Inline error handling state - separate for each file
   const [file1Error, setFile1Error] = useState<string>('');
   const [file2Error, setFile2Error] = useState<string>('');
+  
+  // Client Preview styling - mirrors Visual Script Builder data exactly
+  const [displaySettings, setDisplaySettings] = useState({
+    selectedColumns: [] as string[],
+    customColumns: [] as {name: string, formula: string}[],
+    title: 'Analysis Results'
+  });
 
   // Script import state
   const [showScriptImport, setShowScriptImport] = useState(false);
@@ -277,6 +349,27 @@ const StepBuilderDemo: React.FC = () => {
     return file1Data.length > 0 ? file1Data : sampleData;
   }, [file1Data, sampleData, viewingStepNumber, steps, currentData]);
 
+  // Filter display data based on column selection (for both admin and client preview)
+  const getDisplayData = useMemo(() => {
+    if (currentData.length === 0) return [];
+    
+    // If no specific columns selected, show all
+    if (displaySettings.selectedColumns.length === 0) {
+      return currentData;
+    }
+    
+    // Filter to only show selected columns
+    return currentData.map(row => {
+      const filteredRow: any = {};
+      displaySettings.selectedColumns.forEach(col => {
+        if (col in row) {
+          filteredRow[col] = row[col];
+        }
+      });
+      return filteredRow;
+    });
+  }, [currentData, displaySettings.selectedColumns]);
+
   // IMPROVED: Replace old file communication with session-based system
   const handleProcessAndDeploy = async () => {
     if (!analysisInstruction.trim()) {
@@ -317,8 +410,8 @@ const StepBuilderDemo: React.FC = () => {
       // Send instruction using improved communication system
       const responseCode = await sendInstructionToFile(analysisInstruction);
       
-      // Execute the response
-      await executeClaudeCode(responseCode);
+      // Execute the response with the step we just created
+      await executeClaudeCodeWithStep(responseCode, newStep);
       
     } catch (error) {
       console.error('❌ Communication error:', error);
@@ -332,16 +425,10 @@ const StepBuilderDemo: React.FC = () => {
     }
   };
 
-  const executeClaudeCode = async (code: string) => {
+  const executeClaudeCodeWithStep = async (code: string, step: StepWithPreview) => {
     try {
-      console.log('🔧 Executing code...');
+      console.log('🔧 Executing code with step:', step.stepNumber);
       
-      const step = steps[0];
-      if (!step) {
-        console.error('❌ No step found!');
-        return;
-      }
-
       const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
       let workingData: any[] = [...getCurrentWorkingData];
 
@@ -353,7 +440,7 @@ const StepBuilderDemo: React.FC = () => {
       console.log('✅ Code executed successfully! Result rows:', resultData.length);
 
       setSteps(prev => prev.map(s => {
-        if (s.stepNumber === 1) {
+        if (s.stepNumber === step.stepNumber) {
           return {
             ...s,
             status: 'completed',
@@ -368,13 +455,15 @@ const StepBuilderDemo: React.FC = () => {
         return s;
       }));
 
-      setCurrentData(resultData.slice(0, MAX_PREVIEW_ROWS));
+      const previewData = resultData.slice(0, MAX_PREVIEW_ROWS);
+      console.log('🎯 Setting currentData for Client Preview:', previewData);
+      setCurrentData(previewData);
       
     } catch (error) {
       console.error('❌ Error in code execution:', error);
       
       setSteps(prev => prev.map(s => {
-        if (s.stepNumber === 1) {
+        if (s.stepNumber === step.stepNumber) {
           return {
             ...s,
             status: 'completed',
@@ -390,7 +479,24 @@ const StepBuilderDemo: React.FC = () => {
       }));
     }
     
-    setViewingStepNumber(1);
+    setViewingStepNumber(step.stepNumber);
+  };
+
+  const executeClaudeCode = async (code: string) => {
+    try {
+      console.log('🔧 Executing code...');
+      
+      const step = steps[0];
+      if (!step) {
+        console.error('❌ No step found!');
+        return;
+      }
+
+      await executeClaudeCodeWithStep(code, step);
+      
+    } catch (error) {
+      console.error('❌ Error in executeClaudeCode:', error);
+    }
   };
 
   const generateIntelligentCodePattern = (instruction: string, columns: string[]): string => {
@@ -662,8 +768,10 @@ const StepBuilderDemo: React.FC = () => {
     }
   }, []);
 
+  
   return (
     <div className="space-y-6">
+      
       {/* Performance Info with Manual Speed Boost */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6">
         <div className="flex items-center justify-between">
@@ -970,6 +1078,7 @@ const StepBuilderDemo: React.FC = () => {
             </div>
           )}
         </div>
+
       </div>
 
       {/* SINGLE-COLUMN LAYOUT - CLIENT PREVIEW UNDER VISUAL SCRIPT BUILDER */}
@@ -988,20 +1097,12 @@ const StepBuilderDemo: React.FC = () => {
             onFinishScript={handleFinishScript}
           />
 
-          {/* Client Preview - Full Width Under Visual Script Builder */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="bg-emerald-50 px-6 py-4 border-b border-emerald-200">
-              <h4 className="text-lg font-medium text-emerald-900">👥 Client Preview</h4>
-              <p className="text-sm text-emerald-700 mt-1">How your analysis will appear to end users</p>
-            </div>
-            <div className="p-6 min-h-96" data-section="client-preview">
-              <div className="text-center text-emerald-600 py-16">
-                <div className="text-4xl mb-2">🎯</div>
-                <div className="text-lg font-medium mb-2">Awaiting Results</div>
-                <div className="text-sm text-emerald-700">Beautiful client-facing results will display here after analysis</div>
-              </div>
-            </div>
-          </div>
+          {/* Client Preview */}
+          <ClientPreview 
+            currentData={currentData}
+            steps={steps}
+            isExecuting={isExecuting}
+          />
 
         </div>
       ) : (

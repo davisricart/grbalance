@@ -2524,6 +2524,7 @@ function processStep${index + 1}(data) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
       {/* Enhanced Toast Notification System */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {notifications.map((notification) => (
@@ -3465,7 +3466,6 @@ function processStep${index + 1}(data) {
 
         {activeTab === 'testing' && (
           <div className="space-y-6">
-            {/* Clean single component - no redundant sections */}
             <StepBuilderDemo />
           </div>
         )}
