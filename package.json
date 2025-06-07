@@ -22,6 +22,7 @@
     "setup-github": "node scripts/setup-github.js",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "ai-agent": "node local-ai-agent.cjs",
     "test": "jest",
     "test:watch": "jest --watch",
     "prepare": "husky install"
@@ -34,7 +35,6 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "axios": "^1.9.0",
-    "chokidar": "^4.0.3",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "firebase": "^10.7.1",
@@ -64,6 +64,7 @@
     "@typescript-eslint/eslint-plugin": "^6.18.1",
     "@typescript-eslint/parser": "^6.18.1",
     "autoprefixer": "^10.4.16",
+    "chokidar": "^4.0.3",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react-hooks": "^4.6.0",

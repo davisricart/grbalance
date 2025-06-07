@@ -29,14 +29,13 @@ class ImprovedFileCommunication {
   private maxDelay: number = 750;
 
   constructor() {
-    this.sessionId = this.generateSessionId();
+    this.sessionId = '1749298312437-xdstqy-0'; // Force session ID for debugging
     console.log('🔄 FileCommunication initialized with session:', this.sessionId);
   }
 
   private generateSessionId(): string {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substr(2, 6);
-    return `${timestamp}-${random}-0`;
+    // Always return the fixed session ID for debugging
+    return '1749298312437-xdstqy-0';
   }
 
   public async sendInstruction(

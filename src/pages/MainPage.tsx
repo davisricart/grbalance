@@ -7,12 +7,11 @@ import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
+import { VirtualTable } from '../components/VirtualTable';
 
 interface MainPageProps {
   user: User;
 }
-
-type ResultRow = (string | number)[];
 
 export default function MainPage({ user }: MainPageProps) {
   const navigate = useNavigate();
@@ -24,7 +23,7 @@ export default function MainPage({ user }: MainPageProps) {
   const [warning, setWarning] = useState('');
   const [file1Error, setFile1Error] = useState<string>('');
   const [file2Error, setFile2Error] = useState<string>('');
-  const [results, setResults] = useState<ResultRow[]>([]);
+  const [results, setResults] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'insights'>('overview');
   const [rawFileData, setRawFileData] = useState<{file1Data: any[], file2Data: any[]} | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -400,7 +399,8 @@ export default function MainPage({ user }: MainPageProps) {
   const downloadResults = () => {
     if (results.length === 0) return;
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.aoa_to_sheet(results);
+    // Convert object array to sheet (VirtualTable format)
+    const worksheet = XLSX.utils.json_to_sheet(results);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
     XLSX.writeFile(workbook, 'comparison_results.xlsx');
   };
@@ -932,128 +932,40 @@ export default function MainPage({ user }: MainPageProps) {
               <div className="mt-6">
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* Simple Script Results - EXACTLY like admin preview */}
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200">
-                      <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                        <h2 className="text-lg font-medium text-gray-700">Results</h2>
-                        <button
-                          type="button"
-                          onClick={downloadResults}
-                          className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Download
-                        </button>
+                    {/* Client Results - EXACTLY like admin preview using VirtualTable */}
+                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
+                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-white">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h2 className="text-lg font-semibold">📊 Analysis Results</h2>
+                            <p className="text-emerald-100 mt-1 text-sm">Professional analysis results</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={downloadResults}
+                            className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-white/20 hover:bg-white/30 transition-colors duration-200 backdrop-blur-sm"
+                          >
+                            <Download className="h-4 w-4 mr-2" />
+                            Download
+                          </button>
+                        </div>
                       </div>
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                              {results[0]?.map((header, i) => (
-                                <th
-                                  key={i}
-                                  className="px-6 py-4 text-left text-sm font-semibold text-gray-700 tracking-wider"
-                                >
-                                  {header}
-                                </th>
-                              ))}
-                            </tr>
-                          </thead>
-                          <tbody className="bg-white divide-y divide-gray-100">
-                            {results.slice(1).map((row, i) => {
-                              // Check if this is a header row within the table body
-                              const currentRowFirstCell = String(row[0] || '').trim().toLowerCase();
-                              const secondCell = String(row[1] || '').trim().toLowerCase();
-                              
-                              // Detect various types of headers within the table body
-                              const isHeaderRow = currentRowFirstCell.includes('card brand') || 
-                                                 (currentRowFirstCell.includes('card') && secondCell.includes('hub')) ||
-                                                 (currentRowFirstCell.includes('brand') && secondCell.includes('report')) ||
-                                                 (secondCell.includes('hub report') || secondCell.includes('sales report')) ||
-                                                 // Check if this looks like a header row (multiple title-case words)
-                                                 (row.length >= 3 && 
-                                                  String(row[0]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
-                                                  String(row[1]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/) && 
-                                                  String(row[2]).match(/^[A-Z][a-z]*(\s[A-Z][a-z]*)*$/));
-                              
-                              // Check if this is an empty separator row
-                              const isEmptyRow = Array.isArray(row) && row.every(cell => !cell || String(cell).trim() === '');
-                              
-                              if (isEmptyRow) {
-                                return (
-                                  <tr key={i} className="h-4">
-                                    <td colSpan={row.length} className="px-6 py-2 bg-gray-25"></td>
-                                  </tr>
-                                );
-                              }
-                              
-                              if (isHeaderRow) {
-                                return (
-                                  <tr key={i} className="bg-gray-50 border-b border-gray-200">
-                                    {row.map((cell, j) => (
-                                      <th
-                                        key={j}
-                                        className="px-6 py-4 text-left text-sm font-semibold text-gray-700 tracking-wider"
-                                      >
-                                        {cell}
-                                      </th>
-                                    ))}
-                                  </tr>
-                                );
-                              }
-                              
-                              return (
-                                <tr key={i} className="hover:bg-gray-50 transition-colors duration-150">
-                                  {row.map((cell, j) => {
-                                    const cellStr = String(cell || '').trim();
-                                    const isNumber = typeof cell === 'number' || 
-                                             (!isNaN(Number(cellStr.replace(/[$,]/g, ''))) && cellStr !== '' && cellStr !== null);
-                                    const numValue = Number(cellStr.replace(/[$,]/g, ''));
-                                            
-                                    let cellClass = "px-6 py-4 whitespace-nowrap text-gray-900";
-                                    
-                                    // Check if this is in the summary section
-                                    const isInSummarySection = results.some((r, idx) => 
-                                      idx < i + 1 && Array.isArray(r) && 
-                                      String(r[0] || '').toLowerCase().includes('card brand')
-                                    );
-                                    
-                                    // Get the header for this column to identify Total (-) Fee column
-                                    const header = results[0]?.[j];
-                                    const headerStr = String(header || '').trim().toLowerCase();
-                                    const isTotalFeeColumn = headerStr.includes('total') && headerStr.includes('fee');
-                                    
-                                    // Apply coloring to specific columns
-                                    if (isNumber) {
-                                      // Color the "Total (-) Fee" column in the top section (positive = green, negative = red)
-                                      if (isTotalFeeColumn && !isInSummarySection) {
-                                        if (numValue > 0) {
-                                          cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                        } else if (numValue < 0) {
-                                          cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                        }
-                                      }
-                                      // Color the "Difference" column in the summary section (positive = green, negative = red)
-                                      else if (isInSummarySection && j === 3) {
-                                        if (numValue > 0) {
-                                          cellClass = "px-6 py-4 whitespace-nowrap text-emerald-700 font-medium bg-emerald-50";
-                                        } else if (numValue < 0) {
-                                          cellClass = "px-6 py-4 whitespace-nowrap text-red-700 font-medium bg-red-50";
-                                        }
-                                      }
-                                    }
-                                    
-                                    return (
-                                      <td key={j} className={cellClass}>
-                                        {cell}
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <div className="p-6">
+                        {results.length > 0 ? (
+                          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                            <VirtualTable 
+                              data={results} 
+                              maxRows={100}
+                              className="w-full"
+                            />
+                          </div>
+                        ) : (
+                          <div className="text-center text-emerald-600 py-16">
+                            <div className="text-4xl mb-3">📊</div>
+                            <div className="text-lg font-medium mb-2 text-emerald-800">No Results Yet</div>
+                            <div className="text-sm text-emerald-700">Run an analysis to see results here</div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

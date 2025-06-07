@@ -1,5 +1,5 @@
 {
-  "permissions": {
+  "Permissions": {
     "allow": [
       "WebFetch(domain:docs.anthropic.com)",
       "Bash(npm run dev:*)",
@@ -14,6 +14,7 @@
       "Bash(npm run build:*)",
       "Bash(npm audit fix:*)",
       "Bash(node:*)",
+      "Bash(git push:*)",
       "Bash(grep:*)",
       "Bash(rg:*)",
       "Bash(mv:*)",
@@ -23,12 +24,8 @@
       "Bash(pkill:*)",
       "Bash(true)",
       "Bash(curl:*)",
-      "Bash(npm run:*)",
-      "Bash(ss:*)",
-      "Bash(kill:*)",
-      "Bash(cat:*)",
-      "Bash(git add:*)"
+      "Bash(npm run:*)"
     ],
     "deny": []
   }
-}
+} 
