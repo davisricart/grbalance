@@ -27,7 +27,6 @@ import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
-import StepBuilderDemo from '../components/StepBuilderDemo';
 import * as XLSX from 'xlsx';
 
 // Add this at the top of the file, after imports
@@ -2622,17 +2621,6 @@ function processStep${index + 1}(data) {
                 Deleted Users ({deletedUsers.length})
               </button>
               <button
-                onClick={() => setActiveTab('testing')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'testing'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Upload className="inline w-4 h-4 mr-2" />
-                Script Testing
-              </button>
-              <button
                 onClick={() => setActiveTab('profiles')}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === 'profiles'
@@ -3464,11 +3452,6 @@ function processStep${index + 1}(data) {
           </div>
         )}
 
-        {activeTab === 'testing' && (
-          <div className="space-y-6">
-            <StepBuilderDemo />
-          </div>
-        )}
 
         {activeTab === 'profiles' && (
           <div className="space-y-6">

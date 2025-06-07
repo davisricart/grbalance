@@ -4,7 +4,6 @@ import { VirtualTable } from './VirtualTable';
 import * as XLSX from 'xlsx';
 import { sendInstructionToFile, cancelAllActiveSessions } from '../utils/improved-file-communication';
 import { bulletproofValidateFile } from '../utils/bulletproofFileValidator';
-import ClientPreviewTest from './ClientPreviewTest';
 
 interface StepWithPreview {
   id: string;
@@ -21,25 +20,11 @@ interface StepWithPreview {
 
 // Client Preview Component - Displays analysis results exactly like Visual Script Builder
 const ClientPreview: React.FC<{
-  currentData: any[];
-  steps: any[];
+  processedData: any[];
   isExecuting: boolean;
-}> = ({ currentData, steps, isExecuting }) => {
+}> = ({ processedData, isExecuting }) => {
 
-  // Determine what data to display - same logic as VisualStepBuilder
-  const displayData = useMemo(() => {
-    // Priority 1: currentData (set after successful execution)
-    if (currentData && currentData.length > 0) {
-      return currentData;
-    }
-    
-    // Priority 2: First step's dataPreview (fallback)
-    if (steps && steps.length > 0 && steps[0]?.dataPreview?.length > 0) {
-      return steps[0].dataPreview;
-    }
-    
-    return [];
-  }, [currentData, steps]);
+  const displayData = processedData;
 
   return (
     <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
@@ -53,7 +38,7 @@ const ClientPreview: React.FC<{
         {displayData.length > 0 ? (
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
             <div className="px-4 py-2 bg-emerald-50 text-xs text-emerald-700 border-b">
-              ✅ Displaying {displayData.length} rows (source: {currentData?.length > 0 ? 'currentData' : 'steps[0].dataPreview'})
+              ✅ Displaying {displayData.length} rows
             </div>
             <VirtualTable 
               data={displayData} 
@@ -109,11 +94,12 @@ const StepBuilderDemo: React.FC = () => {
   const [file1Error, setFile1Error] = useState<string>('');
   const [file2Error, setFile2Error] = useState<string>('');
   
-  // Client Preview styling - mirrors Visual Script Builder data exactly
-  const [displaySettings, setDisplaySettings] = useState({
-    selectedColumns: [] as string[],
-    customColumns: [] as {name: string, formula: string}[],
-    title: 'Analysis Results'
+  // Column management for script building
+  const [columnSettings, setColumnSettings] = useState({
+    selectedColumns: [] as string[], // Which columns to show
+    customColumns: [] as {name: string, formula: string, enabled: boolean}[], // Custom calculated columns
+    renamedColumns: {} as {[originalName: string]: string}, // Column display name overrides
+    showColumnManager: false // Whether to show column management UI
   });
 
   // Script import state
@@ -349,26 +335,69 @@ const StepBuilderDemo: React.FC = () => {
     return file1Data.length > 0 ? file1Data : sampleData;
   }, [file1Data, sampleData, viewingStepNumber, steps, currentData]);
 
-  // Filter display data based on column selection (for both admin and client preview)
-  const getDisplayData = useMemo(() => {
+  // Process data based on column management settings
+  const getProcessedData = useMemo(() => {
     if (currentData.length === 0) return [];
     
-    // If no specific columns selected, show all
-    if (displaySettings.selectedColumns.length === 0) {
-      return currentData;
-    }
-    
-    // Filter to only show selected columns
     return currentData.map(row => {
-      const filteredRow: any = {};
-      displaySettings.selectedColumns.forEach(col => {
-        if (col in row) {
-          filteredRow[col] = row[col];
+      let processedRow: any = { ...row };
+      
+      // Step 1: Add custom columns
+      columnSettings.customColumns.forEach(customCol => {
+        if (customCol.enabled) {
+          try {
+            // Simple formula evaluation (can be enhanced later)
+            const formula = customCol.formula;
+            if (formula.includes('SUM(')) {
+              // Example: SUM(Amount,Fee) - add specified columns
+              const columnsMatch = formula.match(/SUM\(([^)]+)\)/);
+              if (columnsMatch) {
+                const columns = columnsMatch[1].split(',').map(c => c.trim());
+                const sum = columns.reduce((acc, col) => {
+                  const value = parseFloat(String(row[col] || '0').replace(/[$,]/g, '')) || 0;
+                  return acc + value;
+                }, 0);
+                processedRow[customCol.name] = sum;
+              }
+            } else if (formula.includes('CONCAT(')) {
+              // Example: CONCAT(FirstName," ",LastName)
+              const columnsMatch = formula.match(/CONCAT\(([^)]+)\)/);
+              if (columnsMatch) {
+                const parts = columnsMatch[1].split(',').map(p => p.trim().replace(/"/g, ''));
+                const concatenated = parts.map(part => row[part] || part).join('');
+                processedRow[customCol.name] = concatenated;
+              }
+            } else {
+              // Direct value or simple calculation
+              processedRow[customCol.name] = formula;
+            }
+          } catch (error) {
+            processedRow[customCol.name] = 'Error';
+          }
         }
       });
-      return filteredRow;
+      
+      // Step 2: Apply column filtering
+      if (columnSettings.selectedColumns.length > 0) {
+        const filteredRow: any = {};
+        columnSettings.selectedColumns.forEach(col => {
+          if (col in processedRow) {
+            filteredRow[col] = processedRow[col];
+          }
+        });
+        processedRow = filteredRow;
+      }
+      
+      // Step 3: Apply column renaming for display
+      const renamedRow: any = {};
+      Object.entries(processedRow).forEach(([key, value]) => {
+        const displayName = columnSettings.renamedColumns[key] || key;
+        renamedRow[displayName] = value;
+      });
+      
+      return renamedRow;
     });
-  }, [currentData, displaySettings.selectedColumns]);
+  }, [currentData, columnSettings]);
 
   // IMPROVED: Replace old file communication with session-based system
   const handleProcessAndDeploy = async () => {
@@ -407,19 +436,15 @@ const StepBuilderDemo: React.FC = () => {
       setSteps([newStep]);
       setHasInitialStep(true);
       
-      // Send instruction using improved communication system
-      const responseCode = await sendInstructionToFile(analysisInstruction);
-      
-      // Execute the response with the step we just created
-      await executeClaudeCodeWithStep(responseCode, newStep);
-      
-    } catch (error) {
-      console.error('❌ Communication error:', error);
-      
-      // Fallback to intelligent pattern matching
+      // Use intelligent pattern matching (skip external API for now)
       const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
       const fallbackCode = generateIntelligentCodePattern(analysisInstruction, availableColumns);
-      await executeClaudeCode(fallbackCode);
+      await executeClaudeCodeWithStep(fallbackCode, newStep);
+      
+    } catch (error) {
+      console.error('❌ Analysis error:', error);
+      setIsExecuting(false);
+      alert('Analysis failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsExecuting(false);
     }
@@ -587,22 +612,81 @@ const StepBuilderDemo: React.FC = () => {
       `;
     }
     
-    // Pattern 3: Mastercard specific count
+    // Pattern 3: Specific card brand counts - return ONLY the requested count
     if (lowerInstruction.includes('count') && lowerInstruction.includes('mastercard')) {
       return `
-        const result = workingData.filter(row => {
+        const mastercardCount = workingData.filter(row => {
           const cardBrand = (row['Card Brand'] || row['Type'] || row['Payment Method'] || '').toLowerCase();
           return cardBrand.includes('mastercard') || cardBrand.includes('master card');
-        });
+        }).length;
         
         return [{
-          'Analysis': 'Mastercard Count Analysis',
-          'Total Transactions': workingData.length,
-          'Mastercard Transactions': result.length,
-          'Percentage': ((result.length / workingData.length) * 100).toFixed(1) + '%',
-          'Processing Date': new Date().toISOString()
+          'Mastercard Count': mastercardCount
         }];
       `;
+    }
+    
+    // Pattern 3a: Visa count
+    if (lowerInstruction.includes('count') && lowerInstruction.includes('visa')) {
+      return `
+        const visaCount = workingData.filter(row => {
+          const cardBrand = (row['Card Brand'] || row['Type'] || row['Payment Method'] || '').toLowerCase();
+          return cardBrand.includes('visa');
+        }).length;
+        
+        return [{
+          'Visa Count': visaCount
+        }];
+      `;
+    }
+    
+    // Pattern 3b: Amex/American Express count
+    if (lowerInstruction.includes('count') && (lowerInstruction.includes('amex') || lowerInstruction.includes('american express'))) {
+      return `
+        const amexCount = workingData.filter(row => {
+          const cardBrand = (row['Card Brand'] || row['Type'] || row['Payment Method'] || '').toLowerCase();
+          return cardBrand.includes('amex') || cardBrand.includes('american express');
+        }).length;
+        
+        return [{
+          'Amex Count': amexCount
+        }];
+      `;
+    }
+    
+    // Pattern 3c: Discover count
+    if (lowerInstruction.includes('count') && lowerInstruction.includes('discover')) {
+      return `
+        const discoverCount = workingData.filter(row => {
+          const cardBrand = (row['Card Brand'] || row['Type'] || row['Payment Method'] || '').toLowerCase();
+          return cardBrand.includes('discover');
+        }).length;
+        
+        return [{
+          'Discover Count': discoverCount
+        }];
+      `;
+    }
+    
+    // Pattern 3d: General "count [brand] instances" pattern
+    if (lowerInstruction.includes('count') && lowerInstruction.includes('instances')) {
+      // Extract the brand name between "count" and "instances" 
+      const countMatch = lowerInstruction.match(/count\s+(\w+)\s+instances?/);
+      if (countMatch) {
+        const brandName = countMatch[1];
+        const brandNameCapitalized = brandName.charAt(0).toUpperCase() + brandName.slice(1);
+        
+        return `
+          const brandCount = workingData.filter(row => {
+            const cardBrand = (row['Card Brand'] || row['Type'] || row['Payment Method'] || '').toLowerCase();
+            return cardBrand.includes('${brandName}');
+          }).length;
+          
+          return [{
+            '${brandNameCapitalized} Count': brandCount
+          }];
+        `;
+      }
     }
     
     // Pattern 4: Date range analysis
@@ -650,6 +734,17 @@ const StepBuilderDemo: React.FC = () => {
           newRow['Analysis'] = 'Columns cleaned - kept essential fields';
           return newRow;
         });
+      `;
+    }
+    
+    // Pattern 6: Show full dataset (for column management testing)
+    if (lowerInstruction.includes('show all') || lowerInstruction.includes('full data') || lowerInstruction.includes('complete data')) {
+      return `
+        // Return the complete dataset for column management
+        return workingData.map(row => ({
+          ...row,
+          'Analysis': 'Full dataset displayed'
+        }));
       `;
     }
     
@@ -1092,15 +1187,179 @@ const StepBuilderDemo: React.FC = () => {
             onRevertToStep={handleRevertToStep}
             onAddStep={handleAddStep}
             onViewStep={handleViewStep}
-            currentStepData={currentData}
+            currentStepData={getProcessedData}
             isExecuting={isExecuting}
             onFinishScript={handleFinishScript}
           />
 
+
+          {/* Column Management */}
+          {currentData.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">📊 Column Management</h3>
+                <button
+                  onClick={() => setColumnSettings(prev => ({ ...prev, showColumnManager: !prev.showColumnManager }))}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  {columnSettings.showColumnManager ? 'Hide Controls' : 'Manage Columns'}
+                </button>
+              </div>
+
+              {columnSettings.showColumnManager && (
+                <div className="space-y-6">
+                  {/* Column Selector */}
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-3">Select Columns to Display</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {Object.keys(currentData[0] || {}).map((column) => (
+                        <label key={column} className="flex items-center space-x-2 p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100">
+                          <input
+                            type="checkbox"
+                            checked={columnSettings.selectedColumns.length === 0 || columnSettings.selectedColumns.includes(column)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setColumnSettings(prev => ({
+                                  ...prev,
+                                  selectedColumns: prev.selectedColumns.length === 0 
+                                    ? Object.keys(currentData[0] || {}) 
+                                    : [...prev.selectedColumns, column]
+                                }));
+                              } else {
+                                setColumnSettings(prev => ({
+                                  ...prev,
+                                  selectedColumns: prev.selectedColumns.filter(col => col !== column)
+                                }));
+                              }
+                            }}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm text-gray-700 truncate">{column}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        onClick={() => setColumnSettings(prev => ({ ...prev, selectedColumns: [] }))}
+                        className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Select All
+                      </button>
+                      <button
+                        onClick={() => setColumnSettings(prev => ({ ...prev, selectedColumns: Object.keys(currentData[0] || {}).slice(0, 1) }))}
+                        className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                      >
+                        Select None
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Column Renaming */}
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-3">Rename Columns</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {Object.keys(currentData[0] || {}).map((column) => (
+                        <div key={column} className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600 w-24 truncate">{column}:</span>
+                          <input
+                            type="text"
+                            placeholder={column}
+                            value={columnSettings.renamedColumns[column] || ''}
+                            onChange={(e) => {
+                              setColumnSettings(prev => ({
+                                ...prev,
+                                renamedColumns: {
+                                  ...prev.renamedColumns,
+                                  [column]: e.target.value
+                                }
+                              }));
+                            }}
+                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Custom Columns */}
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-3">Custom Columns</h4>
+                    {columnSettings.customColumns.map((customCol, index) => (
+                      <div key={index} className="flex items-center space-x-2 mb-2 p-3 bg-gray-50 rounded">
+                        <input
+                          type="checkbox"
+                          checked={customCol.enabled}
+                          onChange={(e) => {
+                            setColumnSettings(prev => ({
+                              ...prev,
+                              customColumns: prev.customColumns.map((col, i) => 
+                                i === index ? { ...col, enabled: e.target.checked } : col
+                              )
+                            }));
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Column Name"
+                          value={customCol.name}
+                          onChange={(e) => {
+                            setColumnSettings(prev => ({
+                              ...prev,
+                              customColumns: prev.customColumns.map((col, i) => 
+                                i === index ? { ...col, name: e.target.value } : col
+                              )
+                            }));
+                          }}
+                          className="w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Formula (e.g., SUM(Amount,Fee) or 'Fixed Value')"
+                          value={customCol.formula}
+                          onChange={(e) => {
+                            setColumnSettings(prev => ({
+                              ...prev,
+                              customColumns: prev.customColumns.map((col, i) => 
+                                i === index ? { ...col, formula: e.target.value } : col
+                              )
+                            }));
+                          }}
+                          className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                          onClick={() => {
+                            setColumnSettings(prev => ({
+                              ...prev,
+                              customColumns: prev.customColumns.filter((_, i) => i !== index)
+                            }));
+                          }}
+                          className="px-2 py-1 text-xs bg-red-200 text-red-700 rounded hover:bg-red-300"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        setColumnSettings(prev => ({
+                          ...prev,
+                          customColumns: [...prev.customColumns, { name: '', formula: '', enabled: true }]
+                        }));
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 transition-colors"
+                    >
+                      + Add Custom Column
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Client Preview */}
           <ClientPreview 
-            currentData={currentData}
-            steps={steps}
+            processedData={getProcessedData}
             isExecuting={isExecuting}
           />
 

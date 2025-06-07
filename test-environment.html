@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GR Balance - Local Test Environment</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+  <!-- Fallback libraries in case CDN fails -->
+  <script>
+    // Check if XLSX loaded, if not try alternative CDN
+    if (typeof XLSX === 'undefined') {
+      console.warn('Primary XLSX CDN failed, loading fallback...');
+      document.write('<script src="https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js"><\/script>');
+    }
+    
+    // Check if Papa Parse loaded, if not try alternative CDN
+    if (typeof Papa === 'undefined') {
+      console.warn('Primary Papa Parse CDN failed, loading fallback...');
+      document.write('<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"><\/script>');
+    }
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 0; }
+    .container { max-width: 700px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+    .section { margin-bottom: 32px; }
+    .upload-area { display: flex; gap: 24px; flex-wrap: wrap; }
+    .upload-box { flex: 1; min-width: 200px; border: 2px dashed #b6c2cf; border-radius: 8px; padding: 24px; text-align: center; background: #f3f6fa; }
+    .upload-box.has-file { border-color: #388e3c; background: #f6fffa; }
+    .upload-box input { display: none; }
+    .upload-label { display: inline-block; margin-top: 12px; padding: 8px 18px; background: #2e7d32; color: #fff; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .file-info { margin-top: 8px; font-size: 0.9rem; color: #666; }
+    .script-section { margin: 24px 0; }
+    .script-section label { display: block; margin-bottom: 8px; font-weight: 600; color: #388e3c; }
+    .script-upload-box { max-width: 400px; margin: 0 auto; border: 2px dashed #ff9800; background: #fff8e1; }
+    .script-upload-box.has-file { border-color: #f57c00; background: #fff3e0; }
+    .actions { display: flex; gap: 16px; justify-content: center; }
+    .actions button { padding: 10px 22px; border: none; border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; }
+    .run-btn { background: #388e3c; color: #fff; }
+    .run-btn:disabled { background: #ccc; cursor: not-allowed; }
+    .clear-btn { background: #e0e0e0; color: #333; }
+    .results-section { margin-top: 36px; background: #f6fffa; border-radius: 8px; padding: 24px; min-height: 120px; box-shadow: 0 1px 4px #0001; }
+    .results-header { font-size: 1.1rem; font-weight: 600; margin-bottom: 16px; color: #388e3c; }
+    .results-placeholder { color: #b0b0b0; text-align: center; margin-top: 24px; }
+    .summary { background: #e3f2fd; padding: 16px; border-radius: 6px; margin-bottom: 20px; }
+    .summary h3 { margin: 0 0 8px 0; color: #1976d2; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { border: 1px solid #d0d7de; padding: 12px; text-align: left; }
+    th { background: #e8f5e9; font-weight: 600; }
+    .error { color: #d32f2f; background: #ffebee; padding: 12px; border-radius: 6px; margin-top: 12px; }
+    .loading { text-align: center; color: #666; margin-top: 24px; }
+    .test-note { background: #fff3e0; border: 1px solid #ff9800; border-radius: 6px; padding: 12px; margin-bottom: 24px; color: #e65100; }
+    
+    /* Live Script Builder Styles */
+    .live-builder { background: #f0f8ff; border: 2px solid #1976d2; border-radius: 8px; padding: 24px; margin: 24px 0; display: none; }
+    .live-builder-header { color: #1976d2; font-weight: 600; font-size: 1.1rem; margin-bottom: 16px; text-align: center; }
+    .step-container { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; margin-bottom: 16px; padding: 16px; }
+    .step-header { display: flex; justify-content: between; align-items: center; margin-bottom: 12px; }
+    .step-title { font-weight: 600; color: #333; }
+    .step-actions { display: flex; gap: 8px; }
+    .step-btn { padding: 4px 12px; border: none; border-radius: 4px; font-size: 0.9rem; cursor: pointer; }
+    .step-btn.run { background: #388e3c; color: #fff; }
+    .step-btn.delete { background: #d32f2f; color: #fff; }
+    .step-code { width: 100%; height: 120px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9rem; resize: vertical; }
+    .step-result { margin-top: 8px; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 0.85rem; max-height: 100px; overflow-y: auto; }
+    .step-result.success { border-left: 4px solid #388e3c; }
+    .step-result.error { border-left: 4px solid #d32f2f; color: #d32f2f; }
+    .add-step-btn { background: #1976d2; color: #fff; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .builder-actions { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
+    .live-preview { background: #fff; border: 1px solid #d0d7de; border-radius: 6px; padding: 12px; margin: 16px 0; max-height: 200px; overflow-y: auto; }
+    .preview-header { font-size: 0.9rem; font-weight: 600; color: #666; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2 style="margin-bottom: 24px; color: #388e3c;">GR Balance - Local Test Environment</h2>
+    
+    <div class="test-note">
+      <strong>TEST MODE:</strong> This page mimics your live site exactly. Upload your files and build/test scripts to preview results as customers would see them.
+    </div>
+    
+    <div class="section upload-area">
+      <div class="upload-box" id="upload-box-1">
+        <div>Upload First File</div>
+        <div class="file-info">Excel (.xlsx/.xls) or CSV (.csv)</div>
+        <label class="upload-label">
+          Select File
+          <input type="file" id="file1" accept=".xlsx,.xls,.csv" />
+        </label>
+        <div class="file-info" id="file1-info"></div>
+      </div>
+      <div class="upload-box" id="upload-box-2">
+        <div>Upload Second File</div>
+        <div class="file-info">Excel (.xlsx/.xls) or CSV (.csv)</div>
+        <label class="upload-label">
+          Select File
+          <input type="file" id="file2" accept=".xlsx,.xls,.csv" />
+        </label>
+        <div class="file-info" id="file2-info"></div>
+      </div>
+    </div>
+
+    <!-- Live Script Builder Section -->
+    <div class="live-builder" id="live-builder">
+      <div class="live-builder-header">📋 Building New Script with Claude?</div>
+      
+      <div style="text-align: center; margin-bottom: 16px; padding: 12px; background: #e3f2fd; border-radius: 6px; color: #1976d2; font-size: 0.9rem;">
+        <strong>Fast Development:</strong> Get script from Claude → Add Step → Paste → Run → Iterate!
+      </div>
+      
+      <div id="steps-container">
+        <!-- Steps will be added here dynamically -->
+      </div>
+      
+      <div style="text-align: center; margin: 16px 0;">
+        <button class="add-step-btn" onclick="addStep()">📋 Add Step (Paste from Claude)</button>
+      </div>
+      
+      <div class="live-preview" id="live-preview" style="display: none;">
+        <div class="preview-header">Live Preview (First 3 rows):</div>
+        <div id="preview-content"></div>
+      </div>
+      
+      <div class="builder-actions">
+        <button class="run-btn" onclick="runAllSteps()">▶ Run All Steps</button>
+        <button class="clear-btn" onclick="generateScript()">📝 Generate Script</button>
+        <button class="clear-btn" onclick="clearSteps()">🗑 Clear Steps</button>
+      </div>
+    </div>
+
+    <div class="section script-section">
+      <label style="color: #f57c00; font-size: 1.1rem;">📁 Testing Existing Script File?</label>
+      <div style="text-align: center; margin-bottom: 16px; padding: 12px; background: #fff8e1; border-radius: 6px; color: #e65100; font-size: 0.9rem;">
+        <strong>Quick Testing:</strong> Upload your saved .js file → Run → See Results
+      </div>
+      <div class="upload-box script-upload-box" id="script-upload-box">
+        <div>Upload Existing Script File</div>
+        <div class="file-info">JavaScript (.js) file</div>
+        <label class="upload-label" style="background: #f57c00;">
+          Browse & Upload Script
+          <input type="file" id="script-file" accept=".js" />
+        </label>
+        <div class="file-info" id="script-info"></div>
+      </div>
+    </div>
+
+    <div class="section actions">
+      <button class="run-btn" id="run-btn" onclick="runComparison()">Run Analysis</button>
+      <button class="clear-btn" onclick="clearForm()">Clear Form</button>
+    </div>
+
+    <div class="results-section">
+      <div class="results-header">Results</div>
+      <div class="results-placeholder" id="results-placeholder">Results will appear here after running an analysis.</div>
+    </div>
+
+    <!-- Script Generation Modal -->
+    <div id="script-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+      <div style="background: #fff; margin: 50px auto; padding: 24px; border-radius: 12px; max-width: 600px; max-height: 80vh; overflow-y: auto;">
+        <h3 style="margin: 0 0 16px 0; color: #388e3c;">📝 Generated Script</h3>
+        <textarea id="generated-script" style="width: 100%; height: 300px; font-family: 'Courier New', monospace; font-size: 0.9rem; padding: 12px; border: 1px solid #ccc; border-radius: 6px;" readonly></textarea>
+        <div style="margin-top: 16px; text-align: center;">
+          <button onclick="copyScript()" style="background: #1976d2; color: #fff; padding: 8px 16px; border: none; border-radius: 6px; margin-right: 8px; cursor: pointer;">Copy Script</button>
+          <button onclick="downloadScript()" style="background: #388e3c; color: #fff; padding: 8px 16px; border: none; border-radius: 6px; margin-right: 8px; cursor: pointer;">Download</button>
+          <button onclick="closeScriptModal()" style="background: #ccc; color: #333; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Confirm Modal -->
+    <div id="confirm-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001;">
+      <div style="background: #fff; margin: 20% auto; padding: 24px; border-radius: 12px; max-width: 400px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        <div id="confirm-message" style="margin-bottom: 20px; font-size: 1rem; color: #333; line-height: 1.4;"></div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+          <button id="confirm-yes" style="background: #d32f2f; color: #fff; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Yes</button>
+          <button id="confirm-no" style="background: #e0e0e0; color: #333; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Alert Modal -->
+    <div id="alert-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001;">
+      <div style="background: #fff; margin: 20% auto; padding: 24px; border-radius: 12px; max-width: 400px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        <div id="alert-message" style="margin-bottom: 20px; font-size: 1rem; color: #333; line-height: 1.4;"></div>
+        <button id="alert-ok" style="background: #388e3c; color: #fff; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== CORRUPTION-FREE FILE PARSING SYSTEM =====
+    // Fixes encoding issues and symbol corruption in Excel/CSV parsing
+
+    let file1Data = null;
+    let file2Data = null;
+    let loadedScript = null;
+    let parsedData1 = null;
+    let parsedData2 = null;
+    let steps = [];
+    let stepCounter = 0;
+    let currentWorkingData = null;
+
+    // ===== LIBRARY READINESS CHECK =====
+    function checkLibrariesLoaded() {
+      const checks = [];
+      
+      if (typeof XLSX === 'undefined') {
+        checks.push('XLSX library not loaded');
+      }
+      
+      if (typeof Papa === 'undefined') {
+        checks.push('Papa Parse library not loaded');
+      }
+      
+      return {
+        ready: checks.length === 0,
+        errors: checks
+      };
+    }
+
+    // Wait for libraries to load
+    function waitForLibraries() {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 10;
+        
+        const checkInterval = setInterval(() => {
+          attempts++;
+          const libraryCheck = checkLibrariesLoaded();
+          
+          if (libraryCheck.ready) {
+            clearInterval(checkInterval);
+            console.log('✅ All libraries loaded successfully');
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            console.error('❌ Libraries failed to load:', libraryCheck.errors);
+            reject(new Error(`Libraries not loaded: ${libraryCheck.errors.join(', ')}`));
+          } else {
+            console.log(`⏳ Waiting for libraries... (${attempts}/${maxAttempts})`, libraryCheck.errors);
+          }
+        }, 500);
+      });
+    }
+
+    // ===== CORRECTED FILE UPLOAD HANDLERS =====
+    document.getElementById('file1').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('file1-info').textContent = file.name;
+        document.getElementById('upload-box-1').classList.add('has-file');
+        
+        try {
+          // Wait for libraries to load before parsing
+          await waitForLibraries();
+          
+          // Store both raw data and parsed data
+          file1Data = file; // Store the actual File object, not Uint8Array
+          parsedData1 = await parseFileClean(file, 'File 1');
+          console.log('File 1 parsed successfully:', parsedData1.length, 'rows');
+          showLiveBuilder();
+        } catch (error) {
+          console.error('Error parsing File 1:', error);
+          window.showError(`Failed to parse File 1: ${error.message}`);
+        }
+      }
+    });
+
+    document.getElementById('file2').addEventListener('change', async function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        document.getElementById('file2-info').textContent = file.name;
+        document.getElementById('upload-box-2').classList.add('has-file');
+        
+        try {
+          // Wait for libraries to load before parsing
+          await waitForLibraries();
+          
+          // Store both raw data and parsed data
+          file2Data = file; // Store the actual File object, not Uint8Array
+          parsedData2 = await parseFileClean(file, 'File 2');
+          console.log('File 2 parsed successfully:', parsedData2.length, 'rows');
+        } catch (error) {
+          console.error('Error parsing File 2:', error);
+          window.showError(`Failed to parse File 2: ${error.message}`);
+        }
+      }
+    });
+
+    // ===== CORRUPTION-FREE FILE PARSER =====
+    async function parseFileClean(file, fileName) {
+      if (!file || file.size === 0) {
+        throw new Error(`${fileName} is empty or corrupted`);
+      }
+      
+      const fileExtension = file.name.toLowerCase().split('.').pop();
+      console.log(`Parsing ${fileName} with extension: ${fileExtension}`);
+      
+      // Determine file type and parse accordingly
+      if (fileExtension === 'csv' || fileExtension === 'txt') {
+        return parseCSVClean(file, fileName);
+      } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        return parseExcelClean(file, fileName);
+      } else {
+        // Try to detect based on content
+        return parseUnknownFileType(file, fileName);
+      }
+    }
+
+    // ===== CLEAN CSV PARSING =====
+    async function parseCSVClean(file, fileName) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          try {
+            const textContent = e.target.result;
+            
+            if (!textContent || textContent.trim().length === 0) {
+              reject(new Error(`${fileName} contains no readable text`));
+              return;
+            }
+            
+            console.log(`CSV content preview: "${textContent.substring(0, 200)}..."`);
+            
+            // Use Papa Parse with robust settings
+            const parseResult = Papa.parse(textContent, {
+              header: true,
+              skipEmptyLines: true,
+              trimHeaders: true,
+              dynamicTyping: false, // Keep everything as strings initially
+              encoding: 'UTF-8',
+              transformHeader: function(header) {
+                // Clean and normalize headers
+                return String(header || '').trim().replace(/^\uFEFF/, ''); // Remove BOM
+              },
+              transform: function(value, field) {
+                // Clean each cell value
+                if (typeof value === 'string') {
+                  return value.trim().replace(/^\uFEFF/, ''); // Remove BOM from values
+                }
+                return value;
+              },
+              error: function(error) {
+                console.error(`Papa Parse error for ${fileName}:`, error);
+              }
+            });
+            
+            if (parseResult.errors && parseResult.errors.length > 0) {
+              console.warn(`CSV parsing warnings for ${fileName}:`, parseResult.errors);
+              // Don't reject on warnings, only on critical errors
+              const criticalErrors = parseResult.errors.filter(err => err.type === 'Quotes');
+              if (criticalErrors.length > 0) {
+                reject(new Error(`CSV parsing failed: ${criticalErrors[0].message}`));
+                return;
+              }
+            }
+            
+            if (!parseResult.data || parseResult.data.length === 0) {
+              reject(new Error(`${fileName} contains no data rows`));
+              return;
+            }
+            
+            // Clean and validate the data
+            const cleanData = parseResult.data
+              .filter(row => {
+                // Filter out completely empty rows
+                return Object.values(row).some(value => value && String(value).trim() !== '');
+              })
+              .map(row => {
+                // Clean each row
+                const cleanRow = {};
+                Object.keys(row).forEach(key => {
+                  const cleanKey = String(key).trim();
+                  const cleanValue = row[key] ? String(row[key]).trim() : '';
+                  if (cleanKey) { // Only include non-empty column names
+                    cleanRow[cleanKey] = cleanValue;
+                  }
+                });
+                return cleanRow;
+              });
+            
+            if (cleanData.length === 0) {
+              reject(new Error(`${fileName} contains no valid data after cleaning`));
+              return;
+            }
+            
+            // Validate headers
+            const sampleRow = cleanData[0];
+            const validHeaders = Object.keys(sampleRow).filter(key => key && key.trim() !== '');
+            if (validHeaders.length === 0) {
+              reject(new Error(`${fileName} has no valid column headers`));
+              return;
+            }
+            
+            console.log(`${fileName} parsed as CSV:`, cleanData.length, 'rows with headers:', validHeaders);
+            resolve(cleanData);
+            
+          } catch (error) {
+            reject(new Error(`CSV parsing failed for ${fileName}: ${error.message}`));
+          }
+        };
+        
+        reader.onerror = function() {
+          reject(new Error(`Failed to read ${fileName} as text`));
+        };
+        
+        // Read as text with UTF-8 encoding
+        reader.readAsText(file, 'UTF-8');
+      });
+    }
+
+    // ===== CLEAN EXCEL PARSING =====
+    async function parseExcelClean(file, fileName) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          try {
+            const arrayBuffer = e.target.result;
+            
+            // Parse with XLSX using clean settings
+            const workbook = XLSX.read(arrayBuffer, {
+              type: 'array',
+              cellText: true,      // Use formatted text values
+              cellNF: false,       // Don't include number format
+              cellHTML: false,     // Don't include HTML
+              cellFormula: false,  // Don't include formulas
+              cellStyles: false,   // Don't include styles
+              cellDates: true,     // Parse dates properly
+              raw: false,          // Use formatted values, not raw
+              codepage: 65001,     // UTF-8 encoding
+              bookSST: false,      // Don't use shared string table
+              bookVBA: false       // Don't include VBA
+            });
+            
+            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+              reject(new Error(`${fileName} contains no worksheets`));
+              return;
+            }
+            
+            console.log(`Excel workbook sheets: ${workbook.SheetNames.join(', ')}`);
+            
+            // Get the first sheet
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            
+            // Convert to JSON with clean settings
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+              header: 1,           // Return array of arrays first
+              raw: false,          // Use formatted text values
+              defval: '',          // Default value for empty cells
+              blankrows: false,    // Skip blank rows
+              dateNF: 'yyyy-mm-dd' // Standard date format
+            });
+            
+            if (!jsonData || jsonData.length === 0) {
+              reject(new Error(`${fileName} appears to be empty`));
+              return;
+            }
+            
+            console.log(`Raw Excel data rows: ${jsonData.length}`);
+            
+            // Extract and clean headers
+            const rawHeaders = jsonData[0] || [];
+            const cleanHeaders = rawHeaders
+              .map(header => {
+                if (header === null || header === undefined) return '';
+                return String(header).trim().replace(/^\uFEFF/, ''); // Remove BOM
+              })
+              .filter(header => header !== ''); // Remove empty headers
+            
+            if (cleanHeaders.length === 0) {
+              reject(new Error(`${fileName} has no valid column headers`));
+              return;
+            }
+            
+            console.log(`Clean headers: ${cleanHeaders.join(', ')}`);
+            
+            // Convert data rows to objects
+            const dataRows = jsonData.slice(1); // Skip header row
+            const cleanData = dataRows
+              .filter(row => {
+                // Filter out completely empty rows
+                return row && row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '');
+              })
+              .map(row => {
+                const cleanRow = {};
+                cleanHeaders.forEach((header, index) => {
+                  const cellValue = row[index];
+                  let cleanValue = '';
+                  
+                  if (cellValue !== null && cellValue !== undefined) {
+                    cleanValue = String(cellValue).trim();
+                  }
+                  
+                  cleanRow[header] = cleanValue;
+                });
+                return cleanRow;
+              });
+            
+            if (cleanData.length === 0) {
+              reject(new Error(`${fileName} contains no valid data rows`));
+              return;
+            }
+            
+            console.log(`${fileName} parsed as Excel:`, cleanData.length, 'rows with headers:', cleanHeaders);
+            resolve(cleanData);
+            
+          } catch (error) {
+            reject(new Error(`Excel parsing failed for ${fileName}: ${error.message}`));
+          }
+        };
+        
+        reader.onerror = function() {
+          reject(new Error(`Failed to read ${fileName} as binary data`));
+        };
+        
+        // Read as ArrayBuffer for Excel files
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // ===== AUTO-DETECT FILE TYPE =====
+    async function parseUnknownFileType(file, fileName) {
+      // Try Excel first, then CSV
+      try {
+        console.log(`Attempting Excel parsing for ${fileName}...`);
+        return await parseExcelClean(file, fileName);
+      } catch (excelError) {
+        console.log(`Excel parsing failed, trying CSV: ${excelError.message}`);
+        try {
+          return await parseCSVClean(file, fileName);
+        } catch (csvError) {
+          throw new Error(`Could not parse ${fileName} as Excel or CSV. Excel: ${excelError.message}. CSV: ${csvError.message}`);
+        }
+      }
+    }
+
+    // ===== UPDATED parseFiles FUNCTION FOR SCRIPTS =====
+    window.parseFiles = async function() {
+      const result = { data1: null, data2: null };
+      
+      // Return the already-parsed clean data
+      if (parsedData1) {
+        result.data1 = [...parsedData1]; // Return a copy to prevent mutations
+      }
+      
+      if (parsedData2) {
+        result.data2 = [...parsedData2]; // Return a copy to prevent mutations
+      }
+      
+      // Log the data for debugging
+      if (result.data1) {
+        console.log('Returning clean data1:', result.data1.length, 'rows');
+        console.log('Sample data1 row:', result.data1[0]);
+      }
+      if (result.data2) {
+        console.log('Returning clean data2:', result.data2.length, 'rows');
+        console.log('Sample data2 row:', result.data2[0]);
+      }
+      
+      return result;
+    };
+
+    // ===== COMPATIBILITY FUNCTION FOR RAW FILE ACCESS =====
+    window.getFileData = function() {
+      // This now returns the File objects instead of corrupted Uint8Arrays
+      return {
+        file1: file1Data,
+        file2: file2Data
+      };
+    };
+
+    // Show live builder when files are uploaded
+    function showLiveBuilder() {
+      if (parsedData1) {
+        document.getElementById('live-builder').style.display = 'block';
+        currentWorkingData = [...parsedData1]; // Initialize with first file data
+      }
+    }
+
+    // Add new step
+    function addStep() {
+      stepCounter++;
+      const step = {
+        id: stepCounter,
+        name: `Claude Script ${stepCounter}`,
+        code: '// Paste your complete script from Claude here\n// Just copy → paste → click Run → see results!\n// No need to save files or upload anything',
+        result: null,
+        error: null
+      };
+      steps.push(step);
+      renderStep(step);
+    }
+
+    // Render step in UI
+    function renderStep(step) {
+      const container = document.getElementById('steps-container');
+      const stepDiv = document.createElement('div');
+      stepDiv.className = 'step-container';
+      stepDiv.id = `step-${step.id}`;
+      
+      stepDiv.innerHTML = `
+        <div class="step-header">
+          <input type="text" value="${step.name}" onchange="updateStepName(${step.id}, this.value)" 
+                 style="border: none; background: transparent; font-weight: 600; color: #333;">
+          <div class="step-actions">
+            <button class="step-btn run" onclick="runStep(${step.id})">▶ Run</button>
+            <button class="step-btn delete" onclick="deleteStep(${step.id})">🗑</button>
+          </div>
+        </div>
+        <textarea class="step-code" id="code-${step.id}" onchange="updateStepCode(${step.id}, this.value)" placeholder="Paste Claude's complete script here - no need to save files!">${step.code}</textarea>
+        <div id="result-${step.id}" class="step-result" style="display: none;"></div>
+      `;
+      
+      container.appendChild(stepDiv);
+    }
+
+    // Update step name
+    function updateStepName(stepId, newName) {
+      const step = steps.find(s => s.id === stepId);
+      if (step) step.name = newName;
+    }
+
+    // Update step code
+    function updateStepCode(stepId, newCode) {
+      const step = steps.find(s => s.id === stepId);
+      if (step) step.code = newCode;
+    }
+
+    // Run individual step - handles both small steps and complete scripts
+    function runStep(stepId) {
+      const step = steps.find(s => s.id === stepId);
+      if (!step) return;
+      
+      try {
+        const code = step.code.trim();
+        
+        // Check if this looks like a complete script (has async function, parseFiles, showResults, etc.)
+        const isCompleteScript = code.includes('parseFiles') || code.includes('showResults') || 
+                                code.includes('async function') || code.includes('window.') ||
+                                code.includes('showError') || code.includes('displayResults');
+        
+        if (isCompleteScript) {
+          // Handle as complete script - execute directly in global context
+          console.log('Executing as complete script...');
+          
+          // Execute the script in global context so it can access window functions
+          const scriptFunction = new Function(code);
+          scriptFunction();
+          
+          // Show completion in step result
+          const resultDiv = document.getElementById(`result-${stepId}`);
+          resultDiv.style.display = 'block';
+          resultDiv.className = 'step-result success';
+          resultDiv.textContent = '✅ Complete script executed - Check main Results section below';
+          
+          step.result = 'Complete script executed';
+          step.error = null;
+          
+        } else {
+          // Handle as small step - pass data between steps
+          console.log('Executing as data transformation step...');
+          
+          // Get current working data (from previous steps)
+          let workingData = currentWorkingData ? [...currentWorkingData] : [];
+          
+          // Execute all steps up to this one
+          for (let i = 0; i < steps.indexOf(step) + 1; i++) {
+            const currentStep = steps[i];
+            if (currentStep.code.trim()) {
+              const func = new Function('workingData', 'data1', 'data2', currentStep.code);
+              const result = func(workingData, parsedData1, parsedData2);
+              if (result !== undefined) {
+                workingData = Array.isArray(result) ? result : [result];
+              }
+            }
+          }
+          
+          // Show result
+          const resultDiv = document.getElementById(`result-${stepId}`);
+          resultDiv.style.display = 'block';
+          resultDiv.className = 'step-result success';
+          
+          if (workingData && workingData.length > 0) {
+            const summary = `✅ ${workingData.length} rows | Columns: ${Object.keys(workingData[0] || {}).join(', ')}`;
+            resultDiv.textContent = summary;
+          } else {
+            resultDiv.textContent = '✅ Step completed - No data returned';
+          }
+          
+          step.result = workingData;
+          step.error = null;
+          
+          // Update live preview
+          updateLivePreview(workingData);
+        }
+        
+      } catch (error) {
+        console.error('Step execution error:', error);
+        
+        // Show error
+        const resultDiv = document.getElementById(`result-${stepId}`);
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'step-result error';
+        resultDiv.textContent = `❌ Error: ${error.message}`;
+        
+        step.result = null;
+        step.error = error.message;
+      }
+    }
+
+    // Update live preview
+    function updateLivePreview(data) {
+      const preview = document.getElementById('live-preview');
+      const content = document.getElementById('preview-content');
+      
+      if (!data || data.length === 0) {
+        preview.style.display = 'none';
+        return;
+      }
+      
+      preview.style.display = 'block';
+      
+      const columns = Object.keys(data[0] || {});
+      const previewRows = data.slice(0, 3);
+      
+      let html = `<div style="font-size: 0.8rem; color: #666; margin-bottom: 8px;">${data.length} total rows</div>`;
+      html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.8rem;">';
+      html += '<tr>' + columns.map(col => `<th style="border: 1px solid #ddd; padding: 4px; background: #f5f5f5;">${col}</th>`).join('') + '</tr>';
+      
+      previewRows.forEach(row => {
+        html += '<tr>' + columns.map(col => `<td style="border: 1px solid #ddd; padding: 4px;">${row[col] || ''}</td>`).join('') + '</tr>';
+      });
+      
+      html += '</table>';
+      content.innerHTML = html;
+    }
+
+    // Run all steps
+    function runAllSteps() {
+      let workingData = parsedData1 ? [...parsedData1] : [];
+      
+      for (const step of steps) {
+        try {
+          if (step.code.trim()) {
+            const func = new Function('workingData', 'data1', 'data2', step.code);
+            const result = func(workingData, parsedData1, parsedData2);
+            if (result !== undefined) {
+              workingData = Array.isArray(result) ? result : [result];
+            }
+          }
+          
+          // Update step result display
+          const resultDiv = document.getElementById(`result-${step.id}`);
+          resultDiv.style.display = 'block';
+          resultDiv.className = 'step-result success';
+          
+          if (workingData && workingData.length > 0) {
+            const summary = `✅ ${workingData.length} rows | Columns: ${Object.keys(workingData[0] || {}).join(', ')}`;
+            resultDiv.textContent = summary;
+          } else {
+            resultDiv.textContent = '✅ Step completed - No data returned';
+          }
+          
+        } catch (error) {
+          const resultDiv = document.getElementById(`result-${step.id}`);
+          resultDiv.style.display = 'block';
+          resultDiv.className = 'step-result error';
+          resultDiv.textContent = `❌ Error: ${error.message}`;
+          break;
+        }
+      }
+      
+      updateLivePreview(workingData);
+      currentWorkingData = workingData;
+    }
+
+    // Delete step
+    function deleteStep(stepId) {
+      showConfirm('Delete this step?', () => {
+        steps = steps.filter(s => s.id !== stepId);
+        document.getElementById(`step-${stepId}`).remove();
+      });
+    }
+
+    // Clear all steps
+    function clearSteps() {
+      showConfirm('Clear all steps?', () => {
+        steps = [];
+        stepCounter = 0;
+        document.getElementById('steps-container').innerHTML = '';
+        document.getElementById('live-preview').style.display = 'none';
+        currentWorkingData = parsedData1 ? [...parsedData1] : [];
+      });
+    }
+
+    // Generate final script
+    function generateScript() {
+      if (steps.length === 0) {
+        showAlert('No steps to generate script from');
+        return;
+      }
+      
+      let script = '// Generated from Live Script Builder\n';
+      script += '// ' + new Date().toLocaleString() + '\n\n';
+      script += 'async function executeAnalysis() {\n';
+      script += '  const { data1, data2 } = await window.parseFiles();\n';
+      script += '  let workingData = data1 ? [...data1] : [];\n\n';
+      
+      steps.forEach((step, index) => {
+        script += `  // ${step.name}\n`;
+        const indentedCode = step.code.split('\n').map(line => `  ${line}`).join('\n');
+        script += indentedCode + '\n\n';
+      });
+      
+      script += '  return workingData;\n';
+      script += '}\n\n';
+      script += 'executeAnalysis().then(result => {\n';
+      script += '  window.showResults(result);\n';
+      script += '}).catch(error => {\n';
+      script += '  console.error("Script error:", error);\n';
+      script += '});';
+      
+      document.getElementById('generated-script').value = script;
+      document.getElementById('script-modal').style.display = 'block';
+    }
+
+    // Script modal functions
+    function closeScriptModal() {
+      document.getElementById('script-modal').style.display = 'none';
+    }
+
+    function copyScript() {
+      document.getElementById('generated-script').select();
+      document.execCommand('copy');
+      showAlert('Script copied to clipboard!');
+    }
+
+    function downloadScript() {
+      const script = document.getElementById('generated-script').value;
+      const blob = new Blob([script], { type: 'text/javascript' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `generated-script-${Date.now()}.js`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Script file upload handler
+    document.getElementById('script-file').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            loadedScript = e.target.result;
+            document.getElementById('script-info').textContent = `${file.name} ✅ Ready to run`;
+            document.getElementById('script-upload-box').classList.add('has-file');
+          } catch (error) {
+            console.error('Error reading script:', error);
+            document.getElementById('script-info').textContent = `${file.name} ❌ Error reading file`;
+            loadedScript = null;
+          }
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Clear form function
+    function clearForm() {
+      document.getElementById('file1').value = '';
+      document.getElementById('file2').value = '';
+      document.getElementById('script-file').value = '';
+      document.getElementById('file1-info').textContent = '';
+      document.getElementById('file2-info').textContent = '';
+      document.getElementById('script-info').textContent = '';
+      document.getElementById('upload-box-1').classList.remove('has-file');
+      document.getElementById('upload-box-2').classList.remove('has-file');
+      document.getElementById('script-upload-box').classList.remove('has-file');
+      
+      // Clear live builder
+      document.getElementById('live-builder').style.display = 'none';
+      clearSteps();
+      
+      // Clear results
+      const resultsSection = document.querySelector('.results-section');
+      const existingResults = resultsSection.querySelectorAll('.results-content, .error');
+      existingResults.forEach(el => el.remove());
+      document.getElementById('results-placeholder').style.display = 'block';
+      
+      file1Data = null;
+      file2Data = null;
+      parsedData1 = null;
+      parsedData2 = null;
+      loadedScript = null;
+      currentWorkingData = null;
+    }
+
+    // Main comparison function
+          async function runComparison() {
+        if (!file1Data && steps.length === 0) {
+          showAlert('Please upload files and create steps, or upload a script file.');
+          return;
+        }
+      
+      // Show loading
+      const resultsSection = document.querySelector('.results-section');
+      const placeholder = document.getElementById('results-placeholder');
+      placeholder.textContent = 'Processing analysis...';
+      placeholder.style.display = 'block';
+      
+      // Clear any previous results/errors
+      const existingResults = resultsSection.querySelectorAll('.results-content, .error');
+      existingResults.forEach(el => el.remove());
+      
+      try {
+        let result;
+        
+        if (steps.length > 0) {
+          // Use live builder steps
+          let workingData = parsedData1 ? [...parsedData1] : [];
+          
+          for (const step of steps) {
+            if (step.code.trim()) {
+              const func = new Function('workingData', 'data1', 'data2', step.code);
+              const stepResult = func(workingData, parsedData1, parsedData2);
+              if (stepResult !== undefined) {
+                workingData = Array.isArray(stepResult) ? stepResult : [stepResult];
+              }
+            }
+          }
+          
+          result = workingData;
+          showResults(result);
+          
+        } else if (loadedScript) {
+          // Use uploaded script
+          const scriptElement = document.createElement('script');
+          scriptElement.textContent = loadedScript;
+          document.head.appendChild(scriptElement);
+        }
+        
+        // Hide placeholder
+        placeholder.style.display = 'none';
+        
+      } catch (error) {
+        console.error('Error running analysis:', error);
+        showError(error.message);
+      }
+    }
+
+    function showError(message) {
+      const resultsSection = document.querySelector('.results-section');
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error';
+      errorDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+      resultsSection.appendChild(errorDiv);
+      
+      document.getElementById('results-placeholder').style.display = 'none';
+    }
+
+    // ===== ENHANCED DISPLAY FUNCTIONS =====
+    window.showResults = function(data, options = {}) {
+      const resultsSection = document.querySelector('.results-section');
+      const placeholder = document.getElementById('results-placeholder');
+      
+      // Clear previous results
+      const existingContent = resultsSection.querySelectorAll('.results-content, .error');
+      existingContent.forEach(el => el.remove());
+      placeholder.style.display = 'none';
+      
+      // Create results container
+      const resultsDiv = document.createElement('div');
+      resultsDiv.className = 'results-content';
+      
+      // Add summary if provided
+      if (options.summary) {
+        const summaryDiv = document.createElement('div');
+        summaryDiv.className = 'summary';
+        summaryDiv.innerHTML = `<h3>${options.title || 'Summary'}</h3><p>${options.summary}</p>`;
+        resultsDiv.appendChild(summaryDiv);
+      }
+      
+      // Handle different data types
+      if (Array.isArray(data)) {
+        if (data.length === 0) {
+          resultsDiv.innerHTML = '<p>No results found.</p>';
+        } else if (typeof data[0] === 'object') {
+          // Array of objects - create table
+          resultsDiv.appendChild(createTable(data, options));
+        } else {
+          // Array of primitives - create simple list
+          const listDiv = document.createElement('div');
+          listDiv.innerHTML = '<h4>Results:</h4>' + data.map(item => `<div>${item}</div>`).join('');
+          resultsDiv.appendChild(listDiv);
+        }
+      } else if (typeof data === 'object' && data !== null) {
+        // Single object - display as key-value pairs
+        const objDiv = document.createElement('div');
+        objDiv.innerHTML = '<h4>Results:</h4>' + 
+          Object.entries(data).map(([key, value]) => 
+            `<div><strong>${key}:</strong> ${value}</div>`
+          ).join('');
+        resultsDiv.appendChild(objDiv);
+      } else {
+        // Primitive value
+        resultsDiv.innerHTML = `<div class="summary"><h3>Result</h3><p>${data}</p></div>`;
+      }
+      
+      resultsSection.appendChild(resultsDiv);
+    };
+
+    function createTable(data, options = {}) {
+      const table = document.createElement('table');
+      
+      if (data.length === 0) return table;
+      
+      // Get headers
+      const headers = options.columns || Object.keys(data[0]);
+      
+      // Create header row
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      // Create body rows
+      const tbody = document.createElement('tbody');
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        headers.forEach(header => {
+          const td = document.createElement('td');
+          const value = row[header];
+          td.textContent = (value === null || value === undefined) ? '' : String(value);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      
+      return table;
+    }
+
+    window.showError = function(message) {
+      const resultsSection = document.querySelector('.results-section');
+      const placeholder = document.getElementById('results-placeholder');
+      
+      // Clear previous results
+      const existingContent = resultsSection.querySelectorAll('.results-content, .error');
+      existingContent.forEach(el => el.remove());
+      placeholder.style.display = 'none';
+      
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error';
+      errorDiv.innerHTML = `<strong>Error:</strong> ${message}`;
+      resultsSection.appendChild(errorDiv);
+      
+      console.error('Script Error:', message);
+    };
+
+    // ===== ENHANCED COLUMN MATCHING UTILITY =====
+    window.findColumn = function(row, possibleNames) {
+      if (!row || typeof row !== 'object') return null;
+      
+      const normalizeHeader = (header) => {
+        return String(header || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+      };
+      
+      const rowKeys = Object.keys(row);
+      const normalizedPossibleNames = possibleNames.map(normalizeHeader);
+      
+      // Try exact matches first
+      for (const name of possibleNames) {
+        if (rowKeys.includes(name)) return name;
+      }
+      
+      // Try normalized matches
+      for (const key of rowKeys) {
+        const normalizedKey = normalizeHeader(key);
+        if (normalizedPossibleNames.includes(normalizedKey)) {
+          return key;
+        }
+      }
+      
+      // Try partial matches
+      for (const key of rowKeys) {
+        const normalizedKey = normalizeHeader(key);
+        for (const possibleName of normalizedPossibleNames) {
+          if (normalizedKey.includes(possibleName) || possibleName.includes(normalizedKey)) {
+            return key;
+          }
+        }
+      }
+      
+      return null;
+    };
+
+    // Compatibility functions
+    window.displayResults = function(results, ...additionalParams) {
+      window.showResults(results);
+    };
+
+    // Make file data globally available for scripts
+    window.getFileData = function() {
+      return {
+        file1: file1Data,
+        file2: file2Data
+      };
+    };
+
+    // Helper function for scripts to easily access parsed data
+    window.parseFiles = async function() {
+      // Use the already parsed data from file uploads
+      return {
+        data1: parsedData1,
+        data2: parsedData2
+      };
+    };
+
+    // Custom Modal Functions
+    function showAlert(message) {
+      document.getElementById('alert-message').textContent = message;
+      document.getElementById('alert-modal').style.display = 'block';
+    }
+
+    function showConfirm(message, onConfirm) {
+      document.getElementById('confirm-message').textContent = message;
+      document.getElementById('confirm-modal').style.display = 'block';
+      
+      document.getElementById('confirm-yes').onclick = () => {
+        document.getElementById('confirm-modal').style.display = 'none';
+        onConfirm();
+      };
+      
+      document.getElementById('confirm-no').onclick = () => {
+        document.getElementById('confirm-modal').style.display = 'none';
+      };
+    }
+
+    // Close alert modal
+    document.getElementById('alert-ok').onclick = () => {
+      document.getElementById('alert-modal').style.display = 'none';
+    };
+
+    // Close modals when clicking outside
+    window.onclick = function(event) {
+      const confirmModal = document.getElementById('confirm-modal');
+      const alertModal = document.getElementById('alert-modal');
+      const scriptModal = document.getElementById('script-modal');
+      
+      if (event.target === confirmModal) {
+        confirmModal.style.display = 'none';
+      }
+      if (event.target === alertModal) {
+        alertModal.style.display = 'none';
+      }
+      if (event.target === scriptModal) {
+        scriptModal.style.display = 'none';
+      }
+    };
+  </script>
+</body>
+</html>

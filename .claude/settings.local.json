@@ -27,7 +27,8 @@
       "Bash(ss:*)",
       "Bash(kill:*)",
       "Bash(cat:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(jobs)"
     ],
     "deny": []
   }
