@@ -28,7 +28,9 @@
       "Bash(kill:*)",
       "Bash(cat:*)",
       "Bash(git add:*)",
-      "Bash(jobs)"
+      "Bash(jobs)",
+      "Bash(python3:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }

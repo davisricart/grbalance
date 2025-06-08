@@ -314,8 +314,8 @@ const AdminPage: React.FC = () => {
   // Script Testing Environment state
   const [testEnvironmentReady, setTestEnvironmentReady] = useState(false);
   const [testFiles, setTestFiles] = useState<{
-    file1: any;
-    file2: any;
+    file1: File | null;
+    file2: File | null;
   }>({ file1: null, file2: null });
   const [testScript, setTestScript] = useState<string>('');
   const [testScriptText, setTestScriptText] = useState('');
@@ -323,6 +323,14 @@ const AdminPage: React.FC = () => {
   const [scriptInputMethod, setScriptInputMethod] = useState<'paste' | 'upload'>('paste');
   const [testScriptResults, setTestScriptResults] = useState<any>(null);
   const [isTestingScript, setIsTestingScript] = useState(false);
+  
+  // File data states for script testing
+  const [file1Data, setFile1Data] = useState<any[]>([]);
+  const [file2Data, setFile2Data] = useState<any[]>([]);
+  
+  // Script building states
+  const [newStepText, setNewStepText] = useState('');
+  const [showStepInput, setShowStepInput] = useState(false);
   
   // Loading helper functions
   const setOperationState = (operation: string, isLoading: boolean) => {
@@ -675,6 +683,14 @@ const AdminPage: React.FC = () => {
       }
     };
   }, []);
+
+  // Initialize test environment when Script Testing tab is accessed
+  useEffect(() => {
+    if (activeTab === 'scripts') {
+      console.log('🧪 Initializing Script Testing environment...');
+      initializeTestEnvironment();
+    }
+  }, [activeTab, file1Data, file2Data]);
 
   // Approve pending user
   const approvePendingUser = async (userId: string) => {
@@ -2357,6 +2373,21 @@ Features:
     showNotification('info', 'Steps Cleared', 'All script steps removed');
   };
 
+  const clearScriptSteps = () => {
+    setScriptSteps([]);
+    updateScriptStepsTable();
+    // Clear the client results replica area
+    const clientResultsEl = document.getElementById('client-results-replica');
+    if (clientResultsEl) {
+      clientResultsEl.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+          Execute script to see client-side results here...
+        </div>
+      `;
+    }
+    showNotification('info', 'Results Cleared', 'Script results and steps cleared');
+  };
+
   const generateFinalScript = () => {
     if (scriptSteps.length === 0) {
       showNotification('warning', 'No Steps', 'Please add steps to generate script');
@@ -2638,7 +2669,7 @@ function processStep${index + 1}(data) {
     const finalStepCount = stepBuilderSteps.length;
     const totalRecords = currentWorkingData.length;
     
-    showNotification('success', 'Script Completed!', `Successfully created ${finalStepCount}-step reconciliation script processing ${totalRecords} records`);
+    // Script completion notification removed
     
     // Could export or save the script here
     console.log('Final Script Steps:', stepBuilderSteps);
@@ -2646,7 +2677,7 @@ function processStep${index + 1}(data) {
 
   const continueVisualScript = () => {
     // Just a notification - the add step button is already available
-    showNotification('info', 'Continue Building', 'Add your next step using the "Add Step" button below');
+    // Continue building notification removed
   };
 
   // Script Testing Environment Functions
@@ -2655,6 +2686,176 @@ function processStep${index + 1}(data) {
       // Load required libraries (XLSX, Papa Parse) dynamically
       const libsLoaded = await loadScriptTestingLibraries();
       setTestEnvironmentReady(libsLoaded);
+      
+      // Add essential window helper functions that Claude scripts expect
+      (window as any).parseFiles = () => {
+        return {
+          data1: file1Data,
+          data2: file2Data
+        };
+      };
+      
+      (window as any).getFileData = () => {
+        return {
+          file1: file1Data,
+          file2: file2Data
+        };
+      };
+
+      // Also set the traditional uploaded file references for backward compatibility
+      (window as any).uploadedFile1 = file1Data;
+      (window as any).uploadedFile2 = file2Data;
+      
+      (window as any).showResults = (data: any[], options: any = {}) => {
+        console.log('📊 showResults called with:', data, options);
+        
+        if (!Array.isArray(data) || data.length === 0) {
+          console.log('⚠️ No data to display');
+          return;
+        }
+        
+        // Store results globally for other functions
+        (window as any).lastScriptResults = data;
+        
+        const headers = Object.keys(data[0]);
+        
+        // 1. Display results in Script Builder section (main results area)
+        const scriptResultsElement = document.getElementById('script-results-display');
+        if (scriptResultsElement) {
+          let scriptHtml = `
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <h6 class="font-medium text-gray-900">Script Execution Results</h6>
+                <span class="text-sm text-gray-500">${data.length} items</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+          `;
+          
+          headers.forEach(header => {
+            scriptHtml += `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0">${header}</th>`;
+          });
+          
+          scriptHtml += `
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+          `;
+          
+          data.forEach((row, index) => {
+            scriptHtml += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
+            headers.forEach(header => {
+              const value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              scriptHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">${value}</td>`;
+            });
+            scriptHtml += '</tr>';
+          });
+          
+          scriptHtml += `
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `;
+          
+          scriptResultsElement.innerHTML = scriptHtml;
+        }
+        
+        // 2. Display in Client View section (styled for client experience)  
+        const resultsEl = document.getElementById('client-results-replica');
+        if (resultsEl) {
+          let clientHtml = `
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6">
+              <div class="flex items-center justify-between mb-6">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">Analysis Results</h3>
+                  <p class="text-sm text-gray-600">Generated from your uploaded data</p>
+                </div>
+                <div class="text-right">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ${data.length} results
+                  </span>
+                </div>
+              </div>
+              
+              <div class="overflow-x-auto bg-white rounded-lg shadow-sm border">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+          `;
+          
+          headers.forEach(header => {
+            clientHtml += `
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0">
+                ${header}
+              </th>
+            `;
+          });
+          
+          clientHtml += `
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+          `;
+          
+          data.slice(0, 50).forEach((row, index) => {
+            clientHtml += `<tr class="hover:bg-gray-50">`;
+            headers.forEach(header => {
+              const value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              clientHtml += `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">
+                  ${value}
+                </td>
+              `;
+            });
+            clientHtml += '</tr>';
+          });
+          
+          clientHtml += `
+                  </tbody>
+                </table>
+              </div>
+              
+              ${data.length > 50 ? `
+                <div class="mt-4 text-center">
+                  <p class="text-sm text-gray-500">Showing first 50 of ${data.length} results</p>
+                </div>
+              ` : ''}
+            </div>
+          `;
+          
+          resultsEl.innerHTML = clientHtml;
+        }
+        
+        console.log('✅ Results displayed in both Script Builder and Client View sections');
+      };
+      
+      (window as any).showError = (message: string) => {
+        const resultsEl = document.getElementById('client-results-replica');
+        if (!resultsEl) return;
+        
+        resultsEl.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded p-4">
+            <h5 class="font-medium text-red-900">Error</h5>
+            <p class="text-sm text-red-700">${message}</p>
+          </div>
+        `;
+      };
+      
+      (window as any).findColumn = (row: any, possibleNames: string[]) => {
+        for (const name of possibleNames) {
+          if (row.hasOwnProperty(name)) {
+            return name;
+          }
+          // Try case-insensitive match
+          const keys = Object.keys(row);
+          const match = keys.find(key => key.toLowerCase() === name.toLowerCase());
+          if (match) return match;
+        }
+        return null;
+      };
       
       if (libsLoaded) {
         updateLibraryStatus('✅ Ready to process files', false);
@@ -2730,14 +2931,20 @@ function processStep${index + 1}(data) {
       // Parse the file
       const parsedData = await parseFile(file);
       
+      // Update testFiles state
       setTestFiles(prev => ({
         ...prev,
-        [`file${fileNumber}`]: {
-          name: file.name,
-          data: parsedData.rows, // Store the actual rows array
-          size: file.size
-        }
+        [`file${fileNumber}`]: file
       }));
+      
+      // Update the file data states
+      if (fileNumber === 1) {
+        setFile1Data(parsedData.rows);
+        localStorage.setItem('file1Data', JSON.stringify(parsedData.rows));
+      } else {
+        setFile2Data(parsedData.rows);
+        localStorage.setItem('file2Data', JSON.stringify(parsedData.rows));
+      }
 
       // Update validation display - success with detailed headers info
       if (validationEl) {
@@ -2810,29 +3017,11 @@ function processStep${index + 1}(data) {
       setTestScript(scriptContent);
       setTestScriptFileName(file.name);
       
-      // Show inline success message
-      const scriptResults = document.getElementById('script-results');
-      if (scriptResults) {
-        scriptResults.innerHTML = `
-          <div class="bg-green-50 border border-green-200 rounded p-3">
-            <h5 class="font-medium text-green-900">✅ Script Loaded</h5>
-            <p class="text-sm text-green-700"><strong>${file.name}</strong> loaded successfully (${scriptContent.length} characters)</p>
-          </div>
-        `;
-      }
+      // Script loaded successfully - display removed to keep results only in Script Builder
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load script';
       
-      // Show inline error message
-      const scriptResults = document.getElementById('script-results');
-      if (scriptResults) {
-        scriptResults.innerHTML = `
-          <div class="bg-red-50 border border-red-200 rounded p-3">
-            <h5 class="font-medium text-red-900">Script Load Failed</h5>
-            <p class="text-sm text-red-700">${errorMessage}</p>
-          </div>
-        `;
-      }
+      // Script load error - display removed to keep results only in Script Builder
     }
   };
 
@@ -2840,7 +3029,7 @@ function processStep${index + 1}(data) {
     const fileProcessingEl = document.getElementById('file-results');
     if (!fileProcessingEl) return;
 
-    if (!testFiles.file1) {
+    if (file1Data.length === 0) {
       fileProcessingEl.innerHTML = '<span class="text-red-600">Please upload at least one file to process.</span>';
       return;
     }
@@ -2848,20 +3037,22 @@ function processStep${index + 1}(data) {
     let output = '<div class="space-y-3">';
     
     // File 1 info
-    output += `
-      <div class="bg-blue-50 p-3 rounded border">
-        <h5 class="font-medium text-blue-900">Primary Dataset: ${testFiles.file1.name}</h5>
-        <p class="text-sm text-blue-700">${testFiles.file1.data.length} rows, ${Object.keys(testFiles.file1.data[0] || {}).length} columns</p>
-        <p class="text-xs text-blue-600 mt-1">Available as: window.uploadedFile1</p>
-      </div>
-    `;
+    if (file1Data.length > 0) {
+      output += `
+        <div class="bg-blue-50 p-3 rounded border">
+          <h5 class="font-medium text-blue-900">Primary Dataset: ${testFiles.file1?.name || 'File 1'}</h5>
+          <p class="text-sm text-blue-700">${file1Data.length} rows, ${Object.keys(file1Data[0] || {}).length} columns</p>
+          <p class="text-xs text-blue-600 mt-1">Available as: window.uploadedFile1</p>
+        </div>
+      `;
+    }
 
     // File 2 info (if exists)
-    if (testFiles.file2) {
+    if (file2Data.length > 0) {
       output += `
         <div class="bg-green-50 p-3 rounded border">
-          <h5 class="font-medium text-green-900">Secondary Dataset: ${testFiles.file2.name}</h5>
-          <p class="text-sm text-green-700">${testFiles.file2.data.length} rows, ${Object.keys(testFiles.file2.data[0] || {}).length} columns</p>
+          <h5 class="font-medium text-green-900">Secondary Dataset: ${testFiles.file2?.name || 'File 2'}</h5>
+          <p class="text-sm text-green-700">${file2Data.length} rows, ${Object.keys(file2Data[0] || {}).length} columns</p>
           <p class="text-xs text-green-600 mt-1">Available as: window.uploadedFile2</p>
         </div>
       `;
@@ -2871,9 +3062,9 @@ function processStep${index + 1}(data) {
     fileProcessingEl.innerHTML = output;
 
     // Make files available globally for scripts
-    (window as any).uploadedFile1 = testFiles.file1.data;
-    if (testFiles.file2) {
-      (window as any).uploadedFile2 = testFiles.file2.data;
+    (window as any).uploadedFile1 = file1Data;
+    if (file2Data.length > 0) {
+      (window as any).uploadedFile2 = file2Data;
     }
 
     // Add inline success message at the bottom
@@ -2888,7 +3079,7 @@ function processStep${index + 1}(data) {
 
   const runComparisonWithAutoProcess = async () => {
     // Auto-process files first if they haven't been processed
-    if (testFiles.file1 || testFiles.file2) {
+    if (file1Data.length > 0 || file2Data.length > 0) {
       processTestFiles();
     }
     
@@ -2902,34 +3093,29 @@ function processStep${index + 1}(data) {
     // Get script content from either paste or upload method
     const scriptContent = scriptInputMethod === 'paste' ? testScriptText : testScript;
     
-    if (!scriptContent) {
-      const resultsEl = document.getElementById('script-results');
-      if (resultsEl) {
-        resultsEl.innerHTML = `
-          <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
-            <h5 class="font-medium text-yellow-900">No Script</h5>
-            <p class="text-sm text-yellow-700">Please ${scriptInputMethod === 'paste' ? 'paste a script' : 'upload a script file'} first</p>
-          </div>
-        `;
-      }
+    console.log('🧪 Script execution check:', { 
+      scriptInputMethod, 
+      testScriptTextLength: testScriptText?.length || 0,
+      testScriptLength: testScript?.length || 0,
+      file1DataLength: file1Data.length,
+      hasScriptContent: !!scriptContent && scriptContent.trim().length > 0
+    });
+    
+    if (!scriptContent || scriptContent.trim().length === 0) {
+      console.log('❌ No script content available');
       return;
     }
 
-    if (!testFiles.file1) {
-      const resultsEl = document.getElementById('script-results');
-      if (resultsEl) {
-        resultsEl.innerHTML = `
-          <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
-            <h5 class="font-medium text-yellow-900">No Files</h5>
-            <p class="text-sm text-yellow-700">Please process files first</p>
-          </div>
-        `;
-      }
+    if (file1Data.length === 0) {
+      console.log('❌ No file data available');
       return;
     }
+    
+    console.log('✅ Script ready to run!');
 
     try {
       setIsTestingScript(true);
+      console.log('🚀 Starting script execution with data:', { file1Rows: file1Data.length, file2Rows: file2Data.length });
       
       // Make step functions globally available
       (window as any).executeStepsUpTo = executeStepsUpTo;
@@ -2947,239 +3133,10 @@ function processStep${index + 1}(data) {
         }
       };
 
-      // Setup window helper functions that Claude scripts expect
-      (window as any).parseFiles = () => {
-        return {
-          data1: testFiles.file1 ? (window as any).uploadedFile1 : [],
-          data2: testFiles.file2 ? (window as any).uploadedFile2 : []
-        };
-      };
-
-      // Add global function for badge toggling
-      (window as any).toggleBadgeStyle = (element: HTMLElement, fileNumber: number) => {
-        const isSelected = element.classList.contains('selected');
-        const color = fileNumber === 1 ? 'green' : 'blue';
-        
-        if (isSelected) {
-          // Revert to outlined style
-          element.classList.remove('selected', `bg-${color}-600`, 'text-white');
-          element.classList.add(`border-${color}-600`, `text-${color}-600`);
-        } else {
-          // Change to solid style
-          element.classList.add('selected', `bg-${color}-600`, 'text-white');
-          element.classList.remove(`border-${color}-600`, `text-${color}-600`);
-        }
-      };
-
-      (window as any).showResults = (data: any, options: any = {}) => {
-        const resultsEl = document.getElementById('script-results');
-        if (!resultsEl) return;
-
-        let html = '';
-        
-        if (options.title) {
-          html += `<h5 class="font-medium text-green-900 mb-2">${options.title}</h5>`;
-        }
-        
-        if (options.summary) {
-          html += `<p class="text-sm text-green-700 mb-3">${options.summary}</p>`;
-        }
-
-        if (Array.isArray(data) && data.length > 0) {
-          const headers = Object.keys(data[0]);
-          html += `
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    ${headers.map(header => `<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`).join('')}
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  ${data.slice(0, 10).map(row => `
-                    <tr>
-                      ${headers.map(header => `<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${row[header] || ''}</td>`).join('')}
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-              ${data.length > 10 ? `<p class="text-xs text-gray-500 mt-2">Showing first 10 of ${data.length} results</p>` : ''}
-            </div>
-          `;
-        } else if (typeof data === 'object') {
-          html += `<pre class="text-xs text-green-700 bg-green-50 p-3 rounded">${JSON.stringify(data, null, 2)}</pre>`;
-        } else {
-          html += `<p class="text-sm text-green-700">${data}</p>`;
-        }
-
-        resultsEl.innerHTML = `
-          <div class="bg-green-50 border border-green-200 rounded p-3">
-            ${html}
-          </div>
-        `;
-      };
-
-      (window as any).showError = (message: string) => {
-        const resultsEl = document.getElementById('script-results');
-        if (resultsEl) {
-          resultsEl.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded p-3">
-              <h5 class="font-medium text-red-900">Script Error</h5>
-              <p class="text-sm text-red-700 mt-2">${message}</p>
-            </div>
-          `;
-        }
-      };
-
-      (window as any).getFileData = () => {
-        return {
-          file1: testFiles.file1,
-          file2: testFiles.file2
-        };
-      };
-
-      // CRITICAL: Add missing window.parseFiles function
-      (window as any).parseFiles = async () => {
-        const result = { data1: null, data2: null };
-        
-        if (testFiles.file1 && testFiles.file1.data) {
-          result.data1 = testFiles.file1.data;
-        }
-        
-        if (testFiles.file2 && testFiles.file2.data) {
-          result.data2 = testFiles.file2.data;
-        }
-        
-        return result;
-      };
-
-      // CRITICAL: Add missing window.findColumn function
-      (window as any).findColumn = (row: any, possibleNames: string[]) => {
-        if (!row || typeof row !== 'object') return null;
-        
-        const normalizeHeader = (header: string) => {
-          return String(header || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
-        };
-        
-        const rowKeys = Object.keys(row);
-        const normalizedPossibleNames = possibleNames.map(normalizeHeader);
-        
-        for (const name of possibleNames) {
-          if (rowKeys.includes(name)) return name;
-        }
-        
-        for (const key of rowKeys) {
-          const normalizedKey = normalizeHeader(key);
-          if (normalizedPossibleNames.includes(normalizedKey)) {
-            return key;
-          }
-        }
-        
-        for (const key of rowKeys) {
-          const normalizedKey = normalizeHeader(key);
-          for (const possibleName of normalizedPossibleNames) {
-            if (normalizedKey.includes(possibleName) || possibleName.includes(normalizedKey)) {
-              return key;
-            }
-          }
-        }
-        
-        return null;
-      };
-
-      // CRITICAL: Add missing window.showResults function
-      (window as any).showResults = (results: any) => {
-        console.log('📊 SCRIPT RESULTS:', results);
-        const displayElement = document.getElementById('script-results-display') || 
-                             document.querySelector('[id*="result"]');
-        
-        if (displayElement) {
-          let tableHTML = '';
-          
-          if (Array.isArray(results) && results.length > 0) {
-            // Simple, clean table for ANY script results
-            tableHTML = `
-              <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-4">
-                <h3 class="text-green-800 font-semibold mb-4 flex items-center">
-                  <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                  </svg>
-                  Script Results
-                </h3>
-                
-                <div class="overflow-x-auto">
-                  <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        ${Object.keys(results[0] || {}).map(key => 
-                          `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">${key}</th>`
-                        ).join('')}
-                      </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                      ${results.map((item, index) => `
-                        <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors">
-                          ${Object.values(item).map(value => 
-                            `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${value || ''}</td>`
-                          ).join('')}
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <div class="mt-4 flex gap-2">
-                  <button onclick="window.exportResults && window.exportResults()" 
-                          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
-                    Export Results
-                  </button>
-                </div>
-              </div>
-            `;
-          } else {
-            tableHTML = `
-              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                <h3 class="text-green-800 font-semibold mb-2">✅ Script Results</h3>
-                <pre class="text-sm text-green-700 overflow-auto max-h-96">${JSON.stringify(results, null, 2)}</pre>
-              </div>
-            `;
-          }
-          
-          displayElement.innerHTML = tableHTML;
-        }
-        
-        // Store results for step builder integration
-        (window as any).lastScriptResults = results;
-        
-        // 🎯 CRITICAL: Auto-add to Script Builder as Step 1 (NO separate results display)
-        if (results && Array.isArray(results) && results.length > 0) {
-          // Create Step 1 description with actual results
-          const totalTransactions = results.reduce((sum, item) => sum + (item.Count || item.count || 1), 0);
-          const stepDescription = `Step 1: Card Brand Analysis - ${results.length} brands found (${totalTransactions} total transactions)`;
-          
-          // Add to Script Builder table directly
-          addScriptStep(stepDescription);
-          
-          // Store results for export and next steps
-          (window as any).lastScriptResults = results;
-          
-          // Update Script Builder table immediately
-          setTimeout(() => {
-            updateScriptStepsTable();
-          }, 100);
-          
-          console.log('✅ Results added to Script Builder as Step 1');
-          console.log('📊 Results:', results);
-          
-          // IMPORTANT: Do NOT display results in separate box above Script Builder
-          // Results should ONLY appear in Script Builder table
-        }
-        
-        // Update client results replica
-        updateClientResultsReplica(results);
-        
-        return results;
-      };
+      // The window helper functions are already set up by initializeTestEnvironment
+      // Just ensure they have the latest data
+      (window as any).uploadedFile1 = file1Data;
+      (window as any).uploadedFile2 = file2Data;
 
       // INTEGRATION: Add step from results
       (window as any).addStepFromResults = () => {
@@ -3253,21 +3210,14 @@ function processStep${index + 1}(data) {
 
       // Execute the script with enhanced error catching
       console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
-      const result = await eval(scriptContent);
+      
+      // Create a safe evaluation context
+      const evaluateScript = new Function('window', scriptContent);
+      const result = await evaluateScript.call(window, window);
+      
       console.log('✅ Script executed successfully, result:', result);
       
-      // If script doesn't call showResults, show generic success
-      if (!document.getElementById('script-results')?.innerHTML.includes('bg-green-50')) {
-        const resultsEl = document.getElementById('script-results');
-        if (resultsEl) {
-          resultsEl.innerHTML = `
-            <div class="bg-green-50 border border-green-200 rounded p-3">
-              <h5 class="font-medium text-green-900">Script Execution Completed</h5>
-              <p class="text-sm text-green-700">Script executed successfully</p>
-            </div>
-          `;
-        }
-      }
+      // Script execution success - display removed to keep results only in Script Builder
 
       setTestScriptResults(result);
       
@@ -3276,16 +3226,7 @@ function processStep${index + 1}(data) {
       const errorMessage = error instanceof Error ? error.message : 'Script execution failed';
       const stackTrace = error instanceof Error ? error.stack : '';
       
-      const resultsEl = document.getElementById('script-results');
-      if (resultsEl) {
-        resultsEl.innerHTML = `
-          <div class="bg-red-50 border border-red-200 rounded p-3">
-            <h5 class="font-medium text-red-900">Script Execution Error</h5>
-            <p class="text-sm text-red-700 mt-2">${errorMessage}</p>
-            ${stackTrace ? `<details class="mt-2"><summary class="text-xs text-red-600 cursor-pointer">Stack Trace</summary><pre class="text-xs text-red-600 mt-1 whitespace-pre-wrap">${stackTrace}</pre></details>` : ''}
-          </div>
-        `;
-      }
+      // Script execution error - display removed to keep results only in Script Builder
     } finally {
       setIsTestingScript(false);
     }
@@ -3321,10 +3262,7 @@ function processStep${index + 1}(data) {
       `;
     }
 
-    const scriptResultsEl = document.getElementById('script-results');
-    if (scriptResultsEl) {
-      scriptResultsEl.innerHTML = 'Run a script to see results here...';
-    }
+    // Script results clearing removed - results now only appear in Script Builder
 
     // Clear validation messages
     const file1ValidationEl = document.getElementById('file1-validation');
@@ -3355,8 +3293,49 @@ function processStep${index + 1}(data) {
   // Keep clearTestResults for backward compatibility
   const clearTestResults = clearAllResults;
 
-  const [file1Data, setFile1Data] = useState<any[]>([]);
-  const [file2Data, setFile2Data] = useState<any[]>([]);
+  // Add inline step functionality
+  const addInlineStep = () => {
+    if (newStepText.trim()) {
+      addScriptStep(newStepText.trim());
+      setNewStepText('');
+      setShowStepInput(false);
+    }
+  };
+
+  // Save current script as .js file
+  const saveScriptToFile = () => {
+    const finalScript = generateFinalScript();
+    if (!finalScript) {
+      showNotification('warning', 'No Script to Save', 'Please add some steps first.');
+      return;
+    }
+
+    const blob = new Blob([finalScript], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `gr-balance-script-${new Date().toISOString().split('T')[0]}.js`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    showNotification('success', 'Script Saved', 'Your script has been downloaded as a .js file.');
+  };
+
+  // Load script from file
+  const loadScriptFromFile = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        setTestScriptText(content);
+        setScriptInputMethod('paste');
+        showNotification('success', 'Script Loaded', 'Script has been loaded from file.');
+      }
+    };
+    reader.readAsText(file);
+  };
 
   useEffect(() => {
     // Validate and rehydrate file1Data from localStorage
@@ -5393,6 +5372,7 @@ function processStep${index + 1}(data) {
                   </button>
                   <button
                     id="clear-results-btn"
+                    onClick={clearAllResults}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium transition-colors text-sm shadow-sm"
                   >
                     🗑️ Clear Results
@@ -5403,43 +5383,111 @@ function processStep${index + 1}(data) {
                 <div id="results-section" className="space-y-6">
                   {/* Script Building */}
                   <div className="border border-gray-200 rounded-lg p-4">
-                    <h4 className="text-lg font-medium text-gray-900 mb-4">Script Builder</h4>
-                    
-                    {/* Step Building Table */}
-                    <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                      <div className="p-4 border-b border-gray-200 bg-gray-50">
-                        <div className="flex justify-between items-center">
-                          <h5 className="font-medium text-gray-900">Build Script Step by Step</h5>
-                          <button 
-                            className="px-3 py-1 border-2 border-green-600 text-green-600 bg-white text-sm rounded hover:bg-green-600 hover:text-white transition-colors"
-                            onClick={() => {
-                              const instruction = prompt('Enter step instruction:');
-                              if (instruction) addScriptStep(instruction);
+                    <div className="flex justify-between items-center mb-4">
+                      <h4 className="text-lg font-medium text-gray-900">Script Builder</h4>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => setShowStepInput(true)}
+                          className="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 flex items-center space-x-1"
+                        >
+                          <span>+</span>
+                          <span>Add Step</span>
+                        </button>
+                        
+                        <button
+                          onClick={saveScriptToFile}
+                          className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center space-x-1"
+                        >
+                          <span>💾</span>
+                          <span>Save Script</span>
+                        </button>
+                        
+                        <label className="px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 cursor-pointer flex items-center space-x-1">
+                          <span>📁</span>
+                          <span>Load Script</span>
+                          <input
+                            type="file"
+                            accept=".js,.txt"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) loadScriptFromFile(file);
                             }}
+                            className="hidden"
+                          />
+                        </label>
+                        
+                        <button
+                          onClick={clearScriptSteps}
+                          className="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 flex items-center space-x-1"
+                        >
+                          <span>🗑️</span>
+                          <span>Clear Steps</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Add Step Input (Inline) */}
+                    {showStepInput && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="text"
+                            value={newStepText}
+                            onChange={(e) => setNewStepText(e.target.value)}
+                            placeholder="Enter step instruction (e.g., 'Count unique card brands' or 'Filter rows where amount > 100')"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                addInlineStep();
+                              }
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={addInlineStep}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
                           >
-                            + Add Step
+                            Add
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowStepInput(false);
+                              setNewStepText('');
+                            }}
+                            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                          >
+                            Cancel
                           </button>
                         </div>
                       </div>
-                      
-                      <div className="overflow-x-auto">
-                        <table className="min-w-full">
-                          <thead className="bg-gray-50">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Step</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Instruction</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody id="script-steps-table" className="bg-white divide-y divide-gray-200">
-                            <tr>
-                              <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
-                                No steps added yet. Click "Add Step" to begin building your script.
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                    )}
+
+                    {/* Script Steps Table */}
+                    <div className="bg-white border border-gray-200 rounded-lg mb-6">
+                      <div className="p-4">
+                        <h5 className="font-medium text-gray-900 mb-4">Script Steps</h5>
+                        
+                        <div id="script-steps-table">
+                          <div className="text-center text-gray-500 py-4">
+                            No steps added yet. Click "Add Step" to begin building your script.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Script Results Display */}
+                    <div className="bg-white border border-gray-200 rounded-lg mb-6">
+                      <div className="p-4">
+                        <h5 className="font-medium text-gray-900 mb-4">Script Execution Results</h5>
+                        
+                        {/* Direct display of script execution results */}
+                        <div id="script-results-display" className="min-h-[200px]">
+                          <div className="text-center text-gray-500 py-8">
+                            Run your script to see results here...
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
