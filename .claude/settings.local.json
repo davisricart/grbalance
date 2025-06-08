@@ -38,7 +38,8 @@
       "Bash(npm ls:*)",
       "Bash(npm update:*)",
       "Bash(npm uninstall:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm ci:*)"
     ],
     "deny": []
   }
