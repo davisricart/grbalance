@@ -2142,7 +2142,107 @@ Features:
 
   const updateClientResultsReplica = (data: any[]) => {
     const clientResultsEl = document.getElementById('client-results-replica');
-    if (!clientResultsEl || !data || data.length === 0) return;
+    if (!clientResultsEl) return;
+    
+    // Check if this is card brand analysis results
+    if (data && Array.isArray(data) && data.length > 0 && data[0]['Card Brand']) {
+      const total = data.reduce((sum, item) => sum + (item.Count || 0), 0);
+      
+      const cardBrandHTML = `
+        <div class="space-y-6">
+          <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-white">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h2 class="text-lg font-semibold">💳 Card Brand Analysis</h2>
+                  <p class="text-emerald-100 mt-1 text-sm">Payment method distribution analysis</p>
+                </div>
+                <button
+                  type="button"
+                  onclick="window.exportResults && window.exportResults()"
+                  class="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-white/20 hover:bg-white/30 transition-colors duration-200 backdrop-blur-sm"
+                >
+                  📥 Export CSV
+                </button>
+              </div>
+            </div>
+            <div class="p-6">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-blue-50 rounded-lg p-4 text-center">
+                  <div class="text-3xl font-bold text-blue-600">${total.toLocaleString()}</div>
+                  <div class="text-sm text-blue-800 font-medium">Total Transactions</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4 text-center">
+                  <div class="text-3xl font-bold text-green-600">${data.length}</div>
+                  <div class="text-sm text-green-800 font-medium">Card Brands</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4 text-center">
+                  <div class="text-3xl font-bold text-purple-600">${data[0]?.['Card Brand'] || 'N/A'}</div>
+                  <div class="text-sm text-purple-800 font-medium">Most Popular</div>
+                </div>
+              </div>
+              
+              <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+                <div class="space-y-0">
+                  ${data.map((item, index) => {
+                    const percentage = total > 0 ? ((item.Count || 0) / total * 100).toFixed(1) : '0.0';
+                    const brandColors = {
+                      'Visa': 'bg-blue-500',
+                      'Mastercard': 'bg-red-500', 
+                      'American Express': 'bg-green-500',
+                      'Discover': 'bg-orange-500'
+                    };
+                    const colorClass = brandColors[item['Card Brand']] || 'bg-gray-500';
+                    
+                    return `
+                      <div class="flex items-center justify-between p-4 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-100 last:border-b-0">
+                        <div class="flex items-center space-x-3">
+                          <div class="w-4 h-4 rounded-full ${colorClass}"></div>
+                          <span class="font-medium text-gray-900">${item['Card Brand'] || 'Unknown'}</span>
+                        </div>
+                        <div class="flex items-center space-x-6">
+                          <div class="text-right">
+                            <div class="text-lg font-semibold text-gray-900">${(item.Count || 0).toLocaleString()}</div>
+                            <div class="text-sm text-gray-500">transactions</div>
+                          </div>
+                          <div class="text-right min-w-[80px]">
+                            <div class="text-lg font-semibold text-gray-900">${percentage}%</div>
+                            <div class="w-20 bg-gray-200 rounded-full h-2 mt-1">
+                              <div class="${colorClass} h-2 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              </div>
+              
+              <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h5 class="font-medium text-blue-900 mb-2 flex items-center">
+                  <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                  </svg>
+                  Key Insights
+                </h5>
+                <ul class="text-sm text-blue-800 space-y-1">
+                  <li>• <strong>${data[0]?.['Card Brand']}</strong> is your most popular payment method (${((data[0]?.Count || 0) / total * 100).toFixed(1)}%)</li>
+                  <li>• You accept <strong>${data.length}</strong> different card brands</li>
+                  <li>• Analysis completed on <strong>${new Date().toLocaleDateString()}</strong></li>
+                  <li>• Total transaction volume: <strong>${total.toLocaleString()}</strong></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      clientResultsEl.innerHTML = cardBrandHTML;
+      return;
+    }
+    
+    // Fallback for other data types
+    if (!data || data.length === 0) return;
 
     // EXACT replica of client-side results format from MainPage.tsx
     const html = `
@@ -2994,16 +3094,127 @@ function processStep${index + 1}(data) {
                              document.querySelector('[id*="result"]');
         
         if (displayElement) {
-          displayElement.innerHTML = `
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <h3 class="text-green-800 font-semibold mb-2">✅ Script Results</h3>
-              <pre class="text-sm text-green-700 overflow-auto max-h-96">${JSON.stringify(results, null, 2)}</pre>
-            </div>
-          `;
+          let tableHTML = '';
+          
+          if (Array.isArray(results) && results.length > 0) {
+            // Simple, clean table for ANY script results
+            tableHTML = `
+              <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-4">
+                <h3 class="text-green-800 font-semibold mb-4 flex items-center">
+                  <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                  </svg>
+                  Script Results
+                </h3>
+                
+                <div class="overflow-x-auto">
+                  <table class="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
+                    <thead class="bg-gray-50">
+                      <tr>
+                        ${Object.keys(results[0] || {}).map(key => 
+                          `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">${key}</th>`
+                        ).join('')}
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                      ${results.map((item, index) => `
+                        <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors">
+                          ${Object.values(item).map(value => 
+                            `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${value || ''}</td>`
+                          ).join('')}
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <div class="mt-4 flex gap-2">
+                  <button onclick="window.addStepFromResults && window.addStepFromResults()" 
+                          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                    + Add Next Step
+                  </button>
+                  <button onclick="window.exportResults && window.exportResults()" 
+                          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
+                    Export Results
+                  </button>
+                </div>
+              </div>
+            `;
+          } else {
+            tableHTML = `
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                <h3 class="text-green-800 font-semibold mb-2">✅ Script Results</h3>
+                <pre class="text-sm text-green-700 overflow-auto max-h-96">${JSON.stringify(results, null, 2)}</pre>
+              </div>
+            `;
+          }
+          
+          displayElement.innerHTML = tableHTML;
         }
+        
+        // Store results for step builder integration
+        (window as any).lastScriptResults = results;
+        
+        // Update client results replica
+        updateClientResultsReplica(results);
         
         return results;
       };
+
+      // INTEGRATION: Add step from results
+      (window as any).addStepFromResults = () => {
+        const results = (window as any).lastScriptResults;
+        if (results && Array.isArray(results)) {
+          const stepDescription = `Analyzed card brand distribution: Found ${results.length} unique brands with ${results.reduce((sum, item) => sum + (item.Count || 0), 0)} total transactions`;
+          addScriptStep(stepDescription);
+          
+          // Show success notification
+          const notification = document.createElement('div');
+          notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+          notification.textContent = '✅ Step added to Script Builder!';
+          document.body.appendChild(notification);
+          setTimeout(() => notification.remove(), 3000);
+        }
+      };
+
+      // INTEGRATION: Export results
+      (window as any).exportResults = () => {
+        const results = (window as any).lastScriptResults;
+        if (results) {
+          const csvContent = "data:text/csv;charset=utf-8," 
+            + "Card Brand,Transaction Count,Percentage\\n"
+            + results.map(item => {
+                const total = results.reduce((sum, r) => sum + (r.Count || 0), 0);
+                const percentage = total > 0 ? ((item.Count || 0) / total * 100).toFixed(1) : '0.0';
+                return `"${item['Card Brand'] || 'Unknown'}",${item.Count || 0},${percentage}%`;
+              }).join("\\n");
+          
+          const encodedUri = encodeURI(csvContent);
+          const link = document.createElement("a");
+          link.setAttribute("href", encodedUri);
+          link.setAttribute("download", `card-brand-analysis-${new Date().toISOString().split('T')[0]}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        }
+      };
+      
+      // Helper function for brand colors
+      function getBrandColor(brand: string) {
+        const colors = {
+          'Visa': 'bg-blue-500',
+          'Mastercard': 'bg-red-500', 
+          'American Express': 'bg-green-500',
+          'Discover': 'bg-orange-500',
+          'Default': 'bg-gray-500'
+        };
+        return colors[brand] || colors['Default'];
+      }
+
+      // Simple universal table display for client results
+      function updateClientResultsWithCardBrands(data: any[]) {
+        updateClientResultsReplica(data);
+      }
 
       // CRITICAL: Add missing window.showError function
       (window as any).showError = (error: string | Error) => {
