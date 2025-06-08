@@ -30,7 +30,15 @@
       "Bash(git add:*)",
       "Bash(jobs)",
       "Bash(python3:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm --version)",
+      "Bash(npm ls:*)",
+      "Bash(npm update:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(mkdir:*)"
     ],
     "deny": []
   }

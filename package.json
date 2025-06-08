@@ -37,6 +37,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "axios": "^1.9.0",
     "cors": "^2.8.5",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "firebase": "^10.7.1",
     "firebase-admin": "^12.0.0",
@@ -55,16 +56,15 @@
     "react-router-dom": "^6.21.1",
     "typescript": "^5.5.3",
     "vite": "^5.4.6",
-    "winston": "^3.17.0",
-    "xlsx": "^0.18.5"
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^14.1.2",
     "@types/jest": "^29.5.11",
     "@types/react-helmet": "^6.1.11",
-    "@typescript-eslint/eslint-plugin": "^6.18.1",
-    "@typescript-eslint/parser": "^6.18.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "autoprefixer": "^10.4.16",
     "chokidar": "^4.0.3",
     "eslint": "^8.56.0",
@@ -78,7 +78,8 @@
     "lint-staged": "^15.2.0",
     "postcss": "^8.4.31",
     "prettier": "^3.1.1",
-    "tailwindcss": "^3.3.5"
+    "tailwindcss": "^3.3.5",
+    "typescript-eslint": "^8.33.1"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
