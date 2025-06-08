@@ -53,9 +53,17 @@ export const DynamicExcelFileReader: React.FC<DynamicExcelFileReaderProps> = ({
     try {
       console.log(`🔒 Safe loading file: ${fileName}`);
       
-      // UNIVERSAL VALIDATION - blocks ALL disguised files
-      const { safeLoadFile } = await import('../utils/universalFileValidator');
-      const validation = await safeLoadFile(`/sample-data/${fileName}`);
+      // BULLETPROOF VALIDATION - blocks ALL disguised files
+      const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+      
+      // Create a fake File object for validation since we're loading from URL
+      const response = await fetch(`/sample-data/${fileName}`);
+      const arrayBuffer = await response.arrayBuffer();
+      const fakeFile = new File([arrayBuffer], fileName, {
+        type: response.headers.get('content-type') || ''
+      });
+      
+      const validation = await bulletproofValidateFile(fakeFile);
       
       if (!validation.isValid) {
         const errorMsg = validation.securityWarning 

@@ -309,6 +309,19 @@ const AdminPage: React.FC = () => {
   const [operationLoading, setOperationLoading] = useState<{ [key: string]: boolean }>({});
   const [lastActivity, setLastActivity] = useState<Date | null>(null);
   const [isProcessingScript, setIsProcessingScript] = useState(false);
+
+  // Script Testing Environment state
+  const [testEnvironmentReady, setTestEnvironmentReady] = useState(false);
+  const [testFiles, setTestFiles] = useState<{
+    file1: any;
+    file2: any;
+  }>({ file1: null, file2: null });
+  const [testScript, setTestScript] = useState<string>('');
+  const [testScriptText, setTestScriptText] = useState('');
+  const [testScriptFileName, setTestScriptFileName] = useState<string>('');
+  const [scriptInputMethod, setScriptInputMethod] = useState<'paste' | 'upload'>('paste');
+  const [testScriptResults, setTestScriptResults] = useState<any>(null);
+  const [isTestingScript, setIsTestingScript] = useState(false);
   
   // Loading helper functions
   const setOperationState = (operation: string, isLoading: boolean) => {
@@ -1910,6 +1923,73 @@ Features:
     
     setCurrentStepEdit('');
     showNotification('success', 'Step Added', `Step ${newStep.stepNumber} added to script`);
+    
+    // Update the script steps table
+    updateScriptStepsTable();
+  };
+
+  const updateScriptStepsTable = () => {
+    const tableBody = document.getElementById('script-steps-table');
+    if (!tableBody) return;
+
+    if (scriptSteps.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+            No steps added yet. Click "Add Step" to begin building your script.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tableBody.innerHTML = scriptSteps.map(step => `
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3 text-sm font-medium text-gray-900">${step.stepNumber}</td>
+        <td class="px-4 py-3 text-sm text-gray-900">${step.instruction}</td>
+        <td class="px-4 py-3 text-sm">
+          <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+            step.status === 'completed' ? 'bg-green-100 text-green-800' :
+            step.status === 'error' ? 'bg-red-100 text-red-800' :
+            step.status === 'testing' ? 'bg-blue-100 text-blue-800' :
+            'bg-gray-100 text-gray-800'
+          }">
+            ${step.status === 'completed' ? '✅ Complete' :
+              step.status === 'error' ? '❌ Error' :
+              step.status === 'testing' ? '🔄 Running' :
+              '⏳ Draft'}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-sm space-x-2">
+          <button 
+            onclick="executeStepsUpTo(${step.stepNumber})"
+            class="text-green-600 hover:text-white font-medium text-xs px-2 py-1 border border-green-600 rounded hover:bg-green-600 transition-colors"
+            ${step.status === 'testing' ? 'disabled' : ''}
+          >
+            ▶️ Run to Here
+          </button>
+          <button 
+            onclick="removeScriptStep('${step.id}')"
+            class="text-red-600 hover:text-white font-medium text-xs px-2 py-1 border border-red-600 rounded hover:bg-red-600 transition-colors"
+          >
+            🗑️ Remove
+          </button>
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  const removeScriptStep = (stepId: string) => {
+    setScriptSteps(prev => {
+      const newSteps = prev.filter(step => step.id !== stepId);
+      // Renumber steps
+      return newSteps.map((step, index) => ({
+        ...step,
+        stepNumber: index + 1
+      }));
+    });
+    updateScriptStepsTable();
+    showNotification('info', 'Step Removed', 'Script step removed successfully');
   };
 
   const executeStepsUpTo = async (targetStepNumber: number) => {
@@ -2040,9 +2120,15 @@ Features:
           } : s
         ));
 
+        // Update table to show progress
+        updateScriptStepsTable();
+
         // Small delay for visual feedback
         await new Promise(resolve => setTimeout(resolve, 300));
       }
+
+      // Update client results replica with GR Balance style output
+      updateClientResultsReplica(stepResults);
 
       return stepResults;
 
@@ -2051,6 +2137,98 @@ Features:
       showNotification('error', 'Execution Error', `Error executing steps: ${error}`);
       return [];
     }
+  };
+
+  const updateClientResultsReplica = (data: any[]) => {
+    const clientResultsEl = document.getElementById('client-results-replica');
+    if (!clientResultsEl || !data || data.length === 0) return;
+
+    // EXACT replica of client-side results format from MainPage.tsx
+    const html = `
+      <div class="space-y-6">
+        <!-- Client Results - EXACTLY like admin preview using VirtualTable -->
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
+          <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-white">
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-lg font-semibold">📊 Analysis Results</h2>
+                <p class="text-emerald-100 mt-1 text-sm">Professional analysis results</p>
+              </div>
+              <button
+                type="button"
+                onclick="downloadClientResults()"
+                class="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-white/20 hover:bg-white/30 transition-colors duration-200 backdrop-blur-sm"
+              >
+                📥 Download
+              </button>
+            </div>
+          </div>
+          <div class="p-6">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+              <div class="space-y-4">
+                <!-- Performance info -->
+                <div class="flex items-center justify-between text-sm text-gray-600 px-4 pt-4">
+                  <div>
+                    Showing ${Math.min(20, data.length)} of ${data.length} rows
+                  </div>
+                  <div class="text-xs bg-gray-100 px-2 py-1 rounded">
+                    ⚡ Optimized view
+                  </div>
+                </div>
+
+                <!-- Virtual scrolled table -->
+                <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-gray-50 sticky top-0">
+                      <tr>
+                        ${Object.keys(data[0] || {}).map((col, index) => `
+                          <th class="px-4 py-3 text-left font-medium text-gray-700 border-b border-gray-200">
+                            ${col}
+                          </th>
+                        `).join('')}
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 bg-white">
+                      ${data.slice(0, 20).map((row, rowIndex) => `
+                        <tr class="hover:bg-gray-50 transition-colors duration-150">
+                          ${Object.keys(data[0] || {}).map((col, colIndex) => `
+                            <td class="px-4 py-3 text-gray-600 max-w-xs truncate" title="${String(row[col] || '')}">
+                              ${String(row[col] || '')}
+                            </td>
+                          `).join('')}
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination controls (simplified) -->
+                ${data.length > 20 ? `
+                  <div class="flex items-center justify-between px-4 pb-4">
+                    <div class="text-sm text-gray-600">
+                      Page 1 of ${Math.ceil(data.length / 20)}
+                    </div>
+                    <div class="flex gap-2">
+                      <button class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        Previous
+                      </button>
+                      <button class="px-3 py-1 text-sm bg-emerald-600 text-white border border-emerald-600 rounded">
+                        1
+                      </button>
+                      <button class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    clientResultsEl.innerHTML = html;
   };
 
   const revertStep = (stepId: string) => {
@@ -2370,6 +2548,458 @@ function processStep${index + 1}(data) {
     showNotification('info', 'Continue Building', 'Add your next step using the "Add Step" button below');
   };
 
+  // Script Testing Environment Functions
+  const initializeTestEnvironment = async () => {
+    try {
+      // Load required libraries (XLSX, Papa Parse) dynamically
+      const libsLoaded = await loadScriptTestingLibraries();
+      setTestEnvironmentReady(libsLoaded);
+      
+      if (libsLoaded) {
+        updateLibraryStatus('✅ Ready to process files', false);
+        enableTestFileInputs();
+      } else {
+        updateLibraryStatus('⚠️ Limited mode - basic CSV parsing only', true);
+        enableTestFileInputs();
+      }
+    } catch (error) {
+      console.error('Failed to initialize test environment:', error);
+      updateLibraryStatus('❌ Failed to initialize - please refresh', true);
+    }
+  };
+
+  const loadScriptTestingLibraries = async (): Promise<boolean> => {
+    // Return true since we already have XLSX imported
+    return typeof XLSX !== 'undefined';
+  };
+
+  const updateLibraryStatus = (message: string, isError: boolean) => {
+    const statusEl = document.getElementById('library-status');
+    if (statusEl) {
+      statusEl.innerHTML = `<p class="text-sm ${isError ? 'text-red-700' : 'text-green-700'}">${message}</p>`;
+      statusEl.className = `mb-6 p-4 ${isError ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border rounded-md`;
+    }
+  };
+
+  const enableTestFileInputs = () => {
+    const file1 = document.getElementById('test-file1') as HTMLInputElement;
+    const file2 = document.getElementById('test-file2') as HTMLInputElement;
+    const scriptFile = document.getElementById('test-script-file') as HTMLInputElement;
+    const processBtn = document.getElementById('process-files-btn') as HTMLButtonElement;
+    const runBtn = document.getElementById('run-script-btn') as HTMLButtonElement;
+
+    if (file1) file1.disabled = false;
+    if (file2) file2.disabled = false;
+    if (scriptFile) scriptFile.disabled = false;
+    if (processBtn) processBtn.disabled = false;
+    if (runBtn) runBtn.disabled = false;
+  };
+
+  const handleTestFileUpload = async (fileNumber: 1 | 2, file: File) => {
+    try {
+      setTestFileLoading(prev => ({ ...prev, [`file${fileNumber}`]: true }));
+      
+      // Update validation display - processing
+      const validationEl = document.getElementById(`file${fileNumber}-validation`);
+      if (validationEl) {
+        validationEl.innerHTML = `<span class="text-blue-600">🔄 Processing ${file.name}...</span>`;
+      }
+      
+      // Use existing bulletproof file validation
+      const validationResult = await import('../utils/bulletproofFileValidator').then(module => 
+        module.bulletproofValidateFile(file)
+      );
+      
+      if (!validationResult.isValid) {
+        throw new Error(validationResult.error || 'File validation failed');
+      }
+
+      // Parse the file
+      const parsedData = await parseFile(file);
+      
+      setTestFiles(prev => ({
+        ...prev,
+        [`file${fileNumber}`]: {
+          name: file.name,
+          data: parsedData.rows, // Store the actual rows array
+          size: file.size
+        }
+      }));
+
+      // Update validation display - success with detailed headers info
+      if (validationEl) {
+        const headers = parsedData.headers;
+        const previewRows = parsedData.rows.slice(0, 3);
+        
+        validationEl.innerHTML = `
+          <div class="space-y-3">
+            <div class="text-green-600 text-sm font-medium">
+              ✅ ${file.name} validated and parsed
+            </div>
+            
+            <div class="bg-gray-50 border rounded-lg p-4">
+              <div class="flex justify-between items-center mb-3">
+                <h6 class="font-medium text-gray-900">File Information</h6>
+                <span class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</span>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-600">Rows:</span>
+                  <span class="font-medium text-blue-600 ml-2">${parsedData.rows.length.toLocaleString()}</span>
+                </div>
+                <div>
+                  <span class="text-gray-600">Columns:</span>
+                  <span class="font-medium text-blue-600 ml-2">${headers.length}</span>
+                </div>
+              </div>
+              
+              ${headers.length > 0 ? `
+                <div class="mt-4">
+                  <h6 class="text-sm font-medium text-gray-900 mb-2">Column Headers</h6>
+                  <div class="flex flex-wrap gap-1">
+                    ${headers.map(header => `
+                      <span class="inline-block px-2 py-1 border cursor-pointer transition-colors ${fileNumber === 1 ? 'border-green-600 text-green-600 hover:bg-green-600 hover:text-white' : 'border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white'} text-xs rounded font-mono" onclick="toggleBadgeStyle(this, ${fileNumber})">
+                        ${header}
+                      </span>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : ''}
+              
+
+            </div>
+          </div>
+        `;
+      }
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Update validation display - error
+      const validationEl = document.getElementById(`file${fileNumber}-validation`);
+      if (validationEl) {
+        validationEl.innerHTML = `<span class="text-red-600">❌ ${errorMessage}</span>`;
+      }
+    } finally {
+      setTestFileLoading(prev => ({ ...prev, [`file${fileNumber}`]: false }));
+    }
+  };
+
+  const handleTestScriptUpload = async (file: File) => {
+    try {
+      const scriptContent = await file.text();
+      setTestScript(scriptContent);
+      setTestScriptFileName(file.name);
+      
+      // Show inline success message
+      const scriptResults = document.getElementById('script-results');
+      if (scriptResults) {
+        scriptResults.innerHTML = `
+          <div class="bg-green-50 border border-green-200 rounded p-3">
+            <h5 class="font-medium text-green-900">✅ Script Loaded</h5>
+            <p class="text-sm text-green-700"><strong>${file.name}</strong> loaded successfully (${scriptContent.length} characters)</p>
+          </div>
+        `;
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load script';
+      
+      // Show inline error message
+      const scriptResults = document.getElementById('script-results');
+      if (scriptResults) {
+        scriptResults.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded p-3">
+            <h5 class="font-medium text-red-900">Script Load Failed</h5>
+            <p class="text-sm text-red-700">${errorMessage}</p>
+          </div>
+        `;
+      }
+    }
+  };
+
+  const processTestFiles = () => {
+    const fileProcessingEl = document.getElementById('file-results');
+    if (!fileProcessingEl) return;
+
+    if (!testFiles.file1) {
+      fileProcessingEl.innerHTML = '<span class="text-red-600">Please upload at least one file to process.</span>';
+      return;
+    }
+
+    let output = '<div class="space-y-3">';
+    
+    // File 1 info
+    output += `
+      <div class="bg-blue-50 p-3 rounded border">
+        <h5 class="font-medium text-blue-900">Primary Dataset: ${testFiles.file1.name}</h5>
+        <p class="text-sm text-blue-700">${testFiles.file1.data.length} rows, ${Object.keys(testFiles.file1.data[0] || {}).length} columns</p>
+        <p class="text-xs text-blue-600 mt-1">Available as: window.uploadedFile1</p>
+      </div>
+    `;
+
+    // File 2 info (if exists)
+    if (testFiles.file2) {
+      output += `
+        <div class="bg-green-50 p-3 rounded border">
+          <h5 class="font-medium text-green-900">Secondary Dataset: ${testFiles.file2.name}</h5>
+          <p class="text-sm text-green-700">${testFiles.file2.data.length} rows, ${Object.keys(testFiles.file2.data[0] || {}).length} columns</p>
+          <p class="text-xs text-green-600 mt-1">Available as: window.uploadedFile2</p>
+        </div>
+      `;
+    }
+
+    output += '</div>';
+    fileProcessingEl.innerHTML = output;
+
+    // Make files available globally for scripts
+    (window as any).uploadedFile1 = testFiles.file1.data;
+    if (testFiles.file2) {
+      (window as any).uploadedFile2 = testFiles.file2.data;
+    }
+
+    // Add inline success message at the bottom
+    output += `
+      <div class="bg-green-50 border border-green-200 rounded p-3 mt-3">
+        <h5 class="font-medium text-green-900">✅ Files Ready</h5>
+        <p class="text-sm text-green-700">Files are now available for script execution</p>
+      </div>
+    `;
+    fileProcessingEl.innerHTML = output;
+  };
+
+  const runComparisonWithAutoProcess = async () => {
+    // Auto-process files first if they haven't been processed
+    if (testFiles.file1 || testFiles.file2) {
+      processTestFiles();
+    }
+    
+    // Small delay to ensure file processing completes
+    setTimeout(() => {
+      runTestScript();
+    }, 500);
+  };
+
+  const runTestScript = async () => {
+    // Get script content from either paste or upload method
+    const scriptContent = scriptInputMethod === 'paste' ? testScriptText : testScript;
+    
+    if (!scriptContent) {
+      const resultsEl = document.getElementById('script-results');
+      if (resultsEl) {
+        resultsEl.innerHTML = `
+          <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+            <h5 class="font-medium text-yellow-900">No Script</h5>
+            <p class="text-sm text-yellow-700">Please ${scriptInputMethod === 'paste' ? 'paste a script' : 'upload a script file'} first</p>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    if (!testFiles.file1) {
+      const resultsEl = document.getElementById('script-results');
+      if (resultsEl) {
+        resultsEl.innerHTML = `
+          <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+            <h5 class="font-medium text-yellow-900">No Files</h5>
+            <p class="text-sm text-yellow-700">Please process files first</p>
+          </div>
+        `;
+      }
+      return;
+    }
+
+    try {
+      setIsTestingScript(true);
+      
+      // Make step functions globally available
+      (window as any).executeStepsUpTo = executeStepsUpTo;
+      (window as any).removeScriptStep = removeScriptStep;
+      (window as any).downloadClientResults = () => {
+        // Get the current step results and download as Excel
+        if (scriptSteps.length > 0) {
+          const lastCompletedStep = scriptSteps.filter(s => s.status === 'completed').pop();
+          if (lastCompletedStep && lastCompletedStep.outputPreview?.length > 0) {
+            const workbook = XLSX.utils.book_new();
+            const worksheet = XLSX.utils.json_to_sheet(lastCompletedStep.outputPreview);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Analysis_Results');
+            XLSX.writeFile(workbook, 'admin_test_results.xlsx');
+          }
+        }
+      };
+
+      // Setup window helper functions that Claude scripts expect
+      (window as any).parseFiles = () => {
+        return {
+          data1: testFiles.file1 ? (window as any).uploadedFile1 : [],
+          data2: testFiles.file2 ? (window as any).uploadedFile2 : []
+        };
+      };
+
+      // Add global function for badge toggling
+      (window as any).toggleBadgeStyle = (element: HTMLElement, fileNumber: number) => {
+        const isSelected = element.classList.contains('selected');
+        const color = fileNumber === 1 ? 'green' : 'blue';
+        
+        if (isSelected) {
+          // Revert to outlined style
+          element.classList.remove('selected', `bg-${color}-600`, 'text-white');
+          element.classList.add(`border-${color}-600`, `text-${color}-600`);
+        } else {
+          // Change to solid style
+          element.classList.add('selected', `bg-${color}-600`, 'text-white');
+          element.classList.remove(`border-${color}-600`, `text-${color}-600`);
+        }
+      };
+
+      (window as any).showResults = (data: any, options: any = {}) => {
+        const resultsEl = document.getElementById('script-results');
+        if (!resultsEl) return;
+
+        let html = '';
+        
+        if (options.title) {
+          html += `<h5 class="font-medium text-green-900 mb-2">${options.title}</h5>`;
+        }
+        
+        if (options.summary) {
+          html += `<p class="text-sm text-green-700 mb-3">${options.summary}</p>`;
+        }
+
+        if (Array.isArray(data) && data.length > 0) {
+          const headers = Object.keys(data[0]);
+          html += `
+            <div class="overflow-x-auto">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    ${headers.map(header => `<th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">${header}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  ${data.slice(0, 10).map(row => `
+                    <tr>
+                      ${headers.map(header => `<td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${row[header] || ''}</td>`).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+              ${data.length > 10 ? `<p class="text-xs text-gray-500 mt-2">Showing first 10 of ${data.length} results</p>` : ''}
+            </div>
+          `;
+        } else if (typeof data === 'object') {
+          html += `<pre class="text-xs text-green-700 bg-green-50 p-3 rounded">${JSON.stringify(data, null, 2)}</pre>`;
+        } else {
+          html += `<p class="text-sm text-green-700">${data}</p>`;
+        }
+
+        resultsEl.innerHTML = `
+          <div class="bg-green-50 border border-green-200 rounded p-3">
+            ${html}
+          </div>
+        `;
+      };
+
+      (window as any).showError = (message: string) => {
+        const resultsEl = document.getElementById('script-results');
+        if (resultsEl) {
+          resultsEl.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded p-3">
+              <h5 class="font-medium text-red-900">Script Error</h5>
+              <p class="text-sm text-red-700 mt-2">${message}</p>
+            </div>
+          `;
+        }
+      };
+
+      (window as any).getFileData = () => {
+        return {
+          file1: testFiles.file1,
+          file2: testFiles.file2
+        };
+      };
+
+      // Execute the script
+      const result = eval(scriptContent);
+      
+      // If script doesn't call showResults, show generic success
+      if (!document.getElementById('script-results')?.innerHTML.includes('bg-green-50')) {
+        const resultsEl = document.getElementById('script-results');
+        if (resultsEl) {
+          resultsEl.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded p-3">
+              <h5 class="font-medium text-green-900">Script Execution Completed</h5>
+              <p class="text-sm text-green-700">Script executed successfully</p>
+            </div>
+          `;
+        }
+      }
+
+      setTestScriptResults(result);
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Script execution failed';
+      
+      const resultsEl = document.getElementById('script-results');
+      if (resultsEl) {
+        resultsEl.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded p-3">
+            <h5 class="font-medium text-red-900">Script Execution Error</h5>
+            <p class="text-sm text-red-700 mt-2">${errorMessage}</p>
+          </div>
+        `;
+      }
+    } finally {
+      setIsTestingScript(false);
+    }
+  };
+
+  const clearTestResults = () => {
+    // Clear file results
+    const fileResultsElement = document.getElementById('file-results');
+    if (fileResultsElement) {
+      fileResultsElement.innerHTML = `
+        <div class="bg-blue-50 border border-blue-200 rounded p-3">
+          <h5 class="font-medium text-blue-900">Environment Reset</h5>
+          <p class="text-sm text-blue-700">Test environment has been cleared. Upload files to begin testing.</p>
+        </div>
+      `;
+    }
+
+    // Clear script results
+    const scriptResultsEl = document.getElementById('script-results');
+    if (scriptResultsEl) {
+      scriptResultsEl.innerHTML = 'Run a script to see results here...';
+    }
+
+    // Clear validation messages
+    const file1ValidationEl = document.getElementById('file1-validation');
+    const file2ValidationEl = document.getElementById('file2-validation');
+    if (file1ValidationEl) file1ValidationEl.innerHTML = '';
+    if (file2ValidationEl) file2ValidationEl.innerHTML = '';
+
+    // Reset state
+    setTestFiles({ file1: null, file2: null });
+    setTestScript('');
+    setTestScriptText('');
+    setTestScriptFileName('');
+    setTestScriptResults(null);
+
+    // Clear file inputs
+    const file1Input = document.getElementById('test-file1') as HTMLInputElement;
+    const file2Input = document.getElementById('test-file2') as HTMLInputElement;
+    const scriptInput = document.getElementById('test-script-file') as HTMLInputElement;
+    
+    if (file1Input) file1Input.value = '';
+    if (file2Input) file2Input.value = '';
+    if (scriptInput) scriptInput.value = '';
+
+    // Clear global variables
+    delete (window as any).uploadedFile1;
+    delete (window as any).uploadedFile2;
+  };
+
   const [file1Data, setFile1Data] = useState<any[]>([]);
   const [file2Data, setFile2Data] = useState<any[]>([]);
 
@@ -2415,6 +3045,70 @@ function processStep${index + 1}(data) {
       }
     }
   }, []);
+
+  // Initialize script testing environment when tab becomes active
+  useEffect(() => {
+    if (activeTab === 'script-testing') {
+      initializeTestEnvironment();
+      
+      // Add event listeners for file uploads
+      setTimeout(() => {
+        const file1Input = document.getElementById('test-file1') as HTMLInputElement;
+        const file2Input = document.getElementById('test-file2') as HTMLInputElement;
+        const scriptInput = document.getElementById('test-script-file') as HTMLInputElement;
+        const runComparisonBtn = document.getElementById('run-comparison-btn') as HTMLButtonElement;
+        const clearBtn = document.getElementById('clear-results-btn') as HTMLButtonElement;
+
+        if (file1Input) {
+          file1Input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) handleTestFileUpload(1, file);
+          };
+        }
+
+        if (file2Input) {
+          file2Input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) handleTestFileUpload(2, file);
+          };
+        }
+
+        if (scriptInput) {
+          scriptInput.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) handleTestScriptUpload(file);
+          };
+        }
+
+        // For copy/paste method, the textarea is controlled by React state
+        // so no additional event listeners needed
+
+        if (runComparisonBtn) {
+          runComparisonBtn.onclick = runComparisonWithAutoProcess;
+        }
+
+        if (clearBtn) {
+          clearBtn.onclick = clearTestResults;
+        }
+
+        // Add global function for badge toggling (available immediately)
+        (window as any).toggleBadgeStyle = (element: HTMLElement, fileNumber: number) => {
+          const isSelected = element.classList.contains('selected');
+          const color = fileNumber === 1 ? 'green' : 'blue';
+          
+          if (isSelected) {
+            // Revert to outlined style
+            element.classList.remove('selected', `bg-${color}-600`, 'text-white');
+            element.classList.add(`border-${color}-600`, `text-${color}-600`);
+          } else {
+            // Change to solid style
+            element.classList.add('selected', `bg-${color}-600`, 'text-white');
+            element.classList.remove(`border-${color}-600`, `text-${color}-600`);
+          }
+        };
+      }, 100);
+    }
+  }, [activeTab]);
 
   if (loading) {
     return (
@@ -2652,6 +3346,17 @@ function processStep${index + 1}(data) {
               >
                 <Settings className="inline w-4 h-4 mr-2" />
                 Account Settings
+              </button>
+              <button
+                onClick={() => setActiveTab('script-testing')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'script-testing'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <FiCode className="inline w-4 h-4 mr-2" />
+                Script Testing
               </button>
             </nav>
           </div>
@@ -4110,6 +4815,292 @@ function processStep${index + 1}(data) {
                     <li>• Email changes may require verification</li>
                     <li>• Keep your credentials secure and don't share them</li>
                   </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'script-testing' && (
+          <div className="space-y-6">
+            {/* Script Testing Environment */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">Script Testing Environment</h3>
+                <p className="text-sm text-gray-500 mt-1">Test your GR Balance scripts locally before deployment</p>
+              </div>
+              
+              <div className="p-6">
+                {/* Library Status */}
+                <div id="library-status" className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-700">🔄 Initializing libraries...</p>
+                </div>
+
+                {/* File Upload Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  {/* Primary Dataset Upload - Green Theme */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center justify-center w-8 h-8 bg-green-100 text-green-600 rounded-full font-semibold text-sm">
+                        1
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-green-800">Primary Dataset</h3>
+                        <p className="text-xs text-green-600">Main data source for analysis</p>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      id="test-file1-dropzone"
+                      className="relative border-2 border-dashed border-green-300 rounded-lg p-6 text-center hover:border-green-500 hover:bg-green-50 transition-colors cursor-pointer group"
+                    >
+                      <input
+                        type="file"
+                        id="test-file1"
+                        accept=".xlsx,.xls,.csv"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled
+                      />
+                      <div className="space-y-2">
+                        <div className="flex justify-center">
+                          <svg className="w-8 h-8 text-green-400 group-hover:text-green-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-green-600 font-medium group-hover:text-green-700">Click to upload Excel or CSV</span>
+                        </div>
+                        <p className="text-xs text-green-500">Primary data source</p>
+                      </div>
+                    </div>
+                    
+                    <div id="file1-validation" className="text-sm"></div>
+                  </div>
+                  
+                  {/* Secondary Dataset Upload - Blue Theme */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="flex items-center justify-center w-8 h-8 bg-blue-100 text-blue-600 rounded-full font-semibold text-sm">
+                        2
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium text-blue-800">Secondary Dataset</h3>
+                        <p className="text-xs text-blue-600">Optional - for comparisons</p>
+                      </div>
+                    </div>
+                    
+                    <div 
+                      id="test-file2-dropzone"
+                      className="relative border-2 border-dashed border-blue-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer group"
+                    >
+                      <input
+                        type="file"
+                        id="test-file2"
+                        accept=".xlsx,.xls,.csv"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        disabled
+                      />
+                      <div className="space-y-2">
+                        <div className="flex justify-center">
+                          <svg className="w-8 h-8 text-blue-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <div className="text-sm">
+                          <span className="text-blue-600 font-medium group-hover:text-blue-700">Click to upload Excel or CSV</span>
+                        </div>
+                        <p className="text-xs text-blue-500">Optional comparison file</p>
+                      </div>
+                    </div>
+                    
+                    <div id="file2-validation" className="text-sm"></div>
+                  </div>
+                </div>
+
+                {/* Script Input Section */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Test Script
+                  </label>
+                  
+                  {/* Tab selector for script input method */}
+                  <div className="flex mb-4 border-b border-gray-200">
+                    <button
+                      type="button"
+                      onClick={() => setScriptInputMethod('paste')}
+                      className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 ${
+                        scriptInputMethod === 'paste'
+                          ? 'text-blue-600 border-blue-600'
+                          : 'text-gray-500 border-transparent hover:text-gray-700'
+                      }`}
+                    >
+                      Copy & Paste
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setScriptInputMethod('upload')}
+                      className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 ${
+                        scriptInputMethod === 'upload'
+                          ? 'text-blue-600 border-blue-600'
+                          : 'text-gray-500 border-transparent hover:text-gray-700'
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                  </div>
+
+                  {/* Copy/Paste Script */}
+                  {scriptInputMethod === 'paste' && (
+                    <div className="space-y-3">
+                      <div className="relative">
+                        <textarea
+                          id="test-script-textarea"
+                          value={testScriptText}
+                          onChange={(e) => setTestScriptText(e.target.value)}
+                          placeholder="Paste your Claude-generated script here..."
+                          className="w-full h-40 px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                        />
+                        {testScriptText && (
+                                                      <button
+                              type="button"
+                              onClick={() => setTestScriptText('')}
+                              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+                            >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Paste the complete IIFE async function from Claude here
+                      </p>
+                      {testScriptText && (
+                        <p className="text-xs text-green-600">
+                          ✓ Script ready ({testScriptText.length} characters)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Upload Script File */}
+                  {scriptInputMethod === 'upload' && (
+                    <div className="space-y-3">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer group">
+                        <input
+                          type="file"
+                          id="test-script-file"
+                          accept=".js"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleTestScriptUpload(file);
+                          }}
+                        />
+                        <label 
+                          htmlFor="test-script-file" 
+                          className="cursor-pointer flex flex-col items-center space-y-2"
+                        >
+                          <svg className="w-8 h-8 text-gray-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <div className="text-sm">
+                            <span className="text-blue-600 font-medium group-hover:text-blue-700">Choose Script File</span>
+                          </div>
+                          <p className="text-xs text-gray-500">or drag and drop a .js file</p>
+                        </label>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Upload a .js file containing your script
+                      </p>
+                      
+                      {/* Script Upload Status */}
+                      {testScript && (
+                        <div className="bg-green-50 border border-green-200 rounded p-3">
+                          <h5 className="font-medium text-green-900">✓ Script Loaded</h5>
+                          <p className="text-sm text-green-700">
+                            {testScriptFileName && <strong>{testScriptFileName}</strong>} loaded successfully ({testScript.length} characters)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons - Simplified Single Action */}
+                <div className="flex space-x-4 mb-6">
+                  <button
+                    id="run-comparison-btn"
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors text-sm shadow-sm"
+                  >
+                    🚀 Run Comparison
+                  </button>
+                  <button
+                    id="clear-results-btn"
+                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium transition-colors text-sm shadow-sm"
+                  >
+                    🗑️ Clear Results
+                  </button>
+                </div>
+
+                {/* Results Section */}
+                <div id="results-section" className="space-y-6">
+                  {/* Script Building */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Script Builder</h4>
+                    
+                    {/* Step Building Table */}
+                    <div className="bg-white border border-gray-200 rounded-lg mb-6">
+                      <div className="p-4 border-b border-gray-200 bg-gray-50">
+                        <div className="flex justify-between items-center">
+                          <h5 className="font-medium text-gray-900">Build Script Step by Step</h5>
+                          <button 
+                            className="px-3 py-1 border-2 border-green-600 text-green-600 bg-white text-sm rounded hover:bg-green-600 hover:text-white transition-colors"
+                            onClick={() => {
+                              const instruction = prompt('Enter step instruction:');
+                              if (instruction) addScriptStep(instruction);
+                            }}
+                          >
+                            + Add Step
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Step</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Instruction</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody id="script-steps-table" className="bg-white divide-y divide-gray-200">
+                            <tr>
+                              <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                                No steps added yet. Click "Add Step" to begin building your script.
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Client-Side Results Replica */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <h4 className="text-lg font-medium text-gray-900 mb-4">Results Preview (Client View)</h4>
+                    
+                    {/* This will be styled exactly like the client interface */}
+                    <div className="bg-white border border-gray-200 rounded-lg">
+                      <div id="client-results-replica" className="p-6">
+                        <div className="text-center text-gray-500 py-8">
+                          Execute script to see client-side results here...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
