@@ -2597,6 +2597,18 @@ function processStep${index + 1}(data) {
 
   const handleTestFileUpload = async (fileNumber: 1 | 2, file: File) => {
     try {
+      // Validate file type
+      const allowedExtensions = ['.xlsx', '.xls', '.csv'];
+      const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+      
+      if (!allowedExtensions.includes(fileExtension)) {
+        const validationEl = document.getElementById(`file${fileNumber}-validation`);
+        if (validationEl) {
+          validationEl.innerHTML = `<span class="text-red-600">❌ Only Excel (.xlsx, .xls) and CSV (.csv) files are allowed</span>`;
+        }
+        return;
+      }
+      
       setTestFileLoading(prev => ({ ...prev, [`file${fileNumber}`]: true }));
       
       // Update validation display - processing
@@ -2688,6 +2700,11 @@ function processStep${index + 1}(data) {
 
   const handleTestScriptUpload = async (file: File) => {
     try {
+      // Validate file type
+      if (!file.name.toLowerCase().endsWith('.js')) {
+        throw new Error('Only JavaScript (.js) files are allowed for scripts');
+      }
+      
       const scriptContent = await file.text();
       setTestScript(scriptContent);
       setTestScriptFileName(file.name);
@@ -2920,8 +2937,10 @@ function processStep${index + 1}(data) {
         };
       };
 
-      // Execute the script
+      // Execute the script with enhanced error catching
+      console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
       const result = eval(scriptContent);
+      console.log('✅ Script executed successfully, result:', result);
       
       // If script doesn't call showResults, show generic success
       if (!document.getElementById('script-results')?.innerHTML.includes('bg-green-50')) {
@@ -2939,7 +2958,9 @@ function processStep${index + 1}(data) {
       setTestScriptResults(result);
       
     } catch (error) {
+      console.error('❌ Script execution error details:', error);
       const errorMessage = error instanceof Error ? error.message : 'Script execution failed';
+      const stackTrace = error instanceof Error ? error.stack : '';
       
       const resultsEl = document.getElementById('script-results');
       if (resultsEl) {
@@ -2947,6 +2968,7 @@ function processStep${index + 1}(data) {
           <div class="bg-red-50 border border-red-200 rounded p-3">
             <h5 class="font-medium text-red-900">Script Execution Error</h5>
             <p class="text-sm text-red-700 mt-2">${errorMessage}</p>
+            ${stackTrace ? `<details class="mt-2"><summary class="text-xs text-red-600 cursor-pointer">Stack Trace</summary><pre class="text-xs text-red-600 mt-1 whitespace-pre-wrap">${stackTrace}</pre></details>` : ''}
           </div>
         `;
       }
