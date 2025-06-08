@@ -2939,7 +2939,7 @@ function processStep${index + 1}(data) {
 
       // Execute the script with enhanced error catching
       console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
-      const result = eval(scriptContent);
+      const result = await eval(scriptContent);
       console.log('✅ Script executed successfully, result:', result);
       
       // If script doesn't call showResults, show generic success
