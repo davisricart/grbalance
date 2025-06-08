@@ -5407,19 +5407,6 @@ function processStep${index + 1}(data) {
 
 
 
-                    {/* Script Steps Table */}
-                    <div className="bg-white border border-gray-200 rounded-lg mb-6">
-                      <div className="p-4">
-                        <h5 className="font-medium text-gray-900 mb-4">Script Steps</h5>
-                        
-                        <div id="script-steps-table">
-                          <div className="text-center text-gray-500 py-4">
-                            Write your script in the Copy & Paste tab, then run it to see step-by-step execution here.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    
                     {/* Script Results Display */}
                     <div className="bg-white border border-gray-200 rounded-lg mb-6">
                       <div className="p-4">
