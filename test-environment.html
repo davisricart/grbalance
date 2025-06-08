@@ -4,22 +4,28 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GR Balance - Local Test Environment</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Primary CDN sources -->
+  <script src="https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"></script>
   
-  <!-- Fallback libraries in case CDN fails -->
+  <!-- Backup CDN sources -->
   <script>
-    // Check if XLSX loaded, if not try alternative CDN
-    if (typeof XLSX === 'undefined') {
-      console.warn('Primary XLSX CDN failed, loading fallback...');
-      document.write('<script src="https://unpkg.com/xlsx@0.20.0/dist/xlsx.full.min.js"><\/script>');
-    }
-    
-    // Check if Papa Parse loaded, if not try alternative CDN
-    if (typeof Papa === 'undefined') {
-      console.warn('Primary Papa Parse CDN failed, loading fallback...');
-      document.write('<script src="https://unpkg.com/papaparse@5.4.1/papaparse.min.js"><\/script>');
-    }
+    // Wait for primary libraries to load, then check if backup needed
+    setTimeout(function() {
+      if (typeof XLSX === 'undefined') {
+        console.warn('Primary XLSX failed, loading backup...');
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.0/xlsx.full.min.js';
+        document.head.appendChild(script);
+      }
+      
+      if (typeof Papa === 'undefined') {
+        console.warn('Primary Papa Parse failed, loading backup...');
+        var script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js';
+        document.head.appendChild(script);
+      }
+    }, 1000);
   </script>
   <style>
     body { font-family: Arial, sans-serif; background: #f8fafc; margin: 0; padding: 0; }
