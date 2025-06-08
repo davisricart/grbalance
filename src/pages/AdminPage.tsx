@@ -28,6 +28,7 @@ import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
 import * as XLSX from 'xlsx';
+import Papa from 'papaparse';
 
 // Add this at the top of the file, after imports
 declare global {
@@ -2937,6 +2938,93 @@ function processStep${index + 1}(data) {
         };
       };
 
+      // CRITICAL: Add missing window.parseFiles function
+      (window as any).parseFiles = async () => {
+        const result = { data1: null, data2: null };
+        
+        if (testFiles.file1 && testFiles.file1.data) {
+          result.data1 = testFiles.file1.data;
+        }
+        
+        if (testFiles.file2 && testFiles.file2.data) {
+          result.data2 = testFiles.file2.data;
+        }
+        
+        return result;
+      };
+
+      // CRITICAL: Add missing window.findColumn function
+      (window as any).findColumn = (row: any, possibleNames: string[]) => {
+        if (!row || typeof row !== 'object') return null;
+        
+        const normalizeHeader = (header: string) => {
+          return String(header || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+        };
+        
+        const rowKeys = Object.keys(row);
+        const normalizedPossibleNames = possibleNames.map(normalizeHeader);
+        
+        for (const name of possibleNames) {
+          if (rowKeys.includes(name)) return name;
+        }
+        
+        for (const key of rowKeys) {
+          const normalizedKey = normalizeHeader(key);
+          if (normalizedPossibleNames.includes(normalizedKey)) {
+            return key;
+          }
+        }
+        
+        for (const key of rowKeys) {
+          const normalizedKey = normalizeHeader(key);
+          for (const possibleName of normalizedPossibleNames) {
+            if (normalizedKey.includes(possibleName) || possibleName.includes(normalizedKey)) {
+              return key;
+            }
+          }
+        }
+        
+        return null;
+      };
+
+      // CRITICAL: Add missing window.showResults function
+      (window as any).showResults = (results: any) => {
+        console.log('📊 SCRIPT RESULTS:', results);
+        const displayElement = document.getElementById('script-results-display') || 
+                             document.querySelector('[id*="result"]');
+        
+        if (displayElement) {
+          displayElement.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <h3 class="text-green-800 font-semibold mb-2">✅ Script Results</h3>
+              <pre class="text-sm text-green-700 overflow-auto max-h-96">${JSON.stringify(results, null, 2)}</pre>
+            </div>
+          `;
+        }
+        
+        return results;
+      };
+
+      // CRITICAL: Add missing window.showError function
+      (window as any).showError = (error: string | Error) => {
+        const errorMessage = typeof error === 'string' ? error : error.message;
+        console.error('🚨 SCRIPT ERROR:', errorMessage);
+        
+        const displayElement = document.getElementById('script-results-display') || 
+                             document.querySelector('[id*="result"]');
+        
+        if (displayElement) {
+          displayElement.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <h3 class="text-red-800 font-semibold mb-2">❌ Script Error</h3>
+              <pre class="text-sm text-red-700 overflow-auto max-h-96">${errorMessage}</pre>
+            </div>
+          `;
+        }
+        
+        return false;
+      };
+
       // Execute the script with enhanced error catching
       console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
       const result = await eval(scriptContent);
@@ -4881,7 +4969,7 @@ function processStep${index + 1}(data) {
                         id="test-file1"
                         accept=".xlsx,.xls,.csv"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled
+                        onChange={(e) => handleTestFileUpload(1, e.target.files?.[0]!)}
                       />
                       <div className="space-y-2">
                         <div className="flex justify-center">
@@ -4920,7 +5008,7 @@ function processStep${index + 1}(data) {
                         id="test-file2"
                         accept=".xlsx,.xls,.csv"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        disabled
+                        onChange={(e) => handleTestFileUpload(2, e.target.files?.[0]!)}
                       />
                       <div className="space-y-2">
                         <div className="flex justify-center">
@@ -5053,9 +5141,10 @@ function processStep${index + 1}(data) {
                 <div className="flex space-x-4 mb-6">
                   <button
                     id="run-comparison-btn"
+                    onClick={runTestScript}
                     className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors text-sm shadow-sm"
                   >
-                    🚀 Run Comparison
+                    🚀 Run Script
                   </button>
                   <button
                     id="clear-results-btn"

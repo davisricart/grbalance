@@ -16,10 +16,6 @@ import BookingPage from './pages/BookingPage';
 import DemoPage from './pages/DemoPage';
 import InteractiveDemoPage from './pages/InteractiveDemoPage';
 import AdminPage from './pages/AdminPage';
-import FileTestPage from './pages/FileTestPage';
-import StepBuilderTestPage from './pages/StepBuilderTestPage';
-import DebugTestPage from './pages/DebugTestPage';
-import SimpleTest from './pages/SimpleTest';
 import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
@@ -42,10 +38,6 @@ function App() {
           <Route path="/demo" element={<DemoPage />} />
           <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
           <Route path="/admin" element={<AdminPage />} />
-          <Route path="/file-test" element={<FileTestPage />} />
-          <Route path="/step-builder-test" element={<StepBuilderTestPage />} />
-          <Route path="/debug-test" element={<DebugTestPage />} />
-          <Route path="/simple-test" element={<SimpleTest />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Layout>
