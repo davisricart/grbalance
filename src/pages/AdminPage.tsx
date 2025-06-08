@@ -5404,19 +5404,7 @@ function processStep${index + 1}(data) {
                           <span>Save Script</span>
                         </button>
                         
-                        <label className="px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 cursor-pointer flex items-center space-x-1">
-                          <span>📁</span>
-                          <span>Load Script</span>
-                          <input
-                            type="file"
-                            accept=".js,.txt"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) loadScriptFromFile(file);
-                            }}
-                            className="hidden"
-                          />
-                        </label>
+
                         
                         <button
                           onClick={clearScriptSteps}
