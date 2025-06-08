@@ -329,8 +329,7 @@ const AdminPage: React.FC = () => {
   const [file2Data, setFile2Data] = useState<any[]>([]);
   
   // Script building states
-  const [newStepText, setNewStepText] = useState('');
-  const [showStepInput, setShowStepInput] = useState(false);
+
   
   // Loading helper functions
   const setOperationState = (operation: string, isLoading: boolean) => {
@@ -2370,7 +2369,7 @@ Features:
   const clearAllSteps = () => {
     setScriptSteps([]);
     setStepHistory([]);
-    showNotification('info', 'Steps Cleared', 'All script steps removed');
+
   };
 
   const clearScriptSteps = () => {
@@ -2385,12 +2384,12 @@ Features:
         </div>
       `;
     }
-    showNotification('info', 'Results Cleared', 'Script results and steps cleared');
+
   };
 
   const generateFinalScript = () => {
     if (scriptSteps.length === 0) {
-      showNotification('warning', 'No Steps', 'Please add steps to generate script');
+
       return;
     }
 
@@ -2433,7 +2432,7 @@ function processStep${index + 1}(data) {
       description: `Sequential script with ${scriptSteps.length} steps`
     });
 
-    showNotification('success', 'Script Generated', `Sequential script with ${scriptSteps.length} steps ready for deployment`);
+
   };
 
   const handleDynamicFileSelect = (file1: string, file2: string) => {
@@ -2452,7 +2451,7 @@ function processStep${index + 1}(data) {
     
     // Show notification
     if (file1 && file2) {
-      showNotification('success', 'Files Selected', `File 1: ${file1}\nFile 2: ${file2}`);
+
     }
   };
 
@@ -2497,12 +2496,12 @@ function processStep${index + 1}(data) {
       setStepBuilderSteps([step1]);
       setShowVisualStepBuilder(true);
       
-      showNotification('success', 'Step 1 Created!', 'Visual step builder initialized with your uploaded data');
+
       
     } catch (error) {
       console.error('Error initializing Visual Step Builder:', error);
       const errorMessage = error instanceof Error ? error.message : 'Could not process uploaded files';
-      showNotification('error', 'Initialization Failed', errorMessage);
+
     }
   };
 
@@ -2564,7 +2563,7 @@ function processStep${index + 1}(data) {
       setStepBuilderSteps(updatedSteps);
       setStepExecutionData(prev => ({ ...prev, [stepNumber]: processedData }));
       
-      showNotification('success', `Step ${stepNumber} Completed!`, `Processed ${processedData.length} records`);
+
       
     } catch (error) {
       console.error(`Error executing step ${stepNumber}:`, error);
@@ -3294,19 +3293,13 @@ function processStep${index + 1}(data) {
   const clearTestResults = clearAllResults;
 
   // Add inline step functionality
-  const addInlineStep = () => {
-    if (newStepText.trim()) {
-      addScriptStep(newStepText.trim());
-      setNewStepText('');
-      setShowStepInput(false);
-    }
-  };
+
 
   // Save current script as .js file
   const saveScriptToFile = () => {
     const finalScript = generateFinalScript();
     if (!finalScript) {
-      showNotification('warning', 'No Script to Save', 'Please add some steps first.');
+
       return;
     }
 
@@ -3320,7 +3313,7 @@ function processStep${index + 1}(data) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    showNotification('success', 'Script Saved', 'Your script has been downloaded as a .js file.');
+
   };
 
   // Load script from file
@@ -3331,7 +3324,7 @@ function processStep${index + 1}(data) {
       if (content) {
         setTestScriptText(content);
         setScriptInputMethod('paste');
-        showNotification('success', 'Script Loaded', 'Script has been loaded from file.');
+
       }
     };
     reader.readAsText(file);
@@ -5373,9 +5366,10 @@ function processStep${index + 1}(data) {
                   <button
                     id="clear-results-btn"
                     onClick={clearAllResults}
-                    className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium transition-colors text-sm shadow-sm"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium transition-colors text-sm shadow-sm"
+                    title="Clear script execution output and results"
                   >
-                    🗑️ Clear Results
+                    🔄 Reset Output
                   </button>
                 </div>
 
@@ -5388,13 +5382,7 @@ function processStep${index + 1}(data) {
                       
                       {/* Action Buttons */}
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() => setShowStepInput(true)}
-                          className="px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 flex items-center space-x-1"
-                        >
-                          <span>+</span>
-                          <span>Add Step</span>
-                        </button>
+
                         
                         <button
                           onClick={saveScriptToFile}
@@ -5408,49 +5396,16 @@ function processStep${index + 1}(data) {
                         
                         <button
                           onClick={clearScriptSteps}
-                          className="px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 flex items-center space-x-1"
+                          className="px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center space-x-1"
+                          title="Clear step-by-step execution history display"
                         >
-                          <span>🗑️</span>
-                          <span>Clear Steps</span>
+                          <span>📋</span>
+                          <span>Clear History</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Add Step Input (Inline) */}
-                    {showStepInput && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                        <div className="flex items-center space-x-3">
-                          <input
-                            type="text"
-                            value={newStepText}
-                            onChange={(e) => setNewStepText(e.target.value)}
-                            placeholder="Enter step instruction (e.g., 'Count unique card brands' or 'Filter rows where amount > 100')"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') {
-                                addInlineStep();
-                              }
-                            }}
-                            autoFocus
-                          />
-                          <button
-                            onClick={addInlineStep}
-                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-                          >
-                            Add
-                          </button>
-                          <button
-                            onClick={() => {
-                              setShowStepInput(false);
-                              setNewStepText('');
-                            }}
-                            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    )}
+
 
                     {/* Script Steps Table */}
                     <div className="bg-white border border-gray-200 rounded-lg mb-6">
@@ -5459,7 +5414,7 @@ function processStep${index + 1}(data) {
                         
                         <div id="script-steps-table">
                           <div className="text-center text-gray-500 py-4">
-                            No steps added yet. Click "Add Step" to begin building your script.
+                            Write your script in the Copy & Paste tab, then run it to see step-by-step execution here.
                           </div>
                         </div>
                       </div>
