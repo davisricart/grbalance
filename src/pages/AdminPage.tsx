@@ -2373,8 +2373,25 @@ Features:
   };
 
   const clearScriptSteps = () => {
+    // Clear all script-related state
     setScriptSteps([]);
+    setStepHistory([]);
+    setTestScriptResults(null);
+    
+    // Update the script steps table
     updateScriptStepsTable();
+    
+    // Clear the script results display area
+    const scriptResultsEl = document.getElementById('script-results-display');
+    if (scriptResultsEl) {
+      scriptResultsEl.innerHTML = `
+        <div class="text-center text-gray-500 py-8">
+          <p class="text-lg font-medium">Run your script to see results here...</p>
+          <p class="text-sm mt-2">Execution output and step-by-step progress will appear in this area</p>
+        </div>
+      `;
+    }
+    
     // Clear the client results replica area
     const clientResultsEl = document.getElementById('client-results-replica');
     if (clientResultsEl) {
@@ -2384,7 +2401,8 @@ Features:
         </div>
       `;
     }
-
+    
+    console.log('✅ Script execution history cleared');
   };
 
   const generateFinalScript = () => {
@@ -2940,9 +2958,17 @@ function processStep${index + 1}(data) {
       if (fileNumber === 1) {
         setFile1Data(parsedData.rows);
         localStorage.setItem('file1Data', JSON.stringify(parsedData.rows));
+        
+        // Store raw file data for scripts that need ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        (window as any).rawFile1Data = arrayBuffer;
       } else {
         setFile2Data(parsedData.rows);
         localStorage.setItem('file2Data', JSON.stringify(parsedData.rows));
+        
+        // Store raw file data for scripts that need ArrayBuffer
+        const arrayBuffer = await file.arrayBuffer();
+        (window as any).rawFile2Data = arrayBuffer;
       }
 
       // Update validation display - success with detailed headers info
@@ -3065,6 +3091,9 @@ function processStep${index + 1}(data) {
     if (file2Data.length > 0) {
       (window as any).uploadedFile2 = file2Data;
     }
+    
+    // Also ensure raw file data is available for scripts that need ArrayBuffer
+    // (These are set during file upload, just ensuring they persist)
 
     // Add inline success message at the bottom
     output += `
@@ -3107,6 +3136,17 @@ function processStep${index + 1}(data) {
 
     if (file1Data.length === 0) {
       console.log('❌ No file data available');
+      const displayElement = document.getElementById('script-results-display') || 
+                           document.querySelector('[id*="result"]');
+      
+      if (displayElement) {
+        displayElement.innerHTML = `
+          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <h3 class="text-red-800 font-semibold mb-2">❌ File Data Required</h3>
+            <p class="text-sm text-red-700">Please upload and process at least one file before running the script.</p>
+          </div>
+        `;
+      }
       return;
     }
     
@@ -3133,9 +3173,27 @@ function processStep${index + 1}(data) {
       };
 
       // The window helper functions are already set up by initializeTestEnvironment
-      // Just ensure they have the latest data
+      // Just ensure they have the latest data in multiple variable names for compatibility
       (window as any).uploadedFile1 = file1Data;
       (window as any).uploadedFile2 = file2Data;
+      
+      // Add compatibility variables for different script expectations
+      (window as any).file1Data = file1Data;
+      (window as any).file2Data = file2Data;
+      (window as any).file1 = (window as any).rawFile1Data; // Raw ArrayBuffer for XLSX scripts
+      (window as any).file2 = (window as any).rawFile2Data; // Raw ArrayBuffer for XLSX scripts
+      
+      // Make XLSX library available globally for scripts
+      (window as any).XLSX = XLSX;
+      
+      // Ensure raw file data is available for scripts that need ArrayBuffer
+      // These should already be set during file upload, but double-check
+      if (!(window as any).rawFile1Data && file1Data.length > 0) {
+        console.warn('⚠️ Raw file1 data not available, some scripts may fail');
+      }
+      if (!(window as any).rawFile2Data && file2Data.length > 0) {
+        console.warn('⚠️ Raw file2 data not available, some scripts may fail');
+      }
 
       // INTEGRATION: Add step from results
       (window as any).addStepFromResults = () => {
@@ -3209,6 +3267,14 @@ function processStep${index + 1}(data) {
 
       // Execute the script with enhanced error catching
       console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
+      console.log('🔍 Available window data:', {
+        uploadedFile1: !!(window as any).uploadedFile1,
+        uploadedFile1Length: ((window as any).uploadedFile1 || []).length,
+        uploadedFile2: !!(window as any).uploadedFile2,
+        uploadedFile2Length: ((window as any).uploadedFile2 || []).length,
+        rawFile1Data: !!(window as any).rawFile1Data,
+        rawFile2Data: !!(window as any).rawFile2Data
+      });
       
       // Create a safe evaluation context
       const evaluateScript = new Function('window', scriptContent);

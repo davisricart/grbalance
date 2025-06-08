@@ -39,7 +39,13 @@
       "Bash(npm update:*)",
       "Bash(npm uninstall:*)",
       "Bash(mkdir:*)",
-      "Bash(npm ci:*)"
+      "Bash(npm ci:*)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 10 -B 5 \"clearScriptSteps\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 3 -B 10 \"Clear History\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 15 -B 5 \"updateScriptStepsTable\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 2 -B 2 \"useState.*scriptSteps|useState.*stepHistory\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg \"useState.*Steps|setScriptSteps|setStepHistory\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)",
+      "Bash(/usr/local/lib/node_modules/@anthropic-ai/claude-code/vendor/ripgrep/x64-linux/rg -A 3 -B 3 \"console\\.log.*clear|Clear.*console\" /mnt/c/Users/Davis/Documents/grbalance/src/pages/AdminPage.tsx)"
     ],
     "deny": []
   }
