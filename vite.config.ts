@@ -12,5 +12,21 @@ export default defineConfig({
         changeOrigin: true
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      external: ['xlsx'],
+      output: {
+        globals: {
+          'xlsx': 'XLSX'
+        }
+      }
+    },
+    commonjsOptions: {
+      include: [/node_modules/]
+    }
+  },
+  optimizeDeps: {
+    include: ['xlsx']
   }
 })
