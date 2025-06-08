@@ -1923,7 +1923,7 @@ Features:
     }]);
     
     setCurrentStepEdit('');
-    showNotification('success', 'Step Added', `Step ${newStep.stepNumber} added to script`);
+    console.log('✅ Step added to script:', `Step ${newStep.stepNumber}`);
     
     // Update the script steps table
     updateScriptStepsTable();
@@ -1990,12 +1990,12 @@ Features:
       }));
     });
     updateScriptStepsTable();
-    showNotification('info', 'Step Removed', 'Script step removed successfully');
+    console.log('✅ Script step removed successfully');
   };
 
   const executeStepsUpTo = async (targetStepNumber: number) => {
     if (!testFile1Info || !testFile2Info) {
-      showNotification('error', 'Missing Files', 'Please select both files first');
+      console.error('❌ Missing Files: Please select both files first');
       return;
     }
 
@@ -2135,7 +2135,7 @@ Features:
 
     } catch (error) {
       console.error('Step execution error:', error);
-      showNotification('error', 'Execution Error', `Error executing steps: ${error}`);
+      console.error('❌ Error executing steps:', error);
       return [];
     }
   };
@@ -3129,10 +3129,6 @@ function processStep${index + 1}(data) {
                 </div>
                 
                 <div class="mt-4 flex gap-2">
-                  <button onclick="window.addStepFromResults && window.addStepFromResults()" 
-                          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
-                    + Add Next Step
-                  </button>
                   <button onclick="window.exportResults && window.exportResults()" 
                           class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium">
                     Export Results
@@ -3155,6 +3151,30 @@ function processStep${index + 1}(data) {
         // Store results for step builder integration
         (window as any).lastScriptResults = results;
         
+        // 🎯 CRITICAL: Auto-add to Script Builder as Step 1 (NO separate results display)
+        if (results && Array.isArray(results) && results.length > 0) {
+          // Create Step 1 description with actual results
+          const totalTransactions = results.reduce((sum, item) => sum + (item.Count || item.count || 1), 0);
+          const stepDescription = `Step 1: Card Brand Analysis - ${results.length} brands found (${totalTransactions} total transactions)`;
+          
+          // Add to Script Builder table directly
+          addScriptStep(stepDescription);
+          
+          // Store results for export and next steps
+          (window as any).lastScriptResults = results;
+          
+          // Update Script Builder table immediately
+          setTimeout(() => {
+            updateScriptStepsTable();
+          }, 100);
+          
+          console.log('✅ Results added to Script Builder as Step 1');
+          console.log('📊 Results:', results);
+          
+          // IMPORTANT: Do NOT display results in separate box above Script Builder
+          // Results should ONLY appear in Script Builder table
+        }
+        
         // Update client results replica
         updateClientResultsReplica(results);
         
@@ -3168,12 +3188,7 @@ function processStep${index + 1}(data) {
           const stepDescription = `Analyzed card brand distribution: Found ${results.length} unique brands with ${results.reduce((sum, item) => sum + (item.Count || 0), 0)} total transactions`;
           addScriptStep(stepDescription);
           
-          // Show success notification
-          const notification = document.createElement('div');
-          notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-          notification.textContent = '✅ Step added to Script Builder!';
-          document.body.appendChild(notification);
-          setTimeout(() => notification.remove(), 3000);
+
         }
       };
 
@@ -3182,12 +3197,12 @@ function processStep${index + 1}(data) {
         const results = (window as any).lastScriptResults;
         if (results) {
           const csvContent = "data:text/csv;charset=utf-8," 
-            + "Card Brand,Transaction Count,Percentage\\n"
+            + "Card Brand,Transaction Count,Percentage\n"
             + results.map(item => {
                 const total = results.reduce((sum, r) => sum + (r.Count || 0), 0);
                 const percentage = total > 0 ? ((item.Count || 0) / total * 100).toFixed(1) : '0.0';
                 return `"${item['Card Brand'] || 'Unknown'}",${item.Count || 0},${percentage}%`;
-              }).join("\\n");
+              }).join("\n");
           
           const encodedUri = encodeURI(csvContent);
           const link = document.createElement("a");
@@ -3276,8 +3291,26 @@ function processStep${index + 1}(data) {
     }
   };
 
-  const clearTestResults = () => {
-    // Clear file results
+  const clearAllResults = () => {
+    // Clear all state (following Claude Web guide)
+    setFile1Data([]);
+    setFile2Data([]);
+    setTestScriptResults(null);
+    setScriptSteps([]);
+    
+    // Clear test environment state
+    setTestFiles({ file1: null, file2: null });
+    setTestScript('');
+    setTestScriptText('');
+    setTestScriptFileName('');
+    
+    // Clear localStorage
+    localStorage.removeItem('file1Data');
+    localStorage.removeItem('file2Data');
+    localStorage.removeItem('lastScriptResults');
+    localStorage.removeItem('scriptSteps');
+    
+    // Clear any displayed results
     const fileResultsElement = document.getElementById('file-results');
     if (fileResultsElement) {
       fileResultsElement.innerHTML = `
@@ -3288,7 +3321,6 @@ function processStep${index + 1}(data) {
       `;
     }
 
-    // Clear script results
     const scriptResultsEl = document.getElementById('script-results');
     if (scriptResultsEl) {
       scriptResultsEl.innerHTML = 'Run a script to see results here...';
@@ -3299,13 +3331,6 @@ function processStep${index + 1}(data) {
     const file2ValidationEl = document.getElementById('file2-validation');
     if (file1ValidationEl) file1ValidationEl.innerHTML = '';
     if (file2ValidationEl) file2ValidationEl.innerHTML = '';
-
-    // Reset state
-    setTestFiles({ file1: null, file2: null });
-    setTestScript('');
-    setTestScriptText('');
-    setTestScriptFileName('');
-    setTestScriptResults(null);
 
     // Clear file inputs
     const file1Input = document.getElementById('test-file1') as HTMLInputElement;
@@ -3319,7 +3344,16 @@ function processStep${index + 1}(data) {
     // Clear global variables
     delete (window as any).uploadedFile1;
     delete (window as any).uploadedFile2;
+    delete (window as any).lastScriptResults;
+    
+    // Update Script Builder table to show empty state
+    updateScriptStepsTable();
+    
+    console.log('✅ All results cleared successfully');
   };
+
+  // Keep clearTestResults for backward compatibility
+  const clearTestResults = clearAllResults;
 
   const [file1Data, setFile1Data] = useState<any[]>([]);
   const [file2Data, setFile2Data] = useState<any[]>([]);
@@ -3336,7 +3370,7 @@ function processStep${index + 1}(data) {
         if (headers.length === 0 || gibberish || headers[0].length > 100) {
           setFile1Data([]);
           localStorage.removeItem('file1Data');
-          showNotification && showNotification('error', 'File Validation Error', 'Previously uploaded file1 was invalid and has been cleared.');
+          console.log('Previously uploaded file1 was invalid and has been cleared.');
         } else {
           setFile1Data(parsed);
         }
@@ -3356,7 +3390,7 @@ function processStep${index + 1}(data) {
         if (headers.length === 0 || gibberish || headers[0].length > 100) {
           setFile2Data([]);
           localStorage.removeItem('file2Data');
-          showNotification && showNotification('error', 'File Validation Error', 'Previously uploaded file2 was invalid and has been cleared.');
+          console.log('Previously uploaded file2 was invalid and has been cleared.');
         } else {
           setFile2Data(parsed);
         }
