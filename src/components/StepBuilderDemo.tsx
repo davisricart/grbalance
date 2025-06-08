@@ -453,7 +453,7 @@ const StepBuilderDemo: React.FC = () => {
   const executeClaudeCodeWithStep = async (code: string, step: StepWithPreview) => {
     try {
       console.log('🔧 Executing code with step:', step.stepNumber);
-      
+
       const availableColumns = Object.keys(getCurrentWorkingData[0] || {});
       let workingData: any[] = [...getCurrentWorkingData];
 
@@ -863,7 +863,7 @@ const StepBuilderDemo: React.FC = () => {
     }
   }, []);
 
-  
+
   return (
     <div className="space-y-6">
       
@@ -1204,7 +1204,7 @@ const StepBuilderDemo: React.FC = () => {
                 >
                   {columnSettings.showColumnManager ? 'Hide Controls' : 'Manage Columns'}
                 </button>
-              </div>
+            </div>
 
               {columnSettings.showColumnManager && (
                 <div className="space-y-6">
@@ -1237,7 +1237,7 @@ const StepBuilderDemo: React.FC = () => {
                           <span className="text-sm text-gray-700 truncate">{column}</span>
                         </label>
                       ))}
-                    </div>
+              </div>
                     <div className="mt-2 flex gap-2">
                       <button
                         onClick={() => setColumnSettings(prev => ({ ...prev, selectedColumns: [] }))}
@@ -1251,8 +1251,8 @@ const StepBuilderDemo: React.FC = () => {
                       >
                         Select None
                       </button>
-                    </div>
-                  </div>
+            </div>
+          </div>
 
                   {/* Column Renaming */}
                   <div>
