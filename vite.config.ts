@@ -14,14 +14,6 @@ export default defineConfig({
     }
   },
   build: {
-    rollupOptions: {
-      external: ['xlsx'],
-      output: {
-        globals: {
-          'xlsx': 'XLSX'
-        }
-      }
-    },
     commonjsOptions: {
       include: [/node_modules/]
     }
