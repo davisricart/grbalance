@@ -323,10 +323,44 @@ const AdminPage: React.FC = () => {
   const [scriptInputMethod, setScriptInputMethod] = useState<'paste' | 'upload'>('paste');
   const [testScriptResults, setTestScriptResults] = useState<any>(null);
   const [isTestingScript, setIsTestingScript] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [showFileValidationMessage, setShowFileValidationMessage] = useState(false);
+  const [validationMessage, setValidationMessage] = useState<string>('');
+  const [validationType, setValidationType] = useState<'error' | 'warning' | ''>('');
   
   // File data states for script testing
   const [file1Data, setFile1Data] = useState<any[]>([]);
   const [file2Data, setFile2Data] = useState<any[]>([]);
+  
+  // Debug effect to track script state changes
+  useEffect(() => {
+    console.log('🔄 Script state changed:', {
+      testScriptLength: testScript.length,
+      testScriptTextLength: testScriptText.length,
+      scriptInputMethod,
+      testScriptFileName
+    });
+  }, [testScript, testScriptText, scriptInputMethod, testScriptFileName]);
+
+  // Debug effect to track validation message state changes
+  useEffect(() => {
+    console.log('🚨 Validation state changed:', {
+      showFileValidationMessage,
+      validationMessage,
+      validationType,
+      isValidating,
+      isTestingScript
+    });
+  }, [showFileValidationMessage, validationMessage, validationType, isValidating, isTestingScript]);
+
+  // Force clear validation messages function
+  const forceClearValidation = () => {
+    console.log('🧹 FORCE CLEARING all validation messages');
+    setShowFileValidationMessage(false);
+    setValidationMessage('');
+    setValidationType('');
+    setIsValidating(false);
+  };
   
   // Script building states
 
@@ -2156,12 +2190,32 @@ Features:
   };
 
   const updateClientResultsReplica = (data: any[]) => {
+    console.log('🔄 updateClientResultsReplica called with', data?.length || 0, 'rows');
     const clientResultsEl = document.getElementById('client-results-replica');
     if (!clientResultsEl) return;
+    
+    // Clear any existing additional tables when new main results come in
+    const additionalContainer = document.getElementById('additional-tables-container');
+    if (additionalContainer) {
+      additionalContainer.remove();
+    }
+    
+    // Also clear from script results section
+    const scriptAdditionalContainer = document.getElementById('script-additional-tables-container');
+    if (scriptAdditionalContainer) {
+      scriptAdditionalContainer.remove();
+    }
     
     // Check if this is card brand analysis results
     if (data && Array.isArray(data) && data.length > 0 && data[0]['Card Brand']) {
       const total = data.reduce((sum, item) => sum + (item.Count || 0), 0);
+      
+      // Apply 5-row limit for card brand display
+      const displayData = data.slice(0, 5);
+      const hasMoreRows = data.length > 5;
+      const resultCountText = hasMoreRows 
+        ? `Showing first 5 of ${data.length} results`
+        : `${data.length} results`;
       
       const cardBrandHTML = `
         <div class="space-y-6">
@@ -2197,9 +2251,15 @@ Features:
                 </div>
               </div>
               
+              <!-- Row count indicator -->
+              <div class="flex items-center justify-between text-sm text-gray-600 mb-4">
+                <div class="font-medium">${resultCountText}</div>
+                ${hasMoreRows ? '<div class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded">Preview mode - Full data available in export</div>' : ''}
+              </div>
+              
               <div class="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
                 <div class="space-y-0">
-                  ${data.map((item, index) => {
+                  ${displayData.map((item, index) => {
                     const percentage = total > 0 ? ((item.Count || 0) / total * 100).toFixed(1) : '0.0';
                     const brandColors = {
                       'Visa': 'bg-blue-500',
@@ -2284,11 +2344,11 @@ Features:
               <div class="space-y-4">
                 <!-- Performance info -->
                 <div class="flex items-center justify-between text-sm text-gray-600 px-4 pt-4">
-                  <div>
-                    Showing ${Math.min(20, data.length)} of ${data.length} rows
+                  <div class="font-medium">
+                    ${data.length > 5 ? `Showing first 5 of ${data.length} rows` : `${data.length} results`}
                   </div>
-                  <div class="text-xs bg-gray-100 px-2 py-1 rounded">
-                    ⚡ Optimized view
+                  <div class="text-xs ${data.length > 5 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100'} px-2 py-1 rounded">
+                    ${data.length > 5 ? '👁️ Preview mode' : '⚡ Complete view'}
                   </div>
                 </div>
 
@@ -2305,7 +2365,7 @@ Features:
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 bg-white">
-                      ${data.slice(0, 20).map((row, rowIndex) => `
+                      ${data.slice(0, 5).map((row, rowIndex) => `
                         <tr class="hover:bg-gray-50 transition-colors duration-150">
                           ${Object.keys(data[0] || {}).map((col, colIndex) => `
                             <td class="px-4 py-3 text-gray-600 max-w-xs truncate" title="${String(row[col] || '')}">
@@ -2318,22 +2378,16 @@ Features:
                   </table>
                 </div>
 
-                <!-- Pagination controls (simplified) -->
-                ${data.length > 20 ? `
-                  <div class="flex items-center justify-between px-4 pb-4">
-                    <div class="text-sm text-gray-600">
-                      Page 1 of ${Math.ceil(data.length / 20)}
-                    </div>
-                    <div class="flex gap-2">
-                      <button class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                        Previous
-                      </button>
-                      <button class="px-3 py-1 text-sm bg-emerald-600 text-white border border-emerald-600 rounded">
-                        1
-                      </button>
-                      <button class="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50">
-                        Next
-                      </button>
+                <!-- Additional data indicator -->
+                ${data.length > 5 ? `
+                  <div class="flex items-center justify-center px-4 pb-4">
+                    <div class="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border">
+                      <span class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>${data.length - 5} additional rows available in full export</span>
+                      </span>
                     </div>
                   </div>
                 ` : ''}
@@ -2705,11 +2759,27 @@ function processStep${index + 1}(data) {
       setTestEnvironmentReady(libsLoaded);
       
       // Add essential window helper functions that Claude scripts expect
-      (window as any).parseFiles = () => {
-        return {
-          data1: file1Data,
-          data2: file2Data
+      (window as any).parseFiles = async () => {
+        console.log('📁 parseFiles() called - returning data:', {
+          data1Length: file1Data.length,
+          data2Length: file2Data.length,
+          data1Available: file1Data.length > 0,
+          data2Available: file2Data.length > 0
+        });
+        
+        const result = {
+          data1: file1Data.length > 0 ? file1Data : null,
+          data2: file2Data.length > 0 ? file2Data : null
         };
+        
+        console.log('📁 parseFiles() result validation:', {
+          hasData1: !!result.data1 && result.data1.length > 0,
+          hasData2: !!result.data2 && result.data2.length > 0,
+          data1Rows: result.data1?.length || 0,
+          data2Rows: result.data2?.length || 0
+        });
+        
+        return result;
       };
       
       (window as any).getFileData = () => {
@@ -2725,6 +2795,7 @@ function processStep${index + 1}(data) {
       
       (window as any).showResults = (data: any[], options: any = {}) => {
         console.log('📊 showResults called with:', data, options);
+        console.log(`🔢 Applying 5-row limit to ${data.length} total rows`);
         
         if (!Array.isArray(data) || data.length === 0) {
           console.log('⚠️ No data to display');
@@ -2742,11 +2813,11 @@ function processStep${index + 1}(data) {
           let scriptHtml = `
             <div class="space-y-4">
               <div class="flex justify-between items-center">
-                <h6 class="font-medium text-gray-900">Script Execution Results</h6>
-                <span class="text-sm text-gray-500">${data.length} items</span>
+                <h6 class="font-medium text-gray-900">Script Results</h6>
+                <span class="text-sm ${data.length > 5 ? 'text-orange-600 bg-orange-50 px-2 py-1 rounded' : 'text-gray-500'}">${data.length > 5 ? `Showing 5 of ${data.length} rows` : `${data.length} results`}</span>
               </div>
               <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
+                <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
                   <thead class="bg-gray-50">
                     <tr>
           `;
@@ -2761,10 +2832,24 @@ function processStep${index + 1}(data) {
                   <tbody class="bg-white divide-y divide-gray-200">
           `;
           
-          data.forEach((row, index) => {
+          data.slice(0, 5).forEach((row, index) => {
             scriptHtml += `<tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}">`;
             headers.forEach(header => {
-              const value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              let value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              
+              // Format monetary values to always show 2 decimal places with $ symbol
+              if (typeof value === 'number' && (
+                header.toLowerCase().includes('amount') ||
+                header.toLowerCase().includes('total') ||
+                header.toLowerCase().includes('fee') ||
+                header.toLowerCase().includes('price') ||
+                header.toLowerCase().includes('difference') ||
+                header.toLowerCase().includes('hub report') ||
+                header.toLowerCase().includes('sales report')
+              )) {
+                value = '$' + value.toFixed(2);
+              }
+              
               scriptHtml += `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">${value}</td>`;
             });
             scriptHtml += '</tr>';
@@ -2774,6 +2859,16 @@ function processStep${index + 1}(data) {
                   </tbody>
                 </table>
               </div>
+              ${data.length > 5 ? `
+                <div class="mt-4 text-center">
+                  <div class="inline-flex items-center px-4 py-2 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>${data.length - 5} additional rows available in client results view</span>
+                  </div>
+                </div>
+              ` : ''}
             </div>
           `;
           
@@ -2784,21 +2879,13 @@ function processStep${index + 1}(data) {
         const resultsEl = document.getElementById('client-results-replica');
         if (resultsEl) {
           let clientHtml = `
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6">
-              <div class="flex items-center justify-between mb-6">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900">Analysis Results</h3>
-                  <p class="text-sm text-gray-600">Generated from your uploaded data</p>
-                </div>
-                <div class="text-right">
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    ${data.length} results
-                  </span>
-                </div>
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <h6 class="font-medium text-gray-900">Client View Results</h6>
+                <span class="text-sm ${data.length > 5 ? 'text-orange-600 bg-orange-50 px-2 py-1 rounded' : 'text-gray-500'}">${data.length > 5 ? `Showing 5 of ${data.length} rows` : `${data.length} results`}</span>
               </div>
-              
-              <div class="overflow-x-auto bg-white rounded-lg shadow-sm border">
-                <table class="min-w-full divide-y divide-gray-200">
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">
                   <thead class="bg-gray-50">
                     <tr>
           `;
@@ -2817,10 +2904,24 @@ function processStep${index + 1}(data) {
                   <tbody class="bg-white divide-y divide-gray-200">
           `;
           
-          data.slice(0, 50).forEach((row, index) => {
+          data.slice(0, 5).forEach((row, index) => {
             clientHtml += `<tr class="hover:bg-gray-50">`;
             headers.forEach(header => {
-              const value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              let value = row[header] === null || row[header] === undefined || row[header] === '' ? '0' : row[header];
+              
+              // Format monetary values to always show 2 decimal places with $ symbol
+              if (typeof value === 'number' && (
+                header.toLowerCase().includes('amount') ||
+                header.toLowerCase().includes('total') ||
+                header.toLowerCase().includes('fee') ||
+                header.toLowerCase().includes('price') ||
+                header.toLowerCase().includes('difference') ||
+                header.toLowerCase().includes('hub report') ||
+                header.toLowerCase().includes('sales report')
+              )) {
+                value = '$' + value.toFixed(2);
+              }
+              
               clientHtml += `
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">
                   ${value}
@@ -2834,10 +2935,14 @@ function processStep${index + 1}(data) {
                   </tbody>
                 </table>
               </div>
-              
-              ${data.length > 50 ? `
+              ${data.length > 5 ? `
                 <div class="mt-4 text-center">
-                  <p class="text-sm text-gray-500">Showing first 50 of ${data.length} results</p>
+                  <div class="inline-flex items-center px-4 py-2 text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded-lg">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>${data.length - 5} additional rows available in full results</span>
+                  </div>
                 </div>
               ` : ''}
             </div>
@@ -2962,6 +3067,11 @@ function processStep${index + 1}(data) {
         // Store raw file data for scripts that need ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
         (window as any).rawFile1Data = arrayBuffer;
+        console.log('📁 File 1 data stored:', { 
+          parsedRows: parsedData.rows.length, 
+          arrayBufferSize: arrayBuffer.byteLength,
+          hasRawData: !!(window as any).rawFile1Data 
+        });
       } else {
         setFile2Data(parsedData.rows);
         localStorage.setItem('file2Data', JSON.stringify(parsedData.rows));
@@ -2969,8 +3079,18 @@ function processStep${index + 1}(data) {
         // Store raw file data for scripts that need ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
         (window as any).rawFile2Data = arrayBuffer;
+        console.log('📁 File 2 data stored:', { 
+          parsedRows: parsedData.rows.length, 
+          arrayBufferSize: arrayBuffer.byteLength,
+          hasRawData: !!(window as any).rawFile2Data 
+        });
       }
 
+      // Clear any existing validation messages since files are now uploaded
+      setValidationMessage('');
+      setValidationType('');
+      setShowFileValidationMessage(false);
+      
       // Update validation display - success with detailed headers info
       if (validationEl) {
         const headers = parsedData.headers;
@@ -3039,8 +3159,19 @@ function processStep${index + 1}(data) {
       }
       
       const scriptContent = await file.text();
+      
+      // Update all script-related state
       setTestScript(scriptContent);
       setTestScriptFileName(file.name);
+      setScriptInputMethod('upload');
+      
+      // Clear any existing validation messages since script is now loaded
+      setValidationMessage('');
+      setValidationType('');
+      setShowFileValidationMessage(false);
+      
+      console.log('📄 Script uploaded successfully:', file.name, `(${scriptContent.length} characters)`);
+      console.log('📄 Setting testScript state to:', scriptContent.substring(0, 100) + '...');
       
       // Script loaded successfully - display removed to keep results only in Script Builder
     } catch (error) {
@@ -3111,48 +3242,129 @@ function processStep${index + 1}(data) {
       processTestFiles();
     }
     
-    // Small delay to ensure file processing completes
+    // Increased delay to ensure file processing AND React state updates complete
     setTimeout(() => {
       runTestScript();
-    }, 500);
+    }, 750);
   };
 
   const runTestScript = async () => {
-    // Get script content from either paste or upload method
-    const scriptContent = scriptInputMethod === 'paste' ? testScriptText : testScript;
+    // Prevent duplicate validation calls
+    if (isValidating || isTestingScript) {
+      console.log('🚫 Skipping validation - already in progress');
+      return;
+    }
     
-    console.log('🧪 Script execution check:', { 
+    setIsValidating(true);
+    
+    // CRITICAL FIX: Get current state values directly instead of relying on potentially stale state
+    const currentTestScript = testScript || '';
+    const currentTestScriptText = testScriptText || '';
+    const currentScriptInputMethod = scriptInputMethod;
+    
+    console.log('🔍 DEBUGGING: Current state values:', {
+      testScript: currentTestScript.length,
+      testScriptText: currentTestScriptText.length,
+      scriptInputMethod: currentScriptInputMethod,
+      testScriptFileName
+    });
+    
+    // Get script content from either paste or upload method with comprehensive fallback
+    let scriptContent = '';
+    
+    // Primary check based on input method
+    if (currentScriptInputMethod === 'paste') {
+      scriptContent = currentTestScriptText;
+    } else if (currentScriptInputMethod === 'upload') {
+      scriptContent = currentTestScript;
+    }
+    
+    // Fallback: Check both sources regardless of input method (handles state timing issues)
+    if (!scriptContent || scriptContent.trim().length === 0) {
+      console.log('🔍 Primary check failed, trying fallback...');
+      if (currentTestScript && currentTestScript.trim().length > 0) {
+        scriptContent = currentTestScript;
+        console.log('✅ Found script in testScript (uploaded)');
+      } else if (currentTestScriptText && currentTestScriptText.trim().length > 0) {
+        scriptContent = currentTestScriptText;
+        console.log('✅ Found script in testScriptText (pasted)');
+      } else {
+        console.log('❌ No script content found in either source');
+      }
+    }
+    
+    const hasFiles = file1Data.length > 0;
+    const hasScript = scriptContent && scriptContent.trim().length > 0;
+    
+    console.log('🧪 Script execution validation:', { 
       scriptInputMethod, 
       testScriptTextLength: testScriptText?.length || 0,
       testScriptLength: testScript?.length || 0,
+      testScriptFileName,
       file1DataLength: file1Data.length,
-      hasScriptContent: !!scriptContent && scriptContent.trim().length > 0
+      hasFiles,
+      hasScript,
+      scriptContentLength: scriptContent?.length || 0,
+      actualScriptContent: scriptContent ? scriptContent.substring(0, 100) + '...' : 'EMPTY'
     });
     
-    if (!scriptContent || scriptContent.trim().length === 0) {
-      console.log('❌ No script content available');
-      return;
-    }
-
-    if (file1Data.length === 0) {
-      console.log('❌ No file data available');
-      const displayElement = document.getElementById('script-results-display') || 
-                           document.querySelector('[id*="result"]');
+    // Clear any existing validation messages
+    setValidationMessage('');
+    setValidationType('');
+    setShowFileValidationMessage(false);
+    
+    // Comprehensive validation with specific messages
+    if (!hasScript && !hasFiles) {
+      // Both missing
+      setValidationMessage('⚠️ Please upload files and paste script before running');
+      setValidationType('warning');
+      setShowFileValidationMessage(true);
+      console.log('❌ Validation failed: Both files and script missing');
       
-      if (displayElement) {
-        displayElement.innerHTML = `
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <h3 class="text-red-800 font-semibold mb-2">❌ File Data Required</h3>
-            <p class="text-sm text-red-700">Please upload and process at least one file before running the script.</p>
-          </div>
-        `;
-      }
+      setTimeout(() => {
+        setShowFileValidationMessage(false);
+        setIsValidating(false);
+      }, 5000);
+      return;
+      
+    } else if (!hasScript) {
+      // Script missing only
+      setValidationMessage('⚠️ Please paste a JavaScript script before running');
+      setValidationType('warning');
+      setShowFileValidationMessage(true);
+      console.log('❌ Validation failed: Script missing');
+      
+      setTimeout(() => {
+        setShowFileValidationMessage(false);
+        setIsValidating(false);
+      }, 5000);
+      return;
+      
+    } else if (!hasFiles) {
+      // Files missing only
+      setValidationMessage('⚠️ Please upload files before running script');
+      setValidationType('warning');
+      setShowFileValidationMessage(true);
+      console.log('❌ Validation failed: Files missing');
+      
+      setTimeout(() => {
+        setShowFileValidationMessage(false);
+        setIsValidating(false);
+      }, 5000);
       return;
     }
+    
+    // All validations passed - clear any messages and proceed
+    setValidationMessage('');
+    setValidationType('');
+    setShowFileValidationMessage(false);
     
     console.log('✅ Script ready to run!');
 
     try {
+      // FORCE CLEAR all validation messages before execution
+      forceClearValidation();
+      
       setIsTestingScript(true);
       console.log('🚀 Starting script execution with data:', { file1Rows: file1Data.length, file2Rows: file2Data.length });
       
@@ -3183,17 +3395,190 @@ function processStep${index + 1}(data) {
       (window as any).file1 = (window as any).rawFile1Data; // Raw ArrayBuffer for XLSX scripts
       (window as any).file2 = (window as any).rawFile2Data; // Raw ArrayBuffer for XLSX scripts
       
+      // CRITICAL: Ensure we have file data available even if raw data missing
+      if (!(window as any).rawFile1Data && file1Data.length > 0) {
+        console.warn('⚠️ Raw file1 data not available - creating from parsed data');
+        // Some scripts might work with parsed data instead
+        (window as any).file1 = file1Data;
+      }
+      if (!(window as any).rawFile2Data && file2Data.length > 0) {
+        console.warn('⚠️ Raw file2 data not available - creating from parsed data');
+        (window as any).file2 = file2Data;
+      }
+      
+      // ADDITIONAL COMPATIBILITY: Common script variable names
+      (window as any).data1 = file1Data;
+      (window as any).data2 = file2Data;
+      (window as any).fileData1 = file1Data;
+      (window as any).fileData2 = file2Data;
+      
       // Make XLSX library available globally for scripts
       (window as any).XLSX = XLSX;
       
-      // Ensure raw file data is available for scripts that need ArrayBuffer
-      // These should already be set during file upload, but double-check
-      if (!(window as any).rawFile1Data && file1Data.length > 0) {
-        console.warn('⚠️ Raw file1 data not available, some scripts may fail');
-      }
-      if (!(window as any).rawFile2Data && file2Data.length > 0) {
-        console.warn('⚠️ Raw file2 data not available, some scripts may fail');
-      }
+      // Add validation helpers for scripts
+      (window as any).hasFile1 = () => file1Data.length > 0;
+      (window as any).hasFile2 = () => file2Data.length > 0;
+      (window as any).getFile1RowCount = () => file1Data.length;
+      (window as any).getFile2RowCount = () => file2Data.length;
+      
+      // Add helper for scripts to append additional tables/content
+      (window as any).addAdditionalTable = (html: string, tableId?: string) => {
+        console.log('📊 addAdditionalTable called with HTML length:', html.length);
+        
+        // Strip heavy container styling and extract clean table content
+        const cleanHtml = html
+          // Remove heavy bordered containers
+          .replace(/<div[^>]*bg-gradient-to-br[^>]*>[\s\S]*?<div[^>]*bg-gradient-to-r[^>]*>/g, '')
+          .replace(/<\/div>\s*<\/div>\s*$/g, '')
+          // Remove nested border containers
+          .replace(/rounded-xl border[^>]*shadow-sm/g, '')
+          .replace(/border-[a-z]+-200/g, '')
+          .replace(/overflow-hidden/g, '')
+          // Clean up extra wrapper divs
+          .replace(/<div[^>]*class="[^"]*space-y-6[^"]*"[^>]*>/g, '')
+          .replace(/<div[^>]*class="[^"]*rounded-xl[^"]*"[^>]*>/g, '');
+        
+        // 1. Add to Client View section (client-results-replica) 
+        const clientResultsEl = document.getElementById('client-results-replica');
+        if (clientResultsEl) {
+          // Create a container for additional content if it doesn't exist
+          let additionalContainer = document.getElementById('additional-tables-container');
+          if (!additionalContainer) {
+            additionalContainer = document.createElement('div');
+            additionalContainer.id = 'additional-tables-container';
+            additionalContainer.className = 'mt-6 space-y-6';
+            clientResultsEl.appendChild(additionalContainer);
+          }
+          
+          // Create clean table container matching Script Results style
+          const tableContainer = document.createElement('div');
+          if (tableId) {
+            tableContainer.id = tableId;
+          }
+          tableContainer.className = 'space-y-4';
+          
+          // Apply clean styling that matches Script Results and format monetary values
+          let cleanClientHtml = cleanHtml
+            // Ensure table uses clean styling with border directly on table element
+            .replace(/<table[^>]*>/g, '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">')
+            .replace(/<thead[^>]*>/g, '<thead class="bg-gray-50">')
+            .replace(/<tbody[^>]*>/g, '<tbody class="bg-white divide-y divide-gray-200">')
+            .replace(/<th[^>]*>/g, '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0">')
+            .replace(/<td[^>]*>/g, '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">');
+          
+          // Format monetary values in additional tables to always show 2 decimal places with $ symbol
+          cleanClientHtml = cleanClientHtml.replace(/<td[^>]*>([^<]*)<\/td>/g, (match, content) => {
+            if (content && !isNaN(content) && !content.includes('$') && (
+              content.includes('.') || /^\d+$/.test(content.trim())
+            )) {
+              const num = parseFloat(content);
+              if (!isNaN(num) && num !== 0) {
+                return match.replace(content, '$' + num.toFixed(2));
+              }
+            }
+            return match;
+          });
+          
+          tableContainer.innerHTML = `<div class="overflow-x-auto">${cleanClientHtml}</div>`;
+          additionalContainer.appendChild(tableContainer);
+          
+          console.log('✅ Additional table added to client results with clean styling');
+        }
+        
+        // 2. Add to Script Results section (script-results-display)
+        const scriptResultsEl = document.getElementById('script-results-display');
+        if (scriptResultsEl) {
+          // Create a container for additional script content if it doesn't exist
+          let scriptAdditionalContainer = document.getElementById('script-additional-tables-container');
+          if (!scriptAdditionalContainer) {
+            scriptAdditionalContainer = document.createElement('div');
+            scriptAdditionalContainer.id = 'script-additional-tables-container';
+            scriptAdditionalContainer.className = 'mt-6 space-y-6';
+            scriptResultsEl.appendChild(scriptAdditionalContainer);
+          }
+          
+          // Create clean script version 
+          const scriptTableContainer = document.createElement('div');
+          if (tableId) {
+            scriptTableContainer.id = `script-${tableId}`;
+          }
+          scriptTableContainer.className = 'space-y-4';
+          
+          // Apply same clean styling for script results and format monetary values
+          let cleanScriptHtml = cleanHtml
+            .replace(/<table[^>]*>/g, '<table class="min-w-full divide-y divide-gray-200 border border-gray-300 rounded-lg">')
+            .replace(/<thead[^>]*>/g, '<thead class="bg-gray-50">')
+            .replace(/<tbody[^>]*>/g, '<tbody class="bg-white divide-y divide-gray-200">')
+            .replace(/<th[^>]*>/g, '<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0">')
+            .replace(/<td[^>]*>/g, '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-200 last:border-r-0">');
+          
+          // Format monetary values in script additional tables to always show 2 decimal places with $ symbol
+          cleanScriptHtml = cleanScriptHtml.replace(/<td[^>]*>([^<]*)<\/td>/g, (match, content) => {
+            if (content && !isNaN(content) && !content.includes('$') && (
+              content.includes('.') || /^\d+$/.test(content.trim())
+            )) {
+              const num = parseFloat(content);
+              if (!isNaN(num) && num !== 0) {
+                return match.replace(content, '$' + num.toFixed(2));
+              }
+            }
+            return match;
+          });
+          
+          scriptTableContainer.innerHTML = `<div class="overflow-x-auto">${cleanScriptHtml}</div>`;
+          scriptAdditionalContainer.appendChild(scriptTableContainer);
+          
+          console.log('✅ Additional table added to script results with clean styling');
+        }
+      };
+      
+      // Clear additional tables function
+      (window as any).clearAdditionalTables = () => {
+        // Clear from Client View
+        const additionalContainer = document.getElementById('additional-tables-container');
+        if (additionalContainer) {
+          additionalContainer.remove();
+        }
+        
+        // Clear from Script Results  
+        const scriptAdditionalContainer = document.getElementById('script-additional-tables-container');
+        if (scriptAdditionalContainer) {
+          scriptAdditionalContainer.remove();
+        }
+        
+        console.log('🧹 Additional tables cleared from both sections');
+      };
+      
+      // Provide backward compatibility for scripts trying to use querySelector
+      (window as any).getResultsContainer = () => {
+        console.log('🔍 Script requested results container - providing client-results-replica');
+        return document.getElementById('client-results-replica');
+      };
+      
+      // CRITICAL: Ensure parseFiles is available during script execution
+      (window as any).parseFiles = async () => {
+        console.log('📁 parseFiles() called during script execution - returning data:', {
+          data1Length: file1Data.length,
+          data2Length: file2Data.length,
+          data1Available: file1Data.length > 0,
+          data2Available: file2Data.length > 0
+        });
+        
+        const result = {
+          data1: file1Data.length > 0 ? file1Data : null,
+          data2: file2Data.length > 0 ? file2Data : null
+        };
+        
+        console.log('📁 parseFiles() execution result:', {
+          hasData1: !!result.data1 && result.data1.length > 0,
+          hasData2: !!result.data2 && result.data2.length > 0,
+          data1Rows: result.data1?.length || 0,
+          data2Rows: result.data2?.length || 0,
+          resultType: typeof result
+        });
+        
+        return result;
+      };
 
       // INTEGRATION: Add step from results
       (window as any).addStepFromResults = () => {
@@ -3272,9 +3657,30 @@ function processStep${index + 1}(data) {
         uploadedFile1Length: ((window as any).uploadedFile1 || []).length,
         uploadedFile2: !!(window as any).uploadedFile2,
         uploadedFile2Length: ((window as any).uploadedFile2 || []).length,
+        file1: !!(window as any).file1,
+        file1Type: typeof (window as any).file1,
+        file2: !!(window as any).file2,
+        file2Type: typeof (window as any).file2,
+        file1Data: !!(window as any).file1Data,
+        file2Data: !!(window as any).file2Data,
+        data1: !!(window as any).data1,
+        data2: !!(window as any).data2,
         rawFile1Data: !!(window as any).rawFile1Data,
-        rawFile2Data: !!(window as any).rawFile2Data
+        rawFile2Data: !!(window as any).rawFile2Data,
+        XLSX: !!(window as any).XLSX,
+        parseFiles: !!(window as any).parseFiles,
+        parseFilesType: typeof (window as any).parseFiles,
+        addAdditionalTable: !!(window as any).addAdditionalTable,
+        clearAdditionalTables: !!(window as any).clearAdditionalTables
       });
+      
+      // CRITICAL DEBUG: Last chance to verify data before script execution
+      console.log('🔎 FINAL DATA CHECK BEFORE SCRIPT EXECUTION:');
+      console.log('- file1Data state length:', file1Data.length);
+      console.log('- file2Data state length:', file2Data.length);
+      console.log('- window.uploadedFile1 length:', (window as any).uploadedFile1?.length || 0);
+      console.log('- window.file1 available:', !!(window as any).file1);
+      console.log('- window.file1Data length:', (window as any).file1Data?.length || 0);
       
       // Create a safe evaluation context
       const evaluateScript = new Function('window', scriptContent);
@@ -3294,6 +3700,11 @@ function processStep${index + 1}(data) {
       // Script execution error - display removed to keep results only in Script Builder
     } finally {
       setIsTestingScript(false);
+      setIsValidating(false);
+      // Ensure validation messages are cleared after script execution
+      setValidationMessage('');
+      setValidationType('');
+      setShowFileValidationMessage(false);
     }
   };
 
@@ -3363,23 +3774,159 @@ function processStep${index + 1}(data) {
 
   // Save current script as .js file
   const saveScriptToFile = () => {
-    const finalScript = generateFinalScript();
-    if (!finalScript) {
-
+    let scriptContent = '';
+    let fileName = '';
+    
+    // Determine what script content to save
+    if (scriptSteps.length > 0) {
+      // Save generated script from visual builder
+      scriptContent = generateFinalScript();
+      fileName = `gr-balance-generated-script-${new Date().toISOString().split('T')[0]}.js`;
+      console.log('💾 Saving generated script from visual builder');
+    } else if (scriptInputMethod === 'paste' && testScriptText && testScriptText.trim().length > 0) {
+      // Save pasted script
+      scriptContent = testScriptText;
+      fileName = `gr-balance-pasted-script-${new Date().toISOString().split('T')[0]}.js`;
+      console.log('💾 Saving pasted script content');
+    } else if (testScript && testScript.trim().length > 0) {
+      // Save uploaded script
+      scriptContent = testScript;
+      fileName = testScriptFileName ? 
+        `${testScriptFileName.replace('.js', '')}-copy-${new Date().toISOString().split('T')[0]}.js` :
+        `gr-balance-uploaded-script-${new Date().toISOString().split('T')[0]}.js`;
+      console.log('💾 Saving uploaded script content');
+    } else {
+      // No script content available - notification removed per user request
+      console.log('❌ No script content available to save');
       return;
     }
 
-    const blob = new Blob([finalScript], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `gr-balance-script-${new Date().toISOString().split('T')[0]}.js`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
+    if (!scriptContent || scriptContent.trim().length === 0) {
+      // Script content is empty - notification removed per user request
+      console.log('❌ Script content is empty');
+      return;
+    }
 
+    try {
+      // Create and download the file
+      const blob = new Blob([scriptContent], { type: 'text/javascript' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      // Notification removed per user request - just log success
+      console.log(`✅ Script saved successfully as ${fileName}`);
+      
+    } catch (error) {
+      console.error('❌ Error saving script:', error);
+      // Notification removed per user request - just log error
+    }
+  };
+
+  // Download complete script results to Excel for admin development
+  const downloadScriptResultsToExcel = () => {
+    try {
+      console.log('📊 Starting Excel download for admin development');
+      
+      // Check if we have any results to download
+      const lastResults = (window as any).lastScriptResults;
+      if (!lastResults || !Array.isArray(lastResults) || lastResults.length === 0) {
+        // Notification removed per user request - just log warning
+        console.log('⚠️ No script results available for Excel download');
+        return;
+      }
+      
+      // Create workbook
+      const workbook = XLSX.utils.book_new();
+      
+      // Determine script name for filename
+      const scriptName = testScriptFileName ? 
+        testScriptFileName.replace('.js', '') :
+        (scriptInputMethod === 'paste' ? 'pasted-script' : 'uploaded-script');
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `results-${scriptName}-${timestamp}.xlsx`;
+      
+      // Add main results as first worksheet
+      console.log(`📊 Adding main results (${lastResults.length} rows) to Excel`);
+      const mainWorksheet = XLSX.utils.json_to_sheet(lastResults);
+      XLSX.utils.book_append_sheet(workbook, mainWorksheet, 'Main Results');
+      
+      // Check for additional tables by extracting data from DOM
+      let additionalTablesCount = 0;
+      const additionalContainer = document.getElementById('script-additional-tables-container');
+      if (additionalContainer) {
+        const tables = additionalContainer.querySelectorAll('table');
+        tables.forEach((table, index) => {
+          try {
+            const tableData = [];
+            const headers = [];
+            
+            // Extract headers
+            const headerRow = table.querySelector('thead tr');
+            if (headerRow) {
+              headerRow.querySelectorAll('th').forEach(th => {
+                headers.push(th.textContent?.trim() || `Column ${headers.length + 1}`);
+              });
+            }
+            
+            // Extract data rows
+            const bodyRows = table.querySelectorAll('tbody tr');
+            bodyRows.forEach(row => {
+              const rowData = {};
+              row.querySelectorAll('td').forEach((cell, cellIndex) => {
+                const header = headers[cellIndex] || `Column ${cellIndex + 1}`;
+                rowData[header] = cell.textContent?.trim() || '';
+              });
+              if (Object.keys(rowData).length > 0) {
+                tableData.push(rowData);
+              }
+            });
+            
+            if (tableData.length > 0) {
+              console.log(`📊 Adding additional table ${index + 1} (${tableData.length} rows) to Excel`);
+              const worksheet = XLSX.utils.json_to_sheet(tableData);
+              // Create descriptive sheet name
+              const tableTitle = table.closest('div')?.querySelector('h3')?.textContent?.trim() || 
+                               `Additional_Table_${index + 1}`;
+              const sheetName = tableTitle.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 31);
+              XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+              additionalTablesCount++;
+            }
+          } catch (error) {
+            console.warn(`⚠️ Failed to extract data from table ${index + 1}:`, error);
+          }
+        });
+      }
+      
+      // Add metadata worksheet with analysis info
+      const metadata = [{
+        'Analysis Date': new Date().toLocaleString(),
+        'Script Name': scriptName,
+        'Total Worksheets': workbook.SheetNames.length,
+        'Main Results Rows': lastResults.length,
+        'Additional Tables': additionalTablesCount,
+        'File Source': scriptInputMethod === 'paste' ? 'Pasted Script' : 'Uploaded Script',
+        'Generated By': 'GR Balance Admin Development Tool'
+      }];
+      const metadataWorksheet = XLSX.utils.json_to_sheet(metadata);
+      XLSX.utils.book_append_sheet(workbook, metadataWorksheet, 'Analysis_Info');
+      
+      // Download the file
+      XLSX.writeFile(workbook, filename);
+      
+      // Notification removed per user request - just log success
+      const totalSheets = workbook.SheetNames.length;
+      console.log(`✅ Excel file downloaded: ${filename} with ${totalSheets} worksheets`);
+      
+    } catch (error) {
+      console.error('❌ Error downloading Excel file:', error);
+      // Notification removed per user request - just log error
+    }
   };
 
   // Load script from file
@@ -3390,7 +3937,11 @@ function processStep${index + 1}(data) {
       if (content) {
         setTestScriptText(content);
         setScriptInputMethod('paste');
-
+        
+        // Clear any existing validation messages since script is now loaded
+        setValidationMessage('');
+        setValidationType('');
+        setShowFileValidationMessage(false);
       }
     };
     reader.readAsText(file);
@@ -5320,7 +5871,12 @@ function processStep${index + 1}(data) {
                   <div className="flex mb-4 border-b border-gray-200">
                     <button
                       type="button"
-                      onClick={() => setScriptInputMethod('paste')}
+                      onClick={() => {
+                        setScriptInputMethod('paste');
+                        // Clear uploaded script when switching to paste mode
+                        setTestScript('');
+                        setTestScriptFileName('');
+                      }}
                       className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 ${
                         scriptInputMethod === 'paste'
                           ? 'text-blue-600 border-blue-600'
@@ -5331,7 +5887,11 @@ function processStep${index + 1}(data) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setScriptInputMethod('upload')}
+                      onClick={() => {
+                        setScriptInputMethod('upload');
+                        // Clear pasted script when switching to upload mode
+                        setTestScriptText('');
+                      }}
                       className={`px-4 py-2 -mb-px text-sm font-medium border-b-2 ${
                         scriptInputMethod === 'upload'
                           ? 'text-blue-600 border-blue-600'
@@ -5349,7 +5909,15 @@ function processStep${index + 1}(data) {
                         <textarea
                           id="test-script-textarea"
                           value={testScriptText}
-                          onChange={(e) => setTestScriptText(e.target.value)}
+                          onChange={(e) => {
+                            setTestScriptText(e.target.value);
+                            // Clear validation messages when script content is added
+                            if (e.target.value.trim().length > 0) {
+                              setValidationMessage('');
+                              setValidationType('');
+                              setShowFileValidationMessage(false);
+                            }
+                          }}
                           placeholder="Paste your Claude-generated script here..."
                           className="w-full h-40 px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
                         />
@@ -5366,7 +5934,7 @@ function processStep${index + 1}(data) {
                         )}
                       </div>
                       <p className="text-xs text-gray-500">
-                        Paste the complete IIFE async function from Claude here
+                        Paste your JavaScript reconciliation script here
                       </p>
                       {testScriptText && (
                         <p className="text-xs text-green-600">
@@ -5425,19 +5993,40 @@ function processStep${index + 1}(data) {
                   <button
                     id="run-comparison-btn"
                     onClick={runTestScript}
-                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors text-sm shadow-sm"
+                    className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all duration-200 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
                     🚀 Run Script
                   </button>
                   <button
                     id="clear-results-btn"
                     onClick={clearAllResults}
-                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium transition-colors text-sm shadow-sm"
+                    className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 font-medium transition-all duration-200 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     title="Clear script execution output and results"
                   >
                     🔄 Reset Output
                   </button>
+                  <button
+                    id="download-excel-btn"
+                    onClick={downloadScriptResultsToExcel}
+                    className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 font-medium transition-all duration-200 text-sm shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    title="Download complete script results as Excel file for admin analysis"
+                  >
+                    📊 Download to Excel
+                  </button>
                 </div>
+
+                {/* Inline Validation Message */}
+                {showFileValidationMessage && validationMessage && !isTestingScript && 
+                 !(testScript && testScript.length > 0) && !(testScriptText && testScriptText.length > 0) && (
+                  <div className={`mb-4 p-3 rounded-lg flex items-center space-x-2 text-sm animate-pulse ${
+                    validationType === 'warning' 
+                      ? 'bg-amber-50 border border-amber-200 text-amber-800'
+                      : 'bg-red-50 border border-red-200 text-red-800'
+                  }`}>
+                    <span className="text-base">{validationType === 'warning' ? '⚠️' : '❌'}</span>
+                    <span>{validationMessage}</span>
+                  </div>
+                )}
 
                 {/* Results Section */}
                 <div id="results-section" className="space-y-6">
@@ -5452,7 +6041,7 @@ function processStep${index + 1}(data) {
                         
                         <button
                           onClick={saveScriptToFile}
-                          className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center space-x-1"
+                          className="px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 flex items-center space-x-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                         >
                           <span>💾</span>
                           <span>Save Script</span>
@@ -5462,7 +6051,7 @@ function processStep${index + 1}(data) {
                         
                         <button
                           onClick={clearScriptSteps}
-                          className="px-3 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 flex items-center space-x-1"
+                          className="px-3 py-2 bg-slate-600 text-white text-sm rounded-md hover:bg-slate-700 flex items-center space-x-1 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                           title="Clear step-by-step execution history display"
                         >
                           <span>📋</span>
@@ -5476,9 +6065,7 @@ function processStep${index + 1}(data) {
                     {/* Script Results Display */}
                     <div className="bg-white border border-gray-200 rounded-lg mb-6">
                       <div className="p-4">
-                        <h5 className="font-medium text-gray-900 mb-4">Script Execution Results</h5>
-                        
-                        {/* Direct display of script execution results */}
+                        {/* Dynamic results populated by showResults function */}
                         <div id="script-results-display" className="min-h-[200px]">
                           <div className="text-center text-gray-500 py-8">
                             Run your script to see results here...
