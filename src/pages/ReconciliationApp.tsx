@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { auth } from '../main';
 import { onAuthStateChanged, User } from 'firebase/auth';
+
+import { auth } from '../main';
 import LoginPage from './LoginPage';
 import { MainPage } from './MainPage';
 

@@ -20,7 +20,6 @@ export default function BookingCalendar() {
       setTimeout(() => {
         try {
           if (window.Cal) {
-            console.log('Cal object found, initializing embed...');
             window.Cal("init", { origin: "https://cal.com" });
             window.Cal("inline", {
               elementOrSelector: "#cal-booking-inline",
@@ -32,24 +31,19 @@ export default function BookingCalendar() {
         hideEventTypeDetails: false,
               layout: "month_view"
             });
-            console.log('Cal embed initialized, checking for content...');
             
             // Check if embed actually loaded content
             setTimeout(() => {
               const container = document.getElementById('cal-booking-inline');
-              console.log('Container check:', container, 'Children:', container?.children.length);
               if (container && container.children.length > 0) {
                 // Embed worked! Clear the fallback timer
-                console.log('Embed successful! Hiding fallback.');
                 clearTimeout(fallbackTimer);
               } else {
                 // Embed didn't load content, show fallback
-                console.log('Embed failed to load content, showing fallback.');
                 setShowFallback(true);
               }
             }, 2000);
           } else {
-            console.log('Cal object not found, showing fallback.');
             setShowFallback(true);
           }
         } catch (error) {

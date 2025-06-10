@@ -1,12 +1,13 @@
 // PAGE MARKER: Register Page Component
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
-import { auth, db } from '../main';
-import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Building } from 'lucide-react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import clientConfig from '../config/client';
 import { Helmet } from 'react-helmet';
+import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Building } from 'lucide-react';
+
+import { auth, db } from '../main';
+import clientConfig from '../config/client';
 
 const TIER_LIMITS = {
   starter: 50,

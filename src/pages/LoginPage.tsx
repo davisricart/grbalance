@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../main';
-import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
-import clientConfig from '../config/client';
 import { Helmet } from 'react-helmet';
+import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
+
+import { auth, db } from '../main';
+import clientConfig from '../config/client';
 
 export default function LoginPage() {
   const navigate = useNavigate();

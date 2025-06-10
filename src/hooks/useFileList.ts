@@ -18,10 +18,8 @@ export const useFileList = () => {
         }
         const data: FileListResponse = await response.json();
         setFiles(data.files);
-        console.log('📂 Loaded dynamic file list:', data.files);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('❌ Error loading file list:', err);
       } finally {
         setLoading(false);
       }

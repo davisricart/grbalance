@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { useFileList } from '../hooks/useFileList';
 
 interface DynamicFileDropdownProps {
@@ -10,7 +11,7 @@ interface DynamicFileDropdownProps {
   label?: string;
 }
 
-export const DynamicFileDropdown: React.FC<DynamicFileDropdownProps> = ({
+const DynamicFileDropdown: React.FC<DynamicFileDropdownProps> = ({
   value,
   onChange,
   placeholder = "Select a file...",
@@ -82,4 +83,6 @@ export const DynamicFileDropdown: React.FC<DynamicFileDropdownProps> = ({
       </div>
     </div>
   );
-}; 
+};
+
+export default DynamicFileDropdown; 

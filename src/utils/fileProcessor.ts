@@ -1,20 +1,11 @@
 import * as XLSX from 'xlsx';
 
-export interface ParsedFileData {
-  filename: string;
-  headers: string[];
-  rows: { [key: string]: any }[];
-  summary: {
-    totalRows: number;
-    columns: number;
-    sampleData: { [key: string]: any }[];
-  };
-}
+import { FileRow, ValidationResult, ParsedFileData } from '../types';
 
 export async function parseFile(file: File): Promise<ParsedFileData> {
   // SECURITY: Validate file before parsing
-  const { bulletproofValidateFile } = await import('./bulletproofFileValidator');
-  const validation = await bulletproofValidateFile(file);
+  const { validateFile } = await import('./fileValidator');
+  const validation = await validateFile(file);
   
   if (!validation.isValid) {
     const errorMsg = validation.securityWarning 
@@ -52,13 +43,13 @@ export async function parseFile(file: File): Promise<ParsedFileData> {
         
         // First row is headers
         const headers = jsonData[0] as string[];
-        const dataRows = jsonData.slice(1) as any[][];
+        const dataRows = jsonData.slice(1) as (string | number)[][];
         
         // Convert to objects
-        const rows = dataRows.map((row: any[]) => {
-          const obj: { [key: string]: any } = {};
+        const rows = dataRows.map((row: (string | number)[]) => {
+          const obj: FileRow = {};
           headers.forEach((header, index) => {
-            obj[header] = row[index] || '';
+            obj[header] = row[index] ?? '';
           });
           return obj;
         });

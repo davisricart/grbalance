@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+
 import { db, auth } from '../main';
 
 interface UsageData {
@@ -66,7 +67,6 @@ export default function UsageCounter() {
         } else {
           // Don't auto-create documents - let registration handle this
           // This prevents automatic recreation of deleted test accounts
-          console.log('No usage document found for user:', auth.currentUser?.email);
         }
       },
       (error) => {

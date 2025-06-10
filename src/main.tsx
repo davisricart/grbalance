@@ -1,18 +1,19 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App'
-import './index.css'
-import { initializeApp } from 'firebase/app'
-import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+import App from './App';
+import './index.css';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBNdKlkXK2zLWKNbqL9HbnHgq3iHpg7AKs",
-  authDomain: "gr-balance.firebaseapp.com",
-  projectId: "gr-balance",
-  storageBucket: "gr-balance.firebasestorage.app",
-  messagingSenderId: "888884147701",
-  appId: "1:888884147701:web:361c589f7c3488f4ba5cbc"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)

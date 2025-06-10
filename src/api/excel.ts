@@ -3,8 +3,6 @@ import { safeLoadFile } from '../utils/universalFileValidator';
 
 export async function fetchExcelFile(filename: string) {
   try {
-    console.log(`🔒 Safe loading Excel file: ${filename}`);
-    
     // Step 1: Universal validation before parsing
     const validation = await safeLoadFile(`/sample-data/${filename}`);
     
@@ -12,7 +10,6 @@ export async function fetchExcelFile(filename: string) {
       const errorMsg = validation.securityWarning 
         ? `🚨 SECURITY: ${validation.error} - ${validation.securityWarning}`
         : validation.error;
-      console.error(`❌ Blocked ${filename}:`, errorMsg);
       return { 
         headers: [], 
         data: [], 
@@ -37,7 +34,6 @@ export async function fetchExcelFile(filename: string) {
     const headers = jsonData[0] as string[];
     const data = jsonData.slice(1);
     
-    console.log(`✅ Successfully loaded validated Excel: ${filename}`);
     return {
       headers,
       data,

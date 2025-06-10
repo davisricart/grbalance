@@ -29,14 +29,21 @@ import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
+import {
+  ReconciliationResult,
+  TestResult,
+  FileRow,
+  ScriptExecutionResult,
+  UserDoc
+} from '../types';
 
 // Add this at the top of the file, after imports
 declare global {
   interface Window {
-    uploadedFile1?: any;
-    uploadedFile2?: any;
-    aiFile1Data?: any;
-    aiFile2Data?: any;
+    uploadedFile1?: FileRow[];
+    uploadedFile2?: FileRow[];
+    aiFile1Data?: FileRow[];
+    aiFile2Data?: FileRow[];
   }
 }
 
@@ -116,6 +123,15 @@ interface ConfirmationDialog {
   onConfirm: () => void;
 }
 
+interface NotificationItem {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
 // Enhanced interfaces for software configuration
 interface SoftwareProfile {
   id: string;
@@ -145,10 +161,6 @@ interface SoftwareProfile {
 }
 
 const AdminPage: React.FC = () => {
-  // FORCE CONSOLE OUTPUT - TEMP DEBUG
-  console.log('🟢 ADMIN PAGE COMPONENT LOADED');
-  console.log('🟢 AUTH CURRENT USER:', auth.currentUser);
-  console.log('🟢 AUTH STATE:', auth.currentUser ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
 
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
@@ -156,15 +168,15 @@ const AdminPage: React.FC = () => {
   const [tierFilter, setTierFilter] = useState('all');
   const [sortBy, setSortBy] = useState('approvedAt');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [notification, setNotification] = useState(null);
+  const [notification, setNotification] = useState<NotificationItem | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [siteDeletionState, setSiteDeletionState] = useState<{ [key: string]: string }>({});
-  const [csvData, setCsvData] = useState<any[]>([]);
+  const [siteDeletionState, setSiteDeletionState] = useState<Record<string, string>>({});
+  const [csvData, setCsvData] = useState<FileRow[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [dynamicProfiles, setDynamicProfiles] = useState<SoftwareProfile[]>([]);
   const [selectedProfileForTest, setSelectedProfileForTest] = useState<string>('');
   const [testFile, setTestFile] = useState<File | null>(null);
-  const [testResults, setTestResults] = useState<any>(null);
+  const [testResults, setTestResults] = useState<TestResult | null>(null);
   const [isTestingProfile, setIsTestingProfile] = useState(false);
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -321,7 +333,7 @@ const AdminPage: React.FC = () => {
   const [testScriptText, setTestScriptText] = useState('');
   const [testScriptFileName, setTestScriptFileName] = useState<string>('');
   const [scriptInputMethod, setScriptInputMethod] = useState<'paste' | 'upload'>('paste');
-  const [testScriptResults, setTestScriptResults] = useState<any>(null);
+  const [testScriptResults, setTestScriptResults] = useState<ScriptExecutionResult | null>(null);
   const [isTestingScript, setIsTestingScript] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [showFileValidationMessage, setShowFileValidationMessage] = useState(false);
@@ -329,33 +341,12 @@ const AdminPage: React.FC = () => {
   const [validationType, setValidationType] = useState<'error' | 'warning' | ''>('');
   
   // File data states for script testing
-  const [file1Data, setFile1Data] = useState<any[]>([]);
-  const [file2Data, setFile2Data] = useState<any[]>([]);
+  const [file1Data, setFile1Data] = useState<FileRow[]>([]);
+  const [file2Data, setFile2Data] = useState<FileRow[]>([]);
   
-  // Debug effect to track script state changes
-  useEffect(() => {
-    console.log('🔄 Script state changed:', {
-      testScriptLength: testScript.length,
-      testScriptTextLength: testScriptText.length,
-      scriptInputMethod,
-      testScriptFileName
-    });
-  }, [testScript, testScriptText, scriptInputMethod, testScriptFileName]);
-
-  // Debug effect to track validation message state changes
-  useEffect(() => {
-    console.log('🚨 Validation state changed:', {
-      showFileValidationMessage,
-      validationMessage,
-      validationType,
-      isValidating,
-      isTestingScript
-    });
-  }, [showFileValidationMessage, validationMessage, validationType, isValidating, isTestingScript]);
 
   // Force clear validation messages function
   const forceClearValidation = () => {
-    console.log('🧹 FORCE CLEARING all validation messages');
     setShowFileValidationMessage(false);
     setValidationMessage('');
     setValidationType('');
@@ -407,7 +398,6 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     const originalAlert = window.alert;
     window.alert = (message: any) => {
-      console.log('🚫 Intercepted alert:', message);
       // Convert alert to our notification system
       if (typeof message === 'string') {
         if (message.toLowerCase().includes('success') || message.toLowerCase().includes('deployed')) {
@@ -429,15 +419,10 @@ const AdminPage: React.FC = () => {
   // Fetch clients from Firebase
   const fetchClients = async () => {
     try {
-      console.log('🔥 Fetching clients...');
-      console.log('🔥 Current user:', auth.currentUser);
-      console.log('🔥 Database reference:', db);
       
       const clientsCollection = collection(db, 'clients');
-      console.log('🔥 Collection reference created:', clientsCollection);
       
       const snapshot = await getDocs(clientsCollection);
-      console.log('🔥 Query executed successfully');
       
       const clientsData: Client[] = [];
       
@@ -445,7 +430,6 @@ const AdminPage: React.FC = () => {
         clientsData.push({ id: doc.id, ...doc.data() } as Client);
       });
       
-      console.log('✅ Clients fetched successfully:', clientsData.length);
       setClients(clientsData);
     } catch (error: any) {
       console.error('🚨 FIREBASE ERROR in fetchClients:');
@@ -460,11 +444,8 @@ const AdminPage: React.FC = () => {
   // Fetch pending users with debugging
   const fetchPendingUsers = async () => {
     try {
-      console.log('🔥 Fetching pending users...');
-      console.log('🔥 Current user:', auth.currentUser);
       
       const users = await safeFetchPendingUsers();
-      console.log('✅ Pending users fetched successfully:', users.length);
       setPendingUsers(users);
     } catch (error: any) {
       console.error('🚨 FIREBASE ERROR in fetchPendingUsers:');
@@ -479,16 +460,12 @@ const AdminPage: React.FC = () => {
   // Fetch approved users
   const fetchApprovedUsers = async () => {
     try {
-      console.log('🔥 Fetching approved users...');
-      console.log('🔥 Current user:', auth.currentUser);
       
       const usageCollection = collection(db, 'usage');
       // Fetch approved, deactivated, AND deleted users for full lifecycle management
       const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
-      console.log('🔥 Created all users query:', allUsersQuery);
       
       const snapshot = await getDocs(allUsersQuery);
-      console.log('🔥 Query executed, document count:', snapshot.size);
       
       const approvedUsersData: ApprovedUser[] = [];
       const deletedUsersData: ApprovedUser[] = [];
@@ -498,8 +475,7 @@ const AdminPage: React.FC = () => {
       
       snapshot.forEach((doc) => {
         const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
-        console.log('🔥 Found user:', userData);
-        
+          
         // Separate approved/deactivated from deleted users
         if (userData.status === 'deleted') {
           deletedUsersData.push(userData);
@@ -522,10 +498,6 @@ const AdminPage: React.FC = () => {
         }
       });
       
-      console.log('✅ Approved/deactivated users fetched successfully:', approvedUsersData.length);
-      console.log('✅ Deleted users fetched successfully:', deletedUsersData.length);
-      console.log('✅ Site URLs loaded:', Object.keys(urlsData).length);
-      console.log('✅ Site IDs loaded:', Object.keys(idsData).length);
       
       setApprovedUsers(approvedUsersData);
       setDeletedUsers(deletedUsersData);
@@ -546,7 +518,6 @@ const AdminPage: React.FC = () => {
   // Delete user (soft delete)
   const deleteUser = async (userId: string) => {
     try {
-      console.log('🗑️ Soft deleting user:', userId);
       
       // Update status in usage collection to "deleted"
       const usageDocRef = doc(db, 'usage', userId);
@@ -556,7 +527,6 @@ const AdminPage: React.FC = () => {
         updatedAt: new Date()
       });
 
-      console.log('✅ User marked as deleted successfully');
       
       // Refresh data
       await fetchApprovedUsers();
@@ -569,7 +539,6 @@ const AdminPage: React.FC = () => {
   // Restore deleted user
   const restoreUser = async (userId: string) => {
     try {
-      console.log('🔄 Restoring deleted user:', userId);
       
       // Find the deleted user to get their original subscription tier
       const deletedUser = deletedUsers.find(user => user.id === userId);
@@ -590,7 +559,6 @@ const AdminPage: React.FC = () => {
         updatedAt: new Date()
       });
 
-      console.log('✅ User restored successfully');
       
       // Refresh data
       await fetchApprovedUsers();
@@ -603,7 +571,6 @@ const AdminPage: React.FC = () => {
   // Permanently delete user
   const permanentlyDeleteUser = async (userId: string) => {
     try {
-      console.log('🗑️ Permanently deleting user:', userId);
       
       // Find the user to get their site info
       const userToDelete = deletedUsers.find(user => user.id === userId);
@@ -614,15 +581,12 @@ const AdminPage: React.FC = () => {
 
       // Step 1: Delete Netlify site if it exists
       if (siteUrls[userId] && siteIds[userId]) {
-        console.log('🌐 Deleting Netlify site for user:', userToDelete.email);
         try {
           await axios.post('/api/delete-client-site', {
             siteUrl: siteUrls[userId],
             clientId: userToDelete.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || userId
           });
-          console.log('✅ Netlify site deleted successfully');
-        } catch (netErr: any) {
-          console.log('⚠️ Netlify site deletion failed (may not exist or local testing):', netErr.message);
+            } catch (netErr: any) {
           // Continue with Firebase deletion even if Netlify fails
         }
       }
@@ -643,7 +607,6 @@ const AdminPage: React.FC = () => {
         return copy;
       });
 
-      console.log('✅ User permanently deleted from all systems');
       
       // Refresh data
       await fetchApprovedUsers();
@@ -659,31 +622,21 @@ const AdminPage: React.FC = () => {
 
     const setupAuthListener = () => {
       unsubscribe = onAuthStateChanged(auth, async (user) => {
-        console.log('🔵 AUTH STATE CHANGED:', user ? 'AUTHENTICATED' : 'NOT AUTHENTICATED');
-        console.log('🔵 USER OBJECT:', user);
-
+    
         if (user) {
-          console.log('✅ User is authenticated - starting Firebase operations');
-          console.log('✅ User UID:', user.uid);
-          console.log('✅ User Email:', user.email);
-          
+                      
           setLoading(true);
           
           // Now run debugging and fetch data
-          console.log('🚀 Running Firebase debug...');
-          await debugFirestorePermissions();
+              await debugFirestorePermissions();
           
-          console.log('🔥 Starting fetchClients...');
-          await fetchClients();
-          console.log('🔥 Starting fetchPendingUsers...');
-          await fetchPendingUsers();
-          console.log('🔥 Starting fetchApprovedUsers...');
-          await fetchApprovedUsers();
+              await fetchClients();
+              await fetchPendingUsers();
+              await fetchApprovedUsers();
           
           setLoading(false);
         } else {
-          console.log('❌ User not authenticated - redirecting or waiting...');
-          setLoading(false);
+            setLoading(false);
         }
       });
     };
@@ -720,7 +673,6 @@ const AdminPage: React.FC = () => {
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
     if (activeTab === 'scripts') {
-      console.log('🧪 Initializing Script Testing environment...');
       initializeTestEnvironment();
     }
   }, [activeTab, file1Data, file2Data]);
@@ -728,7 +680,6 @@ const AdminPage: React.FC = () => {
   // Approve pending user
   const approvePendingUser = async (userId: string) => {
     try {
-      console.log('🔥 Approving user:', userId);
       
       // Get the pending user data
       const pendingUser = pendingUsers.find(user => user.id === userId);
@@ -737,11 +688,9 @@ const AdminPage: React.FC = () => {
         return;
       }
       
-      console.log('🔥 Found pending user:', pendingUser);
 
       // Get the comparison limit based on subscription tier
       const comparisonLimit = TIER_LIMITS[pendingUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
-      console.log('🔥 Calculated comparison limit:', comparisonLimit);
 
       // Prepare update data
       const updateData = {
@@ -754,12 +703,10 @@ const AdminPage: React.FC = () => {
         billingCycle: pendingUser.billingCycle
       };
       
-      console.log('🔥 Update data for usage collection:', updateData);
 
       // Update status in usage collection to "approved" and set limits
       const usageDocRef = doc(db, 'usage', userId);
       await updateDoc(usageDocRef, updateData);
-      console.log('✅ Updated usage collection successfully');
 
       showNotification('success', 'User Details Updated', 'User details updated successfully!');
       
@@ -777,7 +724,6 @@ const AdminPage: React.FC = () => {
   // Reject pending user
   const rejectPendingUser = async (userId: string) => {
     try {
-      console.log('Rejecting user:', userId);
       
       // Remove from both collections
       const pendingDocRef = doc(db, 'pendingUsers', userId);
@@ -786,7 +732,6 @@ const AdminPage: React.FC = () => {
       await deleteDoc(pendingDocRef);
       await deleteDoc(usageDocRef);
 
-      console.log('User rejected successfully');
       
       // Refresh pending users list
       await fetchPendingUsers();
@@ -799,7 +744,6 @@ const AdminPage: React.FC = () => {
   // Deactivate approved user
   const deactivateApprovedUser = async (userId: string) => {
     try {
-      console.log('Deactivating user:', userId);
       
       // Update status in usage collection to "deactivated"
       const usageDocRef = doc(db, 'usage', userId);
@@ -810,7 +754,6 @@ const AdminPage: React.FC = () => {
         updatedAt: new Date()
       });
 
-      console.log('User deactivated successfully');
       
       // Refresh approved users list
       await fetchApprovedUsers();
@@ -823,7 +766,6 @@ const AdminPage: React.FC = () => {
   // Reactivate deactivated user
   const reactivateApprovedUser = async (userId: string) => {
     try {
-      console.log('Reactivating user:', userId);
       
       // Get the user data to restore their original subscription limits
       const user = approvedUsers.find(u => u.id === userId);
@@ -844,7 +786,6 @@ const AdminPage: React.FC = () => {
         updatedAt: new Date()
       });
 
-      console.log('User reactivated successfully');
       
       // Refresh approved users list
       await fetchApprovedUsers();
@@ -896,7 +837,6 @@ Warning:
   };
 
   const handleDeactivateApprovedUser = (userId: string, userEmail: string) => {
-    console.log('🔥 handleDeactivateApprovedUser called for:', userEmail);
     showConfirmation(
       'Temporarily Deactivate User',
       `Are you sure you want to deactivate ${userEmail}?
@@ -914,7 +854,6 @@ Benefits:
       'bg-orange-600 text-white',
       () => deactivateApprovedUser(userId)
     );
-    console.log('🔥 Confirmation dialog should now be visible');
   };
 
   const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
@@ -1057,9 +996,6 @@ WARNING:
   // Add new client
   const addClient = async () => {
     try {
-      console.log('🔥 ADD CLIENT BUTTON CLICKED');
-      console.log('🔥 Form data:', newClient);
-      console.log('🔥 Auth user:', auth.currentUser);
       
       // Validate required fields
       if (!newClient.email || !newClient.businessName || !newClient.businessType) {
@@ -1068,14 +1004,11 @@ WARNING:
         return;
       }
 
-      console.log('✅ Validation passed, creating client...');
 
       // Create a usage record for the new client (pre-approved)
       const clientId = `admin_${Date.now()}`; // Generate unique ID for admin-created clients
       const comparisonLimit = TIER_LIMITS[newClient.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
 
-      console.log('🔥 Client ID:', clientId);
-      console.log('🔥 Comparison limit:', comparisonLimit);
 
       const clientData = {
         email: newClient.email,
@@ -1092,11 +1025,9 @@ WARNING:
         createdBy: 'admin'
       };
 
-      console.log('🔥 Client data to save:', clientData);
 
       await setDoc(doc(db, 'usage', clientId), clientData);
 
-      console.log('✅ Client created successfully in Firebase');
       showNotification('success', 'Client Added', 'Client added successfully!');
       
       setShowAddClient(false);
@@ -1109,9 +1040,7 @@ WARNING:
       });
       
       // Refresh approved users to show the new client
-      console.log('🔄 Refreshing approved users list...');
       await fetchApprovedUsers();
-      console.log('✅ Approved users list refreshed');
       
     } catch (error: any) {
       console.error('🚨 ERROR adding client:', error);
@@ -1127,7 +1056,6 @@ WARNING:
   // Upload script
   const uploadScript = async () => {
     try {
-      console.log('Uploading script:', newScript);
       // Implementation would upload script
       setShowUploadScript(false);
       setNewScript({ name: '', file: null, clientId: '' });
@@ -1144,7 +1072,6 @@ WARNING:
     confirmStyle: string,
     onConfirm: () => void
   ) => {
-    console.log('🔥 showConfirmation called with:', { title, message, confirmText });
     setConfirmDialog({
       isOpen: true,
       title,
@@ -1153,7 +1080,6 @@ WARNING:
       confirmStyle,
       onConfirm
     });
-    console.log('🔥 confirmDialog state should now be open');
   };
 
   // Close confirmation dialog
@@ -1175,9 +1101,7 @@ WARNING:
     setLoginError('');
 
     try {
-      console.log('🔐 Attempting admin login...');
       await signInWithEmailAndPassword(auth, loginForm.email, loginForm.password);
-      console.log('✅ Login successful');
       
       // Clear form
       setLoginForm({ email: '', password: '' });
@@ -1293,7 +1217,6 @@ WARNING:
       const businessName = user.businessName || user.email || user.id;
       const clientId = businessName.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id;
       const payload = { businessName, clientEmail: user.email, clientName: businessName, clientId };
-      console.log('Sending payload:', payload);
       const res = await axios.post(
         '/.netlify/functions/provision-client',
         JSON.stringify({
@@ -1398,7 +1321,6 @@ Warning:
       });
       showNotification('success', 'Website Deleted', 'Site deleted successfully.');
     } catch (err: any) {
-      console.log('API deletion failed (expected in local testing):', err.message);
       // Don't show error notification for local testing - just log it
     }
     
@@ -1425,7 +1347,6 @@ Warning:
         updatedAt: new Date()
       });
       
-      console.log('✅ State cleaned up successfully');
       
       // Only show success message if this is local testing
       if (window.location.hostname === 'localhost') {
@@ -1483,7 +1404,6 @@ Warning:
           clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
         };
 
-        console.log('Deploying script with payload:', payload);
         
         const res = await axios.post(
           '/.netlify/functions/deploy-script',
@@ -1496,13 +1416,7 @@ Warning:
         );
       } else {
         // Local development mode - simulate deployment
-        console.log('🏠 Local development detected - simulating script deployment');
-        console.log('📜 Script would be deployed:', {
-          name: scriptDeployForm.scriptName,
-          size: scriptDeployForm.scriptContent.length,
-          clientId: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || user.id
-        });
-      }
+          }
 
       const usageDocRef = doc(db, 'usage', user.id);
       const currentScripts = deployedScripts[user.id] || [];
@@ -1558,12 +1472,10 @@ Warning:
   // Add function to delete individual scripts
   const handleDeleteScript = async (userId: string, scriptName: string) => {
     try {
-      console.log(`🗑️ Deleting script "${scriptName}" for user ${userId}`);
       
       const usageDocRef = doc(db, 'usage', userId);
       const currentScripts = deployedScripts[userId] || [];
       
-      console.log('Current scripts before deletion:', currentScripts);
       
       // Handle both old string format and new object format
       const updatedScripts = currentScripts.filter(script => {
@@ -1574,7 +1486,6 @@ Warning:
         }
       });
       
-      console.log('Updated scripts after filtering:', updatedScripts);
       
       await updateDoc(usageDocRef, {
         deployedScripts: updatedScripts,
@@ -1588,17 +1499,12 @@ Warning:
         [userId]: updatedScripts
       }));
 
-      console.log('🔔 Calling showNotification...');
-      console.log('🔔 Notification function:', typeof showNotification);
-      console.log('🔔 Notifications state:', notifications);
       
       showNotification('success', 'Script Removed', `"${scriptName}" has been removed from the user's available scripts.`);
       
-      console.log('🔔 showNotification called successfully');
       
     } catch (error: any) {
       console.error('Error deleting script:', error);
-      console.log('🔔 Calling showNotification for error...');
       showNotification('error', 'Failed to Remove Script', error.message);
     }
   };
@@ -1647,8 +1553,7 @@ Warning:
           `✨ Visit the client site now to see the updated format!`
         );
 
-        console.log('✅ Site redeploy successful:', result);
-
+  
       } catch (error: any) {
         console.error('❌ Production redeploy failed:', error);
         
@@ -1657,8 +1562,7 @@ Warning:
         
         if (isLocalDevelopment) {
           // Local development fallback simulation
-          console.log('🏠 Falling back to local development simulation');
-          
+              
           // Simulate deployment delay
           await new Promise(resolve => setTimeout(resolve, 2000));
           
@@ -1671,8 +1575,7 @@ Warning:
             `🚀 To actually update the live site, deploy this admin panel to Netlify and try again.`
           );
           
-          console.log('✅ Local redeploy simulation completed');
-          return;
+              return;
         } else {
           // We're in production but the API failed
           throw error;
@@ -1972,7 +1875,6 @@ Features:
     }]);
     
     setCurrentStepEdit('');
-    console.log('✅ Step added to script:', `Step ${newStep.stepNumber}`);
     
     // Update the script steps table
     updateScriptStepsTable();
@@ -2039,7 +1941,6 @@ Features:
       }));
     });
     updateScriptStepsTable();
-    console.log('✅ Script step removed successfully');
   };
 
   const executeStepsUpTo = async (targetStepNumber: number) => {
@@ -2107,24 +2008,24 @@ Features:
           
         } else if (instruction.includes('match') || instruction.includes('compare')) {
           // Matching operations
-          stepResults = stepResults.map((row: any) => ({
+          stepResults = stepResults.map((row: FileRow) => ({
             ...row,
             'Match Status': Math.random() > 0.3 ? '✅ Matched' : '❌ No Match'
           }));
           
         } else if (instruction.includes('group')) {
           // Grouping operations
-          const grouped = stepResults.reduce((acc: any, row: any) => {
+          const grouped = stepResults.reduce((acc: Record<string, FileRow[]>, row: FileRow) => {
             const key = row['Customer Name'] || row['Card Brand'] || 'Unknown';
             if (!acc[key]) acc[key] = [];
             acc[key].push(row);
             return acc;
           }, {});
           
-          stepResults = Object.entries(grouped).map(([group, items]: [string, any]) => ({
+          stepResults = Object.entries(grouped).map(([group, items]: [string, FileRow[]]) => ({
             'Group': group,
-            'Count': (items as any[]).length,
-            'Total Amount': (items as any[]).reduce((sum, item) => sum + parseFloat(item['Total Transaction Amount'] || 0), 0).toFixed(2)
+            'Count': items.length,
+            'Total Amount': items.reduce((sum, item) => sum + parseFloat(String(item['Total Transaction Amount'] || 0)), 0).toFixed(2)
           }));
           
         } else if (instruction.includes('column') && instruction.includes('only')) {
@@ -2136,8 +2037,8 @@ Features:
           if (instruction.includes('customer')) targetColumns.push('customer');
           
           if (targetColumns.length > 0) {
-            stepResults = stepResults.map((row: any) => {
-              const filteredRow: any = {};
+            stepResults = stepResults.map((row: FileRow) => {
+              const filteredRow: FileRow = {};
               const availableColumns = Object.keys(row);
               
               targetColumns.forEach(target => {
@@ -2190,7 +2091,6 @@ Features:
   };
 
   const updateClientResultsReplica = (data: any[]) => {
-    console.log('🔄 updateClientResultsReplica called with', data?.length || 0, 'rows');
     const clientResultsEl = document.getElementById('client-results-replica');
     if (!clientResultsEl) return;
     
@@ -2456,7 +2356,6 @@ Features:
       `;
     }
     
-    console.log('✅ Script execution history cleared');
   };
 
   const generateFinalScript = () => {
@@ -2508,17 +2407,14 @@ function processStep${index + 1}(data) {
   };
 
   const handleDynamicFileSelect = (file1: string, file2: string) => {
-    console.log('🔄 Dynamic files selected:', { file1, file2 });
     
     // Store selected files for processing
     if (file1) {
       // Simulate loading file1 data
-      console.log('📁 Loading File 1:', file1);
     }
     
     if (file2) {
       // Simulate loading file2 data  
-      console.log('📁 Loading File 2:', file2);
     }
     
     // Show notification
@@ -2743,7 +2639,6 @@ function processStep${index + 1}(data) {
     // Script completion notification removed
     
     // Could export or save the script here
-    console.log('Final Script Steps:', stepBuilderSteps);
   };
 
   const continueVisualScript = () => {
@@ -2760,25 +2655,13 @@ function processStep${index + 1}(data) {
       
       // Add essential window helper functions that Claude scripts expect
       (window as any).parseFiles = async () => {
-        console.log('📁 parseFiles() called - returning data:', {
-          data1Length: file1Data.length,
-          data2Length: file2Data.length,
-          data1Available: file1Data.length > 0,
-          data2Available: file2Data.length > 0
-        });
-        
+          
         const result = {
           data1: file1Data.length > 0 ? file1Data : null,
           data2: file2Data.length > 0 ? file2Data : null
         };
         
-        console.log('📁 parseFiles() result validation:', {
-          hasData1: !!result.data1 && result.data1.length > 0,
-          hasData2: !!result.data2 && result.data2.length > 0,
-          data1Rows: result.data1?.length || 0,
-          data2Rows: result.data2?.length || 0
-        });
-        
+          
         return result;
       };
       
@@ -2794,12 +2677,9 @@ function processStep${index + 1}(data) {
       (window as any).uploadedFile2 = file2Data;
       
       (window as any).showResults = (data: any[], options: any = {}) => {
-        console.log('📊 showResults called with:', data, options);
-        console.log(`🔢 Applying 5-row limit to ${data.length} total rows`);
-        
+          
         if (!Array.isArray(data) || data.length === 0) {
-          console.log('⚠️ No data to display');
-          return;
+            return;
         }
         
         // Store results globally for other functions
@@ -2951,8 +2831,7 @@ function processStep${index + 1}(data) {
           resultsEl.innerHTML = clientHtml;
         }
         
-        console.log('✅ Results displayed in both Script Builder and Client View sections');
-      };
+        };
       
       (window as any).showError = (message: string) => {
         const resultsEl = document.getElementById('client-results-replica');
@@ -2966,7 +2845,7 @@ function processStep${index + 1}(data) {
         `;
       };
       
-      (window as any).findColumn = (row: any, possibleNames: string[]) => {
+      (window as any).findColumn = (row: FileRow, possibleNames: string[]) => {
         for (const name of possibleNames) {
           if (row.hasOwnProperty(name)) {
             return name;
@@ -3067,24 +2946,14 @@ function processStep${index + 1}(data) {
         // Store raw file data for scripts that need ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
         (window as any).rawFile1Data = arrayBuffer;
-        console.log('📁 File 1 data stored:', { 
-          parsedRows: parsedData.rows.length, 
-          arrayBufferSize: arrayBuffer.byteLength,
-          hasRawData: !!(window as any).rawFile1Data 
-        });
-      } else {
+        } else {
         setFile2Data(parsedData.rows);
         localStorage.setItem('file2Data', JSON.stringify(parsedData.rows));
         
         // Store raw file data for scripts that need ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
         (window as any).rawFile2Data = arrayBuffer;
-        console.log('📁 File 2 data stored:', { 
-          parsedRows: parsedData.rows.length, 
-          arrayBufferSize: arrayBuffer.byteLength,
-          hasRawData: !!(window as any).rawFile2Data 
-        });
-      }
+        }
 
       // Clear any existing validation messages since files are now uploaded
       setValidationMessage('');
@@ -3170,8 +3039,6 @@ function processStep${index + 1}(data) {
       setValidationType('');
       setShowFileValidationMessage(false);
       
-      console.log('📄 Script uploaded successfully:', file.name, `(${scriptContent.length} characters)`);
-      console.log('📄 Setting testScript state to:', scriptContent.substring(0, 100) + '...');
       
       // Script loaded successfully - display removed to keep results only in Script Builder
     } catch (error) {
@@ -3251,7 +3118,6 @@ function processStep${index + 1}(data) {
   const runTestScript = async () => {
     // Prevent duplicate validation calls
     if (isValidating || isTestingScript) {
-      console.log('🚫 Skipping validation - already in progress');
       return;
     }
     
@@ -3262,12 +3128,6 @@ function processStep${index + 1}(data) {
     const currentTestScriptText = testScriptText || '';
     const currentScriptInputMethod = scriptInputMethod;
     
-    console.log('🔍 DEBUGGING: Current state values:', {
-      testScript: currentTestScript.length,
-      testScriptText: currentTestScriptText.length,
-      scriptInputMethod: currentScriptInputMethod,
-      testScriptFileName
-    });
     
     // Get script content from either paste or upload method with comprehensive fallback
     let scriptContent = '';
@@ -3281,32 +3141,17 @@ function processStep${index + 1}(data) {
     
     // Fallback: Check both sources regardless of input method (handles state timing issues)
     if (!scriptContent || scriptContent.trim().length === 0) {
-      console.log('🔍 Primary check failed, trying fallback...');
       if (currentTestScript && currentTestScript.trim().length > 0) {
         scriptContent = currentTestScript;
-        console.log('✅ Found script in testScript (uploaded)');
-      } else if (currentTestScriptText && currentTestScriptText.trim().length > 0) {
+        } else if (currentTestScriptText && currentTestScriptText.trim().length > 0) {
         scriptContent = currentTestScriptText;
-        console.log('✅ Found script in testScriptText (pasted)');
-      } else {
-        console.log('❌ No script content found in either source');
+        } else {
       }
     }
     
     const hasFiles = file1Data.length > 0;
     const hasScript = scriptContent && scriptContent.trim().length > 0;
     
-    console.log('🧪 Script execution validation:', { 
-      scriptInputMethod, 
-      testScriptTextLength: testScriptText?.length || 0,
-      testScriptLength: testScript?.length || 0,
-      testScriptFileName,
-      file1DataLength: file1Data.length,
-      hasFiles,
-      hasScript,
-      scriptContentLength: scriptContent?.length || 0,
-      actualScriptContent: scriptContent ? scriptContent.substring(0, 100) + '...' : 'EMPTY'
-    });
     
     // Clear any existing validation messages
     setValidationMessage('');
@@ -3319,7 +3164,6 @@ function processStep${index + 1}(data) {
       setValidationMessage('⚠️ Please upload files and paste script before running');
       setValidationType('warning');
       setShowFileValidationMessage(true);
-      console.log('❌ Validation failed: Both files and script missing');
       
       setTimeout(() => {
         setShowFileValidationMessage(false);
@@ -3332,7 +3176,6 @@ function processStep${index + 1}(data) {
       setValidationMessage('⚠️ Please paste a JavaScript script before running');
       setValidationType('warning');
       setShowFileValidationMessage(true);
-      console.log('❌ Validation failed: Script missing');
       
       setTimeout(() => {
         setShowFileValidationMessage(false);
@@ -3345,7 +3188,6 @@ function processStep${index + 1}(data) {
       setValidationMessage('⚠️ Please upload files before running script');
       setValidationType('warning');
       setShowFileValidationMessage(true);
-      console.log('❌ Validation failed: Files missing');
       
       setTimeout(() => {
         setShowFileValidationMessage(false);
@@ -3359,14 +3201,12 @@ function processStep${index + 1}(data) {
     setValidationType('');
     setShowFileValidationMessage(false);
     
-    console.log('✅ Script ready to run!');
 
     try {
       // FORCE CLEAR all validation messages before execution
       forceClearValidation();
       
       setIsTestingScript(true);
-      console.log('🚀 Starting script execution with data:', { file1Rows: file1Data.length, file2Rows: file2Data.length });
       
       // Make step functions globally available
       (window as any).executeStepsUpTo = executeStepsUpTo;
@@ -3397,12 +3237,10 @@ function processStep${index + 1}(data) {
       
       // CRITICAL: Ensure we have file data available even if raw data missing
       if (!(window as any).rawFile1Data && file1Data.length > 0) {
-        console.warn('⚠️ Raw file1 data not available - creating from parsed data');
         // Some scripts might work with parsed data instead
         (window as any).file1 = file1Data;
       }
       if (!(window as any).rawFile2Data && file2Data.length > 0) {
-        console.warn('⚠️ Raw file2 data not available - creating from parsed data');
         (window as any).file2 = file2Data;
       }
       
@@ -3423,8 +3261,7 @@ function processStep${index + 1}(data) {
       
       // Add helper for scripts to append additional tables/content
       (window as any).addAdditionalTable = (html: string, tableId?: string) => {
-        console.log('📊 addAdditionalTable called with HTML length:', html.length);
-        
+          
         // Strip heavy container styling and extract clean table content
         const cleanHtml = html
           // Remove heavy bordered containers
@@ -3482,8 +3319,7 @@ function processStep${index + 1}(data) {
           tableContainer.innerHTML = `<div class="overflow-x-auto">${cleanClientHtml}</div>`;
           additionalContainer.appendChild(tableContainer);
           
-          console.log('✅ Additional table added to client results with clean styling');
-        }
+            }
         
         // 2. Add to Script Results section (script-results-display)
         const scriptResultsEl = document.getElementById('script-results-display');
@@ -3528,8 +3364,7 @@ function processStep${index + 1}(data) {
           scriptTableContainer.innerHTML = `<div class="overflow-x-auto">${cleanScriptHtml}</div>`;
           scriptAdditionalContainer.appendChild(scriptTableContainer);
           
-          console.log('✅ Additional table added to script results with clean styling');
-        }
+            }
       };
       
       // Clear additional tables function
@@ -3546,37 +3381,22 @@ function processStep${index + 1}(data) {
           scriptAdditionalContainer.remove();
         }
         
-        console.log('🧹 Additional tables cleared from both sections');
-      };
+        };
       
       // Provide backward compatibility for scripts trying to use querySelector
       (window as any).getResultsContainer = () => {
-        console.log('🔍 Script requested results container - providing client-results-replica');
-        return document.getElementById('client-results-replica');
+          return document.getElementById('client-results-replica');
       };
       
       // CRITICAL: Ensure parseFiles is available during script execution
       (window as any).parseFiles = async () => {
-        console.log('📁 parseFiles() called during script execution - returning data:', {
-          data1Length: file1Data.length,
-          data2Length: file2Data.length,
-          data1Available: file1Data.length > 0,
-          data2Available: file2Data.length > 0
-        });
-        
+          
         const result = {
           data1: file1Data.length > 0 ? file1Data : null,
           data2: file2Data.length > 0 ? file2Data : null
         };
         
-        console.log('📁 parseFiles() execution result:', {
-          hasData1: !!result.data1 && result.data1.length > 0,
-          hasData2: !!result.data2 && result.data2.length > 0,
-          data1Rows: result.data1?.length || 0,
-          data2Rows: result.data2?.length || 0,
-          resultType: typeof result
-        });
-        
+          
         return result;
       };
 
@@ -3651,42 +3471,13 @@ function processStep${index + 1}(data) {
       };
 
       // Execute the script with enhanced error catching
-      console.log('🚀 About to execute script content:', scriptContent.substring(0, 100) + '...');
-      console.log('🔍 Available window data:', {
-        uploadedFile1: !!(window as any).uploadedFile1,
-        uploadedFile1Length: ((window as any).uploadedFile1 || []).length,
-        uploadedFile2: !!(window as any).uploadedFile2,
-        uploadedFile2Length: ((window as any).uploadedFile2 || []).length,
-        file1: !!(window as any).file1,
-        file1Type: typeof (window as any).file1,
-        file2: !!(window as any).file2,
-        file2Type: typeof (window as any).file2,
-        file1Data: !!(window as any).file1Data,
-        file2Data: !!(window as any).file2Data,
-        data1: !!(window as any).data1,
-        data2: !!(window as any).data2,
-        rawFile1Data: !!(window as any).rawFile1Data,
-        rawFile2Data: !!(window as any).rawFile2Data,
-        XLSX: !!(window as any).XLSX,
-        parseFiles: !!(window as any).parseFiles,
-        parseFilesType: typeof (window as any).parseFiles,
-        addAdditionalTable: !!(window as any).addAdditionalTable,
-        clearAdditionalTables: !!(window as any).clearAdditionalTables
-      });
       
       // CRITICAL DEBUG: Last chance to verify data before script execution
-      console.log('🔎 FINAL DATA CHECK BEFORE SCRIPT EXECUTION:');
-      console.log('- file1Data state length:', file1Data.length);
-      console.log('- file2Data state length:', file2Data.length);
-      console.log('- window.uploadedFile1 length:', (window as any).uploadedFile1?.length || 0);
-      console.log('- window.file1 available:', !!(window as any).file1);
-      console.log('- window.file1Data length:', (window as any).file1Data?.length || 0);
       
       // Create a safe evaluation context
       const evaluateScript = new Function('window', scriptContent);
       const result = await evaluateScript.call(window, window);
       
-      console.log('✅ Script executed successfully, result:', result);
       
       // Script execution success - display removed to keep results only in Script Builder
 
@@ -3763,7 +3554,6 @@ function processStep${index + 1}(data) {
     // Update Script Builder table to show empty state
     updateScriptStepsTable();
     
-    console.log('✅ All results cleared successfully');
   };
 
   // Keep clearTestResults for backward compatibility
@@ -3782,28 +3572,23 @@ function processStep${index + 1}(data) {
       // Save generated script from visual builder
       scriptContent = generateFinalScript();
       fileName = `gr-balance-generated-script-${new Date().toISOString().split('T')[0]}.js`;
-      console.log('💾 Saving generated script from visual builder');
     } else if (scriptInputMethod === 'paste' && testScriptText && testScriptText.trim().length > 0) {
       // Save pasted script
       scriptContent = testScriptText;
       fileName = `gr-balance-pasted-script-${new Date().toISOString().split('T')[0]}.js`;
-      console.log('💾 Saving pasted script content');
     } else if (testScript && testScript.trim().length > 0) {
       // Save uploaded script
       scriptContent = testScript;
       fileName = testScriptFileName ? 
         `${testScriptFileName.replace('.js', '')}-copy-${new Date().toISOString().split('T')[0]}.js` :
         `gr-balance-uploaded-script-${new Date().toISOString().split('T')[0]}.js`;
-      console.log('💾 Saving uploaded script content');
     } else {
       // No script content available - notification removed per user request
-      console.log('❌ No script content available to save');
       return;
     }
 
     if (!scriptContent || scriptContent.trim().length === 0) {
       // Script content is empty - notification removed per user request
-      console.log('❌ Script content is empty');
       return;
     }
 
@@ -3820,7 +3605,6 @@ function processStep${index + 1}(data) {
       URL.revokeObjectURL(url);
       
       // Notification removed per user request - just log success
-      console.log(`✅ Script saved successfully as ${fileName}`);
       
     } catch (error) {
       console.error('❌ Error saving script:', error);
@@ -3831,13 +3615,11 @@ function processStep${index + 1}(data) {
   // Download complete script results to Excel for admin development
   const downloadScriptResultsToExcel = () => {
     try {
-      console.log('📊 Starting Excel download for admin development');
       
       // Check if we have any results to download
       const lastResults = (window as any).lastScriptResults;
       if (!lastResults || !Array.isArray(lastResults) || lastResults.length === 0) {
         // Notification removed per user request - just log warning
-        console.log('⚠️ No script results available for Excel download');
         return;
       }
       
@@ -3852,7 +3634,6 @@ function processStep${index + 1}(data) {
       const filename = `results-${scriptName}-${timestamp}.xlsx`;
       
       // Add main results as first worksheet
-      console.log(`📊 Adding main results (${lastResults.length} rows) to Excel`);
       const mainWorksheet = XLSX.utils.json_to_sheet(lastResults);
       XLSX.utils.book_append_sheet(workbook, mainWorksheet, 'Main Results');
       
@@ -3888,7 +3669,6 @@ function processStep${index + 1}(data) {
             });
             
             if (tableData.length > 0) {
-              console.log(`📊 Adding additional table ${index + 1} (${tableData.length} rows) to Excel`);
               const worksheet = XLSX.utils.json_to_sheet(tableData);
               // Create descriptive sheet name
               const tableTitle = table.closest('div')?.querySelector('h3')?.textContent?.trim() || 
@@ -3921,7 +3701,6 @@ function processStep${index + 1}(data) {
       
       // Notification removed per user request - just log success
       const totalSheets = workbook.SheetNames.length;
-      console.log(`✅ Excel file downloaded: ${filename} with ${totalSheets} worksheets`);
       
     } catch (error) {
       console.error('❌ Error downloading Excel file:', error);
@@ -3959,8 +3738,7 @@ function processStep${index + 1}(data) {
         if (headers.length === 0 || gibberish || headers[0].length > 100) {
           setFile1Data([]);
           localStorage.removeItem('file1Data');
-          console.log('Previously uploaded file1 was invalid and has been cleared.');
-        } else {
+          } else {
           setFile1Data(parsed);
         }
       } catch {
@@ -3979,8 +3757,7 @@ function processStep${index + 1}(data) {
         if (headers.length === 0 || gibberish || headers[0].length > 100) {
           setFile2Data([]);
           localStorage.removeItem('file2Data');
-          console.log('Previously uploaded file2 was invalid and has been cleared.');
-        } else {
+          } else {
           setFile2Data(parsed);
         }
       } catch {
@@ -4819,8 +4596,7 @@ function processStep${index + 1}(data) {
                                         onClick={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
-                                          console.log(`🗑️ Delete button clicked for script: "${scriptName}" on user: ${user.id}`);
-                                          handleDeleteScript(user.id, scriptName);
+                                                                            handleDeleteScript(user.id, scriptName);
                                         }}
                                         className="ml-3 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full p-1 transition-all"
                                         title={`Remove ${scriptName}`}
@@ -6367,8 +6143,7 @@ function processStep${index + 1}(data) {
                 noValidate
                 onSubmit={(e) => {
                   e.preventDefault();
-                  console.log('🔥 Form submit prevented');
-                  handleDeployScript(selectedUserForScript);
+                              handleDeployScript(selectedUserForScript);
                 }}
               >
                 <div className="space-y-4">
@@ -6385,8 +6160,7 @@ function processStep${index + 1}(data) {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault();
-                          console.log('🔥 Enter key prevented on script name input');
-                        }
+                                            }
                       }}
                     />
                   </div>
@@ -6487,8 +6261,7 @@ function processStep${index + 1}(data) {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                           e.preventDefault();
-                          console.log('🔥 Ctrl+Enter prevented on textarea');
-                        }
+                                            }
                       }}
                     />
                     
@@ -6561,8 +6334,7 @@ reconcileData();`;
                     type="button"
                     onClick={(e) => {
                       e.preventDefault();
-                      console.log('🔥 Deploy button clicked - handleDeployScript starting...');
-                      handleDeployScript(selectedUserForScript);
+                                      handleDeployScript(selectedUserForScript);
                     }}
                     disabled={deploying[selectedUserForScript.id] || !scriptDeployForm.scriptName || !scriptDeployForm.scriptContent}
                     className={`px-4 py-2 rounded-md transition-colors font-medium ${
