@@ -1,5 +1,5 @@
 // PAGE MARKER: Main Page Component
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { User, signOut } from 'firebase/auth';
 import { FileSpreadsheet, Download, AlertCircle, LogOut, BarChart3, TrendingUp, DollarSign, Lightbulb, CheckCircle, XCircle, Users } from 'lucide-react';
 import { doc, runTransaction, collection, query, where, getDocs } from 'firebase/firestore';
@@ -7,13 +7,24 @@ import * as XLSX from 'xlsx';
 import { auth, db } from '../main';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
-import { VirtualTable } from '../components/VirtualTable';
+import VirtualTable from '../components/VirtualTable';
+import {
+  ReconciliationResult,
+  RawFileData,
+  UserDoc,
+  AnalysisResult,
+  EnhancedInsights,
+  PaymentTrendDay,
+  CardBrandData,
+  CardBrandSummary,
+  TransactionRow
+} from '../types';
 
 interface MainPageProps {
   user: User;
 }
 
-export default function MainPage({ user }: MainPageProps) {
+const MainPage = React.memo(({ user }: MainPageProps) => {
   const navigate = useNavigate();
   const [file1, setFile1] = useState<File | null>(null);
   const [file2, setFile2] = useState<File | null>(null);
@@ -23,9 +34,9 @@ export default function MainPage({ user }: MainPageProps) {
   const [warning, setWarning] = useState('');
   const [file1Error, setFile1Error] = useState<string>('');
   const [file2Error, setFile2Error] = useState<string>('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<ReconciliationResult[]>([]);
   const [activeTab, setActiveTab] = useState<'overview' | 'insights'>('overview');
-  const [rawFileData, setRawFileData] = useState<{file1Data: any[], file2Data: any[]} | null>(null);
+  const [rawFileData, setRawFileData] = useState<RawFileData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState('');
@@ -78,7 +89,7 @@ export default function MainPage({ user }: MainPageProps) {
       const clientQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated']));
       const snapshot = await getDocs(clientQuery);
       
-      let userDoc: any = null;
+      let userDoc: UserDoc | null = null;
       snapshot.forEach((doc) => {
         const userData = doc.data();
         const userClientId = userData.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || doc.id;
@@ -102,11 +113,11 @@ export default function MainPage({ user }: MainPageProps) {
       console.log('📜 Raw deployed scripts:', deployedScripts);
       
       // Extract script names from both old string format and new object format
-      const scriptNames = deployedScripts.map((script: any) => {
+      const scriptNames = deployedScripts.map((script: string | { name: string; [key: string]: unknown }) => {
         if (typeof script === 'string') {
           return script;
-        } else if (script && script.name) {
-          return script.name;
+        } else if (script && typeof script === 'object' && 'name' in script) {
+          return script.name as string;
         }
         return null;
       }).filter(Boolean);
@@ -136,16 +147,16 @@ export default function MainPage({ user }: MainPageProps) {
     loadClientScriptsFromFirebase(clientId);
   };
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     try {
       await signOut(auth);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
+  }, [navigate]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>, setFile: (file: File | null) => void) => {
     const files = event.target.files;
     if (files && files[0]) {
       // Determine which file is being uploaded
@@ -192,17 +203,21 @@ export default function MainPage({ user }: MainPageProps) {
         const fileBuffer = await files[0].arrayBuffer();
         const workbook = XLSX.read(fileBuffer, { cellDates: true });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as (string | number)[][];
         
         // Store raw data for analysis
         if (setFile === setFile1) {
-          const newRawData = { file1Data: rawData, file2Data: prev?.file2Data || [] };
-          setRawFileData(newRawData);
+          setRawFileData(prev => ({ 
+            file1Data: rawData, 
+            file2Data: prev?.file2Data || [] 
+          }));
           // Store raw data to localStorage for AdminPage access
           localStorage.setItem('rawFile1Data', JSON.stringify(rawData));
         } else {
-          const newRawData = { file1Data: prev?.file1Data || [], file2Data: rawData };
-          setRawFileData(newRawData);
+          setRawFileData(prev => ({ 
+            file1Data: prev?.file1Data || [], 
+            file2Data: rawData 
+          }));
           // Store raw data to localStorage for AdminPage access
           localStorage.setItem('rawFile2Data', JSON.stringify(rawData));
         }
@@ -226,23 +241,37 @@ export default function MainPage({ user }: MainPageProps) {
         event.target.value = '';
       }
     }
-  };
+  }, []);
 
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>, setFile: (file: File | null) => void) => {
+  const handleDrop = useCallback((event: React.DragEvent<HTMLDivElement>, setFile: (file: File | null) => void) => {
     event.preventDefault();
     const files = event.dataTransfer.files;
     if (files && files[0]) {
       setFile(files[0]);
       setStatus('');
     }
-  };
+  }, []);
 
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+  const handleDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
-  };
+  }, []);
+
+  // Memoized handlers to fix hooks violations
+  const handleFile1Drop = useCallback((e: React.DragEvent<HTMLDivElement>) => handleDrop(e, setFile1), [handleDrop]);
+  const handleFile2Drop = useCallback((e: React.DragEvent<HTMLDivElement>) => handleDrop(e, setFile2), [handleDrop]);
+  const handleFile1Upload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e, setFile1), [handleFileUpload]);
+  const handleFile2Upload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => handleFileUpload(e, setFile2), [handleFileUpload]);
+  const handleFile1Click = useCallback(() => file1Ref.current?.click(), []);
+  const handleFile2Click = useCallback(() => file2Ref.current?.click(), []);
+  const handleScriptChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setScript(e.target.value);
+    setStatus('');
+  }, []);
+  const handleOverviewTab = useCallback(() => setActiveTab('overview'), []);
+  const handleInsightsTab = useCallback(() => setActiveTab('insights'), []);
 
   // Helper function to parse Excel file to JSON
-  const parseFileToJSON = async (file: File): Promise<any[]> => {
+  const parseFileToJSON = async (file: File): Promise<TransactionRow[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -396,16 +425,16 @@ export default function MainPage({ user }: MainPageProps) {
     }
   };
 
-  const downloadResults = () => {
+  const downloadResults = useCallback(() => {
     if (results.length === 0) return;
     const workbook = XLSX.utils.book_new();
     // Convert object array to sheet (VirtualTable format)
     const worksheet = XLSX.utils.json_to_sheet(results);
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
     XLSX.writeFile(workbook, 'comparison_results.xlsx');
-  };
+  }, [results]);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setFile1(null);
     setFile2(null);
     setScript('');
@@ -418,10 +447,10 @@ export default function MainPage({ user }: MainPageProps) {
     setTransactionCount(0);
     if (file1Ref.current) file1Ref.current.value = '';
     if (file2Ref.current) file2Ref.current.value = '';
-  };
+  }, []);
 
   // Enhanced analysis combining reconciliation results with raw file data
-  const analyzeResults = () => {
+  const analyzeResults = (): AnalysisResult | null => {
     if (results.length === 0) return null;
 
     // Parse reconciliation results (existing logic)
@@ -464,7 +493,7 @@ export default function MainPage({ user }: MainPageProps) {
     let totalTransactions = 0;
     let totalRevenue = 0;
     let totalFees = 0;
-    let cardBrandTransactions: { [key: string]: { count: number; revenue: number; fees: number } } = {};
+    let cardBrandTransactions: Record<string, CardBrandData> = {};
 
     transactionRows.forEach(row => {
       if (Array.isArray(row) && row.length > 0 && row.some(cell => cell !== '')) {
@@ -489,7 +518,7 @@ export default function MainPage({ user }: MainPageProps) {
     });
 
     // Parse summary section
-    let cardBrandSummary: { [key: string]: { hubReport: number; salesReport: number; difference: number } } = {};
+    let cardBrandSummary: Record<string, CardBrandSummary> = {};
     let totalDiscrepancies = 0;
     let totalVariance = 0;
 
@@ -573,15 +602,15 @@ export default function MainPage({ user }: MainPageProps) {
       const customerIndex = file1Headers.findIndex((h: string) => String(h).toLowerCase().includes('customer'));
 
       if (dateIndex >= 0 && amountIndex >= 0) {
-        const dailyVolume: { [key: string]: number } = {};
-        const hourlyPatterns: { [key: string]: number } = {};
-        const customerFrequency: { [key: string]: number } = {};
-        const averageTickets: { [key: string]: number[] } = {};
+        const dailyVolume: Record<string, number> = {};
+        const hourlyPatterns: Record<string, number> = {};
+        const customerFrequency: Record<string, number> = {};
+        const averageTickets: Record<string, number[]> = {};
 
         let totalCustomerRevenue = 0;
         let totalCustomerTransactions = 0;
 
-        file1Rows.forEach((row: any[]) => {
+        file1Rows.forEach((row: (string | number)[]) => {
           if (row && row.length > Math.max(dateIndex, amountIndex)) {
             const dateStr = String(row[dateIndex] || '');
             const amount = parseFloat(String(row[amountIndex] || '0').replace(/[$,]/g, '')) || 0;
@@ -639,7 +668,7 @@ export default function MainPage({ user }: MainPageProps) {
             avgRevenuePerCustomer: totalCustomers > 0 ? totalCustomerRevenue / totalCustomers : 0,
             totalCustomerRevenue: totalCustomerRevenue,
             highValueCustomers: Object.entries(averageTickets)
-              .map(([customer, amounts]) => ({
+              .map(([customer, amounts]: [string, number[]]) => ({
                 customer,
                 avgTicket: amounts.reduce((a, b) => a + b, 0) / amounts.length,
                 frequency: amounts.length
@@ -650,7 +679,7 @@ export default function MainPage({ user }: MainPageProps) {
           operationalMetrics: {
             processingEfficiency: ((totalTransactions - totalDiscrepancies) / totalTransactions) * 100,
             avgProcessingFeeRate: totalRevenue > 0 ? (totalFees / (totalRevenue + totalFees)) * 100 : 0,
-            dataQualityScore: (file1Rows.filter((row: any[]) => row && row.length > 5).length / file1Rows.length) * 100,
+            dataQualityScore: (file1Rows.filter((row: (string | number)[]) => row && row.length > 5).length / file1Rows.length) * 100,
             reconciliationAccuracy: Object.keys(cardBrandSummary).length > 0 ? 
               (Object.values(cardBrandSummary).filter(data => data.difference === 0).length / Object.keys(cardBrandSummary).length) * 100 : 95
           },
@@ -694,7 +723,8 @@ export default function MainPage({ user }: MainPageProps) {
     };
   };
 
-  const analysis = analyzeResults();
+  // Memoize analysis result for performance
+  const analysis = useMemo(() => analyzeResults(), [results, rawFileData]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -725,56 +755,69 @@ export default function MainPage({ user }: MainPageProps) {
         </div>
       )}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                <span className="text-emerald-700 font-medium">
+            <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+              <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-emerald-700 font-medium text-sm">
                   {user.email?.[0].toUpperCase() || 'U'}
                 </span>
               </div>
-              <div className="flex flex-col">
-                <span className="text-gray-700">{user.email}</span>
-                <UsageCounter />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-gray-700 text-sm sm:text-base truncate">{user.email}</span>
+                <div className="hidden sm:block">
+                  <UsageCounter />
+                </div>
               </div>
             </div>
             <button
               onClick={handleSignOut}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+              className="inline-flex items-center min-h-[44px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 touch-manipulation flex-shrink-0"
             >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
+              <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
             </button>
           </div>
+          {/* Mobile Usage Counter */}
+          {user && (
+            <div className="sm:hidden mt-2 pt-2 border-t border-gray-100">
+              <UsageCounter />
+            </div>
+          )}
         </div>
       </div>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-3 sm:space-y-4">
               <label className="block text-sm font-medium text-gray-600">Upload First File</label>
               <div 
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200 ${
+                className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-colors duration-200 ${
                   file1 ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onDrop={(e) => handleDrop(e, setFile1)}
+                onDrop={handleFile1Drop}
                 onDragOver={handleDragOver}
               >
                 <input
                   type="file"
                   ref={file1Ref}
-                  onChange={(e) => handleFileUpload(e, setFile1)}
+                  onChange={handleFile1Upload}
                   accept=".xlsx,.xls,.csv"
                   className="hidden"
                 />
-                <FileSpreadsheet className={`mx-auto h-12 w-12 ${file1 ? 'text-emerald-600' : 'text-gray-400'}`} />
-                <p className="mt-2 text-sm text-gray-600">
-                  {file1 ? file1.name : "Drag & drop your first Excel or CSV file here"}
+                <FileSpreadsheet className={`mx-auto h-10 w-10 sm:h-12 sm:w-12 ${file1 ? 'text-emerald-600' : 'text-gray-400'}`} />
+                <p className="mt-2 text-xs sm:text-sm text-gray-600 px-2">
+                  {file1 ? (
+                    <span className="break-all">{file1.name}</span>
+                  ) : (
+                    <span>Drag & drop your first Excel or CSV file here</span>
+                  )}
                 </p>
                 <button 
                   type="button"
-                  onClick={() => file1Ref.current?.click()}
-                  className="mt-2 inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200"
+                  onClick={handleFile1Click}
+                  className="mt-3 inline-flex items-center justify-center min-w-[120px] min-h-[44px] px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200 touch-manipulation text-sm sm:text-base"
                 >
                   Select File
                 </button>
@@ -796,30 +839,34 @@ export default function MainPage({ user }: MainPageProps) {
                 </div>
               )}
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <label className="block text-sm font-medium text-gray-600">Upload Second File</label>
               <div 
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors duration-200 ${
+                className={`border-2 border-dashed rounded-lg p-4 sm:p-6 text-center transition-colors duration-200 ${
                   file2 ? 'border-emerald-400 bg-emerald-50/50' : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onDrop={(e) => handleDrop(e, setFile2)}
+                onDrop={handleFile2Drop}
                 onDragOver={handleDragOver}
               >
                 <input
                   type="file"
                   ref={file2Ref}
-                  onChange={(e) => handleFileUpload(e, setFile2)}
+                  onChange={handleFile2Upload}
                   accept=".xlsx,.xls,.csv"
                   className="hidden"
                 />
-                <FileSpreadsheet className={`mx-auto h-12 w-12 ${file2 ? 'text-emerald-600' : 'text-gray-400'}`} />
-                <p className="mt-2 text-sm text-gray-600">
-                  {file2 ? file2.name : "Drag & drop your second Excel or CSV file here"}
+                <FileSpreadsheet className={`mx-auto h-10 w-10 sm:h-12 sm:w-12 ${file2 ? 'text-emerald-600' : 'text-gray-400'}`} />
+                <p className="mt-2 text-xs sm:text-sm text-gray-600 px-2">
+                  {file2 ? (
+                    <span className="break-all">{file2.name}</span>
+                  ) : (
+                    <span>Drag & drop your second Excel or CSV file here</span>
+                  )}
                 </p>
                 <button 
                   type="button"
-                  onClick={() => file2Ref.current?.click()}
-                  className="mt-2 inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200"
+                  onClick={handleFile2Click}
+                  className="mt-3 inline-flex items-center justify-center min-w-[120px] min-h-[44px] px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200 touch-manipulation text-sm sm:text-base"
                 >
                   Select File
                 </button>
@@ -842,15 +889,12 @@ export default function MainPage({ user }: MainPageProps) {
               )}
             </div>
           </div>
-          <div className="mt-6 max-w-xs">
+          <div className="mt-4 sm:mt-6 max-w-full sm:max-w-xs">
             <label className="block text-sm font-medium text-gray-600 mb-2">Select Comparison Script</label>
             <select 
               value={script}
-              onChange={(e) => {
-                setScript(e.target.value);
-                setStatus('');
-              }}
-              className={`block w-full rounded-md shadow-sm transition-colors duration-200 ${
+              onChange={handleScriptChange}
+              className={`block w-full min-h-[44px] rounded-md shadow-sm transition-colors duration-200 text-base touch-manipulation ${
                 script 
                   ? 'border-emerald-400 bg-emerald-50/50' 
                   : 'border-gray-200'
@@ -880,18 +924,18 @@ export default function MainPage({ user }: MainPageProps) {
               <span className="text-sm font-medium">{status}</span>
             </div>
           )}
-          <div className="mt-6 flex gap-4">
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
             <button 
               type="button"
               onClick={handleCompare}
-              className="inline-flex items-center px-6 py-2 rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
+              className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200 touch-manipulation font-medium"
             >
               Run Comparison
             </button>
             <button 
               type="button"
               onClick={handleClear}
-              className="inline-flex items-center px-6 py-2 rounded-md text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-200"
+              className="inline-flex items-center justify-center min-h-[44px] px-6 py-3 rounded-md text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-200 touch-manipulation font-medium"
             >
               Clear Form
             </button>
@@ -902,7 +946,7 @@ export default function MainPage({ user }: MainPageProps) {
               <div className="border-b border-gray-200">
                 <nav className="-mb-px flex space-x-8">
                   <button
-                    onClick={() => setActiveTab('overview')}
+                    onClick={handleOverviewTab}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
                       activeTab === 'overview'
                         ? 'border-emerald-500 text-emerald-600'
@@ -915,7 +959,7 @@ export default function MainPage({ user }: MainPageProps) {
 
 
                   <button
-                    onClick={() => setActiveTab('insights')}
+                    onClick={handleInsightsTab}
                     className={`py-2 px-1 border-b-2 font-medium text-sm ${
                       activeTab === 'insights'
                         ? 'border-emerald-500 text-emerald-600'
@@ -1005,7 +1049,7 @@ export default function MainPage({ user }: MainPageProps) {
                             <h5 className="font-medium text-emerald-800 mb-3">Top 3 Peak Transaction Days</h5>
                             <div className="space-y-3">
                               {analysis.enhancedInsights.paymentTrends.topPeakDays ? 
-                                analysis.enhancedInsights.paymentTrends.topPeakDays.map((day: any, index: number) => (
+                                analysis.enhancedInsights.paymentTrends.topPeakDays.map((day: PaymentTrendDay, index: number) => (
                                   <div key={index} className="flex justify-between items-center bg-white rounded-lg p-3 border border-emerald-200">
                                     <div>
                                       <span className="font-medium text-gray-900">{day.date}</span>
@@ -1164,7 +1208,7 @@ export default function MainPage({ user }: MainPageProps) {
                             <h5 className="font-medium text-rose-900 mb-3">Top 3 Lowest Transaction Days</h5>
                             <div className="space-y-3">
                               {analysis.enhancedInsights.paymentTrends.topLowestDays ? 
-                                analysis.enhancedInsights.paymentTrends.topLowestDays.map((day: any, index: number) => (
+                                analysis.enhancedInsights.paymentTrends.topLowestDays.map((day: PaymentTrendDay, index: number) => (
                                   <div key={index} className="flex justify-between items-center bg-white rounded-lg p-3 border border-rose-200">
                                     <div>
                                       <span className="font-medium text-gray-900">{day.date}</span>
@@ -1178,24 +1222,9 @@ export default function MainPage({ user }: MainPageProps) {
                                 )) : 
                                 // Fallback with sample data when enhanced insights aren't available
                                 [
-                                  { 
-                                    date: 'March 11, 2024', 
-                                    dayOfWeek: 'Monday', 
-                                    volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.3, 
-                                    timeRange: '10:00 AM - 12:00 PM' 
-                                  },
-                                  { 
-                                    date: 'March 18, 2024', 
-                                    dayOfWeek: 'Monday', 
-                                    volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.35, 
-                                    timeRange: '9:00 AM - 11:00 AM' 
-                                  },
-                                  { 
-                                    date: 'March 25, 2024', 
-                                    dayOfWeek: 'Monday', 
-                                    volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.4, 
-                                    timeRange: '11:00 AM - 1:00 PM' 
-                                  }
+                                  { date: 'March 11, 2024', dayOfWeek: 'Monday', volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.3, timeRange: '10:00 AM - 12:00 PM' },
+                                  { date: 'March 18, 2024', dayOfWeek: 'Monday', volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.35, timeRange: '9:00 AM - 11:00 AM' },
+                                  { date: 'March 25, 2024', dayOfWeek: 'Monday', volume: analysis.enhancedInsights.paymentTrends.avgDailyVolume * 0.4, timeRange: '11:00 AM - 1:00 PM' }
                                 ].map((day, index) => (
                                   <div key={index} className="flex justify-between items-center bg-white rounded-lg p-3 border border-rose-200">
                                     <div>
@@ -1230,6 +1259,9 @@ export default function MainPage({ user }: MainPageProps) {
       </div>
     </div>
   );
-}
+});
 
+MainPage.displayName = 'MainPage';
+
+export default MainPage;
 export { MainPage };

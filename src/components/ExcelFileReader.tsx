@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 
+import { FileRow, ValidationResult, ParsedFileData } from '../types';
+
 interface ExcelFileReaderProps {
-  onFileLoad: (fileData: any) => void;
+  onFileLoad: (fileData: ParsedFileData) => void;
   onError: (error: string) => void;
   files: string[];
   selectedFile: string;
   label: string;
 }
 
-export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
+const ExcelFileReader: React.FC<ExcelFileReaderProps> = React.memo(({
   onFileLoad,
   onError,
   files,
@@ -18,12 +20,11 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
 
-  const loadFile = async (fileName: string) => {
+  const loadFile = useCallback(async (fileName: string) => {
     if (!fileName) return;
     
     setLoading(true);
     try {
-      console.log(`🔒 Safe loading file with universal validation: ${fileName}`);
       
       // UNIVERSAL VALIDATION - validates ALL files regardless of type
       const { safeLoadFile } = await import('../utils/universalFileValidator');
@@ -33,14 +34,12 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
         const errorMsg = validation.securityWarning 
           ? `🚨 SECURITY ALERT: ${validation.error}\n\n${validation.securityWarning}`
           : validation.error || 'File validation failed';
-        console.error(`❌ BLOCKED file load: ${fileName}`, errorMsg);
         throw new Error(errorMsg);
       }
       
-      console.log(`✅ File validated successfully: ${fileName}`);
       
       let headers: string[] = [];
-      let data: any[] = [];
+      let data: FileRow[] = [];
       
       if (fileName.toLowerCase().endsWith('.csv')) {
         // Handle validated CSV files
@@ -54,7 +53,7 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
         headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
         data = lines.slice(1).map(line => {
           const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-          const row: any = {};
+          const row: FileRow = {};
           headers.forEach((header, index) => {
             row[header] = values[index] || '';
           });
@@ -80,9 +79,9 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
         
         // Convert array format to object format
         data = rawData.map(row => {
-          const rowObj: any = {};
+          const rowObj: FileRow = {};
           headers.forEach((header, index) => {
-            rowObj[header] = (row as any[])[index] || '';
+            rowObj[header] = (row as (string | number)[])[index] || '';
           });
           return rowObj;
         });
@@ -99,37 +98,38 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
         }
       };
       
-      console.log(`✅ Successfully loaded ${fileName}:`, {
-        type: fileName.toLowerCase().endsWith('.csv') ? 'CSV' : 'Excel',
-        rows: data.length,
-        columns: headers.length,
-        headers: headers.join(', ')
-      });
       
       onFileLoad(fileInfo);
       
-    } catch (error: any) {
-      console.error(`❌ Error loading ${fileName}:`, error);
-      onError(error.message || 'Failed to load file');
+    } catch (error: unknown) {
+      onError(error instanceof Error ? error.message : 'Failed to load file');
     } finally {
       setLoading(false);
     }
-  };
+  }, [onFileLoad, onError]);
+
+  // Memoized select change handler
+  const handleSelectChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    loadFile(e.target.value);
+  }, [loadFile]);
 
   return (
     <div className="flex-1">
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <select
-        onChange={(e) => loadFile(e.target.value)}
+        onChange={handleSelectChange}
         value={selectedFile}
         className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-gray-700"
       >
         <option value="">Select a file...</option>
-        {files.map(file => (
-          <option key={file} value={file}>
-            {file} {file.toLowerCase().endsWith('.csv') ? '(CSV)' : '(Excel)'}
-          </option>
-        ))}
+        {files.map(file => {
+          const fileType = file.toLowerCase().endsWith('.csv') ? '(CSV)' : '(Excel)';
+          return (
+            <option key={file} value={file}>
+              {file} {fileType}
+            </option>
+          );
+        })}
       </select>
       
       {loading && (
@@ -140,4 +140,17 @@ export const ExcelFileReader: React.FC<ExcelFileReaderProps> = ({
       )}
     </div>
   );
-}; 
+}, (prevProps, nextProps) => {
+  // Custom comparison function for performance
+  return (
+    prevProps.files === nextProps.files &&
+    prevProps.selectedFile === nextProps.selectedFile &&
+    prevProps.label === nextProps.label &&
+    prevProps.onFileLoad === nextProps.onFileLoad &&
+    prevProps.onError === nextProps.onError
+  );
+});
+
+ExcelFileReader.displayName = 'ExcelFileReader';
+
+export default ExcelFileReader; 
