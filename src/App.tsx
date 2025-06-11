@@ -1,5 +1,6 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthState } from './hooks/useAuthState';
 
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -19,6 +20,21 @@ import ReconciliationApp from './pages/ReconciliationApp';
 import RegisterPage from './pages/RegisterPage';
 import SupportPage from './pages/SupportPage';
 import TermsPage from './pages/TermsPage';
+import BillingWireframe from './mockups/BillingWireframe';
+
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading } = useAuthState();
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  return <>{children}</>;
+};
 
 export default function App() {
   return (
@@ -41,6 +57,11 @@ export default function App() {
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/mockup-billing" element={
+              <ProtectedRoute>
+                <BillingWireframe />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>

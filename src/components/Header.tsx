@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, HelpCircle, MessageCircle, Menu, X } from 'lucide-react';
+import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard } from 'lucide-react';
 import clientConfig from '../config/client';
 import { useAuthState } from '../hooks/useAuthState';
 import UsageCounter from './UsageCounter';
@@ -34,6 +34,15 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4 lg:gap-6">
+            {isAuthenticated && (
+              <Link to="/mockup-billing" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
+                <CreditCard className="h-4 w-4" />
+                <span>Billing</span>
+              </Link>
+            )}
+            <Link to="/pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-200 min-h-[44px] px-2 flex items-center">
+              Pricing
+            </Link>
             <Link to="/docs" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
               <Book className="h-4 w-4" />
               <span className="hidden lg:inline">Documentation</span>
@@ -46,9 +55,6 @@ export default function Header() {
             <Link to="/contact" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
               <MessageCircle className="h-4 w-4" />
               Contact
-            </Link>
-            <Link to="/pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-200 min-h-[44px] px-2 flex items-center">
-              Pricing
             </Link>
             {!isLoading && (
               <Link
@@ -89,10 +95,27 @@ export default function Header() {
           <div className="md:hidden mt-3 sm:mt-4 pb-4 border-t border-gray-200 pt-4">
             <div className="flex flex-col space-y-2">
               {isAuthenticated && (
-                <div className="mb-3 pb-3 border-b border-gray-100">
-                  <UsageCounter />
-                </div>
+                <>
+                  <div className="mb-3 pb-3 border-b border-gray-100">
+                    <UsageCounter />
+                  </div>
+                  <Link 
+                    to="/mockup-billing" 
+                    className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
+                    onClick={closeMobileMenu}
+                  >
+                    <CreditCard className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-medium">Billing</span>
+                  </Link>
+                </>
               )}
+              <Link 
+                to="/pricing" 
+                className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
+                onClick={closeMobileMenu}
+              >
+                <span className="font-medium">Pricing</span>
+              </Link>
               <Link 
                 to="/docs" 
                 className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
@@ -116,13 +139,6 @@ export default function Header() {
               >
                 <MessageCircle className="h-5 w-5 flex-shrink-0" />
                 <span className="font-medium">Contact</span>
-              </Link>
-              <Link 
-                to="/pricing" 
-                className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
-                onClick={closeMobileMenu}
-              >
-                <span className="font-medium">Pricing</span>
               </Link>
             </div>
           </div>
