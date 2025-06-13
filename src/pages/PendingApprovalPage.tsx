@@ -60,6 +60,31 @@ export default function PendingApprovalPage() {
             </div>
           </div>
 
+          <div className="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <h3 className="font-medium text-emerald-900 mb-3">
+              📞 Let's Connect & Build Your Custom Script
+            </h3>
+            <p className="text-sm text-emerald-700 mb-4">
+              Choose how you'd like to discuss your reconciliation needs:
+            </p>
+            <div className="space-y-3">
+              <a
+                href="https://cal.com/davis-r-rmz6au/30min"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-md hover:bg-emerald-700 transition-colors duration-200"
+              >
+                📅 Schedule 30-min consultation
+              </a>
+              <a
+                href="mailto:davis@grbalance.com?subject=Custom Script Discussion&body=Hi! I just registered and would like to discuss my reconciliation needs via email instead of a call. Here are my requirements:%0A%0A[Please describe your current payment processing setup and reconciliation challenges]"
+                className="flex items-center px-4 py-2 border border-emerald-600 text-emerald-600 text-sm font-medium rounded-md hover:bg-emerald-50 transition-colors duration-200"
+              >
+                📧 Email your requirements instead
+              </a>
+            </div>
+          </div>
+
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600">
               Questions about your registration?{' '}

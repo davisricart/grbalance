@@ -101,18 +101,30 @@ export default function LandingPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
             <Link
+              to="/register"
+              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation shadow-lg"
+            >
+              <Zap className="mr-2 h-5 w-5 flex-shrink-0" />
+              Get Started
+            </Link>
+            <Link
               to="/interactive-demo"
-              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation"
+              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation"
             >
               <FileSpreadsheet className="mr-2 h-5 w-5 flex-shrink-0" />
               Try Interactive Demo
             </Link>
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              Sign up → Consultation → Custom script → 14-day trial
+            </p>
             <Link
               to="/book"
-              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation"
+              className="inline-flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
             >
-              <Calendar className="mr-2 h-5 w-5 flex-shrink-0" />
-              Book Consultation
+              <Calendar className="mr-1 h-4 w-4" />
+              Or book consultation first
             </Link>
           </div>
         </div>

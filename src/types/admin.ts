@@ -32,6 +32,11 @@ export interface ApprovedUser {
   createdAt: string;
   softwareProfile?: string;
   showInsights?: boolean;
+  
+  // Minimal consultation tracking
+  consultationCompleted?: boolean;
+  scriptReady?: boolean;
+  consultationNotes?: string;
 }
 
 export interface ScriptData {

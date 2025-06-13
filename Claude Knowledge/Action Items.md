@@ -30,10 +30,21 @@
 **Process:** Run analysis → review suggestions → update master knowledge
 **Timeline:** 1 week after Task 1
 
+### **Task 5: Refined Billing Workflow (Building on Existing System)**
+**What:** Connect existing Cal.com booking to user approval workflow
+**Impact:** Qualify leads through consultation tracking, prevent trial waste
+**Files to modify:** PendingApprovalPage.tsx, AdminPage.tsx, user types
+**Timeline:** After Tasks 1-4 complete
+
+**Phase 1 (Week 1):** Connect booking to registration
+**Phase 2 (Week 2):** Enhanced admin dashboard with consultation tracking  
+**Phase 3 (Week 3):** Trial activation control
+
 ## 📅 Timeline
 - **Week 1:** Tasks 1-2 (Add learning, test collection)  
 - **Week 2:** Task 3 (Set up analysis system)
 - **Week 3:** Task 4 (First knowledge enhancement)
+- **Week 4:** Task 5 (Enhanced billing workflow)
 - **Ongoing:** Weekly knowledge updates
 
 ## 🎯 Success Metrics

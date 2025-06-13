@@ -236,16 +236,28 @@ export default function PricingPage() {
                 {plan.savings}
               </p>
               
-              <Link
-                to={`/interactive-demo`}
-                className={`mt-6 block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                  plan.popular
-                    ? 'bg-emerald-500 text-white hover:bg-emerald-400 focus-visible:outline-emerald-500'
-                    : 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-emerald-600'
-                }`}
-              >
-                Try Interactive Demo
-              </Link>
+              <div className="mt-6 space-y-3">
+                <Link
+                  to={`/register?plan=${plan.name.toLowerCase()}`}
+                  className={`block rounded-md px-3 py-2 text-center text-sm font-semibold leading-6 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                    plan.popular
+                      ? 'bg-emerald-500 text-white hover:bg-emerald-400 focus-visible:outline-emerald-500'
+                      : 'bg-emerald-600 text-white hover:bg-emerald-500 focus-visible:outline-emerald-600'
+                  }`}
+                >
+                  Choose {plan.name}
+                </Link>
+                <Link
+                  to="/interactive-demo"
+                  className={`block rounded-md px-3 py-2 text-center text-xs font-medium border transition-colors ${
+                    plan.popular
+                      ? 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                      : 'border-emerald-600 text-emerald-600 hover:bg-emerald-50'
+                  }`}
+                >
+                  Try Demo First
+                </Link>
+              </div>
               
               <ul className="mt-8 space-y-3 text-sm leading-6">
                 {plan.features.map((feature) => (

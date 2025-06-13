@@ -87,6 +87,11 @@ interface ApprovedUser {
   createdAt: string;
   softwareProfile?: string; // NEW: Software profile ID
   showInsights?: boolean; // NEW: Individual control for insights tab
+  
+  // Minimal consultation tracking
+  consultationCompleted?: boolean;
+  scriptReady?: boolean;
+  consultationNotes?: string;
 }
 
 interface Script {

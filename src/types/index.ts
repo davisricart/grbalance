@@ -189,6 +189,11 @@ export interface ApprovedUser {
   softwareProfile?: string;
   showInsights?: boolean;
   deployedScripts?: Array<string | { name: string; [key: string]: unknown }>;
+  
+  // Minimal consultation tracking
+  consultationCompleted?: boolean;
+  scriptReady?: boolean;
+  consultationNotes?: string;
 }
 
 // Admin page types
