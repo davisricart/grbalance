@@ -3989,95 +3989,99 @@ function processStep${index + 1}(data) {
 
         {/* Tab Navigation */}
         <div className="mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8">
+          <div className="bg-green-50 rounded-lg border border-green-100 p-1">
+            <nav className="flex space-x-1">
               <button
                 onClick={() => setActiveTab('clients')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'clients'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <User className="inline w-4 h-4 mr-2" />
-                Client Management ({clients.length})
+                CLIENTS
+                {activeTab === 'clients' && <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">{clients.length}</span>}
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'pending'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <Settings className="inline w-4 h-4 mr-2" />
-                Pending Approvals ({pendingUsers.length})
+                PENDING
+                {activeTab === 'pending' && <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">{pendingUsers.length}</span>}
               </button>
               <button
                 onClick={() => setActiveTab('approved')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'approved'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <UserCheck className="inline w-4 h-4 mr-2" />
-                Approved Users ({filteredUsers.length}{filteredUsers.length !== approvedUsers.length ? `/${approvedUsers.length}` : ''})
+                APPROVED  
+                {activeTab === 'approved' && <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">{filteredUsers.length}</span>}
               </button>
               <button
                 onClick={() => setActiveTab('deleted')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'deleted'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <Trash2 className="inline w-4 h-4 mr-2" />
-                Deleted Users ({deletedUsers.length})
+                DELETED
+                {activeTab === 'deleted' && <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">{deletedUsers.length}</span>}
               </button>
               <button
                 onClick={() => setActiveTab('profiles')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'profiles'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <Shield className="inline w-4 h-4 mr-2" />
-                Software Profiles
+                PROFILES
               </button>
               <button
                 onClick={() => setActiveTab('dynamic-profiles')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'dynamic-profiles'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <Plus className="inline w-4 h-4 mr-2" />
-                Profile Editor
+                EDITOR
               </button>
               <button
                 onClick={() => setActiveTab('settings')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'settings'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <Settings className="inline w-4 h-4 mr-2" />
-                Account Settings
+                SETTINGS
               </button>
               <button
                 onClick={() => setActiveTab('script-testing')}
-                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'script-testing'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                 }`}
               >
                 <FiCode className="inline w-4 h-4 mr-2" />
-                Script Testing
+                TESTING
               </button>
             </nav>
           </div>
