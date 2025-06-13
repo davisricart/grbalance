@@ -1,0 +1,587 @@
+# GR Balance File Comparison System - Project Knowledge
+
+## System Overview:
+This is a modular file comparison system with a fixed HTML template website and standalone GitHub-hosted scripts. The website handles file uploads and displays results, while separate scripts perform the actual data processing.
+
+## **CRITICAL: WORKING SCRIPT FORMAT CONFIRMED**
+
+### **✅ PROVEN WORKING PATTERN:**
+The system **REQUIRES** this exact async function wrapper pattern for all scripts:
+
+```javascript
+// Script Name: [Name]
+// Generated for GR Balance File Comparison System
+// Date: [Date]
+
+(async function() {
+  try {
+    console.log('🚀 Starting [Name]...');
+    
+    // Get data using GR Balance system
+    const files = await window.parseFiles();
+    if (!files?.data1?.length) {
+      window.showError('File 1 required');
+      return;
+    }
+    
+    // Your processing logic here...
+    
+    window.showResults(results, {
+      title: 'Title',
+      summary: 'Summary'
+    });
+    
+    console.log('✅ Script completed successfully!');
+    
+  } catch (error) {
+    console.error('❌ Script error:', error);
+    window.showError(`Analysis failed: ${error.message}`);
+  }
+})();
+```
+
+### **🚨 CRITICAL FORMAT REQUIREMENTS:**
+- **MUST use** `(async function() { ... })()` wrapper
+- **MUST use** try/catch error handling
+- **MUST use** `console.log()` for debugging
+- **MUST use** `window.parseFiles()` for data access
+- **MUST use** `window.showResults()` for display
+- **MUST use** `window.showError()` for errors
+- **MUST use** `window.addAdditionalTable()` for extra tables
+
+### **❌ FORMATS THAT FAIL:**
+- Direct code execution without wrapper
+- `async function name() { ... }` followed by `name()`
+- Arrow functions or modern ES6+ syntax that triggers CSP
+- Any direct DOM manipulation
+
+## **📅 EXCEL DATE HANDLING - CRITICAL REQUIREMENT**
+
+### **🚨 PROBLEM:**
+Excel stores dates as serial numbers (e.g., 45729.8325578707) instead of readable dates, causing "Invalid Date" errors in scripts when processing business files from DaySmart, payment processors, and POS systems.
+
+### **✅ REQUIRED SOLUTION PATTERN:**
+**ALL scripts processing Date columns from Excel files MUST include this pattern:**
+
+```javascript
+// Handle Excel serial numbers and various date formats
+function processDateValue(dateValue) {
+  if (!dateValue || dateValue === '') return null;
+  
+  // Handle Excel serial numbers (numeric values > 40000 indicate dates after 1900)
+  if (typeof dateValue === 'number' && dateValue > 40000) {
+    // Convert Excel serial number to JavaScript Date
+    const excelEpoch = new Date(1899, 11, 30); // December 30, 1899 as base
+    const jsDate = new Date(excelEpoch.getTime() + Math.floor(dateValue) * 24 * 60 * 60 * 1000);
+    return jsDate.toISOString().split('T')[0]; // Return YYYY-MM-DD format
+  }
+  
+  // Handle string dates - trim at first space if present (removes timestamps)
+  let dateStr = String(dateValue);
+  const firstSpaceIndex = dateStr.indexOf(' ');
+  if (firstSpaceIndex !== -1) {
+    dateStr = dateStr.substring(0, firstSpaceIndex);
+  }
+  
+  return dateStr;
+}
+
+// Usage in data processing:
+const processedDates = data1.map(row => processDateValue(row[dateColumn])).filter(date => date);
+```
+
+### **📋 WHEN TO USE:**
+- ✅ **ALL scripts** processing Date columns from Excel files (.xlsx/.xls)
+- ✅ **Business files** from DaySmart, payment processors, POS systems
+- ✅ **Any date operations** that might encounter Excel serial numbers
+
+### **🎯 EXPECTED BEHAVIOR:**
+- Input: `45729.8325578707` (Excel serial number)
+- Output: `"2025-03-13"` (readable YYYY-MM-DD format)
+- **Prevention**: Eliminates "Invalid Date" errors in results
+
+### **🔧 STANDARD DATE PROCESSING TEMPLATE:**
+```javascript
+// Find date column using flexible matching
+const dateColumn = window.findColumn(data1[0], ['Date', 'DATE', 'date', 'Transaction Date', 'transaction_date']);
+
+if (!dateColumn) {
+  window.showError(`Could not find Date column. Available: ${Object.keys(data1[0]).join(', ')}`);
+  return;
+}
+
+// Process dates with Excel serial number handling
+const allDates = data1.map(row => {
+  let dateValue = row[dateColumn];
+  if (!dateValue || dateValue === '') return null;
+  
+  // Handle Excel serial numbers
+  if (typeof dateValue === 'number' && dateValue > 40000) {
+    const excelEpoch = new Date(1899, 11, 30);
+    const jsDate = new Date(excelEpoch.getTime() + Math.floor(dateValue) * 24 * 60 * 60 * 1000);
+    return jsDate.toISOString().split('T')[0];
+  }
+  
+  // Handle string dates - trim at first space if present
+  let dateStr = String(dateValue);
+  const firstSpaceIndex = dateStr.indexOf(' ');
+  if (firstSpaceIndex !== -1) {
+    dateStr = dateStr.substring(0, firstSpaceIndex);
+  }
+  
+  return dateStr;
+}).filter(date => date && date !== '');
+```
+
+## **IMPORTANT: PREVIEW RECORD COUNT STANDARD**
+
+### **🔢 PREVIEW TABLE CONFIGURATION:**
+- **Default Preview Count**: Use **5 records** for all preview sections
+- **Constant Name**: `window.PREVIEW_RECORD_COUNT` (if available) or hardcode to 5
+- **Application**: All "preview" or "sample" tables should show first 5 records
+- **Consistency**: This ensures all Claude-generated scripts match your system standard
+
+### **✅ CORRECT PREVIEW IMPLEMENTATION:**
+```javascript
+// Use 5 records for all preview tables - system standard
+const previewData = [];
+for (let i = 0; i < Math.min(5, processedData.length); i++) {
+  previewData.push(processedData[i]);
+}
+```
+
+### **❌ AVOID ARBITRARY PREVIEW COUNTS:**
+- Don't use 10, 3, or other numbers unless specifically requested
+- Don't use `.slice(0, 10)` or similar without considering system standard
+- Preview count should be consistent across all scripts
+
+## **IMPORTANT: FILE STRUCTURE CLARIFICATION**
+
+### **LIVE SYSTEM (Production):**
+- **Location**: `src/pages/AdminPage.tsx` 
+- **URL**: `localhost:[PORT]/admin` (Script Testing section)
+- **Type**: React/TypeScript component served by Vite dev server
+- **Auto-updates**: ✅ Changes reflect immediately via Vite hot reload
+- **This is where you actually test scripts**
+
+### **STANDALONE FILES (Reference/Testing):**
+- **Location**: `sample-data/New working version.txt` 
+- **Type**: Standalone HTML file (can be saved as .html for local testing)
+- **Auto-updates**: ❌ Does NOT sync with AdminPage.tsx changes
+- **Purpose**: Backup/reference version for standalone testing
+
+### **KEY INSIGHT:**
+When we make fixes (like the `await eval()` script execution fix), we update:
+1. **AdminPage.tsx** ✅ (Your live system gets the fix immediately)
+2. **sample-data files** ❌ (Stay static unless manually updated)
+
+**For consistency, both files need manual updates when making changes.**
+
+## **🎯 CONTEXT-AWARE SCRIPT GENERATION**
+
+Before generating any script, Claude MUST:
+1. **Analyze uploaded data structure** using provided analysis tools
+2. **Identify required handling patterns** (dates, amounts, text, etc.)  
+3. **Generate context-specific requirements** beyond the base template
+4. **Include data-specific validation** and error handling
+5. **Provide execution preview** with expected results format
+
+TEMPLATE: "Based on your data analysis, this script will: [X, Y, Z] and handle [specific requirements] using [specific patterns]."
+
+### **Required Analysis Pattern:**
+```javascript
+// First, analyze the data structure
+const files = await window.parseFiles();
+console.log('📊 Data analysis:', {
+  columns: Object.keys(files.data1[0]),
+  sampleValues: files.data1[0],
+  dateColumns: /* identify date patterns */,
+  amountColumns: /* identify currency patterns */,
+  totalRows: files.data1.length
+});
+```
+
+## **FOR FUTURE CLAUDE SESSIONS:**
+
+When starting a new session, provide Claude with this exact instruction:
+
+```
+"Follow the project knowledge section for the GR Balance File Comparison System. The system is CONFIRMED WORKING with this exact script format:
+
+(async function() {
+  try {
+    // Script logic here using window.parseFiles(), window.showResults(), etc.
+    // IMPORTANT: Use 5 records for all preview tables (system standard)
+    // CRITICAL: Include Excel date handling for any date processing
+    // REQUIRED: Analyze data structure first before generating script
+  } catch (error) {
+    window.showError(`Error: ${error.message}`);
+  }
+})();
+
+DO NOT deviate from this format - it's the only pattern that works with our CSP and async execution. Scripts run on localhost:[PORT]/admin in the Script Testing section. ALWAYS include Excel date serial number handling for date columns. ALWAYS analyze data structure before generating scripts."
+```
+
+## **CURRENT SYSTEM STATUS:**
+- ✅ AdminPage.tsx has async script execution fix (`await eval()`)
+- ✅ Handles async scripts properly with (async function() {})() wrapper
+- ✅ Running live on localhost:[PORT]/admin
+- ✅ **CONFIRMED WORKING** - Scripts execute without CSP errors
+- ✅ **Preview standard**: 5 records for all preview/sample tables
+- ✅ **Excel date handling**: Serial number conversion confirmed working
+- ⚠️ sample-data files may not reflect latest fixes
+
+## Workflow:
+1. User uploads one or two files via the website template
+2. User selects a comparison script from dropdown menu OR pastes/uploads in Script Testing
+3. User clicks "Run Analysis/Script" button
+4. Website loads the selected script and executes it with await eval()
+5. Script processes the files and populates results in the designated section
+
+## File Processing Standards:
+- File 1: Always uploaded to "Upload First File" section (referenced as upload1)
+- File 2: Always uploaded to "Upload Second File" section (referenced as upload2) - OPTIONAL
+- Supported formats: Excel (.xlsx/.xls) and CSV (.csv)
+- Scripts should handle both Excel parsing (using XLSX library) and CSV parsing (using Papa Parse)
+- All files should be processed with headers
+- Scripts can work with one or two files as needed
+- **Excel date columns require serial number handling** (see Excel Date Handling section above)
+
+## Script Requirements:
+- Must be standalone JavaScript files (for GitHub hosting) OR work in React admin environment
+- Must integrate with existing HTML template structure OR AdminPage.tsx testing environment
+- Must populate results using window.showResults() function
+- Must match the existing styling (tables, summaries, etc.)
+- Must include error handling and user-friendly messages
+- NO specific function naming conventions required - scripts just need to execute and populate results
+- Must detect and handle both Excel and CSV file formats
+- Can use window.parseFiles() helper function for easy data access
+- Can use window.getFileData() for raw file access
+- **Must use 5 records for all preview/sample tables**
+- **Must include Excel date serial number handling for any date processing**
+
+## Testing Environment:
+- **PRIMARY**: localhost:[PORT]/admin Script Testing section (React/TypeScript)
+- **BACKUP**: Local HTML files from sample-data (standalone testing)
+- Test environment allows uploading script files OR pasting scripts directly
+- Results display exactly as customers see on live site
+- Use for testing before deploying scripts to production
+
+## **CRITICAL: GR BALANCE SYSTEM SCRIPT REQUIREMENTS**
+
+### **REQUIRED APIS (MUST USE):**
+- ✅ **File access**: `const files = await window.parseFiles(); const data = files.data1;`
+- ✅ **Display main results**: `window.showResults(data, {title: 'Title', summary: 'Summary'});`
+- ✅ **Add additional tables**: `window.addAdditionalTable(htmlString, 'unique-id');`
+- ✅ **Column finding**: `window.findColumn(data[0], ['Column Name', 'alt_name']);`
+- ✅ **Error handling**: `window.showError('Error message');`
+
+### **FORBIDDEN APIS (WILL FAIL SILENTLY):**
+- ❌ `document.querySelector('.results-section')`
+- ❌ `resultsContainer.insertAdjacentHTML()`
+- ❌ Any direct DOM manipulation
+
+### **REQUIRED SCRIPT STRUCTURE (CONFIRMED WORKING):**
+```javascript
+(async function() {
+  try {
+    // 1. Get data
+    const files = await window.parseFiles();
+    if (!files?.data1?.length) {
+      window.showError('File 1 required');
+      return;
+    }
+    
+    // 2. Process data (INCLUDE EXCEL DATE HANDLING IF PROCESSING DATES)
+    const processedData = /* your logic with Excel date handling if needed */;
+    
+    // 3. Show main results
+    window.showResults(processedData, {
+      title: 'Your Title',
+      summary: 'Your summary'
+    });
+    
+    // 4. Add additional tables (if any) - USE 5 RECORDS FOR PREVIEWS
+    if (extraData.length > 0) {
+      const previewData = [];
+      for (let i = 0; i < Math.min(5, extraData.length); i++) {
+        previewData.push(extraData[i]);
+      }
+      const tableHtml = /* build HTML with previewData */;
+      window.addAdditionalTable(tableHtml, 'table-id');
+      console.log('✅ Additional table added');
+    }
+    
+  } catch (error) {
+    window.showError(`Error: ${error.message}`);
+  }
+})();
+```
+
+**CRITICAL: Always use window.addAdditionalTable() for multiple tables. Never use DOM selectors. Use 5 records for all preview tables. Include Excel date handling for any date processing.**
+
+## **STANDARD SCRIPT DEVELOPMENT WORKFLOW:**
+
+### **User Request Format:**
+When requesting a new script, users should say:
+```
+"Follow the project knowledge section for the GR Balance File Comparison System. Here are my files and step-by-step instructions:
+
+1. [Specific processing instruction]
+2. [Additional processing step]
+3. [Final output requirements]
+
+Script name: [User's chosen name]"
+```
+
+### **Claude Response Requirements:**
+Claude must ALWAYS generate scripts using this exact template pattern:
+
+```javascript
+// Script Name: [User Specified Name]
+// Generated for GR Balance File Comparison System
+// Date: [Current Date]
+
+(async function() {
+  try {
+    console.log('🚀 Starting [Script Name]...');
+    
+    // STEP 1: ANALYZE DATA STRUCTURE FIRST
+    const files = await window.parseFiles();
+    if (!files) {
+      window.showError('Failed to parse files. Please check that files are uploaded correctly.');
+      return;
+    }
+    
+    const data1 = files.data1;
+    const data2 = files.data2;
+    
+    // Data structure analysis
+    console.log('📊 Data analysis:', {
+      file1Columns: Object.keys(data1[0] || {}),
+      file1Sample: data1[0],
+      file1Rows: data1.length,
+      file2Columns: data2 ? Object.keys(data2[0] || {}) : 'N/A',
+      file2Sample: data2 ? data2[0] : 'N/A',
+      file2Rows: data2 ? data2.length : 'N/A'
+    });
+    
+    // STEP 2: VALIDATE REQUIRED DATA
+    if (!data1 || data1.length === 0) {
+      window.showError('File 1 is required and must contain data');
+      return;
+    }
+    
+    // Optional: Validate File 2 if needed
+    if (/* script requires file 2 */ && (!data2 || data2.length === 0)) {
+      window.showError('File 2 is required and must contain data');
+      return;
+    }
+    
+    // STEP 3: FIND REQUIRED COLUMNS WITH CONTEXT-AWARE DETECTION
+    const column1 = window.findColumn(data1[0], ['Column Name', 'alt name', 'ALT_NAME']);
+    const column2 = data2 ? window.findColumn(data2[0], ['Other Column', 'other_column', 'OTHER']) : null;
+    
+    if (!column1) {
+      window.showError(`Could not find required column in File 1. Available: ${Object.keys(data1[0]).join(', ')}`);
+      return;
+    }
+    
+    // STEP 4: IMPLEMENT USER'S STEP-BY-STEP PROCESSING LOGIC
+    // INCLUDE EXCEL DATE HANDLING IF PROCESSING DATE COLUMNS:
+    /*
+    if (processing dates) {
+      const processedDates = data1.map(row => {
+        let dateValue = row[dateColumn];
+        if (!dateValue) return null;
+        
+        // Handle Excel serial numbers
+        if (typeof dateValue === 'number' && dateValue > 40000) {
+          const excelEpoch = new Date(1899, 11, 30);
+          const jsDate = new Date(excelEpoch.getTime() + Math.floor(dateValue) * 24 * 60 * 60 * 1000);
+          return jsDate.toISOString().split('T')[0];
+        }
+        
+        // Handle string dates
+        let dateStr = String(dateValue);
+        const firstSpaceIndex = dateStr.indexOf(' ');
+        if (firstSpaceIndex !== -1) {
+          dateStr = dateStr.substring(0, firstSpaceIndex);
+        }
+        return dateStr;
+      }).filter(date => date);
+    }
+    */
+    
+    // [USER'S PROCESSING LOGIC IMPLEMENTED HERE]
+    
+    // STEP 5: DISPLAY RESULTS WITH CONTEXT-AWARE SUMMARY
+    window.showResults(results, {
+      title: '[Descriptive Title Based on Data Analysis]',
+      summary: '[Processing summary with key metrics from actual data]'
+    });
+    
+    // STEP 6: ADD PREVIEW TABLES IF NEEDED - ALWAYS USE 5 RECORDS
+    if (additionalData && additionalData.length > 0) {
+      const previewData = [];
+      for (let i = 0; i < Math.min(5, additionalData.length); i++) {
+        previewData.push(additionalData[i]);
+      }
+      // Build HTML table with previewData
+      // Add note: "Showing first 5 of X total records"
+      window.addAdditionalTable(previewHtml, 'preview-table');
+    }
+    
+    console.log('✅ Script completed successfully!');
+    
+  } catch (error) {
+    console.error('❌ Script error:', error);
+    window.showError(`Analysis failed: ${error.message}`);
+  }
+})();
+```
+
+**Before generating any script, Claude must provide:**
+"Based on your data analysis, this script will: [specific actions] and handle [data-specific requirements] using [specific patterns like Excel date conversion, amount formatting, etc.]."
+
+### **Required Global Functions (Available in GR Balance):**
+- `window.parseFiles()` - Returns {data1: [...], data2: [...]} with clean parsed data
+- `window.showResults(data, options)` - Displays results in formatted tables
+- `window.showError(message)` - Shows error messages to user
+- `window.findColumn(row, possibleNames)` - Smart column matching with flexible naming
+- `window.addAdditionalTable(htmlString, uniqueId)` - Adds additional tables below main results
+
+### **Script Standards:**
+- ALWAYS use (async function() {})() wrapper pattern
+- ALWAYS include comprehensive error handling
+- ALWAYS validate data before processing
+- ALWAYS use window.findColumn() for flexible column matching
+- ALWAYS include console.log() statements for debugging
+- ALWAYS provide descriptive titles and summaries in results
+- ALWAYS handle both single and dual file scenarios as appropriate
+- ALWAYS use window.addAdditionalTable() for multiple tables
+- **ALWAYS use 5 records for preview/sample tables**
+- **ALWAYS include Excel date serial number handling for date processing**
+
+### **User Instruction Processing:**
+When users provide step-by-step processing instructions such as:
+1. "Take column A from file 1 and remove duplicates"
+2. "Then match those against column B in file 2"
+3. "Count how many times each appears"
+4. "Calculate percentages and show results sorted by highest count"
+
+Claude should:
+1. ✅ Use the standard template above
+2. ✅ Implement the user's logic in the processing section
+3. ✅ Handle all technical details automatically (column finding, data validation, error handling)
+4. ✅ Include Excel date handling if processing date columns
+5. ✅ Provide appropriate result formatting and summaries
+6. ✅ Include comprehensive logging and debugging output
+7. ✅ Use 5 records for any preview tables
+
+### **Key Success Factors:**
+- Scripts must work immediately in the GR Balance test environment (localhost:[PORT]/admin)
+- No modifications should be needed after generation
+- All edge cases (missing columns, empty data, Excel dates, etc.) must be handled
+- Results must be professionally formatted with clear summaries
+- Console output must provide detailed debugging information
+- Preview tables must consistently show 5 records
+- Date processing must handle Excel serial numbers correctly
+
+This standardized approach ensures consistent, reliable script generation that integrates perfectly with the GR Balance File Comparison System.
+
+## **DEVELOPMENT PHILOSOPHY & APPROACH**
+
+### **🎯 WHO ADAPTS TO WHOM:**
+
+**Claude adapts to YOUR system architecture** - not the other way around.
+
+**Your GR Balance system defines:**
+- ✅ API interface (`window.parseFiles()`, `window.showResults()`, etc.)
+- ✅ Script execution environment (React/TypeScript admin interface)
+- ✅ Data flow patterns (how files are parsed and processed)
+- ✅ UI/UX standards (result formatting, error displays)
+- ✅ **Preview table standards (5 records)**
+- ✅ **Excel date handling requirements**
+
+**Claude must conform to:**
+- ✅ **Your established helper functions** (no inventing new APIs)
+- ✅ **Your standard script template** (exact pattern specified above)
+- ✅ **Your error handling approach** (using window.showError())
+- ✅ **Your result display format** (using window.showResults() with options)
+- ✅ **Your async patterns** (properly using await with your functions)
+- ✅ **Your preview standards** (5 records for all sample tables)
+- ✅ **Your Excel date handling** (serial number conversion for business files)
+
+### **🔧 SYSTEM ENHANCEMENT PRINCIPLE:**
+
+When Claude's modern async patterns exposed issues in your system (like the `eval()` vs `await eval()` fix), we enhanced YOUR system to support better practices while maintaining your established API.
+
+**Result**: Your system gets more robust while keeping the same interface that Claude scripts rely on.
+
+### **📋 FINAL INSTRUCTION FOR CLAUDE:**
+
+```
+"Claude: You are working within an established GR Balance File Comparison System. 
+
+DO NOT create new APIs or helper functions. 
+DO NOT deviate from the provided script template.
+DO NOT suggest architectural changes to their system.
+DO NOT try alternative script formats.
+DO NOT use arbitrary preview counts (10, 3, etc.).
+DO NOT ignore Excel date serial number handling.
+DO NOT generate scripts without analyzing data structure first.
+
+DO use their exact window functions as specified.
+DO follow the (async function() {})() wrapper pattern exactly.
+DO provide scripts that work immediately without modification.
+DO handle all edge cases within their established patterns.
+DO use exactly 5 records for all preview/sample tables.
+DO include Excel date handling for any date processing.
+DO analyze uploaded data structure before generating any script.
+DO provide context-aware script generation with execution preview.
+
+The user's system architecture is fixed and CONFIRMED WORKING - your job is to write scripts that work perfectly within it using the proven format. Business files often contain Excel serial numbers for dates - always handle this. Always analyze data first to understand structure and requirements."
+```
+
+### **🎯 SUCCESS METRIC:**
+A perfectly generated Claude script should upload to localhost:[PORT]/admin Script Testing section and execute successfully on the first try with zero modifications needed, all preview tables should show exactly 5 records, and any date processing should correctly handle Excel serial numbers.
+
+**This maintains consistency while ensuring Claude generates production-ready scripts that integrate seamlessly with your established GR Balance system.**
+
+## **TROUBLESHOOTING REFERENCE:**
+
+### **✅ WORKING PATTERNS:**
+- `(async function() { ... })()` wrapper
+- `console.log()` debugging statements
+- `window.parseFiles()` for data access
+- `try/catch` error handling
+- `for` loops for data processing (CSP-safe)
+- **5 records for all preview tables**
+- **Excel date serial number conversion**
+
+### **❌ PATTERNS THAT FAIL:**
+- Direct script execution without wrapper
+- Arrow functions in main structure
+- Modern ES6+ syntax that triggers CSP
+- Direct DOM manipulation
+- Alternative async patterns
+- **Arbitrary preview counts (not 5)**
+- **Ignoring Excel date serial numbers**
+
+### **🔧 IF SCRIPTS FAIL:**
+1. **Check for CSP errors** in console
+2. **Verify async wrapper pattern** `(async function() { ... })()`
+3. **Ensure using window.* APIs** not direct DOM access
+4. **Reference working script examples** in project files
+5. **Test with simple scripts first** before complex logic
+6. **Verify preview tables use 5 records**
+7. **Check for Excel date serial number issues** if processing dates
+
+### **📅 DATE PROCESSING TROUBLESHOOTING:**
+1. **"Invalid Date" errors**: Usually Excel serial numbers not being converted
+2. **Wrong dates displayed**: Check Excel epoch calculation (use 1899, 11, 30)
+3. **Timestamps in dates**: Ensure trimming at first space for timestamp removal
+4. **Debug date values**: Use `console.log('Date value type:', typeof dateValue, dateValue)`
+
+**The system is CONFIRMED WORKING - stick to the proven patterns including Excel date handling!**
