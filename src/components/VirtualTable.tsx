@@ -19,7 +19,7 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
   // Memoize columns for performance
   const columns = useMemo(() => {
     if (data.length === 0) return [];
-    return Object.keys(data[0]);
+    return Object.keys(data[0] || {});
   }, [data]);
 
   // Memoize visible data for current page
@@ -70,14 +70,14 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
       </div>
 
       {/* Virtual scrolled table */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
-        <table className="min-w-full text-sm">
+      <div className="overflow-x-auto rounded-lg shadow-sm">
+        <table className="min-w-full border border-gray-200 text-sm">
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               {columns.map((col, index) => (
                 <th 
                   key={`${col}-${index}`}
-                  className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 border-b border-gray-200 whitespace-nowrap"
+                  className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap"
                 >
                   <div className="truncate max-w-[100px] sm:max-w-none" title={String(col)}>
                     {String(col)}
@@ -86,7 +86,7 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 bg-white">
+          <tbody className="bg-white">
             {visibleData.map((row, rowIndex) => (
               <tr 
                 key={`row-${currentPage}-${rowIndex}`}

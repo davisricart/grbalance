@@ -378,37 +378,37 @@ export default function InteractiveDemoPage() {
                 <FileSpreadsheet className="h-5 w-5 text-emerald-600 mr-2" />
                 Salon Software Export
               </h3>
-              <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-300">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Date</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Transaction ID</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Service</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Amount</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Transaction ID</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Service</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Amount</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Payment Method</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white">
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-001</td>
-                      <td className="px-3 py-2 border-r border-gray-200">Haircut & Style</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$85.00</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-001</td>
+                      <td className="px-3 py-2">Haircut & Style</td>
+                      <td className="px-3 py-2">$85.00</td>
                       <td className="px-3 py-2">Credit Card</td>
                     </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-002</td>
-                      <td className="px-3 py-2 border-r border-gray-200">Color Treatment</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$120.00</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-002</td>
+                      <td className="px-3 py-2">Color Treatment</td>
+                      <td className="px-3 py-2">$120.00</td>
                       <td className="px-3 py-2">Credit Card</td>
                     </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-003</td>
-                      <td className="px-3 py-2 border-r border-gray-200">Manicure</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$35.00</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-003</td>
+                      <td className="px-3 py-2">Manicure</td>
+                      <td className="px-3 py-2">$35.00</td>
                       <td className="px-3 py-2">Cash</td>
                     </tr>
                     <tr className="bg-gray-50">
@@ -425,37 +425,37 @@ export default function InteractiveDemoPage() {
                 <FileSpreadsheet className="h-5 w-5 text-blue-600 mr-2" />
                 Payment Processor Export
               </h3>
-              <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
+              <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-100 border-b border-gray-300">
+                  <thead className="bg-gray-100">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Date</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Reference</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Gross Amount</th>
-                      <th className="px-3 py-2 text-left font-semibold text-gray-700 border-r border-gray-300">Net Amount</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Reference</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Gross Amount</th>
+                      <th className="px-3 py-2 text-left font-semibold text-gray-700">Net Amount</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Fees</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white">
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-001</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$85.00</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$82.54</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-001</td>
+                      <td className="px-3 py-2">$85.00</td>
+                      <td className="px-3 py-2">$82.54</td>
                       <td className="px-3 py-2">$2.46</td>
                     </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-002</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$120.00</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$116.52</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-002</td>
+                      <td className="px-3 py-2">$120.00</td>
+                      <td className="px-3 py-2">$116.52</td>
                       <td className="px-3 py-2">$3.48</td>
                     </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-3 py-2 border-r border-gray-200">2024-05-15</td>
-                      <td className="px-3 py-2 border-r border-gray-200">TXN-004</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$45.00</td>
-                      <td className="px-3 py-2 border-r border-gray-200">$43.65</td>
+                    <tr className="hover:bg-gray-50">
+                      <td className="px-3 py-2">2024-05-15</td>
+                      <td className="px-3 py-2">TXN-004</td>
+                      <td className="px-3 py-2">$45.00</td>
+                      <td className="px-3 py-2">$43.65</td>
                       <td className="px-3 py-2">$1.35</td>
                     </tr>
                     <tr className="bg-gray-50">
@@ -632,13 +632,13 @@ export default function InteractiveDemoPage() {
 
           {/* Sample Discrepancies */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-            <div className="px-6 py-4 border-b border-gray-200">
+            <div className="px-6 py-4 bg-gray-50">
               <h2 className="text-xl font-semibold text-gray-900">Sample Discrepancies Found</h2>
               <p className="text-sm text-gray-600 mt-1">Here are some of the issues we identified</p>
             </div>
             
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
@@ -649,7 +649,7 @@ export default function InteractiveDemoPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue Type</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white">
                   {selectedFileSet.results.sampleDiscrepancies.map((discrepancy, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{discrepancy.date}</td>

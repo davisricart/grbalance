@@ -95,29 +95,29 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
 
     return (
       <div className="mt-2 overflow-x-auto">
-        <table className="min-w-full text-xs border border-gray-200">
+        <table className="min-w-full text-xs">
           <thead className="bg-gray-50">
             <tr>
               {columns.slice(0, 4).map(col => ( // Show first 4 columns
-                <th key={col} className="px-2 py-1 border-b text-left font-medium text-gray-700">
+                <th key={col} className="px-2 py-1 text-left font-medium text-gray-700">
                   {col.length > 15 ? col.substring(0, 15) + '...' : col}
                 </th>
               ))}
-              {columns.length > 4 && <th className="px-2 py-1 border-b text-gray-500">+{columns.length - 4} more</th>}
+              {columns.length > 4 && <th className="px-2 py-1 text-gray-500">+{columns.length - 4} more</th>}
             </tr>
           </thead>
           <tbody>
             {previewRows.map((row, idx) => (
               <tr key={idx} className="hover:bg-gray-50">
                 {columns.slice(0, 4).map(col => (
-                  <td key={col} className="px-2 py-1 border-b text-gray-600">
+                  <td key={col} className="px-2 py-1 text-gray-600">
                     {String(row[col] || '').length > 20 
                       ? String(row[col]).substring(0, 20) + '...' 
                       : String(row[col] || '')
                     }
                   </td>
                 ))}
-                {columns.length > 4 && <td className="px-2 py-1 border-b text-gray-400">...</td>}
+                {columns.length > 4 && <td className="px-2 py-1 text-gray-400">...</td>}
               </tr>
             ))}
           </tbody>

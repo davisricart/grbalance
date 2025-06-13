@@ -45,7 +45,7 @@ export default function UserManagement({
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
+      <div className="bg-white">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('pending')}
