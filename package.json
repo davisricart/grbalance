@@ -28,7 +28,8 @@
     "prepare": "husky install",
     "analyze": "npm run build && npx vite-bundle-analyzer dist/stats.html",
     "build:analyze": "vite build --mode analyze",
-    "stats": "npx vite-bundle-analyzer"
+    "stats": "npx vite-bundle-analyzer",
+    "check-csp": "node scripts/check-csp-consistency.cjs"
   },
   "dependencies": {
     "@calcom/embed-react": "^1.3.0",
