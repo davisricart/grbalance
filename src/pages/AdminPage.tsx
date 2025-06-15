@@ -23,6 +23,7 @@ import {
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
+import { useAdminVerification } from '../services/adminService';
 import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
@@ -173,13 +174,9 @@ interface SoftwareProfile {
   };
 }
 
-// Admin whitelist - CRITICAL SECURITY: Only these emails can access admin dashboard
-const ADMIN_EMAILS = [
-  'davisricart@gmail.com',  // Primary admin
-  // Add other admin emails here as needed
-];
-
 const AdminPage: React.FC = () => {
+  // Use secure server-side admin verification
+  const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
 
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -2024,8 +2021,22 @@ WARNING:
     );
   }
 
-  // Check if user is authorized admin
-  if (user && !ADMIN_EMAILS.includes(user.email)) {
+  // Show loading while checking admin status
+  if (adminLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-gray-700">Verifying admin access...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is authorized admin (server-side verification)
+  if (user && !isAdmin) {
     // Log unauthorized access attempt
     console.warn('🚨 SECURITY ALERT: Unauthorized admin access attempt by:', user.email);
     console.warn('🚨 User UID:', user.uid);
@@ -2067,6 +2078,11 @@ WARNING:
               <p className="text-sm text-gray-500">
                 If you believe this is an error, please contact the system administrator.
               </p>
+              {adminError && (
+                <p className="text-sm text-red-600">
+                  Error: {adminError}
+                </p>
+              )}
               
               <div className="pt-4">
                 <button
