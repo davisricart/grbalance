@@ -24,6 +24,23 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
       };
     }
 
+    // Development mode bypass for localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🔧 Development mode: Bypassing server admin verification');
+      
+      // Check against known admin emails for development
+      const adminEmails = ['davisricart@gmail.com', 'davis@grbalance.com'];
+      const isAdmin = adminEmails.includes(user.email || '');
+      
+      console.log(`🔧 Development admin check: ${user.email} -> ${isAdmin ? 'ADMIN' : 'NOT ADMIN'}`);
+      
+      return {
+        isAdmin,
+        userEmail: user.email || '',
+        message: isAdmin ? 'Development mode: Admin access granted' : 'Development mode: Not an admin email'
+      };
+    }
+
     // Get fresh ID token
     const idToken = await user.getIdToken(true);
 

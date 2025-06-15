@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { Check, X, Eye, Clock, AlertTriangle, User, Building2, Calendar, CheckCircle2, Settings, Zap } from 'lucide-react';
-import { PendingUser, ApprovedUser, TIER_LIMITS, TIER_PRICING } from '../../../types/admin';
+import { PendingUser, ReadyForTestingUser, TIER_LIMITS, TIER_PRICING } from '../../../types/admin';
 
 interface PendingUsersTabProps {
   pendingUsers: PendingUser[];
-  onApproveUser: (userId: string, userData: Partial<ApprovedUser>) => Promise<void>;
+  onMoveToTesting: (userId: string, userData: Partial<ReadyForTestingUser>) => Promise<void>;
   onRejectUser: (userId: string, reason?: string) => Promise<void>;
   onUpdatePendingUser: (userId: string, updates: Partial<PendingUser>) => Promise<void>;
   isLoading: boolean;
@@ -12,7 +12,7 @@ interface PendingUsersTabProps {
 
 export default function PendingUsersTab({
   pendingUsers,
-  onApproveUser,
+  onMoveToTesting,
   onRejectUser,
   onUpdatePendingUser,
   isLoading
@@ -22,21 +22,21 @@ export default function PendingUsersTab({
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [approvingUser, setApprovingUser] = useState<string | null>(null);
 
-  const handleApprove = async (user: PendingUser) => {
+  const handleMoveToTesting = async (user: PendingUser) => {
     setProcessingUser(user.id);
     try {
-      const tierLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 50;
-      await onApproveUser(user.id, {
+      await onMoveToTesting(user.id, {
+        id: user.id,
         email: user.email,
         businessName: user.businessName,
         businessType: user.businessType,
         subscriptionTier: user.subscriptionTier,
         billingCycle: user.billingCycle,
-        comparisonsUsed: 0,
-        comparisonsLimit: tierLimit,
-        status: 'active',
-        approvedAt: new Date().toISOString(),
-        createdAt: user.createdAt
+        createdAt: user.createdAt,
+        readyForTestingAt: new Date().toISOString(),
+        qaStatus: 'pending',
+        websiteProvisioned: false,
+        scriptDeployed: false
       });
     } finally {
       setProcessingUser(null);
@@ -229,13 +229,13 @@ export default function PendingUsersTab({
                       disabled={!isReady || isProcessing}
                       className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 ${
                         isReady && !isProcessing
-                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm'
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       }`}
-                      title={isReady ? 'Approve user for website provisioning' : 'Complete consultation and script development first'}
+                      title={isReady ? 'Move to Testing stage - consultation and script ready' : 'Complete consultation and script development first'}
                     >
-                      <Check className="h-3 w-3" />
-                      <span className="hidden sm:inline">Approve</span>
+                      <Zap className="h-3 w-3" />
+                      <span className="hidden sm:inline">To Testing</span>
                     </button>
                     
                     <button
@@ -292,21 +292,17 @@ export default function PendingUsersTab({
 
                 {/* Inline Confirmation for Approval */}
                 {approvingUser === user.id && (
-                  <div className="bg-emerald-50 border-t border-emerald-200 p-4 rounded-b-lg">
+                  <div className="bg-blue-50 border-t border-blue-200 p-4 rounded-b-lg">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-100 rounded-lg">
-                          <Check className="h-4 w-4 text-emerald-600" />
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <Zap className="h-4 w-4 text-blue-600" />
                         </div>
                         <div>
-                          <h4 className="text-sm font-medium text-emerald-900">Confirm Approval</h4>
-                          <p className="text-sm text-emerald-700">
-                            Ready to approve {user.email} for website provisioning? 
-                            <span className="font-medium"> This will start their ${
-                              user.billingCycle === 'annual' 
-                                ? TIER_PRICING[user.subscriptionTier as keyof typeof TIER_PRICING]?.annual || 0
-                                : TIER_PRICING[user.subscriptionTier as keyof typeof TIER_PRICING]?.monthly || 0
-                            }/mo {user.subscriptionTier} plan.</span>
+                          <h4 className="text-sm font-medium text-blue-900">Move to Testing Stage</h4>
+                          <p className="text-sm text-blue-700">
+                            Ready to move {user.email} to testing stage? 
+                            <span className="font-medium"> In Testing, their website will be provisioned and scripts deployed for QA testing.</span>
                           </p>
                         </div>
                       </div>
@@ -319,11 +315,11 @@ export default function PendingUsersTab({
                           Cancel
                         </button>
                         <button
-                          onClick={() => handleApprove(user)}
+                          onClick={() => handleMoveToTesting(user)}
                           disabled={isProcessing}
-                          className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors disabled:opacity-50"
+                          className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:opacity-50"
                         >
-                          {isProcessing ? 'Approving...' : 'Approve User'}
+                          {isProcessing ? 'Moving...' : 'Move to Testing'}
                         </button>
                       </div>
                     </div>
@@ -448,13 +444,13 @@ export default function PendingUsersTab({
               </button>
               <button
                 onClick={() => {
-                  handleApprove(viewingUser);
+                  handleMoveToTesting(viewingUser);
                   setViewingUser(null);
                 }}
                 disabled={processingUser === viewingUser.id || isLoading || !viewingUser.consultationCompleted || !viewingUser.scriptReady}
-                className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
               >
-                {viewingUser.consultationCompleted && viewingUser.scriptReady ? 'Approve User' : 'Not Ready'}
+                {viewingUser.consultationCompleted && viewingUser.scriptReady ? 'Move to Testing' : 'Not Ready'}
               </button>
             </div>
           </div>

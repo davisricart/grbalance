@@ -6,7 +6,7 @@ import { useAuthState } from '../hooks/useAuthState';
 import UsageCounter from './UsageCounter';
 
 export default function Header() {
-  const { isAuthenticated, isLoading } = useAuthState();
+  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -34,7 +34,7 @@ export default function Header() {
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4 lg:gap-6">
-            {isAuthenticated && (
+            {isAuthenticated && isApproved && (
               <Link to="/mockup-billing" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
                 <CreditCard className="h-4 w-4" />
                 <span>Billing</span>
@@ -58,10 +58,10 @@ export default function Header() {
             </Link>
             {!isLoading && (
               <Link
-                to="/app"
+                to={isAuthenticated ? (isPending ? '/pending-approval' : '/app') : '/app'}
                 className="bg-emerald-600 text-white px-4 lg:px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation"
               >
-                {isAuthenticated ? 'Dashboard' : 'Login'}
+                {isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login'}
               </Link>
             )}
           </div>
@@ -70,10 +70,10 @@ export default function Header() {
           <div className="md:hidden flex items-center gap-2 sm:gap-4">
             {!isLoading && (
               <Link
-                to="/app"
+                to={isAuthenticated ? (isPending ? '/pending-approval' : '/app') : '/app'}
                 className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-xs sm:text-sm min-h-[44px] flex items-center touch-manipulation"
               >
-                {isAuthenticated ? 'Dashboard' : 'Login'}
+                {isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login'}
               </Link>
             )}
             <button
@@ -94,7 +94,7 @@ export default function Header() {
         {isMobileMenuOpen && (
           <div className="md:hidden mt-3 sm:mt-4 pb-4 border-t border-gray-200 pt-4">
             <div className="flex flex-col space-y-2">
-              {isAuthenticated && (
+              {isAuthenticated && isApproved && (
                 <>
                   <div className="mb-3 pb-3 border-b border-gray-100">
                     <UsageCounter />

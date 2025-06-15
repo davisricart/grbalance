@@ -62,7 +62,7 @@ exports.handler = async function(event, context) {
     console.log('Event:', JSON.stringify(event, null, 2));
     console.log('Body:', event.body);
 
-    const { clientId, clientName } = JSON.parse(event.body);
+    const { clientId, clientName, siteName, checkAvailability } = JSON.parse(event.body);
     
     if (!clientId || !clientName) {
       return {
@@ -78,16 +78,17 @@ exports.handler = async function(event, context) {
     const isDevelopment = !NETLIFY_TOKEN;
     
     if (isDevelopment) {
-      // Return mock response for development
+      // Return mock response for development with standardized naming
       console.log('🧪 Development mode - returning mock provisioning response');
+      const mockSiteName = siteName || `${clientId}-grbalance`;
       return {
         statusCode: 200,
         headers,
         body: JSON.stringify({
           message: "Mock site created for development!",
-          siteUrl: `https://mock-${clientId}.netlify.app`,
+          siteUrl: `https://${mockSiteName}.netlify.app`,
           siteId: `mock-site-${Date.now()}`,
-          siteName: `mock-${clientId}`,
+          siteName: mockSiteName,
           envVarSet: "Mock environment variable set",
           warning: "This is a development mock. Set NETLIFY_TOKEN for real provisioning."
         })
@@ -102,9 +103,34 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // Step 1: Create the site
-    const uniqueSuffix = Math.random().toString(36).substring(2, 8);
-    const siteName = `${clientName.toLowerCase().replace(/\s+/g, '-')}-${uniqueSuffix}`;
+    // Step 1: Determine site name with standardized format
+    let finalSiteName;
+    if (siteName) {
+      // Use provided site name (already formatted)
+      finalSiteName = siteName;
+    } else {
+      // Generate standardized name: businessname-grbalance
+      const cleanName = clientName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/[-]+/g, '-').replace(/^-|-$/g, '');
+      finalSiteName = `${cleanName}-grbalance`;
+    }
+
+    // Step 2: Check name availability if requested
+    if (checkAvailability) {
+      const checkRes = await fetch(`https://api.netlify.com/api/v1/sites/${finalSiteName}.netlify.app`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${NETLIFY_TOKEN}`,
+        }
+      });
+      
+      if (checkRes.ok) {
+        // Site already exists, add unique suffix
+        const uniqueSuffix = Math.random().toString(36).substring(2, 6);
+        finalSiteName = `${clientId}-${uniqueSuffix}-grbalance`;
+      }
+    }
+
+    // Step 3: Create the site with standardized name
     const siteRes = await fetch('https://api.netlify.com/api/v1/sites', {
       method: 'POST',
       headers: {
@@ -112,7 +138,29 @@ exports.handler = async function(event, context) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        name: siteName,
+        name: finalSiteName,
+        repo: {
+          provider: 'github',
+          repo: process.env.GITHUB_REPO || 'your-username/grbalance',
+          branch: 'main',
+          dir: '/',
+          cmd: 'npm run build',
+          allowed_branches: ['main']
+        },
+        build_settings: {
+          cmd: 'npm run build',
+          dir: 'dist',
+          env: {
+            VITE_CLIENT_ID: clientId,
+            VITE_CLIENT_NAME: clientName,
+            VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
+            VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY,
+            VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN,
+            VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+            VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+            VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID
+          }
+        }
       }),
     });
 
@@ -126,10 +174,10 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // Step 2: Wait a moment for site to be fully created
+    // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 3: Set environment variable CLIENT_ID for the site with retry logic (optional)
+    // Step 5: Set environment variable CLIENT_ID for the site with retry logic (optional)
     let envResult = null;
     let envWarning = null;
     try {

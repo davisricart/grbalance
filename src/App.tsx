@@ -37,6 +37,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
+  
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+  
+  if (isPending) {
+    return <Navigate to="/pending-approval" />;
+  }
+  
+  if (!isApproved) {
+    return <Navigate to="/pending-approval" />;
+  }
+  
+  return <>{children}</>;
+};
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -44,10 +66,18 @@ export default function App() {
         <Layout>
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/app" element={<ReconciliationApp />} />
+            <Route path="/app" element={
+              <ApprovedUserRoute>
+                <ReconciliationApp />
+              </ApprovedUserRoute>
+            } />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/pending-approval" element={<PendingApprovalPage />} />
+            <Route path="/pending-approval" element={
+              <ProtectedRoute>
+                <PendingApprovalPage />
+              </ProtectedRoute>
+            } />
             <Route path="/docs" element={<DocumentationPage />} />
             <Route path="/support" element={<SupportPage />} />
             <Route path="/contact" element={<ContactPage />} />

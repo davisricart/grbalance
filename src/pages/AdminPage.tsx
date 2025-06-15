@@ -26,7 +26,7 @@ import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/fireb
 import { useAdminVerification } from '../services/adminService';
 import clientConfig from '../config/client';
 import axios from 'axios';
-import { HiGlobeAlt, HiLockClosed } from 'react-icons/hi';
+import { HiGlobeAlt, HiLockClosed, HiExclamationTriangle } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
@@ -764,13 +764,11 @@ const AdminPage: React.FC = () => {
                       
           setLoading(true);
           
-          // Now run debugging and fetch data
-              await debugFirestorePermissions();
-          
-              await fetchClients();
-              await fetchPendingUsers();
-              await fetchReadyForTestingUsers();
-              await fetchApprovedUsers();
+          // Fetch data
+          await fetchClients();
+          await fetchPendingUsers();
+          await fetchReadyForTestingUsers();
+          await fetchApprovedUsers();
           
           setLoading(false);
         } else {
@@ -818,6 +816,50 @@ const AdminPage: React.FC = () => {
       setLibraryStatus('initializing');
     }
   }, [activeTab, file1Data, file2Data]);
+
+  // Move pending user to ready-for-testing (3-stage workflow)
+  const moveToTesting = async (userId: string, userData: Partial<ReadyForTestingUser>) => {
+    try {
+      // Get the pending user data
+      const pendingUser = pendingUsers.find(user => user.id === userId);
+      if (!pendingUser) {
+        console.error('🚨 Pending user not found');
+        return;
+      }
+      
+      // Check if consultation is complete and script is ready
+      if (!pendingUser.consultationCompleted || !pendingUser.scriptReady) {
+        throw new Error('User must complete consultation and have script ready before moving to testing.');
+      }
+      
+      // Add to ready-for-testing collection WITHOUT automatic website provisioning
+      const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
+      await setDoc(readyForTestingDocRef, {
+        ...userData,
+        readyForTestingAt: new Date().toISOString(),
+        qaStatus: 'pending',
+        websiteProvisioned: false,
+        scriptDeployed: false
+      });
+
+      // Remove from pending collection
+      const pendingDocRef = doc(db, 'pendingUsers', userId);
+      await deleteDoc(pendingDocRef);
+
+      // Refresh data
+      await fetchReadyForTestingUsers();
+      await fetchPendingUsers();
+      
+      // Use inline notification instead of popup
+      showInlineNotification(userId, 'success', 
+        `${pendingUser.email} moved to testing phase. Create their website to begin QA testing.`);
+        
+    } catch (error: any) {
+      console.error('Error moving user to testing:', error);
+      showInlineNotification(userId, 'error', 
+        'Failed to move user to testing phase. Please try again.');
+    }
+  };
 
   // Approve pending user
   const approvePendingUser = async (userId: string) => {
@@ -1434,8 +1476,8 @@ WARNING:
           updatedAt: new Date()
         });
         
-        showNotification('success', 'Website Provisioned Successfully!', 
-          `Mock website created for ${user.businessName || user.email}: ${mockSiteUrl}`);
+        showInlineNotification(user.id, 'success', 
+          `Mock website created: ${mockSiteUrl}`);
         
       } else {
         // Production mode - use real Netlify API
@@ -1465,7 +1507,7 @@ WARNING:
           updatedAt: new Date()
         });
         
-        showNotification('success', 'Website Provisioned Successfully', `Site provisioned: ${res.data.siteUrl}`);
+        showInlineNotification(user.id, 'success', `Site provisioned: ${res.data.siteUrl}`);
       }
       
     } catch (err: any) {
@@ -2495,9 +2537,7 @@ WARNING:
         {activeTab === 'pending' && (
           <PendingUsersTab
             pendingUsers={pendingUsers}
-            onApproveUser={async (userId: string, userData: Partial<ApprovedUser>) => {
-              await approvePendingUser(userId);
-            }}
+            onMoveToTesting={moveToTesting}
             onRejectUser={async (userId: string, reason?: string) => {
               await rejectPendingUser(userId);
             }}
@@ -2741,35 +2781,7 @@ WARNING:
                           </div>
                         </div>
 
-                        <div>
-                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Software Profile</div>
-                          <div className="mt-1">
-                            <div className="text-gray-900 text-xs">{getSoftwareProfileName(user.softwareProfile)}</div>
-                            <select
-                              value={user.softwareProfile || ''}
-                              onChange={(e) => updateUserSoftwareProfile(user.id, e.target.value)}
-                              className="text-xs border border-gray-300 rounded px-2 py-1 mt-1 w-full max-w-[150px]"
-                            >
-                              <option value="">Select Software...</option>
-                              {SOFTWARE_PROFILES.map(profile => (
-                                <option key={profile.id} value={profile.id}>
-                                  {profile.displayName}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="mt-2">
-                              <label className="flex items-center gap-2 text-xs">
-                                <input
-                                  type="checkbox"
-                                  checked={user.showInsights ?? true}
-                                  onChange={(e) => updateUserInsightsSetting(user.id, e.target.checked)}
-                                  className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
-                                />
-                                <span className="text-gray-700">Show Insights Tab</span>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
+
 
                         <div>
                           <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Site Status</div>
@@ -2893,30 +2905,33 @@ WARNING:
                         {user.status === 'approved' ? (
                           // Buttons for active approved users
                           <>
-                            {/* Provision Website button (only if not already provisioned) */}
-                            {!siteUrls[user.id] && (
-                              <button
-                                type="button"
-                                onClick={() => handleConfirmProvisionWebsite(user)}
-                                className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                                  provisioning[user.id] 
-                                    ? 'bg-yellow-500 text-white cursor-not-allowed animate-pulse' 
-                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                }`}
-                                disabled={provisioning[user.id]}
-                              >
-                                {provisioning[user.id] ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Provisioning...
-                                  </>
-                                ) : (
-                                  <>
-                                    <HiGlobeAlt className="w-4 h-4" />
-                                    Provision Website
-                                  </>
-                                )}
-                              </button>
+                            {/* Website Status Display - Approved users should already have websites */}
+                            {!siteUrls[user.id] ? (
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-100 text-amber-700 border border-amber-200">
+                                <HiExclamationTriangle className="w-4 h-4" />
+                                <span>Website Missing</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmProvisionWebsite(user)}
+                                  className="ml-2 px-2 py-1 text-xs bg-amber-200 hover:bg-amber-300 rounded"
+                                  disabled={provisioning[user.id]}
+                                >
+                                  {provisioning[user.id] ? 'Creating...' : 'Create Now'}
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-emerald-100 text-emerald-700 border border-emerald-200">
+                                <HiGlobeAlt className="w-4 h-4" />
+                                <span>Website Active</span>
+                                <a
+                                  href={siteUrls[user.id]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="ml-2 px-2 py-1 text-xs bg-emerald-200 hover:bg-emerald-300 rounded"
+                                >
+                                  Visit
+                                </a>
+                              </div>
                             )}
                             
                             {/* Deploy Script button (only if site is provisioned) */}
