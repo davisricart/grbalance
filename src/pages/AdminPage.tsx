@@ -26,7 +26,7 @@ import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/fireb
 import { useAdminVerification } from '../services/adminService';
 import clientConfig from '../config/client';
 import axios from 'axios';
-import { HiGlobeAlt, HiLockClosed, HiExclamationTriangle } from 'react-icons/hi';
+import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
@@ -2908,7 +2908,7 @@ WARNING:
                             {/* Website Status Display - Approved users should already have websites */}
                             {!siteUrls[user.id] ? (
                               <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-100 text-amber-700 border border-amber-200">
-                                <HiExclamationTriangle className="w-4 h-4" />
+                                <HiExclamation className="w-4 h-4" />
                                 <span>Website Missing</span>
                                 <button
                                   type="button"
