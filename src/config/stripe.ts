@@ -2,41 +2,55 @@
 // Test environment setup for subscription billing
 
 export const stripeConfig = {
-  // Test publishable key (pk_test_51RZ1rzPOMRCrABIRn0xyE8IPwed9pVXSSjS1ZUQDG9oDEyiR8Sk4OgUj1oA57MuthO71DpK0WvN2v4wcDG6b9nPZ00UyZgWNOP)
-  publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51RZ1rzPOMRCrABIRn0xyE8IPwed9pVXSSjS1ZUQDG9oDEyiR8Sk4OgUj1oA57MuthO71DpK0WvN2v4wcDG6b9nPZ00UyZgWNOP',
+  // Publishable key from environment variables only
+  publishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || (() => {
+    throw new Error('VITE_STRIPE_PUBLISHABLE_KEY environment variable is required');
+  })(),
   
   // Test mode flag
   isTestMode: true,
   
-  // Subscription plans configuration
+  // Subscription plans configuration - Price IDs from environment variables
   plans: {
     starter: {
       monthly: {
-        priceId: 'price_1RZ2JxPOMRCrABIRwACPdDf5', // $19.00 USD, recurring monthly
+        priceId: import.meta.env.VITE_STRIPE_STARTER_MONTHLY_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_STARTER_MONTHLY_PRICE_ID environment variable is required');
+        })(),
         amount: 1900, // $19.00 in cents
       },
       annual: {
-        priceId: 'price_1RZ2Q2POMRCrABIRPFJn0u0O', // $180.00 USD, recurring yearly
+        priceId: import.meta.env.VITE_STRIPE_STARTER_ANNUAL_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_STARTER_ANNUAL_PRICE_ID environment variable is required');
+        })(),
         amount: 18000, // $180.00 in cents (yearly)
       }
     },
     professional: {
       monthly: {
-        priceId: 'price_1RZ2RqPOMRCrABIRndC7RhCq', // $34.00 USD, recurring monthly
+        priceId: import.meta.env.VITE_STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_PROFESSIONAL_MONTHLY_PRICE_ID environment variable is required');
+        })(),
         amount: 3400, // $34.00 in cents
       },
       annual: {
-        priceId: 'price_1RZ2TGPOMRCrABIR9PjWx0im', // $324.00 USD, recurring yearly
+        priceId: import.meta.env.VITE_STRIPE_PROFESSIONAL_ANNUAL_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_PROFESSIONAL_ANNUAL_PRICE_ID environment variable is required');
+        })(),
         amount: 32400, // $324.00 in cents (yearly)
       }
     },
     business: {
       monthly: {
-        priceId: 'price_1RZ2VfPOMRCrABIRN0bGD0TK', // $59.00 USD, recurring monthly
+        priceId: import.meta.env.VITE_STRIPE_BUSINESS_MONTHLY_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_BUSINESS_MONTHLY_PRICE_ID environment variable is required');
+        })(),
         amount: 5900, // $59.00 in cents
       },
       annual: {
-        priceId: 'price_1RZ2WnPOMRCrABIRpdI85wVY', // $564.00 USD, recurring yearly
+        priceId: import.meta.env.VITE_STRIPE_BUSINESS_ANNUAL_PRICE_ID || (() => {
+          throw new Error('VITE_STRIPE_BUSINESS_ANNUAL_PRICE_ID environment variable is required');
+        })(),
         amount: 56400, // $564.00 in cents (yearly)
       }
     }
@@ -44,7 +58,7 @@ export const stripeConfig = {
   
   // Setup fee (waived until August 1st, 2025)
   setupFee: {
-    priceId: 'price_test_setup_fee',
+    priceId: import.meta.env.VITE_STRIPE_SETUP_FEE_PRICE_ID || 'setup_fee_placeholder',
     amount: 49700, // $497.00 in cents
     isWaived: true, // Currently waived for launch special
     waivedUntil: '2025-08-01'
