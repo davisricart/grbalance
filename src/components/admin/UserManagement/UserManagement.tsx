@@ -13,6 +13,7 @@ interface UserManagementProps {
   deletedUsers: DeletedUser[];
   onApproveUser: (userId: string, userData: Partial<ApprovedUser>) => Promise<void>;
   onRejectUser: (userId: string, reason?: string) => Promise<void>;
+  onUpdatePendingUser: (userId: string, updates: Partial<PendingUser>) => Promise<void>;
   onDeleteUser: (userId: string, reason?: string) => Promise<void>;
   onRestoreUser: (userId: string) => Promise<void>;
   onUpdateUser: (userId: string, updates: Partial<ApprovedUser>) => Promise<void>;
@@ -27,6 +28,7 @@ export default function UserManagement({
   deletedUsers,
   onApproveUser,
   onRejectUser,
+  onUpdatePendingUser,
   onDeleteUser,
   onRestoreUser,
   onUpdateUser,
@@ -124,6 +126,7 @@ export default function UserManagement({
           pendingUsers={pendingUsers}
           onApproveUser={onApproveUser}
           onRejectUser={onRejectUser}
+          onUpdatePendingUser={onUpdatePendingUser}
           isLoading={isLoading}
         />
       )}

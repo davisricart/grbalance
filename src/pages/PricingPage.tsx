@@ -111,10 +111,10 @@ export default function PricingPage() {
               <h2 className="text-xl font-bold">Launch Special - Setup Fee Waived</h2>
             </div>
             <p className="text-lg font-medium mb-2">
-              Sign up before July 1st, 2025 and get setup fee waived + 14-day free trial
+              Sign up before August 1st, 2025 and get setup fee waived + 14-day free trial
             </p>
             <p className="text-emerald-100 text-sm">
-              Save $497 + risk-free trial • After July 1st, standard pricing applies
+              Save $497 + risk-free trial • After August 1st, standard pricing applies
             </p>
           </div>
         </div>
@@ -220,7 +220,7 @@ export default function PricingPage() {
               </div>
               <div className="text-sm mt-1">
                 <span className="text-gray-400 line-through">+ $497 one-time custom setup</span>
-                <span className="text-emerald-700 font-semibold ml-2">FREE until July 1st</span>
+                <span className="text-emerald-700 font-semibold ml-2">FREE until August 1st</span>
               </div>
               {isAnnual && (
                 <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
@@ -282,7 +282,7 @@ export default function PricingPage() {
           <ul className="text-gray-700 text-base space-y-1">
             <li>✓ Try our system with realistic sample data (free)</li>
             <li>✓ See exactly how reconciliation works for salons</li>
-            <li>✓ Ready to use your data? <span className="text-emerald-600 font-semibold">Custom setup FREE + 14-day trial until July 1st</span></li>
+            <li>✓ Ready to use your data? <span className="text-emerald-600 font-semibold">Custom setup FREE + 14-day trial until August 1st</span></li>
             <li>✓ Start catching real discrepancies risk-free</li>
           </ul>
         </div>

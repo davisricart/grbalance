@@ -56,7 +56,10 @@
       "Bash(npm config set:*)",
       "Bash(npm config get:*)",
       "Bash(sudo chown:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(hostname:*)",
+      "Bash(wget:*)",
+      "Bash(cp:*)"
     ],
     "deny": []
   }

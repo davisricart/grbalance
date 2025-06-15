@@ -20,6 +20,7 @@ import ReconciliationApp from './pages/ReconciliationApp';
 import RegisterPage from './pages/RegisterPage';
 import SupportPage from './pages/SupportPage';
 import TermsPage from './pages/TermsPage';
+import BillingPage from './pages/BillingPage';
 import BillingWireframe from './mockups/BillingWireframe';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -57,6 +58,11 @@ export default function App() {
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/billing" element={
+              <ProtectedRoute>
+                <BillingPage />
+              </ProtectedRoute>
+            } />
             <Route path="/mockup-billing" element={
               <ProtectedRoute>
                 <BillingWireframe />

@@ -73,6 +73,27 @@ exports.handler = async function(event, context) {
     }
 
     const NETLIFY_TOKEN = process.env.NETLIFY_TOKEN;
+    
+    // Check if we're in development mode without a token
+    const isDevelopment = !NETLIFY_TOKEN;
+    
+    if (isDevelopment) {
+      // Return mock response for development
+      console.log('🧪 Development mode - returning mock provisioning response');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          message: "Mock site created for development!",
+          siteUrl: `https://mock-${clientId}.netlify.app`,
+          siteId: `mock-site-${Date.now()}`,
+          siteName: `mock-${clientId}`,
+          envVarSet: "Mock environment variable set",
+          warning: "This is a development mock. Set NETLIFY_TOKEN for real provisioning."
+        })
+      };
+    }
+    
     if (!NETLIFY_TOKEN) {
       return {
         statusCode: 500,

@@ -173,12 +173,6 @@ interface SoftwareProfile {
   };
 }
 
-// Admin whitelist - CRITICAL SECURITY: Only these emails can access admin dashboard
-const ADMIN_EMAILS = [
-  'davisricart@gmail.com',  // Primary admin
-  // Add other admin emails here as needed
-];
-
 const AdminPage: React.FC = () => {
 
   const [user, setUser] = useState<any>(null);
@@ -195,8 +189,10 @@ const AdminPage: React.FC = () => {
   const [csvData, setCsvData] = useState<FileRow[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [dynamicProfiles, setDynamicProfiles] = useState<SoftwareProfile[]>([]);
-
-  const [libraryStatus, setLibraryStatus] = useState<'initializing' | 'ready'>('initializing');
+  const [selectedProfileForTest, setSelectedProfileForTest] = useState<string>('');
+  const [testFile, setTestFile] = useState<File | null>(null);
+  const [testResults, setTestResults] = useState<TestResult | null>(null);
+  const [isTestingProfile, setIsTestingProfile] = useState(false);
 
   const [clients, setClients] = useState<Client[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
@@ -300,7 +296,7 @@ const AdminPage: React.FC = () => {
   const [testFile1Error, setTestFile1Error] = useState<string>('');
   const [testFile2Error, setTestFile2Error] = useState<string>('');
   const [testFileLoading, setTestFileLoading] = useState<{file1: boolean, file2: boolean}>({file1: false, file2: false});
-
+  const [profileTestError, setProfileTestError] = useState<string>('');
   const [scriptDeployError, setScriptDeployError] = useState<string>('');
 
   // Add state for selected headers
@@ -330,8 +326,6 @@ const AdminPage: React.FC = () => {
   const [scriptSteps, setScriptSteps] = useState<any[]>([]);
   const [stepHistory, setStepHistory] = useState<any[]>([]);
   const [currentStepEdit, setCurrentStepEdit] = useState('');
-
-  // Add missing script testing state variables
   const [showContinueOption, setShowContinueOption] = useState(false);
   const [isExecutingSteps, setIsExecutingSteps] = useState(false);
   const [currentWorkingData, setCurrentWorkingData] = useState<any[]>([]);
@@ -368,8 +362,6 @@ const AdminPage: React.FC = () => {
   // File data states for script testing
   const [file1Data, setFile1Data] = useState<FileRow[]>([]);
   const [file2Data, setFile2Data] = useState<FileRow[]>([]);
-  const [file1Name, setFile1Name] = useState<string>('');
-  const [file2Name, setFile2Name] = useState<string>('');
   
 
   // Force clear validation messages function
@@ -448,9 +440,6 @@ const AdminPage: React.FC = () => {
     } else {
       users = []; // For other tabs, we don't have filteredUsers concept
     }
-
-    // Filter out any undefined, null, or invalid users
-    users = users.filter(user => user && user.id && user.email);
 
     // Apply search filter
     if (searchTerm) {
@@ -813,12 +802,8 @@ const AdminPage: React.FC = () => {
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
-    if (activeTab === 'script-testing') {
-      console.log('🔧 Script testing tab activated, initializing environment...');
+    if (activeTab === 'scripts') {
       initializeTestEnvironment();
-    } else {
-      // Reset library status when leaving script-testing tab
-      setLibraryStatus('initializing');
     }
   }, [activeTab, file1Data, file2Data]);
 
@@ -1498,519 +1483,32 @@ WARNING:
   // Script testing function
   const runTestScript = async () => {
     console.log('🚀 Running test script...');
-    console.log('📊 File1Data length:', file1Data.length);
-    console.log('📊 File2Data length:', file2Data.length);
-    console.log('📄 testScript:', testScript ? `${testScript.length} chars` : 'null');
-    console.log('📄 testScriptText:', testScriptText ? `${testScriptText.length} chars` : 'null');
-    console.log('📄 scriptInputMethod:', scriptInputMethod);
-    
-    // Check if we have files and script
-    if (file1Data.length === 0) {
-      console.warn('❌ No file1Data - script cannot run');
-      return;
-    }
-    
-    const scriptContent = testScript || testScriptText;
-    console.log('📄 Final scriptContent:', scriptContent ? `${scriptContent.length} chars` : 'null');
-    
-    if (!scriptContent || scriptContent.trim().length === 0) {
-      console.warn('❌ No script content - script cannot run');
-      return;
-    }
-    
-    try {
-      // Show loading state
-      setIsTestingScript(true);
-      // Script execution started - no popup notification
-      
-      // Set up the GR Balance window functions that scripts expect
-      (window as any).parseFiles = () => {
-        return Promise.resolve({
-          data1: file1Data,
-          data2: file2Data.length > 0 ? file2Data : null
-        });
-      };
-      
-      (window as any).findColumn = (sampleRow: any, possibleNames: string[]) => {
-        if (!sampleRow) return null;
-        const headers = Object.keys(sampleRow);
-        return possibleNames.find(name => 
-          headers.some(header => 
-            header.toLowerCase().includes(name.toLowerCase()) || 
-            name.toLowerCase().includes(header.toLowerCase())
-          )
-        ) || possibleNames.find(name => 
-          headers.includes(name)
-        ) || null;
-      };
-      
-      (window as any).showResults = (results: any[], options?: any) => {
-        console.log('📊 Script Results:', results);
-        
-        // Update state
-        setTestScriptResults({
-          success: true,
-          data: results,
-          timestamp: new Date().toISOString(),
-          rowsProcessed: file1Data.length + (file2Data.length || 0),
-          title: options?.title,
-          summary: options?.summary
-        });
-        
-        // Create HTML for results display
-        const createResultsHTML = (results: any[], title?: string, summary?: string) => {
-          const headers = results.length > 0 ? Object.keys(results[0]) : [];
-          
-          return `
-            <div class="p-4">
-              <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 border border-gray-300">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">${header}</th>`).join('')}
-                    </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                    ${results.slice(0, 5).map(row => `
-                      <tr>
-                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-200">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div class="mt-4 text-sm text-gray-500">
-                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
-              </div>
-            </div>
-          `;
-        };
-        
-        // Update Script Builder display
-        const scriptResultsDisplay = document.getElementById('script-results-display');
-        if (scriptResultsDisplay) {
-          scriptResultsDisplay.innerHTML = createResultsHTML(results, options?.title, options?.summary);
-        }
-        
-        // Update Client View replica
-        const clientResultsReplica = document.getElementById('client-results-replica');
-        if (clientResultsReplica) {
-          clientResultsReplica.innerHTML = createResultsHTML(results, options?.title, options?.summary);
-        }
-      };
-      
-      (window as any).showError = (message: string) => {
-        console.error('❌ Script Error:', message);
-        setTestScriptResults({
-          success: false,
-          error: message,
-          timestamp: new Date().toISOString(),
-          rowsProcessed: 0
-        });
-      };
-      
-      // Execute the script directly (it's an IIFE)
-      eval(scriptContent);
-      
-      console.log('✅ Script execution completed');
-      
-    } catch (error: any) {
-      console.error('❌ Script execution error:', error);
-      
-      setTestScriptResults({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        rowsProcessed: 0
-      });
-      
-      // Script error - error handled via console
-    } finally {
-      setIsTestingScript(false);
-    }
+    // Add your script testing logic here
   };
 
   // Clear all results function  
   const clearAllResults = () => {
     console.log('🧹 Clearing all results...');
-    
-    // Clear all test results and data
-    setTestScriptResults(null);
-    setFile1Data([]);
-    setFile2Data([]);
-    setFile1Name('');
-    setFile2Name('');
-    setSelectedHeaders1([]);
-    setSelectedHeaders2([]);
-    setTestScript('');
-    setTestScriptText('');
-    setTestScriptFileName('');
-    
-    // Reset any validation states
-    setValidationMessage('');
-    setValidationType('');
-    setShowFileValidationMessage(false);
-    
-    // Clear any script testing states
-    setIsTestingScript(false);
-    setIsValidating(false);
-    
-    console.log('✅ All results and data cleared successfully');
+    // Add your clear results logic here
   };
 
   // Download script results to Excel function
-  const downloadScriptResultsToExcel = async () => {
+  const downloadScriptResultsToExcel = () => {
     console.log('📊 Downloading script results to Excel...');
-    
-    if (!testScriptResults || !testScriptResults.success) {
-      showNotification('error', 'No Results', 'Please run a script first to generate results');
-      return;
-    }
-    
-    try {
-      showNotification('info', 'Generating Excel', 'Creating Excel file...');
-      
-      // Import XLSX dynamically to avoid loading issues
-      const XLSX = await import('xlsx');
-      
-      // Prepare the data for Excel export
-      let excelData: any[] = [];
-      
-      // If results is an array, use it directly
-      if (Array.isArray(testScriptResults.data)) {
-        excelData = testScriptResults.data;
-      } 
-      // If results is an object with a results property
-      else if (testScriptResults.data && testScriptResults.data.results) {
-        excelData = testScriptResults.data.results;
-      }
-      // If results is a simple object, wrap it in an array
-      else if (typeof testScriptResults.data === 'object') {
-        excelData = [testScriptResults.data];
-      }
-      // If no structured data, create summary
-      else {
-        excelData = [{
-          'Script Result': testScriptResults.data || 'Script completed successfully',
-          'Timestamp': testScriptResults.timestamp,
-          'Rows Processed': testScriptResults.rowsProcessed
-        }];
-      }
-      
-      // Create workbook and worksheet
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
-      
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(wb, ws, 'Script Results');
-      
-      // Generate filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-      const filename = `script-results-${timestamp}.xlsx`;
-      
-      // Download the file
-      XLSX.writeFile(wb, filename);
-      
-      showNotification('success', 'Excel Downloaded', `Results exported to ${filename}`);
-      console.log('✅ Excel file generated and downloaded:', filename);
-      
-    } catch (error: any) {
-      console.error('❌ Excel download error:', error);
-      showNotification('error', 'Export Failed', error.message || 'Failed to generate Excel file');
-    }
-  };
-
-
-
-  // Missing function declarations
-  const initializeTestEnvironment = () => {
-    console.log('🔧 Initializing test environment...');
-    
-    // Update React state
-    setLibraryStatus('ready');
-    console.log('🎉 Library status updated to ready in React state!');
-    
-    // Also update DOM as fallback (in case state doesn't re-render immediately)
-    const updateStatus = () => {
-      const statusDiv = document.getElementById('library-status');
-      console.log('🔍 Looking for library-status element:', statusDiv);
-      
-      if (statusDiv) {
-        console.log('✅ Found library-status element, updating...');
-        statusDiv.innerHTML = '<p class="text-sm text-green-700">✅ Libraries ready and loaded!</p>';
-        statusDiv.className = 'mb-6 p-4 bg-green-50 border border-green-200 rounded-md';
-        console.log('🎉 Status updated to green successfully via DOM!');
-      } else {
-        console.warn('⚠️ library-status element not found, retrying...');
-        // Retry after a short delay if element not found
-        setTimeout(updateStatus, 200);
-      }
-    };
-    
-    // Try immediately and also with delays
-    updateStatus();
-    setTimeout(updateStatus, 100);
-    setTimeout(updateStatus, 500);
-  };
-
-  const parseDate = (dateString: string) => {
-    return new Date(dateString);
-  };
-
-  const getDaysAgo = (date: Date | string) => {
-    const now = new Date();
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    
-    // Check if the date is valid
-    if (isNaN(dateObj.getTime())) {
-      return 0; // Return 0 for invalid dates
-    }
-    
-    const diffTime = now.getTime() - dateObj.getTime();
-    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  };
-
-  const getSoftwareProfileName = (profileId: string) => {
-    const profile = SOFTWARE_PROFILES.find(p => p.id === profileId);
-    return profile?.name || 'Unknown Profile';
-  };
-
-  const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
-    try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        softwareProfile: profileId,
-        updatedAt: new Date()
-      });
-      await fetchApprovedUsers();
-    } catch (error) {
-      console.error('Error updating user software profile:', error);
-    }
-  };
-
-  const updateUserInsightsSetting = async (userId: string, showInsights: boolean) => {
-    try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        showInsights,
-        updatedAt: new Date()
-      });
-      await fetchApprovedUsers();
-    } catch (error) {
-      console.error('Error updating user insights setting:', error);
-    }
-  };
-
-  const handleDeleteScript = async (userId: string, scriptName: string) => {
-    console.log('🗑️ Deleting script:', scriptName, 'for user:', userId);
-    // Add script deletion logic here
-  };
-
-  const handleConfirmProvisionWebsite = (user: ApprovedUser) => {
-    return handleProvisionWebsite(user);
-  };
-
-  const redeployClientSite = async (userId: string) => {
-    console.log('🔄 Redeploying site for user:', userId);
-    // Add redeploy logic here
-  };
-
-  const handleConfirmDeleteWebsite = async (userId: string) => {
-    console.log('🗑️ Deleting website for user:', userId);
-    // Add website deletion logic here
-  };
-
-  const handleTestFileUpload = async (fileNumber: number, file: File) => {
-    console.log(`📁 Testing file ${fileNumber} upload START:`, file.name, file.size, 'bytes');
-    console.log(`📋 File type:`, file.type, `Last modified:`, new Date(file.lastModified));
-    
-    // File upload started - no popup notification
-    
-    if (!file) {
-      console.warn('⚠️ No file provided to handleTestFileUpload');
-      return;
-    }
-    
-    try {
-      console.log(`🔍 Starting validation for file ${fileNumber}...`);
-      
-      // Use the existing file processing logic
-      const { validateFile } = await import('../utils/fileValidator');
-      console.log(`✅ File validator imported successfully`);
-      
-      const validation = await validateFile(file);
-      console.log(`📋 File ${fileNumber} validation result:`, validation);
-      
-      if (!validation.isValid) {
-        const errorMsg = validation.securityWarning 
-          ? `🚨 SECURITY: ${validation.error} - ${validation.securityWarning}`
-          : validation.error || 'File validation failed';
-        console.error(`❌ File ${fileNumber} validation failed:`, errorMsg);
-        // File validation failed - error handled via console
-        return;
-      }
-      
-      console.log(`🔄 Parsing file ${fileNumber}...`);
-      console.log(`📦 About to call parseFile function...`);
-      
-      // Parse the file
-      const parsedData = await parseFile(file);
-      console.log(`📊 ParseFile returned:`, parsedData);
-      console.log(`✅ File ${fileNumber} parsed successfully:`, parsedData.rows.length, 'rows');
-      
-      // Update the appropriate file data state
-      if (fileNumber === 1) {
-        console.log(`🔄 Setting file1Data...`);
-        setFile1Data(parsedData.rows);
-        setFile1Name(file.name);
-        // File 1 uploaded successfully - status shown inline
-        console.log('📊 File 1 data updated in state');
-      } else if (fileNumber === 2) {
-        console.log(`🔄 Setting file2Data...`);
-        setFile2Data(parsedData.rows);
-        setFile2Name(file.name);
-        // File 2 uploaded successfully - status shown inline
-        console.log('📊 File 2 data updated in state');
-      }
-      
-      console.log(`🎉 File ${fileNumber} upload process COMPLETED successfully!`);
-      
-    } catch (error: any) {
-      console.error(`❌ File ${fileNumber} upload error:`, error);
-      console.error(`❌ Error stack:`, error.stack);
-      console.error(`❌ Error details:`, {
-        name: error.name,
-        message: error.message,
-        cause: error.cause
-      });
-      // Upload failed - error handled via console
-    }
-  };
-
-  const handleTestScriptUpload = async (file: File) => {
-    console.log('📄 Testing script upload START:', file.name);
-    
-    if (!file) {
-      console.warn('⚠️ No script file provided');
-      return;
-    }
-
-    // Script upload started - no popup notification
-
-    try {
-      // Read the file content
-      const reader = new FileReader();
-      
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        console.log('📄 Script file content loaded:', content.substring(0, 100) + '...');
-        
-        // Update the script content in the testing form
-        setTestingForm(prev => ({
-          ...prev,
-          scriptContent: content
-        }));
-        
-        // Also update the script deploy form for compatibility
-        setScriptDeployForm(prev => ({
-          ...prev,
-          scriptName: file.name.replace('.js', ''),
-          scriptContent: content
-        }));
-
-        // Update script testing specific states
-        setTestScript(content);
-        setTestScriptFileName(file.name);
-        setScriptInputMethod('upload');
-        
-        // Script uploaded successfully - status shown inline
-        console.log('✅ Script upload completed successfully');
-      };
-      
-      reader.onerror = (error) => {
-        console.error('❌ Script file read error:', error);
-        // Script upload failed - error handled via console
-      };
-      
-      // Read as text
-      reader.readAsText(file);
-      
-    } catch (error: any) {
-      console.error('❌ Script upload error:', error);
-      // Script upload failed - error handled via console
-    }
-  };
-
-  const handleDeployScript = async (user: ApprovedUser) => {
-    console.log('🚀 Deploying script for user:', user.email);
-    // Add script deployment logic here
+    // Add your Excel download logic here
   };
 
   // Save script to file function
   const saveScriptToFile = () => {
-    const currentScript = scriptInputMethod === 'paste' ? testScriptText : testScript;
-    
-    if (!currentScript.trim()) {
-      console.warn('No script to save');
-      return;
-    }
-
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const filename = `reconciliation-script-${timestamp}.js`;
-    
-    // Create and download the file
-    const blob = new Blob([currentScript], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-    
-    console.log(`💾 Script saved as ${filename}`);
+    console.log('💾 Saving script to file...');
+    // Add your save script logic here
   };
 
-  // Clear script steps/history function
+  // Clear script steps function
   const clearScriptSteps = () => {
-    console.log('📋 Clearing script execution history...');
-    
-    // Clear the results displays
-    const scriptResultsDisplay = document.getElementById('script-results-display');
-    const clientResultsReplica = document.getElementById('client-results-replica');
-    
-    if (scriptResultsDisplay) {
-      scriptResultsDisplay.innerHTML = `
-        <div class="text-center text-gray-500 py-8">
-          Run your script to see results here...
-        </div>
-      `;
-    }
-    
-    if (clientResultsReplica) {
-      clientResultsReplica.innerHTML = `
-        <div class="text-center text-gray-500 py-8">
-          Execute script to see client-side results here...
-        </div>
-      `;
-    }
-    
-    // Clear test results state
-    setTestScriptResults(null);
-    
-    console.log('✅ Script execution history cleared');
+    console.log('🧹 Clearing script steps...');
+    // Add your clear script steps logic here
   };
-
-  // Software profiles constant
-  const SOFTWARE_PROFILES = [
-    { id: 'quickbooks', name: 'QuickBooks' },
-    { id: 'square', name: 'Square' },
-    { id: 'toast', name: 'Toast' },
-    { id: 'clover', name: 'Clover' },
-    { id: 'lightspeed', name: 'Lightspeed' },
-    { id: 'shopify', name: 'Shopify' },
-    { id: 'generic', name: 'Generic CSV' }
-  ];
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -2020,65 +1518,6 @@ WARNING:
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Checking authentication...</p>
         </div>
-      </div>
-    );
-  }
-
-  // Check if user is authorized admin
-  if (user && !ADMIN_EMAILS.includes(user.email)) {
-    // Log unauthorized access attempt
-    console.warn('🚨 SECURITY ALERT: Unauthorized admin access attempt by:', user.email);
-    console.warn('🚨 User UID:', user.uid);
-    console.warn('🚨 Timestamp:', new Date().toISOString());
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <a 
-                href="/"
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors duration-200"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                Back to Home
-              </a>
-            </div>
-          </div>
-        </nav>
-
-        <main className="flex items-center justify-center px-4 py-12">
-          <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-md border-2 border-red-200">
-            <div className="flex flex-col items-center space-y-3 mb-6">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
-                <Shield className="h-8 w-8 text-red-600" />
-              </div>
-              <h2 className="text-red-700 text-center text-lg font-medium">
-                Access Denied
-              </h2>
-            </div>
-            
-            <div className="text-center space-y-4">
-              <p className="text-gray-700">
-                You are not authorized to access the admin dashboard.
-              </p>
-              <p className="text-sm text-gray-500">
-                Current user: <span className="font-medium">{user.email}</span>
-              </p>
-              <p className="text-sm text-gray-500">
-                If you believe this is an error, please contact the system administrator.
-              </p>
-              
-              <div className="pt-4">
-                <button
-                  onClick={() => signOut(auth)}
-                  className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200"
-                >
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          </div>
-        </main>
       </div>
     );
   }
@@ -2278,14 +1717,14 @@ WARNING:
               >
                 <UserCheck className="inline w-4 h-4 mr-2" />
                 APPROVED  
-                {activeTab !== 'approved' && (approvedUsers.length > 0 || loading) && (
+                {activeTab !== 'approved' && filteredUsers.length > 0 && (
                   <span className="ml-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
-                    {loading ? '...' : approvedUsers.length}
+                    {filteredUsers.length}
                   </span>
                 )}
-                {activeTab === 'approved' && (approvedUsers.length > 0 || loading) && (
+                {activeTab === 'approved' && filteredUsers.length > 0 && (
                   <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                    {loading ? '...' : approvedUsers.length}
+                    {filteredUsers.length}
                   </span>
                 )}
               </button>
@@ -2310,7 +1749,28 @@ WARNING:
                   </span>
                 )}
               </button>
-
+              <button
+                onClick={() => setActiveTab('profiles')}
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
+                  activeTab === 'profiles'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
+              >
+                <Shield className="inline w-4 h-4 mr-2" />
+                PROFILES
+              </button>
+              <button
+                onClick={() => setActiveTab('dynamic-profiles')}
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
+                  activeTab === 'dynamic-profiles'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
+              >
+                <Plus className="inline w-4 h-4 mr-2" />
+                EDITOR
+              </button>
               <button
                 onClick={() => setActiveTab('settings')}
                 className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
@@ -2384,25 +1844,25 @@ WARNING:
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
+                  <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Client Information
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Contact
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Configuration
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Scripts
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Actions
                         </th>
                       </tr>
@@ -2410,7 +1870,7 @@ WARNING:
                     <tbody className="bg-white divide-y divide-gray-200">
                       {clients.map((client) => (
                         <tr key={client.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                                 <User className="h-5 w-5 text-blue-600" />
@@ -2421,15 +1881,15 @@ WARNING:
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">{client.email}</div>
                             <div className="text-sm text-gray-500">Registered: {parseDate(client.createdAt)?.toLocaleDateString() || 'N/A'}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="text-sm text-gray-900">Subdomain: {client.subdomain}</div>
                             <div className="text-sm text-gray-500">{client.scripts?.length || 0} scripts</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                               client.status === 'active' 
                                 ? 'bg-green-100 text-green-800' 
@@ -2438,7 +1898,7 @@ WARNING:
                               {client.status}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {client.scripts?.length > 0 ? (
                               <div className="space-y-1">
                                 {client.scripts.slice(0, 2).map((script, index) => (
@@ -2452,7 +1912,7 @@ WARNING:
                               <span className="text-gray-400">No scripts</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 border-b border-gray-200">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                             <button 
                               onClick={() => {
                                 setSelectedClientForScript(client.id);
@@ -3123,7 +2583,7 @@ WARNING:
         )}
 
 
-        {false && activeTab === 'profiles' && (
+        {activeTab === 'profiles' && (
           <div className="space-y-6">
             {/* Software Profiles Management */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -3271,7 +2731,7 @@ WARNING:
           </div>
         )}
 
-        {false && activeTab === 'dynamic-profiles' && (
+        {activeTab === 'dynamic-profiles' && (
           <div className="space-y-6">
             {/* Dynamic Profile Editor Header */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -3325,14 +2785,14 @@ WARNING:
                       <Copy className="w-6 h-6 text-purple-600 mr-2" />
                       <h4 className="font-medium text-purple-900">Clone Profiles</h4>
                     </div>
-                    <p className="text-sm text-purple-700 mb-3">Duplicate existing profiles as starting points for new configurations.</p>
+                    <p className="text-sm text-purple-700 mb-3">Duplicate existing profiles as starting points for similar POS systems.</p>
                     <button className="w-full bg-purple-600 text-white px-3 py-2 rounded text-sm hover:bg-purple-700 transition-colors">
                       Clone Profile
                     </button>
                   </div>
                 </div>
 
-                {/* Test Profile Detection */}
+                {/* Profile Testing Section */}
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
                   <h4 className="text-lg font-medium text-yellow-900 mb-4">🧪 Test Profile Detection</h4>
                   
@@ -3354,24 +2814,120 @@ WARNING:
                       </select>
                     </div>
 
-                    {/* File Upload for Testing */}
+                    {/* File Upload */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Test CSV</label>
-                      <div className="border-2 border-dashed border-yellow-300 rounded-lg p-4 text-center">
-                        <Upload className="mx-auto h-8 w-8 text-yellow-600 mb-2" />
-                        <p className="text-sm text-yellow-700">Drop CSV file here or click to browse</p>
-                        <input type="file" accept=".csv" className="hidden" />
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Upload Sample CSV</label>
+                      <input
+                        type="file"
+                        accept=".csv,.xlsx,.xls"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0] || null;
+                          if (!file) {
+                            setTestFile(null);
+                            return;
+                          }
+                          
+                          // Use bulletproof content-first validation
+                          const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+                          const validation = await bulletproofValidateFile(file);
+                          
+                          if (!validation.isValid) {
+                            const errorMsg = validation.securityWarning 
+                              ? `${validation.error} ${validation.securityWarning}`
+                              : validation.error || 'Invalid file. Please upload a valid Excel or CSV file.';
+                            
+                            // Show inline error message instead of popup
+                            setProfileTestError(errorMsg);
+                            setTestFile(null);
+                            e.target.value = '';
+                            
+                            // Clear error after 10 seconds
+                            setTimeout(() => setProfileTestError(''), 10000);
+                            return;
+                          }
+                          
+                          // Clear any previous errors on successful upload
+                          setProfileTestError('');
+                          
+                          setTestFile(file);
+                        }}
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
+                      />
+                      
+                      {/* Inline error message display */}
+                      {profileTestError && (
+                        <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 mt-3 text-sm">
+                          <div className="flex items-start gap-3">
+                            <span className="text-red-600 text-lg flex-shrink-0">🚫</span>
+                            <div className="flex-1">
+                              <div className="font-semibold text-red-800 mb-2">File Upload Error</div>
+                              <div className="text-red-700 mb-3">{profileTestError}</div>
+                              <div className="text-red-600 text-xs">
+                                <strong>Accepted file types:</strong> Excel (.xlsx, .xls) and CSV (.csv) files only
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
+                  {/* Test Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={() => {
+                        if (!selectedProfileForTest || !testFile) {
+                          showNotification('warning', 'Missing Information', 'Please select a profile and upload a test file.');
+                          return;
+                        }
+                        setIsTestingProfile(true);
+                        // Simulate testing
+                        setTimeout(() => {
+                          setTestResults({
+                            profileName: SOFTWARE_PROFILES.find(p => p.id === selectedProfileForTest)?.displayName,
+                            detectedColumns: {
+                              date: 'Transaction Date',
+                              amount: 'Total Amount',
+                              customer: 'Customer Name',
+                              cardBrand: 'Card Type',
+                              fee: 'Processing Fee'
+                            },
+                            fileName: testFile?.name,
+                            rowCount: 1247
+                          });
+                          setIsTestingProfile(false);
+                          showNotification('success', 'Profile Test Complete', 'Column detection successful! Check results below.');
+                        }, 2000);
+                      }}
+                      disabled={!selectedProfileForTest || !testFile || isTestingProfile}
+                      className="bg-yellow-600 text-white px-6 py-2 rounded-md text-sm hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isTestingProfile ? 'Testing Detection...' : 'Test Column Detection'}
+                    </button>
+                  </div>
+
                   {/* Test Results */}
-                  {selectedProfileForTest && (
-                    <div className="mt-6 p-4 bg-white border border-yellow-300 rounded-lg">
-                      <h5 className="text-sm font-medium text-gray-900 mb-3">Detection Preview</h5>
-                      <div className="text-xs text-gray-600">
-                        <p>Profile: <span className="font-medium">{SOFTWARE_PROFILES.find(p => p.id === selectedProfileForTest)?.displayName}</span></p>
-                        <p className="mt-2">Upload a CSV file to see which columns would be detected for each data type.</p>
+                  {testResults && (
+                    <div className="mt-6 bg-white border rounded-lg p-4">
+                      <h5 className="font-medium text-gray-900 mb-3">Detection Results for "{testResults.profileName}"</h5>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <strong>File:</strong> {testResults.fileName}
+                        </div>
+                        <div>
+                          <strong>Rows:</strong> {testResults.rowCount.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="mt-4">
+                        <h6 className="font-medium text-gray-800 mb-2">Detected Columns:</h6>
+                        <div className="space-y-2">
+                          {Object.entries(testResults.detectedColumns).map(([type, column]) => (
+                            <div key={type} className="flex justify-between items-center">
+                              <span className="capitalize font-medium">{type}:</span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">{String(column)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3701,24 +3257,8 @@ WARNING:
               
               <div className="p-6">
                 {/* Library Status */}
-                <div 
-                  id="library-status" 
-                  className={`mb-6 p-4 rounded-md ${
-                    libraryStatus === 'ready' 
-                      ? 'bg-green-50 border border-green-200' 
-                      : 'bg-blue-50 border border-blue-200'
-                  }`}
-                >
-                  <p className={`text-sm ${
-                    libraryStatus === 'ready' 
-                      ? 'text-green-700' 
-                      : 'text-blue-700'
-                  }`}>
-                    {libraryStatus === 'ready' 
-                      ? '✅ Libraries ready and loaded!' 
-                      : '🔄 Initializing libraries...'
-                    }
-                  </p>
+                <div id="library-status" className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <p className="text-sm text-blue-700">🔄 Initializing libraries...</p>
                 </div>
 
                 {/* File Upload Section */}
@@ -3744,12 +3284,7 @@ WARNING:
                         id="test-file1"
                         accept=".xlsx,.xls,.csv"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleTestFileUpload(1, file);
-                          }
-                        }}
+                        onChange={(e) => handleTestFileUpload(1, e.target.files?.[0]!)}
                       />
                       <div className="space-y-2">
                         <div className="flex justify-center">
@@ -3761,11 +3296,6 @@ WARNING:
                           <span className="text-green-600 font-medium group-hover:text-green-700">Click to upload Excel or CSV</span>
                         </div>
                         <p className="text-xs text-green-500">Primary data source</p>
-                        {file1Data.length > 0 && (
-                          <div className="mt-2 text-xs text-green-700 bg-green-100 px-2 py-1 rounded">
-                            ✅ {file1Name}
-                          </div>
-                        )}
                       </div>
                     </div>
                     
@@ -3793,12 +3323,7 @@ WARNING:
                         id="test-file2"
                         accept=".xlsx,.xls,.csv"
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleTestFileUpload(2, file);
-                          }
-                        }}
+                        onChange={(e) => handleTestFileUpload(2, e.target.files?.[0]!)}
                       />
                       <div className="space-y-2">
                         <div className="flex justify-center">
@@ -3810,111 +3335,12 @@ WARNING:
                           <span className="text-blue-600 font-medium group-hover:text-blue-700">Click to upload Excel or CSV</span>
                         </div>
                         <p className="text-xs text-blue-500">Optional comparison file</p>
-                        {file2Data.length > 0 && (
-                          <div className="mt-2 text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">
-                            ✅ {file2Name}
-                          </div>
-                        )}
                       </div>
                     </div>
                     
                     <div id="file2-validation" className="text-sm"></div>
                   </div>
                 </div>
-
-                {/* File Data Preview and Column Headers */}
-                {(file1Data.length > 0 || file2Data.length > 0) && (
-                  <div className="mb-6">
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* File 1 Preview */}
-                      {file1Data.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                            <h4 className="text-sm font-medium text-gray-900">Primary Dataset ({file1Data.length} rows)</h4>
-                          </div>
-                          
-                          {/* Column Headers */}
-                          <div className="bg-green-50 border border-green-200 rounded-lg p-2">
-                            <h5 className="text-xs font-medium text-green-800 mb-1">Column Headers</h5>
-                            <div className="flex flex-wrap gap-1">
-                              {Object.keys(file1Data[0] || {}).map((header, index) => (
-                                <button
-                                  key={`file1-${header}-${index}`}
-                                  onClick={() => {
-                                    const isSelected = selectedHeaders1.includes(header);
-                                    if (isSelected) {
-                                      setSelectedHeaders1(prev => prev.filter(h => h !== header));
-                                    } else {
-                                      setSelectedHeaders1(prev => [...prev, header]);
-                                    }
-                                    console.log(`🔄 Column "${header}" ${isSelected ? 'deselected' : 'selected'} for File 1`);
-                                  }}
-                                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                                    selectedHeaders1.includes(header)
-                                      ? 'bg-green-600 text-white'
-                                      : 'bg-white text-green-700 border border-green-300 hover:bg-green-100'
-                                  }`}
-                                >
-                                  {header}
-                                </button>
-                              ))}
-                            </div>
-                            {selectedHeaders1.length > 0 && (
-                              <p className="text-xs text-green-700 mt-2">
-                                ✅ {selectedHeaders1.length} column{selectedHeaders1.length !== 1 ? 's' : ''} selected: {selectedHeaders1.join(', ')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* File 2 Preview */}
-                      {file2Data.length > 0 && (
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                            <h4 className="text-sm font-medium text-gray-900">Secondary Dataset ({file2Data.length} rows)</h4>
-                          </div>
-                          
-                          {/* Column Headers */}
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
-                            <h5 className="text-xs font-medium text-blue-800 mb-1">Column Headers</h5>
-                            <div className="flex flex-wrap gap-1">
-                              {Object.keys(file2Data[0] || {}).map((header, index) => (
-                                <button
-                                  key={`file2-${header}-${index}`}
-                                  onClick={() => {
-                                    const isSelected = selectedHeaders2.includes(header);
-                                    if (isSelected) {
-                                      setSelectedHeaders2(prev => prev.filter(h => h !== header));
-                                    } else {
-                                      setSelectedHeaders2(prev => [...prev, header]);
-                                    }
-                                    console.log(`🔄 Column "${header}" ${isSelected ? 'deselected' : 'selected'} for File 2`);
-                                  }}
-                                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                                    selectedHeaders2.includes(header)
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-100'
-                                  }`}
-                                >
-                                  {header}
-                                </button>
-                              ))}
-                            </div>
-                            {selectedHeaders2.length > 0 && (
-                              <p className="text-xs text-blue-700 mt-2">
-                                ✅ {selectedHeaders2.length} column{selectedHeaders2.length !== 1 ? 's' : ''} selected: {selectedHeaders2.join(', ')}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
                 {/* Script Input Section */}
                 <div className="mb-6">
@@ -4086,7 +3512,7 @@ WARNING:
                 {/* Results Section */}
                 <div id="results-section" className="space-y-6">
                   {/* Script Building */}
-                  <div className="rounded-lg p-4">
+                  <div className="border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                       <h4 className="text-lg font-medium text-gray-900">Script Builder</h4>
                       
@@ -4131,7 +3557,7 @@ WARNING:
                   </div>
 
                   {/* Client-Side Results Replica */}
-                  <div className="rounded-lg p-4">
+                  <div className="border border-gray-200 rounded-lg p-4">
                     <h4 className="text-lg font-medium text-gray-900 mb-4">Client View</h4>
                     
                     {/* This will be styled exactly like the client interface */}
@@ -4817,71 +4243,6 @@ reconcileData();`;
             </div>
           </div>
         )}
-
-        {/* Notification Display */}
-        <div className="fixed top-4 right-4 z-50 space-y-2">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`max-w-sm p-4 rounded-lg shadow-lg border transition-all duration-300 ${
-                notification.type === 'success'
-                  ? 'bg-green-50 border-green-200 text-green-800'
-                  : notification.type === 'error'
-                  ? 'bg-red-50 border-red-200 text-red-800'
-                  : notification.type === 'warning'
-                  ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                  : 'bg-blue-50 border-blue-200 text-blue-800'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <div className={`flex-shrink-0 mr-2 ${
-                      notification.type === 'success'
-                        ? 'text-green-400'
-                        : notification.type === 'error'
-                        ? 'text-red-400'
-                        : notification.type === 'warning'
-                        ? 'text-yellow-400'
-                        : 'text-blue-400'
-                    }`}>
-                      {notification.type === 'success' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'error' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'warning' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'info' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <h4 className="text-sm font-medium">{notification.title}</h4>
-                  </div>
-                  <p className="mt-1 text-sm">{notification.message}</p>
-                </div>
-                <button
-                  onClick={() => removeNotification(notification.id)}
-                  className="ml-4 text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

@@ -16,6 +16,39 @@ export interface PendingUser {
   subscriptionTier: string;
   billingCycle: string;
   createdAt: string;
+  
+  // Consultation tracking (moved from ApprovedUser)
+  consultationCompleted?: boolean;
+  scriptReady?: boolean;
+  consultationNotes?: string;
+}
+
+export interface ReadyForTestingUser {
+  id: string;
+  email: string;
+  businessName: string;
+  businessType: string;
+  subscriptionTier: string;
+  billingCycle: string;
+  createdAt: string;
+  readyForTestingAt: string;
+  
+  // Website and deployment info
+  siteUrl?: string;
+  siteId?: string;
+  siteName?: string;
+  scriptDeployed?: boolean;
+  scriptDeployedAt?: string;
+  
+  // QA Testing fields
+  qaStatus?: 'pending' | 'testing' | 'passed' | 'failed';
+  qaTestedAt?: string;
+  qaTestingNotes?: string;
+  qaScreenshots?: string[];
+  
+  // Admin testing workflow
+  websiteProvisioned?: boolean;
+  websiteProvisionedAt?: string;
 }
 
 export interface ApprovedUser {
@@ -33,10 +66,10 @@ export interface ApprovedUser {
   softwareProfile?: string;
   showInsights?: boolean;
   
-  // Minimal consultation tracking
-  consultationCompleted?: boolean;
-  scriptReady?: boolean;
-  consultationNotes?: string;
+  // QA completed - ready for billing
+  qaPassedAt?: string;
+  billingLinkSent?: boolean;
+  billingLinkSentAt?: string;
 }
 
 export interface ScriptData {
@@ -76,6 +109,7 @@ export interface DeletedUser {
 export type AdminTab = 
   | 'clients' 
   | 'pending' 
+  | 'ready-for-testing'
   | 'approved' 
   | 'deleted' 
   | 'profiles' 
@@ -87,6 +121,7 @@ export interface AdminState {
   activeTab: AdminTab;
   clients: Client[];
   pendingUsers: PendingUser[];
+  readyForTestingUsers: ReadyForTestingUser[];
   approvedUsers: ApprovedUser[];
   deletedUsers: DeletedUser[];
   isLoading: boolean;
@@ -97,4 +132,19 @@ export const TIER_LIMITS = {
   starter: 50,
   professional: 75,
   business: 150
+} as const;
+
+export const TIER_PRICING = {
+  starter: {
+    monthly: 19,
+    annual: 15
+  },
+  professional: {
+    monthly: 34,
+    annual: 27
+  },
+  business: {
+    monthly: 59,
+    annual: 47
+  }
 } as const;

@@ -25,10 +25,7 @@ const ApprovedUsersTab = React.memo(({
       businessName: user.businessName || '',
       subscriptionTier: user.subscriptionTier || 'starter',
       comparisonsLimit: user.comparisonsLimit,
-      showInsights: user.showInsights || false,
-      consultationCompleted: user.consultationCompleted || false,
-      scriptReady: user.scriptReady || false,
-      consultationNotes: user.consultationNotes || ''
+      showInsights: user.showInsights || false
     });
   }, []);
 
@@ -78,14 +75,7 @@ const ApprovedUsersTab = React.memo(({
     }
   }, [onUpdateUser]);
 
-  const toggleConsultation = useCallback(async (userId: string, field: 'consultationCompleted' | 'scriptReady', currentValue: boolean) => {
-    setProcessingUser(userId);
-    try {
-      await onUpdateUser(userId, { [field]: !currentValue });
-    } finally {
-      setProcessingUser(null);
-    }
-  }, [onUpdateUser]);
+
 
   if (users.length === 0) {
     return (
@@ -131,9 +121,7 @@ const ApprovedUsersTab = React.memo(({
               <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Insights
               </th>
-              <th className="hidden xl:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Consultation
-              </th>
+
               <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
@@ -236,38 +224,7 @@ const ApprovedUsersTab = React.memo(({
                     {user.showInsights ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </button>
                 </td>
-                <td className="hidden xl:table-cell px-6 py-4 whitespace-nowrap">
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleConsultation(user.id, 'consultationCompleted', user.consultationCompleted || false)}
-                        disabled={processingUser === user.id}
-                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full transition-colors hover:opacity-80 disabled:opacity-50 ${
-                          user.consultationCompleted 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                        }`}
-                        title="Click to toggle consultation status"
-                      >
-                        {user.consultationCompleted ? '✓ Done' : '⏳ Pending'}
-                      </button>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleConsultation(user.id, 'scriptReady', user.scriptReady || false)}
-                        disabled={processingUser === user.id}
-                        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full transition-colors hover:opacity-80 disabled:opacity-50 ${
-                          user.scriptReady 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                        }`}
-                        title="Click to toggle script ready status"
-                      >
-                        {user.scriptReady ? '🚀 Ready' : '⚙️ Building'}
-                      </button>
-                    </div>
-                  </div>
-                </td>
+
                 <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
                   {editingUser === user.id ? (
                     <div className="flex items-center justify-end space-x-1 sm:space-x-2">

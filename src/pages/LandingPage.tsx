@@ -79,10 +79,10 @@ export default function LandingPage() {
               <h2 className="text-lg sm:text-xl font-bold">Launch Special - Limited Time</h2>
             </div>
             <p className="text-base sm:text-lg font-medium mb-2">
-              Setup fee waived + 14-day free trial for salon owners who sign up before July 1st, 2025
+              Setup fee waived + 14-day free trial for salon owners who sign up before August 1st, 2025
             </p>
             <p className="text-emerald-100 text-xs sm:text-sm">
-              Save $497 on custom script development • Risk-free trial • Offer expires July 1st
+              Save $497 on custom script development • Risk-free trial • Offer expires August 1st
             </p>
           </div>
         </div>
