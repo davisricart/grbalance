@@ -1247,7 +1247,7 @@ WARNING:
 
       await setDoc(doc(db, 'usage', clientId), clientData);
 
-      showNotification('success', 'Client Added', 'Client added successfully!');
+      // Success - no notification needed
       
       setShowAddClient(false);
       setNewClient({ 
@@ -1752,7 +1752,7 @@ WARNING:
       // Download the file
       XLSX.writeFile(wb, filename);
       
-      showNotification('success', 'Excel Downloaded', `Results exported to ${filename}`);
+      // Success - no notification needed
       console.log('✅ Excel file generated and downloaded:', filename);
       
     } catch (error: any) {
@@ -2662,7 +2662,7 @@ WARNING:
                   await fetchPendingUsers();
                   console.log('✅ Data refresh completed');
                   
-                  showNotification('success', 'User Sent Back', `${readyUser.email} has been sent back to pending approval with reason: ${reason || 'No reason provided'}`);
+                  // Success - no notification needed for normal operation
                   
                 } catch (error) {
                   console.error('❌ Error in sendBackToPending:', error);
