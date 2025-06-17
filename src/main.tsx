@@ -31,7 +31,7 @@ if (missingVars.length > 0) {
   console.error('🚨 Missing Firebase environment variables:', missingVars.map(([key]) => key));
   console.error('💡 Please set these in Netlify Environment Variables:');
   missingVars.forEach(([key]) => {
-    console.error(`   VITE_${key.toUpperCase().replace(/([A-Z])/g, '_$1').replace(/^_/, '')}`);
+    console.error(`   VITE_FIREBASE_${key.toUpperCase().replace(/([A-Z])/g, '_$1').replace(/^_/, '')}`);
   });
 }
 
