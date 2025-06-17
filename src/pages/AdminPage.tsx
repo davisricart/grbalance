@@ -2958,105 +2958,169 @@ WARNING:
                         </div>
                       )}
 
-                      {/* Actions */}
-                      <div className="flex flex-wrap gap-2">
-                        {/* Edit button - always available */}
-                        <button
-                          type="button"
-                          onClick={() => handleEditUser(user)}
-                          className="inline-flex items-center gap-2 bg-gray-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-gray-700"
-                        >
-                          <User className="w-4 h-4" />
-                          Edit Details
-                        </button>
-
+                      {/* Actions - Clean 2-Button Layout */}
+                      <div className="flex flex-wrap gap-3">
                         {user.status === 'approved' ? (
-                          // Buttons for active approved users
                           <>
-                            {/* Website Status Display - Only show for users who completed the 3-stage workflow */}
-                            {siteUrls[user.id] && (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            {/* PRIMARY ACTION - Website Management */}
+                            {siteUrls[user.id] ? (
+                              <a
+                                href={siteUrls[user.id]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                              >
                                 <HiGlobeAlt className="w-4 h-4" />
-                                <span>Website Active</span>
-                                <a
-                                  href={siteUrls[user.id]}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="ml-2 px-2 py-1 text-xs bg-emerald-200 hover:bg-emerald-300 rounded"
-                                >
-                                  Visit
-                                </a>
-                              </div>
-                            )}
-                            
-                            {/* Deploy Script button (only if site is provisioned) */}
-                            {siteUrls[user.id] && (
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => {
-                                    setSelectedUserForScript(user);
-                                    setShowDeployScript(true);
-                                  }}
-                                  className="px-3 py-1 rounded text-sm font-medium transition-colors bg-blue-500 text-white hover:bg-blue-600"
-                                  title="Deploy a new script to this client"
-                                >
-                                  Deploy Script
-                                </button>
-                                
-                                <button
-                                  onClick={() => {
-                                    showConfirmation(
-                                      'Redeploy Client Site',
-                                      `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• The site will use the new Script Testing format\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
-                                      'Redeploy Site',
-                                      'bg-green-600 text-white',
-                                      () => redeployClientSite(user)
-                                    );
-                                  }}
-                                  className="px-3 py-1 rounded text-sm font-medium transition-colors bg-green-500 text-white hover:bg-green-600"
-                                  title="Redeploy entire site with updated template"
-                                >
-                                  Redeploy Site
-                                </button>
-                              </div>
-                            )}
-                            
-                            {/* Delete Website button (only if site is provisioned) */}
-                            {siteUrls[user.id] && (
+                                Visit Live Site
+                              </a>
+                            ) : (
                               <button
                                 type="button"
-                                onClick={() => handleConfirmDeleteWebsite(user)}
-                                className="inline-flex items-center gap-2 bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm hover:bg-red-200 disabled:opacity-50"
+                                onClick={() => handleConfirmProvisionWebsite(user)}
+                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ${
+                                  provisioning[user.id] 
+                                    ? 'bg-yellow-500 text-white cursor-not-allowed animate-pulse' 
+                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                }`}
                                 disabled={provisioning[user.id]}
                               >
-                                <Trash2 className="w-4 h-4" />
-                                Delete Website
+                                {provisioning[user.id] ? (
+                                  <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Creating Website...
+                                  </>
+                                ) : (
+                                  <>
+                                    <HiGlobeAlt className="w-4 h-4" />
+                                    Create Website
+                                  </>
+                                )}
                               </button>
                             )}
-                            
-                            <button
-                              type="button"
-                              onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
-                              className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm hover:bg-orange-200"
-                            >
-                              <HiLockClosed className="w-4 h-4" />
-                              Deactivate
-                            </button>
-                            
-                            {/* Delete User button */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete User
-                            </button>
+
+                            {/* ALL OTHER ACTIONS - Organized Dropdown */}
+                            <div className="relative">
+                              <button
+                                onClick={() => {
+                                  const dropdown = document.getElementById(`dropdown-${user.id}`);
+                                  dropdown?.classList.toggle('hidden');
+                                }}
+                                className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm"
+                              >
+                                <Settings className="w-4 h-4" />
+                                Manage ▼
+                              </button>
+                              
+                              <div id={`dropdown-${user.id}`} className="hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-20">
+                                <div className="py-2">
+                                  {/* Script Management Section */}
+                                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                                    Script Management
+                                  </div>
+                                  
+                                  {siteUrls[user.id] && (
+                                    <button
+                                      onClick={() => {
+                                        document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                        setSelectedUserForScript(user);
+                                        setShowDeployScript(true);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 flex items-center gap-2"
+                                    >
+                                      <Settings className="w-4 h-4" />
+                                      Deploy Script
+                                    </button>
+                                  )}
+                                  
+                                  {/* User Management Section */}
+                                  <div className="px-3 py-1 mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                                    User Management
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => {
+                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                      handleEditUser(user);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  >
+                                    <User className="w-4 h-4" />
+                                    Edit Details
+                                  </button>
+                                  
+                                  {/* Site Management Section */}
+                                  {siteUrls[user.id] && (
+                                    <>
+                                      <div className="px-3 py-1 mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
+                                        Site Management
+                                      </div>
+                                      
+                                      <button
+                                        onClick={() => {
+                                          document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                          showConfirmation(
+                                            'Redeploy Client Site',
+                                            `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
+                                            'Redeploy Site',
+                                            'bg-green-600 text-white',
+                                            () => redeployClientSite(user)
+                                          );
+                                        }}
+                                        className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center gap-2"
+                                      >
+                                        <Settings className="w-4 h-4" />
+                                        Redeploy Site
+                                      </button>
+                                    </>
+                                  )}
+                                  
+                                  {/* Danger Zone */}
+                                  <div className="px-3 py-1 mt-2 text-xs font-semibold text-red-500 uppercase tracking-wide border-b border-red-100">
+                                    Danger Zone
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => {
+                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                      handleDeactivateApprovedUser(user.id, user.email);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-orange-700 hover:bg-orange-50 flex items-center gap-2"
+                                  >
+                                    <HiLockClosed className="w-4 h-4" />
+                                    Deactivate User
+                                  </button>
+                                  
+                                  {siteUrls[user.id] && (
+                                    <button
+                                      onClick={() => {
+                                        document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                        handleConfirmDeleteWebsite(user);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Delete Website
+                                    </button>
+                                  )}
+                                  
+                                  <button
+                                    onClick={() => {
+                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
+                                      handleDeleteUser(user.id, user.email);
+                                    }}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Delete User
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </>
                         ) : (
-                          // Buttons for deactivated users
+                          // Deactivated users - simplified
                           <>
-                            <div className="flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm">
+                            <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-600 px-3 py-2 rounded-lg text-sm">
                               <HiLockClosed className="w-4 h-4" />
                               Account Deactivated
                             </div>
@@ -3067,16 +3131,6 @@ WARNING:
                             >
                               <UserCheck className="w-4 h-4" />
                               Reactivate
-                            </button>
-                            
-                            {/* Delete User button for deactivated users too */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="inline-flex items-center gap-2 bg-red-600 text-white px-3 py-2 rounded-lg text-sm hover:bg-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete User
                             </button>
                           </>
                         )}

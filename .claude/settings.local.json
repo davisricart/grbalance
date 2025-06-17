@@ -65,7 +65,8 @@
       "Bash(sudo npm i -g @anthropic-ai/claude-code@latest)",
       "Bash(claude --version)",
       "Bash(npm view:*)",
-      "Bash(npm config delete:*)"
+      "Bash(npm config delete:*)",
+      "Bash(sudo npm i -g @anthropic-ai/claude-code)"
     ],
     "deny": []
   }

@@ -51,16 +51,16 @@ exports.handler = async function(event, context) {
     // Create form data with the updated client template
     const formData = new FormData();
     
-    // Read the built client template files
-    const distPath = path.join(process.cwd(), 'NEW_Customer', 'dist');
+    // Use the current main site's build (dist folder from the main site)
+    const distPath = path.join(process.cwd(), 'dist');
     
     try {
       // Check if dist folder exists
       if (!fs.existsSync(distPath)) {
-        throw new Error('Client template dist folder not found. Please run build first.');
+        throw new Error('Main site dist folder not found. Please build the main site first.');
       }
 
-      console.log(`📁 Reading files from: ${distPath}`);
+      console.log(`📁 Reading files from main site build: ${distPath}`);
 
       // Read the main HTML file
       const indexPath = path.join(distPath, 'index.html');
@@ -173,12 +173,12 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // Set CLIENT_ID environment variable
+    // Set all environment variables (Firebase config + client ID)
     try {
-      await setEnvVarWithRetry(siteId, clientId, NETLIFY_TOKEN, 2);
-      console.log('✅ CLIENT_ID environment variable set successfully');
+      await setClientEnvVar(siteId, clientId, NETLIFY_TOKEN);
+      console.log('✅ All environment variables set successfully');
     } catch (e) {
-      console.warn('⚠️ Failed to set CLIENT_ID environment variable:', e.result);
+      console.warn('⚠️ Failed to set some environment variables:', e.result || e.message);
     }
 
     console.log('🎉 Client site redeployed successfully!');
@@ -211,7 +211,74 @@ exports.handler = async function(event, context) {
   }
 };
 
-// Utility function to set environment variable with retry
+// Utility function to set all required environment variables (copying main site config)
+async function setClientEnvVar(siteId, clientId, NETLIFY_TOKEN) {
+  const url = `https://api.netlify.com/api/v1/sites/${siteId}/env/vars`;
+  
+  // All environment variables that need to be copied from main site
+  const envVars = [
+    { key: 'VITE_CLIENT_ID', value: clientId },
+    { key: 'VITE_FIREBASE_API_KEY', value: process.env.VITE_FIREBASE_API_KEY },
+    { key: 'VITE_FIREBASE_AUTH_DOMAIN', value: process.env.VITE_FIREBASE_AUTH_DOMAIN },
+    { key: 'VITE_FIREBASE_PROJECT_ID', value: process.env.VITE_FIREBASE_PROJECT_ID },
+    { key: 'VITE_FIREBASE_STORAGE_BUCKET', value: process.env.VITE_FIREBASE_STORAGE_BUCKET },
+    { key: 'VITE_FIREBASE_MESSAGING_SENDER_ID', value: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID },
+    { key: 'VITE_FIREBASE_APP_ID', value: process.env.VITE_FIREBASE_APP_ID },
+    { key: 'VITE_STRIPE_PUBLISHABLE_KEY', value: process.env.VITE_STRIPE_PUBLISHABLE_KEY }
+  ];
+
+  const results = [];
+  
+  for (const envVar of envVars) {
+    if (!envVar.value && envVar.key !== 'VITE_CLIENT_ID') {
+      console.warn(`⚠️ Skipping ${envVar.key} - not found in main site environment`);
+      continue;
+    }
+
+    try {
+      const body = JSON.stringify({
+        key: envVar.key,
+        values: [{ context: 'all', value: envVar.value }]
+      });
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${NETLIFY_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body,
+      });
+
+      let text = await res.text();
+      let result;
+      try { 
+        result = JSON.parse(text); 
+      } catch { 
+        result = text; 
+      }
+
+      if (res.ok) {
+        console.log(`✅ Set ${envVar.key} successfully`);
+        results.push({ key: envVar.key, success: true });
+      } else {
+        console.error(`❌ Failed to set ${envVar.key}:`, result);
+        results.push({ key: envVar.key, success: false, error: result });
+      }
+    } catch (error) {
+      console.error(`❌ Error setting ${envVar.key}:`, error.message);
+      results.push({ key: envVar.key, success: false, error: error.message });
+    }
+
+    // Small delay to avoid rate limits
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+
+  console.log(`📊 Environment variables result: ${results.filter(r => r.success).length}/${results.length} successful`);
+  return results;
+}
+
+// Legacy function for backward compatibility
 async function setEnvVarWithRetry(siteId, clientId, NETLIFY_TOKEN, retries = 2) {
   const url = `https://api.netlify.com/api/v1/sites/${siteId}/env/vars`;
   const body = JSON.stringify({
