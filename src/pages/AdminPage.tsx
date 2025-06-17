@@ -1879,7 +1879,7 @@ WARNING:
 
       if (response.ok) {
         console.log('✅ Redeploy initiated successfully');
-        showNotification('info', 'Redeploy Started', 'Site deployment started. This may take 2-3 minutes.');
+        // Success - no notification needed
       } else {
         console.error('❌ Redeploy failed:', result);
         showNotification('error', 'Redeploy Failed', `Failed to redeploy site: ${result}`);
