@@ -2829,10 +2829,11 @@ WARNING:
 
 
 
-                        <div>
-                          <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Site Status</div>
-                          <div className="mt-1">
-                            {siteUrls[user.id] ? (
+                        {/* Site Status - Only show if user has a website (completed 3-stage workflow) */}
+                        {siteUrls[user.id] && (
+                          <div>
+                            <div className="text-gray-500 text-xs uppercase tracking-wide font-medium">Site Status</div>
+                            <div className="mt-1">
                               <div>
                                 <div className="text-green-600 font-medium">Provisioned</div>
                                 <a
@@ -2844,11 +2845,9 @@ WARNING:
                                   View Site
                                 </a>
                               </div>
-                            ) : (
-                              <div className="text-gray-500">Not provisioned</div>
-                            )}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
 
                       {/* Available Scripts Section */}
@@ -2951,21 +2950,8 @@ WARNING:
                         {user.status === 'approved' ? (
                           // Buttons for active approved users
                           <>
-                            {/* Website Status Display - Approved users should already have websites */}
-                            {!siteUrls[user.id] ? (
-                              <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-100 text-amber-700 border border-amber-200">
-                                <HiExclamation className="w-4 h-4" />
-                                <span>Website Missing</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleConfirmProvisionWebsite(user)}
-                                  className="ml-2 px-2 py-1 text-xs bg-amber-200 hover:bg-amber-300 rounded"
-                                  disabled={provisioning[user.id]}
-                                >
-                                  {provisioning[user.id] ? 'Creating...' : 'Create Now'}
-                                </button>
-                              </div>
-                            ) : (
+                            {/* Website Status Display - Only show for users who completed the 3-stage workflow */}
+                            {siteUrls[user.id] && (
                               <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-emerald-100 text-emerald-700 border border-emerald-200">
                                 <HiGlobeAlt className="w-4 h-4" />
                                 <span>Website Active</span>
@@ -2988,13 +2974,8 @@ WARNING:
                                     setSelectedUserForScript(user);
                                     setShowDeployScript(true);
                                   }}
-                                  disabled={!siteUrls[user.id]}
-                                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                                    siteUrls[user.id] 
-                                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  }`}
-                                  title={siteUrls[user.id] ? 'Deploy a new script to this client' : 'Provision website first'}
+                                  className="px-3 py-1 rounded text-sm font-medium transition-colors bg-blue-500 text-white hover:bg-blue-600"
+                                  title="Deploy a new script to this client"
                                 >
                                   Deploy Script
                                 </button>
@@ -3009,13 +2990,8 @@ WARNING:
                                       () => redeployClientSite(user)
                                     );
                                   }}
-                                  disabled={!siteUrls[user.id]}
-                                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                                    siteUrls[user.id] 
-                                      ? 'bg-green-500 text-white hover:bg-green-600' 
-                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                  }`}
-                                  title={siteUrls[user.id] ? 'Redeploy entire site with updated template' : 'Provision website first'}
+                                  className="px-3 py-1 rounded text-sm font-medium transition-colors bg-green-500 text-white hover:bg-green-600"
+                                  title="Redeploy entire site with updated template"
                                 >
                                   Redeploy Site
                                 </button>
