@@ -1851,9 +1851,43 @@ WARNING:
     return handleProvisionWebsite(user);
   };
 
-  const redeployClientSite = async (userId: string) => {
-    console.log('🔄 Redeploying site for user:', userId);
-    // Add redeploy logic here
+  const redeployClientSite = async (user: ApprovedUser) => {
+    console.log('🔄 Redeploying site for user:', user);
+    
+    if (!user.siteId) {
+      console.error('❌ No siteId found for user:', user.email);
+      showNotification('error', 'Redeploy Failed', 'No site ID found for this user');
+      return;
+    }
+
+    try {
+      console.log('📡 Calling redeploy function...');
+      const response = await fetch('/.netlify/functions/redeploy-client-site', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId: user.siteId,
+          clientId: user.id,
+          clientName: user.businessName || user.email
+        })
+      });
+
+      const result = await response.text();
+      console.log('📡 Redeploy response:', response.status, result);
+
+      if (response.ok) {
+        console.log('✅ Redeploy initiated successfully');
+        showNotification('info', 'Redeploy Started', 'Site deployment started. This may take 2-3 minutes.');
+      } else {
+        console.error('❌ Redeploy failed:', result);
+        showNotification('error', 'Redeploy Failed', `Failed to redeploy site: ${result}`);
+      }
+    } catch (error) {
+      console.error('❌ Redeploy error:', error);
+      showNotification('error', 'Redeploy Error', `Error calling redeploy function: ${error.message}`);
+    }
   };
 
   const handleConfirmDeleteWebsite = async (userId: string) => {
