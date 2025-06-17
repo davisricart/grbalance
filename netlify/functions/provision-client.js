@@ -199,7 +199,7 @@ exports.handler = async function(event, context) {
       }
     }
 
-    // Step 3: Create the site with standardized name (MANUAL DEPLOY - NO GIT)
+    // Step 3: Create the site with standardized name (GIT-BASED BUILD)
     const siteRes = await fetch('https://api.netlify.com/api/v1/sites', {
       method: 'POST',
       headers: {
@@ -208,7 +208,13 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({
         name: finalSiteName,
-        // Remove repo configuration to create manual deploy site
+        // Configure Git-based deployment
+        repo: {
+          provider: 'github',
+          repo: 'davisricart/grbalance',
+          branch: 'main',
+          deploy_key_id: null // Netlify will handle this
+        },
         build_settings: {
           cmd: 'npm run build',
           dir: 'dist',
@@ -220,7 +226,8 @@ exports.handler = async function(event, context) {
             VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN,
             VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET,
             VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-            VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID
+            VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID,
+            VITE_STRIPE_PUBLISHABLE_KEY: process.env.VITE_STRIPE_PUBLISHABLE_KEY
           }
         }
       }),
@@ -239,36 +246,9 @@ exports.handler = async function(event, context) {
     // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 5: Automatically redeploy site with full template
-    console.log('🚀 Site created successfully, now deploying full template...');
-    
-    try {
-      // Call the redeploy function automatically
-      const redeployRes = await fetch(`${process.env.URL || 'https://grbalance.netlify.app'}/.netlify/functions/redeploy-client-site`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          siteId: site.id,
-          clientId: clientId,
-          clientName: clientName
-        })
-      });
-      
-      const redeployResult = await redeployRes.text();
-      console.log('📡 Redeploy response:', redeployRes.status, redeployResult.substring(0, 200));
-      
-      if (redeployRes.ok) {
-        console.log('✅ Full template deployed automatically');
-      } else {
-        console.warn('⚠️ Auto-redeploy failed, but site was created. Manual redeploy needed.');
-      }
-      
-    } catch (redeployError) {
-      console.warn('⚠️ Auto-redeploy failed, but site was created:', redeployError.message);
-      console.log('💡 Manual redeploy will be needed via admin dashboard');
-    }
+    // Step 5: Wait for initial Git-based build to complete
+    console.log('🚀 Site created successfully, Git-based build will start automatically...');
+    console.log('⏳ Initial build may take 2-3 minutes to complete');
 
     // Step 6: Set basic CLIENT_ID (other env vars set during redeploy)
     let envResult = null;
@@ -286,10 +266,12 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Site created and template deployed automatically!",
+        message: "Site created successfully! Build in progress...",
         siteUrl: site.ssl_url,
         siteId: site.id,
         siteName: site.name,
+        buildStatus: "Git-based build started automatically",
+        buildTime: "Build typically completes in 2-3 minutes",
         envVarSet: envResult ? "CLIENT_ID set successfully" : false,
         warning: envWarning || (envResult ? null : "CLIENT_ID was not set automatically.")
       })

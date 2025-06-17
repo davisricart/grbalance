@@ -1507,7 +1507,8 @@ WARNING:
           updatedAt: new Date()
         });
         
-        showInlineNotification(user.id, 'success', `Site provisioned: ${res.data.siteUrl}`);
+        showInlineNotification(user.id, 'success', 
+          `Site created: ${res.data.siteUrl} (Build in progress - may take 2-3 minutes)`);
       }
       
     } catch (err: any) {
