@@ -59,7 +59,13 @@
       "Bash(git checkout:*)",
       "Bash(hostname:*)",
       "Bash(wget:*)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(claude doctor)",
+      "Bash(npm i:*)",
+      "Bash(sudo npm i -g @anthropic-ai/claude-code@latest)",
+      "Bash(claude --version)",
+      "Bash(npm view:*)",
+      "Bash(npm config delete:*)"
     ],
     "deny": []
   }
