@@ -2550,9 +2550,19 @@ WARNING:
           <ReadyForTestingTab
             readyForTestingUsers={readyForTestingUsers}
             onFinalApprove={async (userId: string, userData: Partial<ApprovedUser>) => {
-              // Move user from ready-for-testing to approved
-              const readyUser = readyForTestingUsers.find(u => u.id === userId);
-              if (readyUser) {
+              console.log('🚀 onFinalApprove called with userId:', userId, 'userData:', userData);
+              
+              try {
+                // Move user from ready-for-testing to approved  
+                const readyUser = readyForTestingUsers.find(u => u.id === userId);
+                console.log('📋 Found readyUser:', readyUser);
+                
+                if (!readyUser) {
+                  console.error('❌ Ready user not found for userId:', userId);
+                  showNotification('error', 'Error', 'User not found in ready for testing list');
+                  return;
+                }
+
                 // Add to approved users - PRESERVE ALL DATA including website info
                 const approvedUserData = {
                   ...userData,
@@ -2580,18 +2590,28 @@ WARNING:
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
                 // Update in Firebase - move to usage collection with approved status
+                console.log('💾 Writing to usage collection...');
                 const usageDocRef = doc(db, 'usage', userId);
                 await setDoc(usageDocRef, approvedUserData);
+                console.log('✅ Successfully wrote to usage collection');
                 
                 // Remove from ready-for-testing collection
+                console.log('🗑️ Removing from ready-for-testing collection...');
                 const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
                 await deleteDoc(readyForTestingDocRef);
+                console.log('✅ Successfully removed from ready-for-testing');
                 
                 // Refresh data
+                console.log('🔄 Refreshing data...');
                 await fetchReadyForTestingUsers();
                 await fetchApprovedUsers();
+                console.log('✅ Data refresh completed');
                 
                 showNotification('success', 'User Approved', `${readyUser.email} has been approved and moved to production!`);
+                
+              } catch (error) {
+                console.error('❌ Error in onFinalApprove:', error);
+                showNotification('error', 'Approval Failed', `Failed to approve user: ${error.message}`);
               }
             }}
             onSendBackToPending={async (userId: string, reason?: string) => {

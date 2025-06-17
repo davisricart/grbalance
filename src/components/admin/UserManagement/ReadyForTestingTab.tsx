@@ -136,14 +136,34 @@ export default function ReadyForTestingTab({
   };
 
   const handleFinalApprove = async (user: ReadyForTestingUser) => {
+    console.log('🎯 handleFinalApprove called for user:', user.id, user.email);
+    
     setProcessingUser(user.id);
     try {
       // Check if QA is passed before final approval
       const isQAPassed = user.qaStatus === 'passed';
+      console.log('📋 QA Status check:', { qaStatus: user.qaStatus, isQAPassed });
+      
       if (!isQAPassed) {
-        console.warn('QA testing must be completed before final approval');
+        console.warn('❌ QA testing must be completed before final approval');
+        alert('QA testing must be completed before final approval');
         return;
       }
+      
+      console.log('✅ QA passed - proceeding with final approval');
+      console.log('📞 Calling onFinalApprove with data:', {
+        id: user.id,
+        email: user.email,
+        businessName: user.businessName,
+        businessType: user.businessType,
+        subscriptionTier: user.subscriptionTier,
+        billingCycle: user.billingCycle,
+        comparisonsUsed: 0,
+        comparisonsLimit: 100,
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        createdAt: user.createdAt
+      });
       
       await onFinalApprove(user.id, {
         id: user.id,
@@ -158,7 +178,14 @@ export default function ReadyForTestingTab({
         approvedAt: new Date().toISOString(),
         createdAt: user.createdAt
       });
+      
+      console.log('✅ onFinalApprove completed successfully');
+      
+    } catch (error) {
+      console.error('❌ Error in handleFinalApprove:', error);
+      alert(`Error approving user: ${error.message}`);
     } finally {
+      console.log('🔄 Clearing processing state');
       setProcessingUser(null);
     }
   };
@@ -406,7 +433,11 @@ export default function ReadyForTestingTab({
 
                     {/* Step 3: Final Approval (only when QA passed) */}
                     <button
-                      onClick={() => handleFinalApprove(user)}
+                      onClick={() => {
+                        console.log('🖱️ Approve button clicked for user:', user.id, user.email);
+                        console.log('🔍 Button state:', { isProcessing, isQAPassed, disabled: isProcessing || !isQAPassed });
+                        handleFinalApprove(user);
+                      }}
                       disabled={isProcessing || !isQAPassed}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                         isQAPassed
