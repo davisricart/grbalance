@@ -2592,7 +2592,7 @@ WARNING:
                 };
                 
                 // Update in Firebase
-                const pendingDocRef = doc(db, 'pending-users', userId);
+                const pendingDocRef = doc(db, 'pendingUsers', userId);
                 await setDoc(pendingDocRef, pendingUserData);
                 
                 // Remove from ready-for-testing collection
