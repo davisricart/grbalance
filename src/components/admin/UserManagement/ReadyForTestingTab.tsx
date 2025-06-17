@@ -26,6 +26,7 @@ export default function ReadyForTestingTab({
   const [rejectReason, setRejectReason] = useState('');
   const [creatingWebsiteFor, setCreatingWebsiteFor] = useState<string | null>(null);
   const [customSiteName, setCustomSiteName] = useState('');
+  const [approvalErrors, setApprovalErrors] = useState<{[key: string]: string}>({});
 
   // Website provisioning function
   const generateSiteName = (user: ReadyForTestingUser, customName?: string) => {
@@ -138,7 +139,10 @@ export default function ReadyForTestingTab({
   const handleFinalApprove = async (user: ReadyForTestingUser) => {
     console.log('🎯 handleFinalApprove called for user:', user.id, user.email);
     
+    // Clear any previous errors for this user
+    setApprovalErrors(prev => ({ ...prev, [user.id]: '' }));
     setProcessingUser(user.id);
+    
     try {
       // Check if QA is passed before final approval
       const isQAPassed = user.qaStatus === 'passed';
@@ -146,7 +150,7 @@ export default function ReadyForTestingTab({
       
       if (!isQAPassed) {
         console.warn('❌ QA testing must be completed before final approval');
-        alert('QA testing must be completed before final approval');
+        setApprovalErrors(prev => ({ ...prev, [user.id]: 'QA testing must be completed before final approval' }));
         return;
       }
       
@@ -183,7 +187,11 @@ export default function ReadyForTestingTab({
       
     } catch (error) {
       console.error('❌ Error in handleFinalApprove:', error);
-      alert(`Error approving user: ${error.message}`);
+      // Set inline error instead of popup alert
+      setApprovalErrors(prev => ({ 
+        ...prev, 
+        [user.id]: `Failed to approve user: ${error.message}` 
+      }));
     } finally {
       console.log('🔄 Clearing processing state');
       setProcessingUser(null);
@@ -472,6 +480,26 @@ export default function ReadyForTestingTab({
                     </button>
                   </div>
                 </div>
+
+                {/* Inline Approval Error */}
+                {approvalErrors[user.id] && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="p-1 bg-red-100 rounded-lg flex-shrink-0">
+                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-sm text-red-800">{approvalErrors[user.id]}</div>
+                        <button
+                          onClick={() => setApprovalErrors(prev => ({ ...prev, [user.id]: '' }))}
+                          className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Inline Rejection Confirmation */}
                 {isRejecting && (

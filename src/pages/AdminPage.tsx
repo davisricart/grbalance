@@ -2574,13 +2574,13 @@ WARNING:
                   billingCycle: readyUser.billingCycle,
                   createdAt: readyUser.createdAt,
                   // ✅ CRITICAL: Preserve website data
-                  siteUrl: readyUser.siteUrl,
-                  siteId: readyUser.siteId,
-                  siteName: readyUser.siteName,
-                  // ✅ Preserve consultation data
-                  consultationCompleted: readyUser.consultationCompleted,
-                  scriptReady: readyUser.scriptReady,
-                  consultationNotes: readyUser.consultationNotes,
+                  siteUrl: readyUser.siteUrl || null,
+                  siteId: readyUser.siteId || null,
+                  siteName: readyUser.siteName || null,
+                  // ✅ Preserve consultation data with defaults for undefined values
+                  consultationCompleted: readyUser.consultationCompleted ?? true,
+                  scriptReady: readyUser.scriptReady ?? true,
+                  consultationNotes: readyUser.consultationNotes || '',
                   // ✅ Add approval timestamp
                   qaPassedAt: new Date().toISOString(),
                   approvedAt: new Date().toISOString(),
@@ -2607,11 +2607,13 @@ WARNING:
                 await fetchApprovedUsers();
                 console.log('✅ Data refresh completed');
                 
-                showNotification('success', 'User Approved', `${readyUser.email} has been approved and moved to production!`);
+                // Success - don't show popup notification, let the component handle UI updates
+                console.log('✅ User approved successfully:', readyUser.email);
                 
               } catch (error) {
                 console.error('❌ Error in onFinalApprove:', error);
-                showNotification('error', 'Approval Failed', `Failed to approve user: ${error.message}`);
+                // Re-throw error so the component can handle it with inline display
+                throw error;
               }
             }}
             onSendBackToPending={async (userId: string, reason?: string) => {
