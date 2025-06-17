@@ -10,6 +10,9 @@
   NODE_OPTIONS = "--max-old-space-size=4096"
   CI = "false"
 
+[functions]
+  external_node_modules = ["firebase-admin", "@firebase/*", "jwks-rsa", "jose", "jsonwebtoken", "node-forge", "uuid", "limiter", "lru-memoizer", "debug", "just-performance", "farmhash-modern", "node-fetch"]
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

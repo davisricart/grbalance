@@ -76,6 +76,7 @@
     "form-data": "^4.0.2",
     "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.0",
+    "just-performance": "^4.3.0",
     "jwks-rsa": "^3.1.0",
     "lambda-multipart-parser": "^1.0.1",
     "limiter": "^2.1.0",
