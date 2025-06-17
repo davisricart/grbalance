@@ -2958,26 +2958,26 @@ WARNING:
                         </div>
                       )}
 
-                      {/* Actions - Clean 2-Button Layout */}
-                      <div className="flex flex-wrap gap-3">
+                      {/* Actions - Organized Sequential Buttons */}
+                      <div className="flex flex-wrap gap-2">
                         {user.status === 'approved' ? (
                           <>
-                            {/* PRIMARY ACTION - Website Management */}
+                            {/* PRIMARY - Website Access */}
                             {siteUrls[user.id] ? (
                               <a
                                 href={siteUrls[user.id]}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm"
+                                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
                               >
                                 <HiGlobeAlt className="w-4 h-4" />
-                                Visit Live Site
+                                Visit Site
                               </a>
                             ) : (
                               <button
                                 type="button"
                                 onClick={() => handleConfirmProvisionWebsite(user)}
-                                className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 shadow-sm ${
+                                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                                   provisioning[user.id] 
                                     ? 'bg-yellow-500 text-white cursor-not-allowed animate-pulse' 
                                     : 'bg-emerald-600 text-white hover:bg-emerald-700'
@@ -2987,135 +2987,84 @@ WARNING:
                                 {provisioning[user.id] ? (
                                   <>
                                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Creating Website...
+                                    Creating...
                                   </>
                                 ) : (
                                   <>
                                     <HiGlobeAlt className="w-4 h-4" />
-                                    Create Website
+                                    Create Site
                                   </>
                                 )}
                               </button>
                             )}
 
-                            {/* ALL OTHER ACTIONS - Organized Dropdown */}
-                            <div className="relative">
+                            {/* MANAGEMENT - Script & User */}
+                            {siteUrls[user.id] && (
                               <button
                                 onClick={() => {
-                                  const dropdown = document.getElementById(`dropdown-${user.id}`);
-                                  dropdown?.classList.toggle('hidden');
+                                  setSelectedUserForScript(user);
+                                  setShowDeployScript(true);
                                 }}
-                                className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors shadow-sm"
+                                className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                               >
                                 <Settings className="w-4 h-4" />
-                                Manage ▼
+                                Deploy Script
                               </button>
-                              
-                              <div id={`dropdown-${user.id}`} className="hidden absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 z-20">
-                                <div className="py-2">
-                                  {/* Script Management Section */}
-                                  <div className="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
-                                    Script Management
-                                  </div>
-                                  
-                                  {siteUrls[user.id] && (
-                                    <button
-                                      onClick={() => {
-                                        document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                        setSelectedUserForScript(user);
-                                        setShowDeployScript(true);
-                                      }}
-                                      className="w-full text-left px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-                                    >
-                                      <Settings className="w-4 h-4" />
-                                      Deploy Script
-                                    </button>
-                                  )}
-                                  
-                                  {/* User Management Section */}
-                                  <div className="px-3 py-1 mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
-                                    User Management
-                                  </div>
-                                  
-                                  <button
-                                    onClick={() => {
-                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                      handleEditUser(user);
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                  >
-                                    <User className="w-4 h-4" />
-                                    Edit Details
-                                  </button>
-                                  
-                                  {/* Site Management Section */}
-                                  {siteUrls[user.id] && (
-                                    <>
-                                      <div className="px-3 py-1 mt-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100">
-                                        Site Management
-                                      </div>
-                                      
-                                      <button
-                                        onClick={() => {
-                                          document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                          showConfirmation(
-                                            'Redeploy Client Site',
-                                            `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
-                                            'Redeploy Site',
-                                            'bg-green-600 text-white',
-                                            () => redeployClientSite(user)
-                                          );
-                                        }}
-                                        className="w-full text-left px-4 py-2 text-sm text-green-700 hover:bg-green-50 flex items-center gap-2"
-                                      >
-                                        <Settings className="w-4 h-4" />
-                                        Redeploy Site
-                                      </button>
-                                    </>
-                                  )}
-                                  
-                                  {/* Danger Zone */}
-                                  <div className="px-3 py-1 mt-2 text-xs font-semibold text-red-500 uppercase tracking-wide border-b border-red-100">
-                                    Danger Zone
-                                  </div>
-                                  
-                                  <button
-                                    onClick={() => {
-                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                      handleDeactivateApprovedUser(user.id, user.email);
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-sm text-orange-700 hover:bg-orange-50 flex items-center gap-2"
-                                  >
-                                    <HiLockClosed className="w-4 h-4" />
-                                    Deactivate User
-                                  </button>
-                                  
-                                  {siteUrls[user.id] && (
-                                    <button
-                                      onClick={() => {
-                                        document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                        handleConfirmDeleteWebsite(user);
-                                      }}
-                                      className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
-                                    >
-                                      <Trash2 className="w-4 h-4" />
-                                      Delete Website
-                                    </button>
-                                  )}
-                                  
-                                  <button
-                                    onClick={() => {
-                                      document.getElementById(`dropdown-${user.id}`)?.classList.add('hidden');
-                                      handleDeleteUser(user.id, user.email);
-                                    }}
-                                    className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 flex items-center gap-2"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                    Delete User
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
+                            )}
+                            
+                            <button
+                              onClick={() => handleEditUser(user)}
+                              className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                            >
+                              <User className="w-4 h-4" />
+                              Edit Details
+                            </button>
+
+                            {/* MAINTENANCE */}
+                            {siteUrls[user.id] && (
+                              <button
+                                onClick={() => {
+                                  showConfirmation(
+                                    'Redeploy Client Site',
+                                    `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
+                                    'Redeploy Site',
+                                    'bg-amber-600 text-white',
+                                    () => redeployClientSite(user)
+                                  );
+                                }}
+                                className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
+                              >
+                                <Settings className="w-4 h-4" />
+                                Redeploy
+                              </button>
+                            )}
+
+                            {/* DANGER ZONE */}
+                            <button
+                              onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
+                              className="inline-flex items-center gap-1.5 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
+                            >
+                              <HiLockClosed className="w-4 h-4" />
+                              Deactivate
+                            </button>
+                            
+                            {siteUrls[user.id] && (
+                              <button
+                                onClick={() => handleConfirmDeleteWebsite(user)}
+                                className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete Site
+                              </button>
+                            )}
+                            
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.email)}
+                              className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete User
+                            </button>
                           </>
                         ) : (
                           // Deactivated users - simplified
