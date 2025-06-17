@@ -2337,14 +2337,14 @@ WARNING:
               >
                 <UserCheck className="inline w-4 h-4 mr-2" />
                 APPROVED  
-                {activeTab !== 'approved' && (approvedUsers.length > 0 || loading) && (
+                {activeTab !== 'approved' && approvedUsers.length > 0 && (
                   <span className="ml-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
-                    {loading ? '...' : approvedUsers.length}
+                    {approvedUsers.length}
                   </span>
                 )}
-                {activeTab === 'approved' && (approvedUsers.length > 0 || loading) && (
+                {activeTab === 'approved' && approvedUsers.length > 0 && (
                   <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                    {loading ? '...' : approvedUsers.length}
+                    {approvedUsers.length}
                   </span>
                 )}
               </button>
