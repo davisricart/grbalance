@@ -239,12 +239,36 @@ exports.handler = async function(event, context) {
     // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 5: Create site successfully - deployment will be handled by redeploy function
-    console.log('✅ Site created successfully - skipping initial deployment');
-    console.log('💡 Use the "Redeploy Site" button in admin to deploy the full template');
+    // Step 5: Automatically redeploy site with full template
+    console.log('🚀 Site created successfully, now deploying full template...');
     
-    // Note: Initial deployment is skipped because Netlify functions don't have access to dist folder
-    // The admin can use the "Redeploy Site" button which has proper deployment logic
+    try {
+      // Call the redeploy function automatically
+      const redeployRes = await fetch(`${process.env.URL || 'https://grbalance.netlify.app'}/.netlify/functions/redeploy-client-site`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          siteId: site.id,
+          clientId: clientId,
+          clientName: clientName
+        })
+      });
+      
+      const redeployResult = await redeployRes.text();
+      console.log('📡 Redeploy response:', redeployRes.status, redeployResult.substring(0, 200));
+      
+      if (redeployRes.ok) {
+        console.log('✅ Full template deployed automatically');
+      } else {
+        console.warn('⚠️ Auto-redeploy failed, but site was created. Manual redeploy needed.');
+      }
+      
+    } catch (redeployError) {
+      console.warn('⚠️ Auto-redeploy failed, but site was created:', redeployError.message);
+      console.log('💡 Manual redeploy will be needed via admin dashboard');
+    }
 
     // Step 6: Set basic CLIENT_ID (other env vars set during redeploy)
     let envResult = null;
@@ -262,13 +286,12 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Site created successfully! Use 'Redeploy Site' button to deploy template.",
+        message: "Site created and template deployed automatically!",
         siteUrl: site.ssl_url,
         siteId: site.id,
         siteName: site.name,
         envVarSet: envResult ? "CLIENT_ID set successfully" : false,
-        warning: envWarning || (envResult ? null : "CLIENT_ID was not set automatically."),
-        nextStep: "Click 'Redeploy Site' in admin dashboard to deploy the full template"
+        warning: envWarning || (envResult ? null : "CLIENT_ID was not set automatically.")
       })
     };
 
