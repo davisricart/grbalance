@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const FormData = require('form-data');
 
 async function setEnvVarWithRetry(siteId, clientId, NETLIFY_TOKEN, retries = 3) {
   const url = `https://api.netlify.com/api/v1/sites/${siteId}/env/vars`;
@@ -130,7 +131,7 @@ exports.handler = async function(event, context) {
       }
     }
 
-    // Step 3: Create the site with standardized name
+    // Step 3: Create the site with standardized name (MANUAL DEPLOY - NO GIT)
     const siteRes = await fetch('https://api.netlify.com/api/v1/sites', {
       method: 'POST',
       headers: {
@@ -139,14 +140,7 @@ exports.handler = async function(event, context) {
       },
       body: JSON.stringify({
         name: finalSiteName,
-        repo: {
-          provider: 'github',
-          repo: process.env.GITHUB_REPO || 'your-username/grbalance',
-          branch: 'main',
-          dir: '/',
-          cmd: 'npm run build',
-          allowed_branches: ['main']
-        },
+        // Remove repo configuration to create manual deploy site
         build_settings: {
           cmd: 'npm run build',
           dir: 'dist',
@@ -177,7 +171,93 @@ exports.handler = async function(event, context) {
     // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 5: Set environment variable CLIENT_ID for the site with retry logic (optional)
+    // Step 5: Deploy the client template files to the new site
+    try {
+      console.log('🚀 Deploying client template to new site...');
+      
+      // Create a basic HTML page for the client site
+      const clientHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${clientName} - GR Balance</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 40px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; margin-bottom: 40px; }
+        .logo { color: #2563eb; font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .status { background: #fef3c7; color: #92400e; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .info { background: #eff6ff; color: #1e40af; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 10px 5px; }
+        .button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">GR Balance</div>
+            <h1>Welcome ${clientName}!</h1>
+        </div>
+        
+        <div class="status">
+            <strong>🚧 Site Under Construction</strong><br>
+            Your custom reconciliation platform is being prepared. You'll receive an email when it's ready for testing.
+        </div>
+        
+        <div class="info">
+            <strong>📋 What's Next:</strong><br>
+            • Custom script development and testing<br>
+            • Quality assurance review<br>
+            • Final deployment and activation<br>
+            • Account setup and training
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="https://grbalance.netlify.app" class="button">Visit Main Site</a>
+            <a href="mailto:support@grbalance.com" class="button">Contact Support</a>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; color: #666; font-size: 14px;">
+            Client ID: ${clientId}<br>
+            Site: ${finalSiteName}<br>
+            Created: ${new Date().toLocaleDateString()}
+        </div>
+    </div>
+</body>
+</html>`;
+
+      // Deploy the HTML file using Netlify's file upload API
+      const formData = new FormData();
+      
+      // Add the HTML file
+      formData.append('index.html', Buffer.from(clientHTML), {
+        filename: 'index.html',
+        contentType: 'text/html'
+      });
+      
+      const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/deploys`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${NETLIFY_TOKEN}`,
+          ...formData.getHeaders()
+        },
+        body: formData
+      });
+      
+      const deployResult = await deployRes.json();
+      if (!deployRes.ok) {
+        console.warn('⚠️ Failed to deploy client template, but site was created:', deployResult);
+      } else {
+        console.log('✅ Client template deployed successfully');
+      }
+      
+    } catch (deployError) {
+      console.warn('⚠️ Failed to deploy client template, but site was created:', deployError.message);
+      // Don't fail the entire provisioning - the site is created
+    }
+
+    // Step 6: Set environment variable CLIENT_ID for the site with retry logic (optional)
     let envResult = null;
     let envWarning = null;
     try {
