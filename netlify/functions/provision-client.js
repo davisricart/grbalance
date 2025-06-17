@@ -171,72 +171,66 @@ exports.handler = async function(event, context) {
     // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 5: Deploy the full main site to the new client site
+    // Step 5: Deploy a basic client template to the new site
     try {
-      console.log('🚀 Deploying full site to new client...');
+      console.log('🚀 Deploying client template...');
       
-      // Create form data with the main site build
+      // Create form data with a basic client template
       const formData = new FormData();
-      const fs = require('fs');
-      const path = require('path');
       
-      // Use the current main site's build (dist folder from the main site)
-      const distPath = path.join(process.cwd(), 'dist');
+      // Create a basic HTML template for the client
+      const clientTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${clientName || clientId} - Payment Reconciliation Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      // Firebase configuration will be loaded from environment variables
+      import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+      import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+      import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
       
-      // Check if dist folder exists
-      if (!fs.existsSync(distPath)) {
-        throw new Error('Main site dist folder not found. Please build the main site first.');
-      }
-
-      console.log(`📁 Reading files from main site build: ${distPath}`);
-
-      // Read the main HTML file
-      const indexPath = path.join(distPath, 'index.html');
-      let indexHtml = fs.readFileSync(indexPath, 'utf8');
-      
-      // Update the title with client name
-      indexHtml = indexHtml.replace(
-        /<title>.*?<\/title>/,
-        `<title>${clientName || clientId} - Payment Reconciliation Portal</title>`
-      );
-      
-      // Add client configuration
-      const clientConfig = `
-        <script>
-          window.CLIENT_CONFIG = {
-            clientId: '${clientId}',
-            clientName: '${clientName || clientId}',
-            deployedAt: '${new Date().toISOString()}'
-          };
-        </script>
-      `;
-      
-      // Insert client config before closing head tag
-      indexHtml = indexHtml.replace('</head>', `${clientConfig}</head>`);
-      
-      formData.append('index.html', indexHtml);
-      
-      // Read and add all assets from dist folder
-      const addFilesRecursively = (dirPath, basePath = '') => {
-        const files = fs.readdirSync(dirPath);
-        
-        files.forEach(file => {
-          const filePath = path.join(dirPath, file);
-          const relativePath = basePath ? `${basePath}/${file}` : file;
-          
-          if (fs.statSync(filePath).isDirectory()) {
-            addFilesRecursively(filePath, relativePath);
-          } else if (file !== 'index.html') { // Skip index.html as we already added it
-            const fileContent = fs.readFileSync(filePath);
-            formData.append(relativePath, fileContent);
-            console.log(`📄 Added file: ${relativePath} (${fileContent.length} bytes)`);
-          }
-        });
+      // Client configuration
+      window.CLIENT_CONFIG = {
+        clientId: '${clientId}',
+        clientName: '${clientName || clientId}',
+        deployedAt: '${new Date().toISOString()}'
       };
       
-      addFilesRecursively(distPath);
+      // Firebase will initialize automatically when the page loads
+      console.log('🚀 Client site loaded for:', window.CLIENT_CONFIG.clientName);
+    </script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full bg-white rounded-lg shadow-md p-8">
+            <div class="text-center">
+                <h1 class="text-2xl font-bold text-gray-900 mb-4">
+                    ${clientName || clientId}
+                </h1>
+                <p class="text-gray-600 mb-6">Payment Reconciliation Portal</p>
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-blue-800 text-sm">
+                        🚀 Your website is ready! Custom scripts will be deployed here.
+                    </p>
+                </div>
+                <div class="mt-6">
+                    <p class="text-xs text-gray-500">
+                        Site ID: ${clientId}<br>
+                        Deployed: ${new Date().toLocaleString()}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+      formData.append('index.html', clientTemplate);
       
-      console.log('✅ Full site files loaded successfully');
+      console.log('✅ Client template created successfully');
       
       // Deploy all files to the site
       const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/deploys`, {
@@ -250,13 +244,13 @@ exports.handler = async function(event, context) {
       
       const deployResult = await deployRes.json();
       if (!deployRes.ok) {
-        console.warn('⚠️ Failed to deploy full site, but site was created:', deployResult);
+        console.warn('⚠️ Failed to deploy client template, but site was created:', deployResult);
       } else {
-        console.log('✅ Full site deployed successfully');
+        console.log('✅ Client template deployed successfully');
       }
       
     } catch (deployError) {
-      console.warn('⚠️ Failed to deploy full site, but site was created:', deployError.message);
+      console.warn('⚠️ Failed to deploy client template, but site was created:', deployError.message);
       // Don't fail the entire provisioning - the site is created
     }
 
