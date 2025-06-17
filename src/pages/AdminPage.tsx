@@ -2590,9 +2590,11 @@ WARNING:
                   subscriptionTier: readyUser.subscriptionTier,
                   billingCycle: readyUser.billingCycle,
                   createdAt: readyUser.createdAt,
+                  status: 'pending', // ✅ CRITICAL: Add status field for safeFetchPendingUsers query
                   consultationCompleted: false,
                   scriptReady: false,
-                  consultationNotes: reason ? `Sent back from testing: ${reason}` : 'Sent back from testing'
+                  consultationNotes: reason ? `Sent back from testing: ${reason}` : 'Sent back from testing',
+                  updatedAt: new Date().toISOString()
                 };
                 
                 console.log('💾 Preparing to save pendingUserData:', pendingUserData);
