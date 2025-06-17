@@ -58,17 +58,7 @@ exports.handler = async function(event, context) {
           repo_url: 'https://github.com/davisricart/grbalance',
           branch: 'main',
           cmd: 'npm run build',
-          dir: 'dist',
-          env: {
-            VITE_CLIENT_ID: clientId,
-            VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY,
-            VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-            VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID,
-            VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-            VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-            VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID,
-            VITE_STRIPE_PUBLISHABLE_KEY: process.env.VITE_STRIPE_PUBLISHABLE_KEY
-          }
+          dir: 'dist'
         }
       })
     });
@@ -90,7 +80,10 @@ exports.handler = async function(event, context) {
 
     console.log('✅ Client site connected to main repository');
 
-    // Step 2: Trigger deployment
+    // Step 2: Set environment variables using new API
+    await setClientEnvVars(siteId, clientId, NETLIFY_TOKEN);
+
+    // Step 3: Trigger deployment
     const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/builds`, {
       method: 'POST',
       headers: {
@@ -143,3 +136,48 @@ exports.handler = async function(event, context) {
     };
   }
 };
+
+// Set environment variables using new Netlify API
+async function setClientEnvVars(siteId, clientId, NETLIFY_TOKEN) {
+  const envVars = [
+    { key: 'VITE_CLIENT_ID', value: clientId },
+    { key: 'VITE_FIREBASE_API_KEY', value: process.env.VITE_FIREBASE_API_KEY },
+    { key: 'VITE_FIREBASE_AUTH_DOMAIN', value: process.env.VITE_FIREBASE_AUTH_DOMAIN },
+    { key: 'VITE_FIREBASE_PROJECT_ID', value: process.env.VITE_FIREBASE_PROJECT_ID },
+    { key: 'VITE_FIREBASE_STORAGE_BUCKET', value: process.env.VITE_FIREBASE_STORAGE_BUCKET },
+    { key: 'VITE_FIREBASE_MESSAGING_SENDER_ID', value: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID },
+    { key: 'VITE_FIREBASE_APP_ID', value: process.env.VITE_FIREBASE_APP_ID },
+    { key: 'VITE_STRIPE_PUBLISHABLE_KEY', value: process.env.VITE_STRIPE_PUBLISHABLE_KEY }
+  ];
+
+  for (const envVar of envVars) {
+    if (!envVar.value && envVar.key !== 'VITE_CLIENT_ID') {
+      console.warn(`⚠️ Skipping ${envVar.key} - not found in main site environment`);
+      continue;
+    }
+
+    try {
+      const res = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/env/vars`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${NETLIFY_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          key: envVar.key,
+          values: [{ context: 'all', value: envVar.value }]
+        })
+      });
+
+      if (res.ok) {
+        console.log(`✅ Set ${envVar.key} successfully`);
+      } else {
+        console.error(`❌ Failed to set ${envVar.key}:`, await res.text());
+      }
+    } catch (error) {
+      console.error(`❌ Error setting ${envVar.key}:`, error.message);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+}
