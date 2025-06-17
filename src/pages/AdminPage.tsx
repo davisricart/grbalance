@@ -2553,12 +2553,31 @@ WARNING:
               // Move user from ready-for-testing to approved
               const readyUser = readyForTestingUsers.find(u => u.id === userId);
               if (readyUser) {
-                // Add to approved users
+                // Add to approved users - PRESERVE ALL DATA including website info
                 const approvedUserData = {
                   ...userData,
                   id: userId,
-                  qaPassedAt: new Date().toISOString()
+                  email: readyUser.email,
+                  businessName: readyUser.businessName,
+                  businessType: readyUser.businessType,
+                  subscriptionTier: readyUser.subscriptionTier,
+                  billingCycle: readyUser.billingCycle,
+                  createdAt: readyUser.createdAt,
+                  // ✅ CRITICAL: Preserve website data
+                  siteUrl: readyUser.siteUrl,
+                  siteId: readyUser.siteId,
+                  siteName: readyUser.siteName,
+                  // ✅ Preserve consultation data
+                  consultationCompleted: readyUser.consultationCompleted,
+                  scriptReady: readyUser.scriptReady,
+                  consultationNotes: readyUser.consultationNotes,
+                  // ✅ Add approval timestamp
+                  qaPassedAt: new Date().toISOString(),
+                  approvedAt: new Date().toISOString(),
+                  status: 'approved'
                 };
+                
+                console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
                 // Update in Firebase - move to usage collection with approved status
                 const usageDocRef = doc(db, 'usage', userId);
@@ -2571,6 +2590,8 @@ WARNING:
                 // Refresh data
                 await fetchReadyForTestingUsers();
                 await fetchApprovedUsers();
+                
+                showNotification('success', 'User Approved', `${readyUser.email} has been approved and moved to production!`);
               }
             }}
             onSendBackToPending={async (userId: string, reason?: string) => {
