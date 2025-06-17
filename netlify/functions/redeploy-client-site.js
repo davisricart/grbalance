@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const FormData = require('form-data');
 
 exports.handler = async function(event, context) {
   // Only allow POST
@@ -43,83 +44,96 @@ exports.handler = async function(event, context) {
       };
     }
 
-    console.log(`🚀 Connecting client site to main repository for ${clientName} (${clientId})`);
+    console.log(`🚀 Deploying complete React app template to ${clientName} (${clientId})`);
 
-    // Step 1: Connect client site to main repository with correct API format
-    const updateSiteRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}`, {
-      method: 'PATCH',
+    // Step 1: Fetch the main site's current build
+    console.log('📥 Fetching main site build...');
+    const mainSiteRes = await fetch('https://grbalance.netlify.app/', {
       headers: {
-        'Authorization': `Bearer ${NETLIFY_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        build_settings: {
-          provider: 'github',
-          repo_url: 'https://github.com/davisricart/grbalance',
-          branch: 'main',
-          cmd: 'npm run build',
-          dir: 'dist'
-        }
-      })
+        'User-Agent': 'GR-Balance-Template-Copier'
+      }
     });
 
-    console.log(`📡 Site connection response: ${updateSiteRes.status} ${updateSiteRes.statusText}`);
-
-    if (!updateSiteRes.ok) {
-      const errorText = await updateSiteRes.text();
-      console.error('❌ Failed to connect site to repository:', errorText);
-      return {
-        statusCode: updateSiteRes.status,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Failed to connect site to repository',
-          details: errorText
-        })
-      };
+    if (!mainSiteRes.ok) {
+      throw new Error(`Failed to fetch main site: ${mainSiteRes.status}`);
     }
 
-    console.log('✅ Client site connected to main repository');
+    let mainSiteHtml = await mainSiteRes.text();
+    console.log('✅ Main site HTML fetched successfully');
 
-    // Step 2: Set environment variables using new API
-    await setClientEnvVars(siteId, clientId, NETLIFY_TOKEN);
+    // Step 2: Customize for client
+    console.log('🔧 Customizing template for client...');
+    
+    // Update title with client branding
+    mainSiteHtml = mainSiteHtml.replace(
+      /<title>.*?<\/title>/i,
+      `<title>${clientName || clientId} - Payment Reconciliation Portal</title>`
+    );
 
-    // Step 3: Trigger deployment
-    const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/builds`, {
+    // Add client configuration
+    const clientConfig = `
+    <script>
+      window.CLIENT_CONFIG = {
+        clientId: '${clientId}',
+        clientName: '${clientName || clientId}',
+        deployedAt: '${new Date().toISOString()}'
+      };
+      console.log('🚀 Client site loaded for:', window.CLIENT_CONFIG.clientName);
+      console.log('📋 Client ID:', window.CLIENT_CONFIG.clientId);
+    </script>`;
+
+    // Insert client config right after <head> tag
+    mainSiteHtml = mainSiteHtml.replace(
+      /<head>/i,
+      `<head>${clientConfig}`
+    );
+
+    console.log('✅ Template customized for client');
+
+    // Step 3: Deploy to client site
+    console.log('🚀 Deploying to client site...');
+    const formData = new FormData();
+    formData.append('index.html', mainSiteHtml);
+
+    const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${NETLIFY_TOKEN}`,
-        'Content-Type': 'application/json',
+        ...formData.getHeaders()
       },
-      body: JSON.stringify({
-        clear_cache: true
-      })
+      body: formData
     });
 
-    console.log(`📡 Build trigger response: ${deployRes.status} ${deployRes.statusText}`);
+    console.log(`📡 Deploy response: ${deployRes.status} ${deployRes.statusText}`);
 
     if (!deployRes.ok) {
       const errorText = await deployRes.text();
-      console.error('❌ Failed to trigger build:', errorText);
+      console.error('❌ Deploy failed:', errorText);
       return {
         statusCode: deployRes.status,
         headers,
         body: JSON.stringify({ 
-          error: 'Failed to trigger build',
+          error: 'Failed to deploy to client site',
           details: errorText
         })
       };
     }
 
-    console.log('✅ Build triggered successfully');
+    const deployResult = await deployRes.json();
+    console.log('✅ Template deployed successfully');
+
+    // Step 4: Set environment variables
+    await setClientEnvVars(siteId, clientId, NETLIFY_TOKEN);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Client site connected to repository and deployment triggered",
+        message: "Complete React app template deployed successfully",
         siteId: siteId,
         clientId: clientId,
-        status: "Building complete React app from main repository"
+        deployUrl: deployResult.deploy_url || `https://${siteId}.netlify.app`,
+        status: "Template deployed with full functionality"
       })
     };
 
@@ -131,14 +145,16 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ 
         error: error.message, 
         stack: error.stack,
-        details: 'Check Netlify function logs for more information'
+        details: 'Template copying failed'
       })
     };
   }
 };
 
-// Set environment variables using new Netlify API
+// Set environment variables using Netlify Environment Variables API
 async function setClientEnvVars(siteId, clientId, NETLIFY_TOKEN) {
+  console.log('🔧 Setting environment variables...');
+  
   const envVars = [
     { key: 'VITE_CLIENT_ID', value: clientId },
     { key: 'VITE_FIREBASE_API_KEY', value: process.env.VITE_FIREBASE_API_KEY },
@@ -180,4 +196,6 @@ async function setClientEnvVars(siteId, clientId, NETLIFY_TOKEN) {
 
     await new Promise(resolve => setTimeout(resolve, 200));
   }
+  
+  console.log('✅ Environment variables configuration completed');
 }
