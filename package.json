@@ -50,6 +50,7 @@
     "firebase": "^10.7.1",
     "firebase-admin": "^12.0.0",
     "form-data": "^4.0.2",
+    "jose": "^5.9.6",
     "jsonwebtoken": "^9.0.0",
     "jwks-rsa": "^3.1.0",
     "lambda-multipart-parser": "^1.0.1",
