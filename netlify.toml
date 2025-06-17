@@ -11,6 +11,7 @@
   CI = "false"
 
 [functions]
+  node_bundler = "esbuild"
   external_node_modules = ["firebase-admin", "@firebase/*", "jwks-rsa", "jose", "jsonwebtoken", "node-forge", "uuid", "limiter", "lru-memoizer", "debug", "just-performance", "farmhash-modern", "node-fetch"]
 
 [[redirects]]
