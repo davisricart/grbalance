@@ -28,7 +28,7 @@ import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
-import * as XLSX from 'xlsx';
+// Remove static XLSX import - will use dynamic import instead
 import Papa from 'papaparse';
 import {
   ReconciliationResult,
@@ -1649,8 +1649,9 @@ WARNING:
         });
       };
       
-      // Execute the script directly (it's an IIFE)
-      eval(scriptContent);
+      // Execute the script safely using Function constructor instead of eval
+      const scriptFunction = new Function(scriptContent);
+      scriptFunction();
       
       console.log('✅ Script execution completed');
       
