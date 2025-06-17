@@ -2574,8 +2574,12 @@ WARNING:
               }
             }}
             onSendBackToPending={async (userId: string, reason?: string) => {
+              console.log('🔄 sendBackToPending called with:', { userId, reason });
+              
               // Move user back to pending with reason
               const readyUser = readyForTestingUsers.find(u => u.id === userId);
+              console.log('📋 Found readyUser:', readyUser);
+              
               if (readyUser) {
                 // Add back to pending users
                 const pendingUserData = {
@@ -2591,17 +2595,36 @@ WARNING:
                   consultationNotes: reason ? `Sent back from testing: ${reason}` : 'Sent back from testing'
                 };
                 
-                // Update in Firebase
-                const pendingDocRef = doc(db, 'pendingUsers', userId);
-                await setDoc(pendingDocRef, pendingUserData);
+                console.log('💾 Preparing to save pendingUserData:', pendingUserData);
                 
-                // Remove from ready-for-testing collection
-                const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-                await deleteDoc(readyForTestingDocRef);
-                
-                // Refresh data
-                await fetchReadyForTestingUsers();
-                await fetchPendingUsers();
+                try {
+                  // Update in Firebase
+                  const pendingDocRef = doc(db, 'pendingUsers', userId);
+                  console.log('📝 Writing to pendingUsers collection...');
+                  await setDoc(pendingDocRef, pendingUserData);
+                  console.log('✅ Successfully wrote to pendingUsers');
+                  
+                  // Remove from ready-for-testing collection
+                  const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
+                  console.log('🗑️ Removing from ready-for-testing collection...');
+                  await deleteDoc(readyForTestingDocRef);
+                  console.log('✅ Successfully removed from ready-for-testing');
+                  
+                  // Refresh data
+                  console.log('🔄 Refreshing data...');
+                  await fetchReadyForTestingUsers();
+                  await fetchPendingUsers();
+                  console.log('✅ Data refresh completed');
+                  
+                  showNotification('success', 'User Sent Back', `${readyUser.email} has been sent back to pending approval with reason: ${reason || 'No reason provided'}`);
+                  
+                } catch (error) {
+                  console.error('❌ Error in sendBackToPending:', error);
+                  showNotification('error', 'Error', `Failed to send user back to pending: ${error.message}`);
+                }
+              } else {
+                console.error('❌ Ready user not found for userId:', userId);
+                showNotification('error', 'Error', 'User not found in ready for testing list');
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
