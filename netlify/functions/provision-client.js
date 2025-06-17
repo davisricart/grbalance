@@ -239,104 +239,22 @@ exports.handler = async function(event, context) {
     // Step 4: Wait a moment for site to be fully created
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Step 5: Deploy the full main site template to the new client site
-    try {
-      console.log('🚀 Deploying full site template to new client...');
-      
-      // Create form data with the main site build
-      const formData = new FormData();
-      const fs = require('fs');
-      const path = require('path');
-      
-      // Use the current main site's build (dist folder from the main site)
-      const distPath = path.join(process.cwd(), 'dist');
-      
-      // Check if dist folder exists
-      if (!fs.existsSync(distPath)) {
-        throw new Error('Main site dist folder not found. Please build the main site first.');
-      }
+    // Step 5: Create site successfully - deployment will be handled by redeploy function
+    console.log('✅ Site created successfully - skipping initial deployment');
+    console.log('💡 Use the "Redeploy Site" button in admin to deploy the full template');
+    
+    // Note: Initial deployment is skipped because Netlify functions don't have access to dist folder
+    // The admin can use the "Redeploy Site" button which has proper deployment logic
 
-      console.log(`📁 Reading files from main site build: ${distPath}`);
-
-      // Read the main HTML file and customize for client
-      const indexPath = path.join(distPath, 'index.html');
-      let indexHtml = fs.readFileSync(indexPath, 'utf8');
-      
-      // Update the title with client name
-      indexHtml = indexHtml.replace(
-        /<title>.*?<\/title>/,
-        `<title>${clientName || clientId} - Payment Reconciliation Portal</title>`
-      );
-      
-      // Add client configuration script
-      const clientConfig = `
-        <script>
-          window.CLIENT_CONFIG = {
-            clientId: '${clientId}',
-            clientName: '${clientName || clientId}',
-            deployedAt: '${new Date().toISOString()}'
-          };
-        </script>
-      `;
-      
-      // Insert client config before closing head tag
-      indexHtml = indexHtml.replace('</head>', `${clientConfig}</head>`);
-      
-      formData.append('index.html', indexHtml);
-      
-      // Read and add all assets from dist folder (same as redeploy function)
-      const addFilesRecursively = (dirPath, basePath = '') => {
-        const files = fs.readdirSync(dirPath);
-        
-        files.forEach(file => {
-          const filePath = path.join(dirPath, file);
-          const relativePath = basePath ? `${basePath}/${file}` : file;
-          
-          if (fs.statSync(filePath).isDirectory()) {
-            addFilesRecursively(filePath, relativePath);
-          } else if (file !== 'index.html') { // Skip index.html as we already added it
-            const fileContent = fs.readFileSync(filePath);
-            formData.append(relativePath, fileContent);
-            console.log(`📄 Added file: ${relativePath} (${fileContent.length} bytes)`);
-          }
-        });
-      };
-      
-      addFilesRecursively(distPath);
-      
-      console.log('✅ Full site template files loaded successfully');
-      
-      // Deploy all files to the site
-      const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${site.id}/deploys`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${NETLIFY_TOKEN}`,
-          ...formData.getHeaders()
-        },
-        body: formData
-      });
-      
-      const deployResult = await deployRes.json();
-      if (!deployRes.ok) {
-        console.warn('⚠️ Failed to deploy full site template, but site was created:', deployResult);
-      } else {
-        console.log('✅ Full site template deployed successfully');
-      }
-      
-    } catch (deployError) {
-      console.warn('⚠️ Failed to deploy full site template, but site was created:', deployError.message);
-      // Don't fail the entire provisioning - the site is created
-    }
-
-    // Step 6: Set all environment variables (Firebase config + client ID)
+    // Step 6: Set basic CLIENT_ID (other env vars set during redeploy)
     let envResult = null;
     let envWarning = null;
     try {
-      envResult = await setClientEnvVar(site.id, clientId, NETLIFY_TOKEN);
-      console.log('✅ All environment variables set successfully');
+      envResult = await setEnvVarWithRetry(site.id, clientId, NETLIFY_TOKEN, 2);
+      console.log('✅ CLIENT_ID environment variable set successfully');
     } catch (e) {
-      console.warn('⚠️ Failed to set environment variables, but site was created successfully:', e);
-      envWarning = `Environment variables not set: ${e.result || e.message}`;
+      console.warn('⚠️ Failed to set CLIENT_ID, but site was created successfully:', e);
+      envWarning = `CLIENT_ID not set: ${e.result || e.message}`;
       // Don't fail the entire provisioning - the site is created and functional
     }
 
@@ -344,12 +262,13 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Site created successfully!",
+        message: "Site created successfully! Use 'Redeploy Site' button to deploy template.",
         siteUrl: site.ssl_url,
         siteId: site.id,
         siteName: site.name,
-        envVarSet: envResult ? "Environment variable set successfully" : false,
-        warning: envWarning || (envResult ? null : "Environment variable CLIENT_ID was not set automatically. Please set it manually in the Netlify dashboard.")
+        envVarSet: envResult ? "CLIENT_ID set successfully" : false,
+        warning: envWarning || (envResult ? null : "CLIENT_ID was not set automatically."),
+        nextStep: "Click 'Redeploy Site' in admin dashboard to deploy the full template"
       })
     };
 
