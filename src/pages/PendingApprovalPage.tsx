@@ -29,8 +29,8 @@ export default function PendingApprovalPage() {
             <div className="px-8 py-12 text-center">
               <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Clock className="h-10 w-10 text-emerald-600" />
-              </div>
-              
+            </div>
+            
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 Welcome! Let's Get Started
               </h1>
@@ -120,26 +120,26 @@ export default function PendingApprovalPage() {
                     <div>
                       <h3 className="font-medium text-emerald-900">2. Custom Script Development</h3>
                       <p className="text-sm text-emerald-700">Our team will build a custom reconciliation script tailored to your business</p>
-                    </div>
-                  </div>
-                  
+            </div>
+          </div>
+          
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
-                    <div>
+            <div>
                       <h3 className="font-medium text-gray-600">3. Testing & Website Setup</h3>
                       <p className="text-sm text-gray-500">Your personalized dashboard will be created and thoroughly tested</p>
                     </div>
-                  </div>
-                  
+            </div>
+
                   <div className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-gray-300 rounded-full mt-2"></div>
-                    <div>
+            <div>
                       <h3 className="font-medium text-gray-600">4. Go Live!</h3>
                       <p className="text-sm text-gray-500">After final approval, you'll receive full access to your dashboard</p>
                     </div>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
                 <h2 className="text-lg font-semibold text-blue-900 mb-3 flex items-center justify-center gap-2">
@@ -156,8 +156,8 @@ export default function PendingApprovalPage() {
                     <Calendar className="h-4 w-4 text-blue-600" />
                     <span className="text-blue-900">Registered: {new Date().toLocaleDateString()}</span>
                   </div>
-                </div>
-              </div>
+            </div>
+          </div>
 
               <div className="text-center">
                 <p className="text-gray-600 mb-4">

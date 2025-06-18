@@ -256,7 +256,7 @@ const AdminPage: React.FC = () => {
   // Provisioning state
   const [provisioning, setProvisioning] = useState<{[userId: string]: boolean}>({});
   const [siteUrls, setSiteUrls] = useState<{[userId: string]: string}>({});
-  const [siteIds, setSiteIds] = useState<{[userId: string]: string}>({});
+  // siteIds state removed - using single-site architecture
   const [deploying, setDeploying] = useState<{[userId: string]: boolean}>({});
 
   // Add script deployment state
@@ -622,9 +622,7 @@ const AdminPage: React.FC = () => {
         if (data.siteUrl) {
           urlsData[doc.id] = data.siteUrl;
         }
-        if (data.siteId) {
-          idsData[doc.id] = data.siteId;
-        }
+        // siteId loading removed - using single-site architecture
         
         // Load deployed scripts if they exist
         if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
@@ -636,7 +634,7 @@ const AdminPage: React.FC = () => {
       setApprovedUsers(approvedUsersData);
       setDeletedUsers(deletedUsersData);
       setSiteUrls(urlsData);
-      setSiteIds(idsData);
+      // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
     } catch (error: any) {
       console.error('🚨 FIREBASE ERROR in fetchApprovedUsers:');
@@ -713,17 +711,8 @@ const AdminPage: React.FC = () => {
         return;
       }
 
-      // Step 1: Delete Netlify site if it exists
-      if (siteUrls[userId] && siteIds[userId]) {
-        try {
-          await axios.post('/api/delete-client-site', {
-            siteUrl: siteUrls[userId],
-            clientId: userToDelete.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || userId
-          });
-            } catch (netErr: any) {
-          // Continue with Firebase deletion even if Netlify fails
-        }
-      }
+      // Step 1: Single-site approach - no separate sites to delete
+      // Client access is just a URL path, no separate site deletion needed
 
       // Step 2: Delete from Firebase database completely
       const usageDocRef = doc(db, 'usage', userId);
@@ -735,11 +724,7 @@ const AdminPage: React.FC = () => {
         delete copy[userId];
         return copy;
       });
-      setSiteIds((prev) => {
-        const copy = { ...prev };
-        delete copy[userId];
-        return copy;
-      });
+      // setSiteIds cleanup removed - using single-site architecture
 
       
       // Refresh data
@@ -1426,7 +1411,7 @@ WARNING:
 
   const handleProvisionWebsite = async (user: ApprovedUser) => {
     // Check if site already exists
-    if (siteUrls[user.id] && siteIds[user.id]) {
+          if (siteUrls[user.id]) {
       showNotification('warning', 'Website Already Exists', `Website already provisioned for ${user.businessName || user.email}: ${siteUrls[user.id]}`);
       return;
     }
@@ -1456,23 +1441,19 @@ WARNING:
         
         // Generate mock site data
         const mockSiteUrl = `https://mock-${clientId}.netlify.app`;
-        const mockSiteId = `mock-site-${Date.now()}`;
-        
         console.log('✅ Mock provisioning successful:', {
-          siteUrl: mockSiteUrl,
-          siteId: mockSiteId
+          siteUrl: mockSiteUrl
         });
         
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: mockSiteUrl }));
-        setSiteIds((prev) => ({ ...prev, [user.id]: mockSiteId }));
         
         // Persist to Firebase so it survives page refreshes
         const usageDocRef = doc(db, 'usage', user.id);
         await updateDoc(usageDocRef, {
           siteUrl: mockSiteUrl,
-          siteId: mockSiteId,
-          siteName: `mock-${clientId}`,
+          clientPath: clientId,
+          websiteCreated: true,
           updatedAt: new Date()
         });
         
@@ -1480,35 +1461,25 @@ WARNING:
           `Mock website created: ${mockSiteUrl}`);
         
       } else {
-        // Production mode - use real Netlify API
-        const res = await axios.post(
-          '/.netlify/functions/provision-client',
-          JSON.stringify({
-            clientId,
-            clientName: businessName,
-          }),
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          }
-        );
+        // Single-site approach - just generate the client URL
+        const clientPath = businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                          user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+        const siteUrl = `https://grbalance.netlify.app/${clientPath}`;
         
         // Update local state
-        setSiteUrls((prev) => ({ ...prev, [user.id]: res.data.siteUrl }));
-        setSiteIds((prev) => ({ ...prev, [user.id]: res.data.siteId }));
+        setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
         
         // Persist to Firebase so it survives page refreshes
         const usageDocRef = doc(db, 'usage', user.id);
         await updateDoc(usageDocRef, {
-          siteUrl: res.data.siteUrl,
-          siteId: res.data.siteId,
-          siteName: res.data.siteName,
+          siteUrl: siteUrl,
+          clientPath: clientPath,
+          websiteCreated: true,
           updatedAt: new Date()
         });
         
         showInlineNotification(user.id, 'success', 
-          `Site created: ${res.data.siteUrl} (Build in progress - may take 2-3 minutes)`);
+          `Client access created: ${siteUrl} (Ready immediately)`);
       }
       
     } catch (err: any) {
@@ -1853,47 +1824,24 @@ WARNING:
   };
 
   const redeployClientSite = async (user: ApprovedUser) => {
-    console.log('🔄 Redeploying site for user:', user);
+    console.log('🔄 Single-site deployment - no redeploy needed for:', user.email);
     
-    if (!user.siteId) {
-      console.error('❌ No siteId found for user:', user.email);
-      showNotification('error', 'Redeploy Failed', 'No site ID found for this user');
-      return;
-    }
-
-    try {
-      console.log('📡 Calling redeploy function...');
-      const response = await fetch('/.netlify/functions/redeploy-client-site', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          siteId: user.siteId,
-          clientId: user.id,
-          clientName: user.businessName || user.email
-        })
-      });
-
-      const result = await response.text();
-      console.log('📡 Redeploy response:', response.status, result);
-
-      if (response.ok) {
-        console.log('✅ Redeploy initiated successfully');
-        // Success - no notification needed
-      } else {
-        console.error('❌ Redeploy failed:', result);
-        showNotification('error', 'Redeploy Failed', `Failed to redeploy site: ${result}`);
-      }
-    } catch (error) {
-      console.error('❌ Redeploy error:', error);
-      showNotification('error', 'Redeploy Error', `Error calling redeploy function: ${error.message}`);
-    }
+    // In single-site approach, all clients use the same site
+    // Updates are automatic when the main site is updated
+    const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                      user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+    const siteUrl = `https://grbalance.netlify.app/${clientPath}`;
+    
+    showNotification('info', 'Single-Site Architecture', 
+      `Client access: ${siteUrl} - Updates automatically with main site`);
   };
 
   const handleConfirmDeleteWebsite = async (userId: string) => {
-    console.log('🗑️ Deleting website for user:', userId);
-    // Add website deletion logic here
+    console.log('🗑️ Single-site approach - no separate website to delete for user:', userId);
+    // In single-site architecture, there's no separate site to delete
+    // Client access is just removed from Firebase database
+    showNotification('info', 'Single-Site Architecture', 
+      'No separate website to delete - client access is URL-based');
   };
 
   const handleTestFileUpload = async (fileNumber: number, file: File) => {
@@ -2611,7 +2559,7 @@ WARNING:
                   createdAt: readyUser.createdAt,
                   // ✅ CRITICAL: Preserve website data
                   siteUrl: readyUser.siteUrl || null,
-                  siteId: readyUser.siteId || null,
+                  // siteId removed - using single-site architecture
                   siteName: readyUser.siteName || null,
                   // ✅ Preserve consultation data with defaults for undefined values
                   consultationCompleted: readyUser.consultationCompleted ?? true,

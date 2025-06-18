@@ -59,6 +59,39 @@ const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Add client detection from URL for single-site architecture
+const getClientFromURL = () => {
+  const path = window.location.pathname;
+  
+  // Single-site approach: /salon1, /salon2, etc.
+  const directClientMatch = path.match(/^\/([^\/]+)$/);
+  
+  // Legacy support: /client/clientname
+  const clientMatch = path.match(/\/client\/([^\/]+)/);
+  
+  // Subdomain support: salon1.grbalance.com
+  const subdomain = window.location.hostname.split('.')[0];
+  
+  // Check direct path first (grbalance.netlify.app/salon1)
+  if (directClientMatch && directClientMatch[1] !== 'app' && !['register', 'login', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'admin', 'billing', 'mockup-billing'].includes(directClientMatch[1])) {
+    return directClientMatch[1];
+  }
+  
+  // Legacy /client/ support
+  if (clientMatch) {
+    return clientMatch[1];
+  }
+  
+  // Subdomain support
+  if (subdomain !== 'grbalance' && subdomain !== 'localhost') {
+    return subdomain;
+  }
+  
+  return null;
+};
+
+const clientId = getClientFromURL();
+
 export default function App() {
   return (
     <ErrorBoundary>

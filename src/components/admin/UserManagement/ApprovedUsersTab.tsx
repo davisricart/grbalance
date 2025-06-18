@@ -1,298 +1,163 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { Edit, Trash2, Eye, EyeOff, Check, X } from 'lucide-react';
-import { ApprovedUser, TIER_LIMITS } from '../../../types/admin';
+import React from 'react';
+import { ExternalLink, User, Calendar, TrendingUp } from 'lucide-react';
+import { ApprovedUser } from '../../../types/admin';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
-  onDeleteUser: (userId: string, reason?: string) => Promise<void>;
-  onUpdateUser: (userId: string, updates: Partial<ApprovedUser>) => Promise<void>;
   isLoading: boolean;
 }
 
 const ApprovedUsersTab = React.memo(({
   users,
-  onDeleteUser,
-  onUpdateUser,
   isLoading
 }: ApprovedUsersTabProps) => {
-  const [editingUser, setEditingUser] = useState<string | null>(null);
-  const [editData, setEditData] = useState<Partial<ApprovedUser>>({});
-  const [processingUser, setProcessingUser] = useState<string | null>(null);
-
-  const handleEdit = useCallback((user: ApprovedUser) => {
-    setEditingUser(user.id);
-    setEditData({
-      businessName: user.businessName || '',
-      subscriptionTier: user.subscriptionTier || 'starter',
-      comparisonsLimit: user.comparisonsLimit,
-      showInsights: user.showInsights || false
-    });
-  }, []);
-
-  const handleSave = useCallback(async (userId: string) => {
-    setProcessingUser(userId);
-    try {
-      // Update comparison limit based on tier if tier changed
-      let updates = { ...editData };
-      if (editData.subscriptionTier) {
-        const tierLimit = TIER_LIMITS[editData.subscriptionTier as keyof typeof TIER_LIMITS];
-        if (tierLimit) {
-          updates.comparisonsLimit = tierLimit;
-        }
-      }
-      
-      await onUpdateUser(userId, updates);
-      setEditingUser(null);
-      setEditData({});
-    } finally {
-      setProcessingUser(null);
-    }
-  }, [editData, onUpdateUser]);
-
-  const handleCancel = useCallback(() => {
-    setEditingUser(null);
-    setEditData({});
-  }, []);
-
-  const handleDelete = useCallback(async (userId: string, email: string) => {
-    const reason = prompt(`Delete user ${email}? Enter reason:`);
-    if (reason) {
-      setProcessingUser(userId);
-      try {
-        await onDeleteUser(userId, reason);
-      } finally {
-        setProcessingUser(null);
-      }
-    }
-  }, [onDeleteUser]);
-
-  const toggleInsights = useCallback(async (userId: string, currentValue: boolean) => {
-    setProcessingUser(userId);
-    try {
-      await onUpdateUser(userId, { showInsights: !currentValue });
-    } finally {
-      setProcessingUser(null);
-    }
-  }, [onUpdateUser]);
-
-
 
   if (users.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 bg-gray-50">
-          <h3 className="text-lg font-medium text-gray-900">Approved Users</h3>
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+        <div className="px-6 py-5 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <User className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Approved Users</h3>
+              <p className="text-sm text-gray-500">Live clients using the platform</p>
+            </div>
+          </div>
         </div>
-        <div className="p-6 text-center text-gray-500">
-          <p>No approved users found</p>
+        <div className="p-12 text-center">
+          <div className="mx-auto w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-4">
+            <User className="h-8 w-8 text-green-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No approved users yet</h3>
+          <p className="text-gray-500 max-w-sm mx-auto">
+            Users will appear here after completing the testing workflow and final approval.
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-6 py-4 bg-gray-50">
-        <h3 className="text-lg font-medium text-gray-900">Approved Users</h3>
-        <p className="text-sm text-gray-600 mt-1">
-          Manage approved user accounts and their subscription details
-        </p>
+    <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+      <div className="px-6 py-5 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <User className="h-5 w-5 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Approved Users</h3>
+              <p className="text-sm text-gray-500">
+                {users.length} active client{users.length !== 1 ? 's' : ''} • Single-site architecture
+              </p>
+            </div>
+          </div>
+          <div className="text-sm text-gray-500">
+            All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+          </div>
+        </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Business
-              </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                <span className="hidden sm:inline">Subscription</span>
-                <span className="sm:hidden">Plan</span>
-              </th>
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Usage
-              </th>
-              <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Insights
-              </th>
 
-              <th className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <div>
-                    <div className="text-xs sm:text-sm font-medium text-gray-900 truncate max-w-[120px] sm:max-w-none" title={user.email}>{user.email}</div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(user.approvedAt).toLocaleDateString()}
+      <div className="divide-y divide-gray-100">
+        {users.map((user) => {
+          const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
+          const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          
+          return (
+            <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-4">
+                    {/* User Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900">{user.businessName || 'Business Name Not Set'}</h4>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          user.subscriptionTier === 'business' 
+                            ? 'bg-purple-100 text-purple-800'
+                            : user.subscriptionTier === 'professional'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {user.subscriptionTier}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {user.email}
+                        </span>
+                        <span>•</span>
+                        <span>Approved {new Date(user.approvedAt).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <div className="sm:hidden text-xs text-gray-500 mt-1">
-                      {user.businessName || 'N/A'}
-                    </div>
-                  </div>
-                </td>
-                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
-                  {editingUser === user.id ? (
-                    <input
-                      type="text"
-                      value={editData.businessName || ''}
-                      onChange={(e) => setEditData({ ...editData, businessName: e.target.value })}
-                      className="text-sm border border-gray-300 rounded px-2 py-1 w-full min-h-[44px] touch-manipulation"
-                      placeholder="Business name"
-                    />
-                  ) : (
-                    <div className="text-sm text-gray-900">{user.businessName || 'N/A'}</div>
-                  )}
-                </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  {editingUser === user.id ? (
-                    <select
-                      value={editData.subscriptionTier || user.subscriptionTier || ''}
-                      onChange={(e) => setEditData({ ...editData, subscriptionTier: e.target.value })}
-                      className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 min-h-[44px] touch-manipulation"
-                    >
-                      <option value="starter">Starter</option>
-                      <option value="professional">Professional</option>
-                      <option value="business">Business</option>
-                    </select>
-                  ) : (
-                    <span className={`inline-flex px-1 sm:px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.subscriptionTier === 'business' 
-                        ? 'bg-purple-100 text-purple-800'
-                        : user.subscriptionTier === 'professional'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      <span className="hidden sm:inline">{user.subscriptionTier || 'N/A'}</span>
-                      <span className="sm:hidden">
-                        {user.subscriptionTier === 'business' ? 'Bus' : 
-                         user.subscriptionTier === 'professional' ? 'Pro' : 'Str'}
-                      </span>
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
-                  <div className="text-xs sm:text-sm text-gray-900">
-                    <span className="hidden sm:inline">{user.comparisonsUsed} / {user.comparisonsLimit}</span>
-                    <span className="sm:hidden">{user.comparisonsUsed}/{user.comparisonsLimit}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1 sm:h-2 mt-1">
-                    <div
-                      className={`h-1 sm:h-2 rounded-full ${
-                        (user.comparisonsUsed / user.comparisonsLimit) > 0.8 
-                          ? 'bg-red-500' 
-                          : (user.comparisonsUsed / user.comparisonsLimit) > 0.6 
-                          ? 'bg-yellow-500' 
-                          : 'bg-green-500'
-                      }`}
-                      style={{ 
-                        width: `${Math.min((user.comparisonsUsed / user.comparisonsLimit) * 100, 100)}%` 
-                      }}
-                    />
-                  </div>
-                </td>
-                <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    user.status === 'active' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {user.status}
-                  </span>
-                </td>
-                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => toggleInsights(user.id, user.showInsights || false)}
-                    disabled={processingUser === user.id}
-                    className={`min-w-[44px] min-h-[44px] p-2 rounded touch-manipulation ${
-                      user.showInsights 
-                        ? 'text-green-600 hover:text-green-800' 
-                        : 'text-gray-400 hover:text-gray-600'
-                    } disabled:opacity-50`}
-                    title={user.showInsights ? 'Insights Enabled' : 'Insights Disabled'}
-                  >
-                    {user.showInsights ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                  </button>
-                </td>
 
-                <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap text-right text-sm font-medium">
-                  {editingUser === user.id ? (
-                    <div className="flex items-center justify-end space-x-1 sm:space-x-2">
-                      <button
-                        onClick={() => handleSave(user.id)}
-                        disabled={processingUser === user.id}
-                        className="text-green-600 hover:text-green-900 min-w-[44px] min-h-[44px] p-2 disabled:opacity-50 touch-manipulation flex items-center justify-center"
-                        title="Save Changes"
-                      >
-                        <Check className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={processingUser === user.id}
-                        className="text-gray-600 hover:text-gray-900 min-w-[44px] min-h-[44px] p-2 disabled:opacity-50 touch-manipulation flex items-center justify-center"
-                        title="Cancel"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                    {/* Usage Stats */}
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {user.comparisonsUsed} / {user.comparisonsLimit}
+                          </span>
+                        </div>
+                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
+                          <div
+                            className={`h-2 rounded-full ${
+                              usagePercentage > 80 
+                                ? 'bg-red-500' 
+                                : usagePercentage > 60 
+                                ? 'bg-yellow-500' 
+                                : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Client URL */}
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 mb-1">Client Access</div>
+                        <a
+                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
+                        >
+                          <span>/</span>
+                          <span className="font-mono">{clientPath}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-end space-x-1 sm:space-x-2">
-                      {/* Mobile: Show insights toggle here if hidden */}
-                      <button
-                        onClick={() => toggleInsights(user.id, user.showInsights || false)}
-                        disabled={processingUser === user.id}
-                        className={`lg:hidden min-w-[44px] min-h-[44px] p-2 rounded touch-manipulation ${
-                          user.showInsights 
-                            ? 'text-green-600 hover:text-green-800' 
-                            : 'text-gray-400 hover:text-gray-600'
-                        } disabled:opacity-50`}
-                        title={user.showInsights ? 'Insights Enabled' : 'Insights Disabled'}
-                      >
-                        {user.showInsights ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                      </button>
-                      <button
-                        onClick={() => handleEdit(user)}
-                        disabled={processingUser === user.id}
-                        className="text-blue-600 hover:text-blue-900 min-w-[44px] min-h-[44px] p-2 disabled:opacity-50 touch-manipulation flex items-center justify-center"
-                        title="Edit User"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id, user.email)}
-                        disabled={processingUser === user.id}
-                        className="text-red-600 hover:text-red-900 min-w-[44px] min-h-[44px] p-2 disabled:opacity-50 touch-manipulation flex items-center justify-center"
-                        title="Delete User"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary Footer */}
+      <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+        <div className="flex items-center justify-between text-sm text-gray-600">
+          <span>
+            Total: {users.length} active client{users.length !== 1 ? 's' : ''}
+          </span>
+          <span>
+            Revenue: ${users.length * 30}/month
+          </span>
+        </div>
       </div>
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Custom comparison for performance
   return (
     prevProps.users === nextProps.users &&
-    prevProps.isLoading === nextProps.isLoading &&
-    prevProps.onDeleteUser === nextProps.onDeleteUser &&
-    prevProps.onUpdateUser === nextProps.onUpdateUser
+    prevProps.isLoading === nextProps.isLoading
   );
 });
 
