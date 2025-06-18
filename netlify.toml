@@ -1,11 +1,12 @@
 # netlify.toml
 
 [build]
+  command = "npm install && npm run build"
   publish = "dist"
-  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "18"
+  NPM_FLAGS = "--no-audit --no-fund"
   NPM_VERSION = "9"
   NODE_OPTIONS = "--max-old-space-size=4096"
   CI = "false"
@@ -14,6 +15,7 @@
   node_bundler = "esbuild"
   external_node_modules = ["firebase-admin", "@firebase/*", "jwks-rsa", "jose", "jsonwebtoken", "node-forge", "uuid", "limiter", "lru-memoizer", "debug", "just-performance", "farmhash-modern", "node-fetch"]
 
+# Redirect rules for SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"
