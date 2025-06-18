@@ -1823,26 +1823,9 @@ WARNING:
     return handleProvisionWebsite(user);
   };
 
-  const redeployClientSite = async (user: ApprovedUser) => {
-    console.log('🔄 Single-site deployment - no redeploy needed for:', user.email);
-    
-    // In single-site approach, all clients use the same site
-    // Updates are automatic when the main site is updated
-    const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                      user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-    const siteUrl = `https://grbalance.netlify.app/${clientPath}`;
-    
-    showNotification('info', 'Single-Site Architecture', 
-      `Client access: ${siteUrl} - Updates automatically with main site`);
-  };
+  // redeployClientSite function removed - no longer needed with single-site architecture
 
-  const handleConfirmDeleteWebsite = async (userId: string) => {
-    console.log('🗑️ Single-site approach - no separate website to delete for user:', userId);
-    // In single-site architecture, there's no separate site to delete
-    // Client access is just removed from Firebase database
-    showNotification('info', 'Single-Site Architecture', 
-      'No separate website to delete - client access is URL-based');
-  };
+  // handleConfirmDeleteWebsite function removed - no separate sites to delete in single-site architecture
 
   const handleTestFileUpload = async (fileNumber: number, file: File) => {
     console.log(`📁 Testing file ${fileNumber} upload START:`, file.name, file.size, 'bytes');
@@ -3003,24 +2986,7 @@ WARNING:
                               Edit Details
                             </button>
 
-                            {/* MAINTENANCE */}
-                            {siteUrls[user.id] && (
-                              <button
-                                onClick={() => {
-                                  showConfirmation(
-                                    'Redeploy Client Site',
-                                    `Redeploy the entire website for ${user.businessName || user.email}?\n\n• This will update the site with the latest template\n• All dynamic scripts will remain available\n• Site URL: ${siteUrls[user.id]}\n\nThis process may take 2-3 minutes.`,
-                                    'Redeploy Site',
-                                    'bg-amber-600 text-white',
-                                    () => redeployClientSite(user)
-                                  );
-                                }}
-                                className="inline-flex items-center gap-1.5 bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition-colors"
-                              >
-                                <Settings className="w-4 h-4" />
-                                Redeploy
-                              </button>
-                            )}
+                            {/* MAINTENANCE - Single-site architecture: no redeploy needed */}
 
                             {/* DANGER ZONE */}
                             <button
@@ -3031,15 +2997,7 @@ WARNING:
                               Deactivate
                             </button>
                             
-                            {siteUrls[user.id] && (
-                              <button
-                                onClick={() => handleConfirmDeleteWebsite(user)}
-                                className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                                Delete Site
-                              </button>
-                            )}
+                            {/* Delete Site removed - single-site architecture has no separate sites */}
                             
                             <button
                               onClick={() => handleDeleteUser(user.id, user.email)}
