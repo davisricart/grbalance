@@ -21,6 +21,7 @@ export default function ReadyForTestingTab({
   const [testingNotes, setTestingNotes] = useState<{[key: string]: string}>({});
   const [rejectingUser, setRejectingUser] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
@@ -125,7 +126,7 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Test at: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/test-clientname</code>
+            Live sites: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
           </div>
         </div>
       </div>
@@ -135,8 +136,9 @@ export default function ReadyForTestingTab({
           const qaStatus = user.qaStatus || 'pending';
           const isQAPassed = qaStatus === 'passed';
           const isProcessing = processingUser === user.id;
-          const clientPath = `test-${user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}`;
+          const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          const clientPath = customUrls[user.id] || defaultPath;
 
           return (
             <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
@@ -254,6 +256,21 @@ export default function ReadyForTestingTab({
                           <span>Send Back</span>
                         </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Custom URL Input */}
+                  <div className="mt-3 ml-0">
+                    <label className="block text-xs text-gray-600 mb-1">Live Site URL:</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
+                      <input
+                        type="text"
+                        value={customUrls[user.id] || defaultPath}
+                        onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
+                        placeholder="clientname"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500"
+                      />
                     </div>
                   </div>
 
