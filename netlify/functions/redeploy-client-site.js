@@ -1,6 +1,5 @@
 const fetch = require('node-fetch');
 const FormData = require('form-data');
-const JSZip = require('jszip');
 
 exports.handler = async function(event, context) {
   // Only allow POST
@@ -47,57 +46,53 @@ exports.handler = async function(event, context) {
 
     console.log(`🚀 Deploying complete React app to ${clientName} (${clientId})`);
 
-    // Step 1: Get the current deployment of main site
-    console.log('📥 Fetching main site deployment info...');
-    const mainSiteDeployRes = await fetch('https://api.netlify.com/api/v1/sites/grbalance.netlify.app/deploys', {
+    // Step 1: Fetch the main site's current HTML
+    console.log('📥 Fetching main site HTML...');
+    const mainSiteRes = await fetch('https://grbalance.netlify.app/', {
       headers: {
-        'Authorization': `Bearer ${NETLIFY_TOKEN}`
+        'User-Agent': 'GR-Balance-Template-Copier'
       }
     });
-    
-    if (!mainSiteDeployRes.ok) {
-      throw new Error(`Failed to fetch main site deploys: ${mainSiteDeployRes.status}`);
-    }
-    
-    const deploys = await mainSiteDeployRes.json();
-    const latestDeploy = deploys.find(d => d.state === 'ready') || deploys[0];
-    
-    if (!latestDeploy) {
-      throw new Error('No ready deployment found for main site');
+
+    if (!mainSiteRes.ok) {
+      throw new Error(`Failed to fetch main site: ${mainSiteRes.status}`);
     }
 
-    // Step 2: Download the complete site archive
-    console.log('📦 Downloading complete site archive...');
-    const archiveRes = await fetch(`https://api.netlify.com/api/v1/sites/grbalance.netlify.app/deploys/${latestDeploy.id}/files`, {
-      headers: {
-        'Authorization': `Bearer ${NETLIFY_TOKEN}`,
-        'Accept': 'application/zip'
-      }
-    });
-    
-    if (!archiveRes.ok) {
-      throw new Error(`Failed to download site archive: ${archiveRes.status}`);
-    }
-    
-    const archiveBuffer = await archiveRes.buffer();
-    console.log('✅ Site archive downloaded successfully');
+    let mainSiteHtml = await mainSiteRes.text();
+    console.log('✅ Main site HTML fetched successfully');
 
-    // Step 3: Modify HTML for client branding
-    console.log('🔧 Customizing for client...');
-    const zip = await JSZip.loadAsync(archiveBuffer);
+    // Step 2: Customize for client and fix asset paths
+    console.log('🔧 Customizing template for client...');
     
-    // Get and modify index.html
-    const indexFile = zip.file('index.html');
-    if (!indexFile) {
-      throw new Error('index.html not found in site archive');
-    }
-    
-    let htmlContent = await indexFile.async('string');
-    
-    // Customize for client
-    htmlContent = htmlContent.replace(
+    // Update title with client branding
+    mainSiteHtml = mainSiteHtml.replace(
       /<title>.*?<\/title>/i,
       `<title>${clientName || clientId} - Payment Reconciliation Portal</title>`
+    );
+
+    // Fix all relative asset paths to point to main site
+    console.log('🔗 Fixing asset paths to point to main site...');
+    
+    // Fix JS and CSS asset paths
+    mainSiteHtml = mainSiteHtml.replace(
+      /href="\/assets\//g,
+      'href="https://grbalance.netlify.app/assets/'  
+    );
+    
+    mainSiteHtml = mainSiteHtml.replace(
+      /src="\/assets\//g,
+      'src="https://grbalance.netlify.app/assets/'
+    );
+    
+    // Fix any other relative paths that might break
+    mainSiteHtml = mainSiteHtml.replace(
+      /href="\//g,
+      'href="https://grbalance.netlify.app/'
+    );
+    
+    mainSiteHtml = mainSiteHtml.replace(
+      /src="\//g,
+      'src="https://grbalance.netlify.app/'
     );
 
     // Add client configuration
@@ -109,19 +104,22 @@ exports.handler = async function(event, context) {
         deployedAt: '${new Date().toISOString()}'
       };
       console.log('🚀 Client site loaded for:', window.CLIENT_CONFIG.clientName);
+      console.log('📋 Client ID:', window.CLIENT_CONFIG.clientId);
+      console.log('🔗 Assets loaded from main site');
     </script>`;
 
-    htmlContent = htmlContent.replace(/<head>/i, `<head>${clientConfig}`);
-    
-    // Update the HTML in the zip
-    zip.file('index.html', htmlContent);
+    // Insert client config right after <head> tag
+    mainSiteHtml = mainSiteHtml.replace(
+      /<head>/i,
+      `<head>${clientConfig}`
+    );
 
-    // Step 4: Deploy the complete modified archive
-    console.log('🚀 Deploying complete app to client site...');
-    const modifiedArchive = await zip.generateAsync({ type: 'nodebuffer' });
-    
+    console.log('✅ Template customized with asset links to main site');
+
+    // Step 3: Deploy to client site
+    console.log('🚀 Deploying to client site...');
     const formData = new FormData();
-    formData.append('file', modifiedArchive, 'site.zip');
+    formData.append('index.html', mainSiteHtml);
 
     const deployRes = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys`, {
       method: 'POST',
@@ -132,6 +130,8 @@ exports.handler = async function(event, context) {
       body: formData
     });
 
+    console.log(`📡 Deploy response: ${deployRes.status} ${deployRes.statusText}`);
+
     if (!deployRes.ok) {
       const errorText = await deployRes.text();
       console.error('❌ Deploy failed:', errorText);
@@ -139,27 +139,27 @@ exports.handler = async function(event, context) {
         statusCode: deployRes.status,
         headers,
         body: JSON.stringify({ 
-          error: 'Failed to deploy complete app',
+          error: 'Failed to deploy to client site',
           details: errorText
         })
       };
     }
 
     const deployResult = await deployRes.json();
-    console.log('✅ Complete React app deployed successfully');
+    console.log('✅ Template deployed successfully');
 
-    // Step 5: Set environment variables
+    // Step 4: Set environment variables
     await setClientEnvVars(siteId, clientId, NETLIFY_TOKEN);
 
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        message: "Complete React app deployed successfully",
+        message: "Complete React app template deployed successfully",
         siteId: siteId,
         clientId: clientId,
-        deployUrl: deployResult.deploy_url,
-        status: "Full app with all assets deployed"
+        deployUrl: deployResult.deploy_url || `https://${siteId}.netlify.app`,
+        status: "Template deployed with full functionality"
       })
     };
 
@@ -171,7 +171,7 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({ 
         error: error.message, 
         stack: error.stack,
-        details: 'Complete app deployment failed'
+        details: 'Template copying failed'
       })
     };
   }
