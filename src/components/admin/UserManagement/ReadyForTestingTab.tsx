@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle } from 'lucide-react';
 import { ReadyForTestingUser } from '../../../types/admin';
 
 interface ReadyForTestingTabProps {
@@ -22,6 +22,7 @@ export default function ReadyForTestingTab({
   const [rejectingUser, setRejectingUser] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
+  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'uploaded' | 'tested' | 'deployed'}>({});
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
@@ -81,6 +82,24 @@ export default function ReadyForTestingTab({
     } finally {
       setProcessingUser(null);
     }
+  };
+
+  const handleScriptUpload = async (userId: string) => {
+    // TODO: Implement script upload functionality
+    setScriptStatus(prev => ({ ...prev, [userId]: 'uploaded' }));
+    console.log('Script upload for user:', userId);
+  };
+
+  const handleScriptTest = async (userId: string) => {
+    // TODO: Implement script testing functionality
+    setScriptStatus(prev => ({ ...prev, [userId]: 'tested' }));
+    console.log('Script test for user:', userId);
+  };
+
+  const handleScriptDeploy = async (userId: string) => {
+    // TODO: Implement script deployment functionality
+    setScriptStatus(prev => ({ ...prev, [userId]: 'deployed' }));
+    console.log('Script deploy for user:', userId);
   };
 
   if (readyForTestingUsers.length === 0) {
@@ -277,6 +296,55 @@ export default function ReadyForTestingTab({
                           }
                         }}
                       />
+                    </div>
+                  </div>
+
+                  {/* Script Workflow */}
+                  <div className="mt-3 ml-0">
+                    <label className="block text-xs text-gray-600 mb-2">Reconciliation Script Workflow:</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleScriptUpload(user.id)}
+                        disabled={isProcessing}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                          scriptStatus[user.id] === 'uploaded' || scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed'
+                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            : 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
+                        }`}
+                      >
+                        <Upload className="h-3 w-3" />
+                        <span>{scriptStatus[user.id] === 'uploaded' || scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed' ? 'Script Ready' : 'Upload Script'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleScriptTest(user.id)}
+                        disabled={isProcessing || (!scriptStatus[user.id] || scriptStatus[user.id] === 'none')}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                          scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed'
+                            ? 'bg-green-100 text-green-700 border border-green-200'
+                            : scriptStatus[user.id] === 'uploaded'
+                            ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200'
+                        }`}
+                      >
+                        <Play className="h-3 w-3" />
+                        <span>{scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed' ? 'Script Tested' : 'Test Script'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleScriptDeploy(user.id)}
+                        disabled={isProcessing || scriptStatus[user.id] !== 'tested'}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                          scriptStatus[user.id] === 'deployed'
+                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                            : scriptStatus[user.id] === 'tested'
+                            ? 'bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200'
+                            : 'bg-gray-100 text-gray-400 border border-gray-200'
+                        }`}
+                      >
+                        <Code className="h-3 w-3" />
+                        <span>{scriptStatus[user.id] === 'deployed' ? 'Script Live' : 'Deploy Script'}</span>
+                      </button>
                     </div>
                   </div>
 
