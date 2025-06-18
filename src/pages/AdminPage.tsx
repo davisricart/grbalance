@@ -2281,7 +2281,7 @@ WARNING:
                 }`}
               >
                 <Clock className="inline w-4 h-4 mr-2" />
-                TESTING
+                QA TESTING
                 {activeTab !== 'ready-for-testing' && readyForTestingUsers.length > 0 && (
                   <span className="ml-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
                     {readyForTestingUsers.length}
@@ -2356,7 +2356,7 @@ WARNING:
                 }`}
               >
                 <FiCode className="inline w-4 h-4 mr-2" />
-                TESTING
+                SCRIPT TESTING
               </button>
             </nav>
           </div>
