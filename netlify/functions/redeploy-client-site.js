@@ -46,9 +46,9 @@ exports.handler = async function(event, context) {
 
     console.log(`🚀 Deploying complete React app to ${clientName} (${clientId})`);
 
-    // Step 1: Fetch the main site's current HTML
-    console.log('📥 Fetching main site HTML...');
-    const mainSiteRes = await fetch('https://grbalance.netlify.app/', {
+    // Step 1: Fetch the working site's current HTML
+    console.log('📥 Fetching working site HTML...');
+    const mainSiteRes = await fetch('https://fluffy-salamander-c12ab3.netlify.app/', {
       headers: {
         'User-Agent': 'GR-Balance-Template-Copier'
       }
@@ -70,29 +70,29 @@ exports.handler = async function(event, context) {
       `<title>${clientName || clientId} - Payment Reconciliation Portal</title>`
     );
 
-    // Fix all relative asset paths to point to main site
-    console.log('🔗 Fixing asset paths to point to main site...');
+    // Fix all relative asset paths to point to working site
+    console.log('🔗 Fixing asset paths to point to working site...');
     
     // Fix JS and CSS asset paths
     mainSiteHtml = mainSiteHtml.replace(
       /href="\/assets\//g,
-      'href="https://grbalance.netlify.app/assets/'  
+      'href="https://fluffy-salamander-c12ab3.netlify.app/assets/'  
     );
     
     mainSiteHtml = mainSiteHtml.replace(
       /src="\/assets\//g,
-      'src="https://grbalance.netlify.app/assets/'
+      'src="https://fluffy-salamander-c12ab3.netlify.app/assets/'
     );
     
     // Fix any other relative paths that might break
     mainSiteHtml = mainSiteHtml.replace(
       /href="\//g,
-      'href="https://grbalance.netlify.app/'
+      'href="https://fluffy-salamander-c12ab3.netlify.app/'
     );
     
     mainSiteHtml = mainSiteHtml.replace(
       /src="\//g,
-      'src="https://grbalance.netlify.app/'
+      'src="https://fluffy-salamander-c12ab3.netlify.app/'
     );
 
     // Add client configuration
