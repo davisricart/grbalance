@@ -190,15 +190,16 @@ export default function ReadyForTestingTab({
 
                     {/* QA Status & Actions */}
                     <div className="flex items-center gap-3">
-                      {/* Client Portal Link */}
+                      {/* Preview Client Portal */}
                       <a
                         href={`https://grbalance.netlify.app/${clientPath}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
                       >
-                        <span>/</span>
-                        <span className="font-mono">{clientPath}</span>
+                        <Eye className="h-3 w-3" />
+                        <span>Preview Portal</span>
+                        <span className="text-xs">/{clientPath}</span>
                         <ExternalLink className="h-3 w-3" />
                       </a>
 
@@ -266,7 +267,7 @@ export default function ReadyForTestingTab({
                               <CheckCircle2 className="h-3 w-3" />
                               <span>
                                 {canApprove 
-                                  ? 'Approve' 
+                                  ? 'Go Live' 
                                   : !isQAPassed 
                                   ? 'QA Required' 
                                   : 'Script Required'
@@ -307,7 +308,7 @@ export default function ReadyForTestingTab({
                         }}
                       />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">Client logs in here → gets their branded reconciliation portal</div>
+                    <div className="text-xs text-gray-500 mt-1">Preview this portal above → test login, upload files, run scripts</div>
                   </div>
 
                   {/* Script Workflow */}
