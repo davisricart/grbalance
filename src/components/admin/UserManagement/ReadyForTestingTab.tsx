@@ -266,10 +266,16 @@ export default function ReadyForTestingTab({
                       <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
                       <input
                         type="text"
-                        value={customUrls[user.id] || defaultPath}
+                        value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
                         onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
-                        placeholder="clientname"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter client business name here..."
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+                        onFocus={(e) => {
+                          // Clear the field on first focus if it's still the default
+                          if (customUrls[user.id] === undefined) {
+                            setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
+                          }
+                        }}
                       />
                     </div>
                   </div>
