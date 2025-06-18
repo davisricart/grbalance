@@ -154,6 +154,9 @@ export default function ReadyForTestingTab({
         {readyForTestingUsers.map((user) => {
           const qaStatus = user.qaStatus || 'pending';
           const isQAPassed = qaStatus === 'passed';
+          const currentScriptStatus = scriptStatus[user.id] || 'none';
+          const isScriptDeployed = currentScriptStatus === 'deployed';
+          const canApprove = isQAPassed && isScriptDeployed;
           const isProcessing = processingUser === user.id;
           const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
@@ -246,9 +249,9 @@ export default function ReadyForTestingTab({
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleFinalApprove(user)}
-                          disabled={isProcessing || !isQAPassed}
+                          disabled={isProcessing || !canApprove}
                           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                            isQAPassed
+                            canApprove
                               ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:shadow-md hover:scale-105'
                               : 'bg-gray-100 text-gray-400'
                           }`}
@@ -261,7 +264,14 @@ export default function ReadyForTestingTab({
                           ) : (
                             <>
                               <CheckCircle2 className="h-3 w-3" />
-                              <span>{isQAPassed ? 'Approve' : 'QA Required'}</span>
+                              <span>
+                                {canApprove 
+                                  ? 'Approve' 
+                                  : !isQAPassed 
+                                  ? 'QA Required' 
+                                  : 'Script Required'
+                                }
+                              </span>
                             </>
                           )}
                         </button>
