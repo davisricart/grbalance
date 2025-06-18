@@ -125,7 +125,7 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Test at: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+            Test at: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/test-clientname</code>
           </div>
         </div>
       </div>
@@ -135,8 +135,8 @@ export default function ReadyForTestingTab({
           const qaStatus = user.qaStatus || 'pending';
           const isQAPassed = qaStatus === 'passed';
           const isProcessing = processingUser === user.id;
-          const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          const clientPath = `test-${user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'}`;
 
           return (
             <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
