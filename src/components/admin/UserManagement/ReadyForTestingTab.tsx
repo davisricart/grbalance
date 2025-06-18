@@ -145,7 +145,7 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Live sites: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+            All clients use: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/app</code>
           </div>
         </div>
       </div>
@@ -187,15 +187,15 @@ export default function ReadyForTestingTab({
 
                     {/* QA Status & Actions */}
                     <div className="flex items-center gap-3">
-                      {/* Test Site Link */}
+                      {/* Client App Link */}
                       <a
-                        href={`https://grbalance.netlify.app/${clientPath}`}
+                        href={`https://grbalance.netlify.app/app`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
                       >
-                        <span>/</span>
-                        <span className="font-mono">{clientPath}</span>
+                        <span>/app</span>
+                        <span className="text-xs text-blue-500">({clientPath})</span>
                         <ExternalLink className="h-3 w-3" />
                       </a>
 
@@ -278,11 +278,11 @@ export default function ReadyForTestingTab({
                     </div>
                   </div>
 
-                  {/* Custom URL Input */}
+                  {/* Client Identifier */}
                   <div className="mt-3 ml-0">
-                    <label className="block text-xs text-gray-600 mb-1">Live Site URL:</label>
+                    <label className="block text-xs text-gray-600 mb-1">Client Identifier (for data filtering):</label>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
+                      <span className="text-xs text-gray-500">Client ID:</span>
                       <input
                         type="text"
                         value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
@@ -296,6 +296,7 @@ export default function ReadyForTestingTab({
                           }
                         }}
                       />
+                      <span className="text-xs text-gray-500">Access: grbalance.netlify.app/app</span>
                     </div>
                   </div>
 
