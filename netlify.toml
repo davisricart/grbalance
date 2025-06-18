@@ -1,15 +1,12 @@
 # netlify.toml
 
 [build]
-  command = "rm -rf node_modules && npm install --force --legacy-peer-deps && npm run build"
+  command = "npm install && npm run build"
   publish = "dist"
 
 [build.environment]
   NODE_VERSION = "18"
   NODE_OPTIONS = "--max-old-space-size=4096"
-  CI = "false"
-  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
-  NPM_CONFIG_FORCE = "true"
 
 [functions]
   node_bundler = "esbuild"
