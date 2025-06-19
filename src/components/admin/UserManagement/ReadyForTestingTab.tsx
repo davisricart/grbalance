@@ -515,46 +515,33 @@ export default function ReadyForTestingTab({
                   <div className="mt-3 ml-0">
                     <label className="block text-xs text-gray-600 mb-1">Client Portal URL:</label>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
-                      <input
-                        type="text"
-                        value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
-                        onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
-                        placeholder="Enter client business name here..."
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
-                        onFocus={(e) => {
-                          // Clear the field on first focus if it's still the default
-                          if (customUrls[user.id] === undefined) {
-                            setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
-                          }
-                        }}
-                      />
-                    </div>
-                    
-                    {/* Full URL Display with Copy/Visit Options */}
-                    <div className="mt-2 p-2 bg-gray-50 rounded-md border">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="text-xs text-gray-500 mb-1">Full URL:</div>
-                          <code className="text-xs font-mono text-gray-800 select-all">
-                            {`https://grbalance.netlify.app/${clientPath}`}
-                          </code>
-                        </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <button
-                            onClick={() => navigator.clipboard.writeText(`https://grbalance.netlify.app/${clientPath}`)}
-                            className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
-                          >
-                            Copy
-                          </button>
-                          <button
-                            onClick={() => window.open(`https://grbalance.netlify.app/${clientPath}`, '_blank')}
-                            className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                          >
-                            Visit
-                          </button>
-                        </div>
-                      </div>
+                      {websiteStatus[user.id] === 'created' ? (
+                        <a
+                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:text-blue-800 underline"
+                        >
+                          grbalance.netlify.app/{clientPath}
+                        </a>
+                      ) : (
+                        <>
+                          <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
+                          <input
+                            type="text"
+                            value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
+                            onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
+                            placeholder="Enter client business name here..."
+                            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
+                            onFocus={(e) => {
+                              // Clear the field on first focus if it's still the default
+                              if (customUrls[user.id] === undefined) {
+                                setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
+                              }
+                            }}
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
 

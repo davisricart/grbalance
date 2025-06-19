@@ -42,10 +42,20 @@ exports.handler = async function(event, context) {
 
     // Initialize Firebase Admin (if not already done)
     if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
+      if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
+      }
+      
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount),
+        });
+        console.log('✅ Firebase Admin initialized');
+      } catch (parseError) {
+        console.error('❌ Failed to parse Firebase service account:', parseError);
+        throw new Error('Invalid Firebase service account configuration');
+      }
     }
     
     const db = admin.firestore();
