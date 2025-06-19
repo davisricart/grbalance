@@ -274,6 +274,10 @@ export default function ReadyForTestingTab({
       console.log('🏗️ Creating LIVE website for:', { userId, clientPath, businessName: user.businessName });
 
       // DIRECT SUPABASE: Skip Netlify functions entirely and use Supabase directly
+      // CACHE BUST v3.0 - FORCE NEW CODE EXECUTION
+      console.log('🔄 CACHE BUST v3.0 - DIRECT SUPABASE CALL EXECUTING');
+      console.log('🚀 Using direct Supabase API - NO NETLIFY FUNCTIONS!');
+      
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
 
@@ -295,6 +299,9 @@ export default function ReadyForTestingTab({
         }
       };
 
+      console.log('📡 Making direct Supabase API call to:', `${supabaseUrl}/rest/v1/clients`);
+      console.log('📦 Client data payload:', clientData);
+      
       const createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
         method: 'POST',
         headers: {
@@ -305,6 +312,8 @@ export default function ReadyForTestingTab({
         },
         body: JSON.stringify(clientData)
       });
+      
+      console.log('📨 Supabase API response status:', createResponse.status);
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
