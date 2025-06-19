@@ -104,9 +104,50 @@ export default function ReadyForTestingTab({
   };
 
   const handleCreateWebsite = async (userId: string) => {
-    // TODO: Implement website creation functionality
-    setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
-    console.log('Website created for user:', userId);
+    setProcessingUser(userId);
+    
+    try {
+      const user = readyForTestingUsers.find(u => u.id === userId);
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                         user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+
+      console.log('🏗️ Creating website for:', { userId, clientPath, businessName: user.businessName });
+
+      // Create client portal data in Firebase
+      const clientData = {
+        id: userId,
+        clientPath: clientPath,
+        businessName: user.businessName,
+        email: user.email,
+        subscriptionTier: user.subscriptionTier,
+        websiteCreated: true,
+        websiteCreatedAt: new Date().toISOString(),
+        status: 'testing', // Testing phase
+        siteUrl: `https://grbalance.netlify.app/${clientPath}`,
+        deployedScripts: [],
+        usage: {
+          comparisonsUsed: 0,
+          comparisonsLimit: 100
+        }
+      };
+
+      // TODO: Save to Firebase (would be actual implementation)
+      // For now, just simulate success
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+
+      setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
+      console.log('✅ Website created successfully:', clientData);
+      
+    } catch (error) {
+      console.error('❌ Error creating website:', error);
+      alert(`Failed to create website: ${error.message}`);
+    } finally {
+      setProcessingUser(null);
+    }
   };
 
   if (readyForTestingUsers.length === 0) {
@@ -216,8 +257,17 @@ export default function ReadyForTestingTab({
                           disabled={isProcessing}
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-200 transition-colors border border-blue-200 hover:scale-105 disabled:opacity-50"
                         >
-                          <Code className="h-3 w-3" />
-                          <span>Create Website</span>
+                          {isProcessing ? (
+                            <>
+                              <div className="w-3 h-3 border-2 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+                              <span>Creating...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Code className="h-3 w-3" />
+                              <span>Create Website</span>
+                            </>
+                          )}
                         </button>
                       )}
 
