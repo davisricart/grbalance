@@ -40,21 +40,30 @@ exports.handler = async function(event, context) {
 
     console.log('🏗️ Creating client website:', { clientId, clientPath, businessName });
 
+    // Debug environment variable
+    console.log('🔍 Environment variable exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    console.log('🔍 Environment variable length:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0);
+
     // Initialize Firebase Admin (if not already done)
     if (!admin.apps.length) {
       if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        console.error('❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
         throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
       }
       
       try {
+        console.log('🔍 Attempting to parse Firebase service account...');
         const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        console.log('✅ Service account parsed, project:', serviceAccount.project_id);
+        
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount),
         });
         console.log('✅ Firebase Admin initialized');
       } catch (parseError) {
-        console.error('❌ Failed to parse Firebase service account:', parseError);
-        throw new Error('Invalid Firebase service account configuration');
+        console.error('❌ Failed to parse Firebase service account:', parseError.message);
+        console.error('❌ First 100 chars of env var:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100));
+        throw new Error(`Invalid Firebase service account configuration: ${parseError.message}`);
       }
     }
     

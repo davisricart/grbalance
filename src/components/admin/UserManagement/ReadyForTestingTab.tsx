@@ -223,11 +223,11 @@ export default function ReadyForTestingTab({
         console.log('✅ Script uploaded successfully:', result);
         
         setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
-        alert(`Script "${file.name}" uploaded and saved to GitHub + Firebase!`);
+        console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + Firebase!`);
         
       } catch (error) {
         console.error('❌ Error uploading script:', error);
-        alert(`Failed to upload script: ${error.message}`);
+        // No popup - just log the error
       } finally {
         setProcessingUser(null);
       }
@@ -298,7 +298,7 @@ export default function ReadyForTestingTab({
       
     } catch (error) {
       console.error('❌ Error creating website:', error);
-      alert(`Failed to create website: ${error.message}`);
+      // No popup - just log the error
     } finally {
       setProcessingUser(null);
     }
