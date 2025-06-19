@@ -49,7 +49,7 @@ export default function ReadyForTestingTab({
   const handleFinalApprove = async (user: ReadyForTestingUser) => {
     setProcessingUser(user.id);
     try {
-      await onFinalApprove(user.id, {
+      const userData = {
         id: user.id,
         email: user.email,
         businessName: user.businessName,
@@ -61,9 +61,30 @@ export default function ReadyForTestingTab({
         status: 'approved',
         approvedAt: new Date().toISOString(),
         createdAt: user.createdAt
-      });
+      };
+
+      // LIVE GO LIVE: Call both functions for complete approval
+      const [approvalResponse, liveResponse] = await Promise.all([
+        // Original approval flow
+        onFinalApprove(user.id, userData),
+        
+        // New live approval with Firebase updates
+        fetch('/.netlify/functions/approve-client-live', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: user.id,
+            userData: userData
+          })
+        })
+      ]);
+
+      if (liveResponse.ok) {
+        const result = await liveResponse.json();
+        console.log('🎯 Client LIVE approved in Firebase:', result);
+      }
       
-      console.log('✅ Client approved and live:', user.id);
+      console.log('✅ Client fully approved and LIVE:', user.id);
       
     } finally {
       setProcessingUser(null);
@@ -115,8 +136,29 @@ export default function ReadyForTestingTab({
     try {
       await onSendBackToPending(rejectingUser, rejectReason);
       
-      // NUCLEAR RESET: Make it like this client never existed in QA
-      console.log('🧨 COMPLETE RESET: Erasing all traces of client:', rejectingUser);
+      // NUCLEAR RESET: LIVE deletion of all client data
+      console.log('🧨 LIVE COMPLETE RESET: Erasing all traces of client:', rejectingUser);
+      
+      try {
+        // REAL DELETION: Call Netlify function to wipe everything
+        const deleteResponse = await fetch('/.netlify/functions/delete-client-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            clientId: rejectingUser,
+            action: 'complete_wipe'
+          })
+        });
+        
+        if (deleteResponse.ok) {
+          const result = await deleteResponse.json();
+          console.log('✅ LIVE deletion completed:', result);
+        } else {
+          console.warn('⚠️ Deletion API call failed');
+        }
+      } catch (error) {
+        console.warn('⚠️ Data wipe failed:', error);
+      }
       
       // Reset ALL local state - virgin slate
       setWebsiteStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
@@ -124,13 +166,7 @@ export default function ReadyForTestingTab({
       setCustomUrls(prev => ({ ...prev, [rejectingUser]: undefined }));
       setTestingNotes(prev => ({ ...prev, [rejectingUser]: '' }));
       
-      // Log what needs manual cleanup
-      console.log('📋 MANUAL CLEANUP REQUIRED:');
-      console.log('1. Firebase: Delete clients/{clientId} document');
-      console.log('2. GitHub: Delete /clients/{clientname}/ folder');
-      console.log('3. Any client portal data');
-      console.log('4. Any deployment artifacts');
-      console.log('🎯 Goal: Make it like they never entered QA testing');
+      console.log('🎯 LIVE RESET: Client never existed - fresh start ready');
       
       setRejectingUser(null);
       setRejectReason('');
@@ -158,34 +194,36 @@ export default function ReadyForTestingTab({
       try {
         const scriptContent = await file.text();
         
-        // For now, simulate saving to GitHub (would need actual Git API integration)
-        console.log('📁 Script content:', {
+        console.log('📤 Uploading script to GitHub + Firebase:', {
           filename: file.name,
           clientPath: clientPath,
-          size: file.size,
-          content: scriptContent.substring(0, 200) + '...'
+          size: file.size
         });
 
-        // In real implementation:
-        // 1. Save file to `/clients/${clientPath}/scripts/${file.name}`
-        // 2. Commit to GitHub
-        // 3. Update Firebase metadata with GitHub path
+        // REAL UPLOAD: Send to Netlify function for GitHub + Firebase
+        const uploadResponse = await fetch('/.netlify/functions/upload-client-script', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: userId,
+            clientPath: clientPath,
+            fileName: file.name,
+            scriptContent: scriptContent,
+            scriptMetadata: {
+              name: file.name.replace(/\.(js|ts)$/, '')
+            }
+          })
+        });
 
-        const scriptMetadata = {
-          name: file.name.replace('.js', '').replace('.ts', ''),
-          scriptPath: `clients/${clientPath}/scripts/${file.name}`,
-          githubUrl: `https://raw.githubusercontent.com/davisricart/grbalance/main/clients/${clientPath}/scripts/${file.name}`,
-          deployedAt: new Date().toISOString(),
-          size: file.size,
-          type: 'github',
-          status: 'uploaded'
-        };
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        }
 
-        // TODO: Save metadata to Firebase
-        console.log('💾 Script metadata:', scriptMetadata);
+        const result = await uploadResponse.json();
+        console.log('✅ Script uploaded successfully:', result);
         
         setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
-        alert(`Script "${file.name}" uploaded successfully!`);
+        alert(`Script "${file.name}" uploaded and saved to GitHub + Firebase!`);
         
       } catch (error) {
         console.error('❌ Error uploading script:', error);
@@ -232,32 +270,29 @@ export default function ReadyForTestingTab({
       const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                          user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
 
-      console.log('🏗️ Creating website for:', { userId, clientPath, businessName: user.businessName });
+      console.log('🏗️ Creating LIVE website for:', { userId, clientPath, businessName: user.businessName });
 
-      // Create client portal data in Firebase
-      const clientData = {
-        id: userId,
-        clientPath: clientPath,
-        businessName: user.businessName,
-        email: user.email,
-        subscriptionTier: user.subscriptionTier,
-        websiteCreated: true,
-        websiteCreatedAt: new Date().toISOString(),
-        status: 'testing', // Testing phase
-        siteUrl: `https://grbalance.netlify.app/${clientPath}`,
-        deployedScripts: [],
-        usage: {
-          comparisonsUsed: 0,
-          comparisonsLimit: 100
-        }
-      };
+      // REAL WEBSITE CREATION: Call Netlify function to save to Firebase
+      const createResponse = await fetch('/.netlify/functions/create-client-website', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: userId,
+          clientPath: clientPath,
+          businessName: user.businessName,
+          email: user.email,
+          subscriptionTier: user.subscriptionTier
+        })
+      });
 
-      // TODO: Save to Firebase (would be actual implementation)
-      // For now, just simulate success
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate API call
+      if (!createResponse.ok) {
+        throw new Error(`Website creation failed: ${createResponse.statusText}`);
+      }
+
+      const result = await createResponse.json();
+      console.log('✅ LIVE Website created in Firebase:', result);
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
-      console.log('✅ Website created successfully:', clientData);
       console.log('🔍 Current clientPath after creation:', clientPath);
       console.log('🔍 CustomUrls state:', customUrls[userId]);
       
