@@ -154,10 +154,11 @@ export default function ReadyForTestingTab({
           const result = await deleteResponse.json();
           console.log('✅ LIVE deletion completed:', result);
         } else {
-          console.warn('⚠️ Deletion API call failed');
+          console.warn('⚠️ Deletion API call failed - continuing with local reset');
         }
       } catch (error) {
-        console.warn('⚠️ Data wipe failed:', error);
+        console.warn('⚠️ Data wipe failed - continuing with local reset:', error);
+        // Don't fail the send-back operation if deletion fails
       }
       
       // Reset ALL local state - virgin slate
