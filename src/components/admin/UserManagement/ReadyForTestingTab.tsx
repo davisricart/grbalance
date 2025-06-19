@@ -22,7 +22,7 @@ export default function ReadyForTestingTab({
   const [rejectingUser, setRejectingUser] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
-  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'uploaded' | 'tested' | 'deployed'}>({});
+  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
   const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
@@ -130,7 +130,7 @@ export default function ReadyForTestingTab({
         // TODO: Save metadata to Firebase
         console.log('💾 Script metadata:', scriptMetadata);
         
-        setScriptStatus(prev => ({ ...prev, [userId]: 'uploaded' }));
+        setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
         alert(`Script "${file.name}" uploaded successfully!`);
         
       } catch (error) {
@@ -145,15 +145,25 @@ export default function ReadyForTestingTab({
   };
 
   const handleScriptTest = async (userId: string) => {
-    // TODO: Implement script testing functionality
-    setScriptStatus(prev => ({ ...prev, [userId]: 'tested' }));
-    console.log('Script test for user:', userId);
-  };
-
-  const handleScriptDeploy = async (userId: string) => {
-    // TODO: Implement script deployment functionality
-    setScriptStatus(prev => ({ ...prev, [userId]: 'deployed' }));
-    console.log('Script deploy for user:', userId);
+    setProcessingUser(userId);
+    
+    try {
+      // TODO: Implement actual script testing functionality
+      // This would open script testing interface or run automated tests
+      console.log('🧪 Testing script for user:', userId);
+      
+      // Simulate testing process
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      setScriptStatus(prev => ({ ...prev, [userId]: 'completed' }));
+      console.log('✅ Script testing completed for user:', userId);
+      
+    } catch (error) {
+      console.error('❌ Error testing script:', error);
+      alert(`Failed to test script: ${error.message}`);
+    } finally {
+      setProcessingUser(null);
+    }
   };
 
   const handleCreateWebsite = async (userId: string) => {
@@ -256,8 +266,8 @@ export default function ReadyForTestingTab({
           const qaStatus = user.qaStatus || 'pending';
           const isQAPassed = qaStatus === 'passed';
           const currentScriptStatus = scriptStatus[user.id] || 'none';
-          const isScriptDeployed = currentScriptStatus === 'deployed';
-          const canApprove = isQAPassed && isScriptDeployed;
+          const isScriptCompleted = currentScriptStatus === 'completed';
+          const canApprove = isQAPassed && isScriptCompleted;
           const isProcessing = processingUser === user.id;
           const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
@@ -391,7 +401,7 @@ export default function ReadyForTestingTab({
                                   ? 'Go Live' 
                                   : !isQAPassed 
                                   ? 'QA Required' 
-                                  : 'Script Required'
+                                  : 'Script Completion Required'
                                 }
                               </span>
                             </>
@@ -440,43 +450,37 @@ export default function ReadyForTestingTab({
                         onClick={() => handleScriptUpload(user.id)}
                         disabled={isProcessing}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
-                          scriptStatus[user.id] === 'uploaded' || scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed'
+                          scriptStatus[user.id] === 'ready' || scriptStatus[user.id] === 'completed'
                             ? 'bg-green-100 text-green-700 border border-green-200'
                             : 'bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200'
                         }`}
                       >
                         <Upload className="h-3 w-3" />
-                        <span>{scriptStatus[user.id] === 'uploaded' || scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed' ? 'Script Ready' : 'Upload Script'}</span>
+                        <span>{scriptStatus[user.id] === 'ready' || scriptStatus[user.id] === 'completed' ? 'Script Ready' : 'Upload Script'}</span>
                       </button>
 
                       <button
                         onClick={() => handleScriptTest(user.id)}
                         disabled={isProcessing || (!scriptStatus[user.id] || scriptStatus[user.id] === 'none')}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
-                          scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed'
-                            ? 'bg-green-100 text-green-700 border border-green-200'
-                            : scriptStatus[user.id] === 'uploaded'
+                          scriptStatus[user.id] === 'completed'
+                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                            : scriptStatus[user.id] === 'ready'
                             ? 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200'
                             : 'bg-gray-100 text-gray-400 border border-gray-200'
                         }`}
                       >
-                        <Play className="h-3 w-3" />
-                        <span>{scriptStatus[user.id] === 'tested' || scriptStatus[user.id] === 'deployed' ? 'Script Tested' : 'Test Script'}</span>
-                      </button>
-
-                      <button
-                        onClick={() => handleScriptDeploy(user.id)}
-                        disabled={isProcessing || scriptStatus[user.id] !== 'tested'}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
-                          scriptStatus[user.id] === 'deployed'
-                            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                            : scriptStatus[user.id] === 'tested'
-                            ? 'bg-purple-100 text-purple-700 border border-purple-200 hover:bg-purple-200'
-                            : 'bg-gray-100 text-gray-400 border border-gray-200'
-                        }`}
-                      >
-                        <Code className="h-3 w-3" />
-                        <span>{scriptStatus[user.id] === 'deployed' ? 'Script Live' : 'Deploy Script'}</span>
+                        {isProcessing && scriptStatus[user.id] === 'ready' ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-amber-700 border-t-transparent rounded-full animate-spin"></div>
+                            <span>Testing...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-3 w-3" />
+                            <span>{scriptStatus[user.id] === 'completed' ? 'Completed' : 'Test Script'}</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
