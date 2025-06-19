@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async function(event, context) {
   console.log('🚀 Delete-client-data function called');
@@ -40,57 +40,46 @@ exports.handler = async function(event, context) {
 
     console.log('🧨 NUCLEAR DELETE: Erasing all traces of client:', clientId);
 
-    // Debug environment variable
-    console.log('🔍 Environment variable exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    console.log('🔍 Environment variable length:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0);
-
-    // Initialize Firebase Admin (if not already done)
-    if (!admin.apps.length) {
-      if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        console.error('❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
-        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
-      }
-      
-      try {
-        console.log('🔍 Attempting to parse Firebase service account...');
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        console.log('✅ Service account parsed, project:', serviceAccount.project_id);
-        
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        console.log('✅ Firebase Admin initialized');
-      } catch (parseError) {
-        console.error('❌ Failed to parse Firebase service account:', parseError.message);
-        console.error('❌ First 100 chars of env var:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100));
-        throw new Error(`Invalid Firebase service account configuration: ${parseError.message}`);
-      }
-    }
-    
-    const db = admin.firestore();
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
 
     // Get client data before deletion to see what we're removing
-    const clientDocRef = db.collection('clients').doc(clientId);
-    const clientDoc = await clientDocRef.get();
-    
-    let deletedData = null;
-    if (clientDoc.exists) {
-      deletedData = clientDoc.data();
+    const { data: existingClient, error: fetchError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', clientId)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 = not found
+      console.error('❌ Error fetching client data:', fetchError);
+    }
+
+    if (existingClient) {
       console.log('📋 Data being deleted:', {
-        clientPath: deletedData.clientPath,
-        siteUrl: deletedData.siteUrl,
-        scriptsCount: deletedData.deployedScripts?.length || 0,
-        createdAt: deletedData.websiteCreatedAt
+        clientPath: existingClient.client_path,
+        siteUrl: existingClient.site_url,
+        scriptsCount: existingClient.deployed_scripts?.length || 0,
+        createdAt: existingClient.website_created_at
       });
     }
 
     // COMPLETE NUCLEAR DELETE
     if (action === 'complete_wipe') {
-      // Delete Firebase client document
-      if (clientDoc.exists) {
-        await clientDocRef.delete();
-        console.log('🗑️ Firebase client document deleted');
+      // Delete Supabase client record
+      const { error: deleteError } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', clientId);
+
+      if (deleteError) {
+        console.error('❌ Error deleting client:', deleteError);
+        throw new Error(`Failed to delete client: ${deleteError.message}`);
       }
+
+      console.log('🗑️ Supabase client record deleted');
 
       // TODO: In future, also delete from GitHub:
       // - Delete /clients/{clientPath}/ folder
@@ -106,9 +95,9 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({
           success: true,
           message: 'Client data completely wiped',
-          deletedData: deletedData,
+          deletedData: existingClient,
           actions: [
-            'Firebase client document deleted',
+            'Supabase client record deleted',
             'GitHub cleanup needed (manual)',
             'Client portal access revoked',
             'All traces removed'

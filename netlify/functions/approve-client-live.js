@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async function(event, context) {
   console.log('🚀 Approve-client-live function called');
@@ -40,35 +40,42 @@ exports.handler = async function(event, context) {
 
     console.log('🎯 Going LIVE with client:', clientId);
 
-    // Initialize Firebase Admin (if not already done)
-    if (!admin.apps.length) {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-      });
-    }
-    
-    const db = admin.firestore();
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
 
     // Update client status to APPROVED/LIVE
-    const clientDocRef = db.collection('clients').doc(clientId);
-    await clientDocRef.update({
-      status: 'approved',
-      approvedAt: new Date().toISOString(),
-      goLiveAt: new Date().toISOString(),
-      qaCompleted: true,
-      scriptsDeployed: true,
-      isLive: true
-    });
+    const { error: updateError } = await supabase
+      .from('clients')
+      .update({
+        status: 'approved',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', clientId);
 
-    // Also save to approved users collection (your existing flow)
-    const approvedUserRef = db.collection('approvedUsers').doc(clientId);
-    await approvedUserRef.set({
+    if (updateError) {
+      console.error('❌ Error updating client status:', updateError);
+      throw new Error(`Failed to update client: ${updateError.message}`);
+    }
+
+    // Also save to approved users table (your existing flow)
+    const approvedUserData = {
       ...userData,
       status: 'approved',
-      approvedAt: new Date().toISOString(),
-      goLiveAt: new Date().toISOString()
-    });
+      approved_at: new Date().toISOString(),
+      go_live_at: new Date().toISOString()
+    };
+
+    const { error: approveError } = await supabase
+      .from('approved_users')
+      .upsert(approvedUserData);
+
+    if (approveError) {
+      console.error('❌ Error saving approved user:', approveError);
+      throw new Error(`Failed to approve user: ${approveError.message}`);
+    }
 
     console.log('✅ Client successfully went LIVE:', clientId);
 

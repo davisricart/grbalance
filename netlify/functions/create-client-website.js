@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 
 exports.handler = async function(event, context) {
   console.log('🚀 Create-client-website function called');
@@ -40,73 +40,57 @@ exports.handler = async function(event, context) {
 
     console.log('🏗️ Creating client website:', { clientId, clientPath, businessName });
 
-    // Debug environment variable
-    console.log('🔍 Environment variable exists:', !!process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-    console.log('🔍 Environment variable length:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.length || 0);
-
-    // Initialize Firebase Admin (if not already done)
-    if (!admin.apps.length) {
-      if (!process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        console.error('❌ FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
-        throw new Error('FIREBASE_SERVICE_ACCOUNT_KEY environment variable not set');
-      }
-      
-      try {
-        console.log('🔍 Attempting to parse Firebase service account...');
-        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        console.log('✅ Service account parsed, project:', serviceAccount.project_id);
-        
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount),
-        });
-        console.log('✅ Firebase Admin initialized');
-      } catch (parseError) {
-        console.error('❌ Failed to parse Firebase service account:', parseError.message);
-        console.error('❌ First 100 chars of env var:', process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.substring(0, 100));
-        throw new Error(`Invalid Firebase service account configuration: ${parseError.message}`);
-      }
-    }
-    
-    const db = admin.firestore();
+    // Initialize Supabase client
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
 
     // Create comprehensive client data
     const clientData = {
       id: clientId,
-      clientPath: clientPath,
-      businessName: businessName,
+      client_path: clientPath,
+      business_name: businessName,
       email: email,
-      subscriptionTier: subscriptionTier,
-      websiteCreated: true,
-      websiteCreatedAt: new Date().toISOString(),
-      status: 'testing', // Testing phase
-      siteUrl: `https://grbalance.netlify.app/${clientPath}`,
-      deployedScripts: [],
+      subscription_tier: subscriptionTier,
+      website_created: true,
+      website_created_at: new Date().toISOString(),
+      status: 'testing',
+      site_url: `https://grbalance.netlify.app/${clientPath}`,
+      deployed_scripts: [],
       usage: {
-        comparisonsUsed: 0,
-        comparisonsLimit: subscriptionTier === 'business' ? 500 : 
-                         subscriptionTier === 'professional' ? 200 : 100
+        comparisons_used: 0,
+        comparisons_limit: subscriptionTier === 'business' ? 500 : 
+                          subscriptionTier === 'professional' ? 200 : 100
       },
       settings: {
         theme: 'default',
         customization: {},
         features: {
-          advancedReports: subscriptionTier === 'business',
-          bulkExport: subscriptionTier !== 'starter',
-          apiAccess: subscriptionTier === 'business'
+          advanced_reports: subscriptionTier === 'business',
+          bulk_export: subscriptionTier !== 'starter',
+          api_access: subscriptionTier === 'business'
         }
       },
       analytics: {
-        lastLogin: null,
-        totalComparisons: 0,
-        createdReports: 0
+        last_login: null,
+        total_comparisons: 0,
+        created_reports: 0
       }
     };
 
-    // Save to Firebase
-    const clientDocRef = db.collection('clients').doc(clientId);
-    await clientDocRef.set(clientData, { merge: true });
+    // Save to Supabase
+    const { data, error } = await supabase
+      .from('clients')
+      .upsert(clientData)
+      .select();
 
-    console.log('✅ Client website created in Firebase:', clientData);
+    if (error) {
+      console.error('❌ Supabase error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log('✅ Client website created in Supabase:', data);
 
     return {
       statusCode: 200,
@@ -114,8 +98,8 @@ exports.handler = async function(event, context) {
       body: JSON.stringify({
         success: true,
         message: 'Client website created successfully',
-        clientData: clientData,
-        siteUrl: clientData.siteUrl,
+        clientData: data[0],
+        siteUrl: clientData.site_url,
         clientId: clientId
       }),
     };
