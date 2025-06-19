@@ -273,25 +273,47 @@ export default function ReadyForTestingTab({
 
       console.log('🏗️ Creating LIVE website for:', { userId, clientPath, businessName: user.businessName });
 
-      // REAL WEBSITE CREATION: Call Netlify function to save to Supabase
-      const createResponse = await fetch('/.netlify/functions/create-client-website-direct', {
+      // DIRECT SUPABASE: Skip Netlify functions entirely and use Supabase directly
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+
+      const clientData = {
+        id: userId,
+        client_path: clientPath,
+        business_name: user.businessName,
+        email: user.email,
+        subscription_tier: user.subscriptionTier,
+        website_created: true,
+        website_created_at: new Date().toISOString(),
+        status: 'testing',
+        site_url: `https://grbalance.netlify.app/${clientPath}`,
+        deployed_scripts: [],
+        usage: {
+          comparisons_used: 0,
+          comparisons_limit: user.subscriptionTier === 'business' ? 500 : 
+                            user.subscriptionTier === 'professional' ? 200 : 100
+        }
+      };
+
+      const createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId: userId,
-          clientPath: clientPath,
-          businessName: user.businessName,
-          email: user.email,
-          subscriptionTier: user.subscriptionTier
-        })
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(clientData)
       });
 
       if (!createResponse.ok) {
-        throw new Error(`Website creation failed: ${createResponse.statusText}`);
+        const errorText = await createResponse.text();
+        console.error('❌ Supabase direct error:', createResponse.status, errorText);
+        throw new Error(`Supabase API error: ${createResponse.status} ${errorText}`);
       }
 
       const result = await createResponse.json();
-      console.log('✅ LIVE Website created in Firebase:', result);
+      console.log('✅ LIVE Website created directly in Supabase:', result);
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
       console.log('🔍 Current clientPath after creation:', clientPath);
