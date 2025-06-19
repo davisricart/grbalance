@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cache Verification Test</title>
+</head>
+<body>
+    <h1>Cache Verification Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        console.log('🔄 CACHE VERIFICATION v3.0 - Loading...');
+        
+        // Test if we can reach Supabase directly
+        const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+        
+        async function testSupabaseConnection() {
+            try {
+                console.log('🧪 Testing Supabase connection...');
+                const response = await fetch(`${supabaseUrl}/rest/v1/clients?select=count`, {
+                    method: 'GET',
+                    headers: {
+                        'apikey': supabaseKey,
+                        'Authorization': `Bearer ${supabaseKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                console.log('✅ Supabase connection test:', response.status);
+                document.getElementById('results').innerHTML = `
+                    <p>✅ Supabase Connection: ${response.status === 200 ? 'SUCCESS' : 'FAILED'}</p>
+                    <p>📡 URL: ${supabaseUrl}</p>
+                    <p>🕐 Timestamp: ${new Date().toISOString()}</p>
+                `;
+                
+                return response.ok;
+            } catch (error) {
+                console.error('❌ Supabase connection failed:', error);
+                document.getElementById('results').innerHTML = `
+                    <p>❌ Supabase Connection: FAILED</p>
+                    <p>Error: ${error.message}</p>
+                `;
+                return false;
+            }
+        }
+        
+        // Run test on page load
+        testSupabaseConnection();
+        
+        // Also expose globally for manual testing
+        window.testSupabase = testSupabaseConnection;
+    </script>
+</body>
+</html> 
