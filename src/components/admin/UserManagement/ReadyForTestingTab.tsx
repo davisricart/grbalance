@@ -273,8 +273,8 @@ export default function ReadyForTestingTab({
 
       console.log('🏗️ Creating LIVE website for:', { userId, clientPath, businessName: user.businessName });
 
-      // REAL WEBSITE CREATION: Call Netlify function to save to Firebase
-      const createResponse = await fetch('/.netlify/functions/create-client-website', {
+      // REAL WEBSITE CREATION: Call Netlify function to save to Supabase
+      const createResponse = await fetch('/.netlify/functions/create-client-website-direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
