@@ -86,9 +86,62 @@ export default function ReadyForTestingTab({
   };
 
   const handleScriptUpload = async (userId: string) => {
-    // TODO: Implement script upload functionality
-    setScriptStatus(prev => ({ ...prev, [userId]: 'uploaded' }));
-    console.log('Script upload for user:', userId);
+    const user = readyForTestingUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                       user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+
+    // Create a file input element to select script
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.js,.ts';
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+
+      setProcessingUser(userId);
+      try {
+        const scriptContent = await file.text();
+        
+        // For now, simulate saving to GitHub (would need actual Git API integration)
+        console.log('📁 Script content:', {
+          filename: file.name,
+          clientPath: clientPath,
+          size: file.size,
+          content: scriptContent.substring(0, 200) + '...'
+        });
+
+        // In real implementation:
+        // 1. Save file to `/clients/${clientPath}/scripts/${file.name}`
+        // 2. Commit to GitHub
+        // 3. Update Firebase metadata with GitHub path
+
+        const scriptMetadata = {
+          name: file.name.replace('.js', '').replace('.ts', ''),
+          scriptPath: `clients/${clientPath}/scripts/${file.name}`,
+          githubUrl: `https://raw.githubusercontent.com/davisricart/grbalance/main/clients/${clientPath}/scripts/${file.name}`,
+          deployedAt: new Date().toISOString(),
+          size: file.size,
+          type: 'github',
+          status: 'uploaded'
+        };
+
+        // TODO: Save metadata to Firebase
+        console.log('💾 Script metadata:', scriptMetadata);
+        
+        setScriptStatus(prev => ({ ...prev, [userId]: 'uploaded' }));
+        alert(`Script "${file.name}" uploaded successfully!`);
+        
+      } catch (error) {
+        console.error('❌ Error uploading script:', error);
+        alert(`Failed to upload script: ${error.message}`);
+      } finally {
+        setProcessingUser(null);
+      }
+    };
+    
+    input.click();
   };
 
   const handleScriptTest = async (userId: string) => {

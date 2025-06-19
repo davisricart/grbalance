@@ -54,18 +54,30 @@ exports.handler = async function(event, context) {
     
     const db = admin.firestore();
     
-    // Get all users and find scripts deployed to this client
-    const usersSnapshot = await db.collection('usage').get();
+    // Get client-specific scripts from Firebase metadata
+    const clientDoc = await db.collection('clients').doc(clientId).get();
     const availableScripts = [];
     
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      const deployedScripts = userData.deployedScripts || [];
+    if (clientDoc.exists) {
+      const clientData = clientDoc.data();
+      const deployedScripts = clientData.deployedScripts || [];
       
-      // Check each script to see if it's deployed to this client
+      // Load scripts from GitHub using hybrid approach
       for (const script of deployedScripts) {
-        if (typeof script === 'object' && script.logic) {
-          // This is a dynamic script with logic
+        if (typeof script === 'object' && script.scriptPath) {
+          // New hybrid approach - script stored in GitHub
+          availableScripts.push({
+            name: script.name,
+            deployedAt: script.deployedAt,
+            size: script.size || 1000,
+            type: script.type || 'github',
+            preview: script.preview || script.name,
+            status: script.status || 'active',
+            scriptPath: script.scriptPath, // Path to GitHub file
+            githubUrl: `https://raw.githubusercontent.com/davisricart/grbalance/main/${script.scriptPath}`
+          });
+        } else if (typeof script === 'object' && script.logic) {
+          // Legacy Firebase storage approach
           availableScripts.push({
             name: script.name,
             deployedAt: script.deployedAt,
@@ -73,20 +85,24 @@ exports.handler = async function(event, context) {
             type: script.type,
             preview: script.preview,
             status: script.status,
-            logic: script.logic
-          });
-        } else if (typeof script === 'string') {
-          // This is a legacy script name
-          availableScripts.push({
-            name: script,
-            deployedAt: new Date().toISOString(),
-            size: 1000,
-            type: 'custom',
-            preview: 'Legacy script',
-            status: 'active'
+            logic: script.logic // Stored in Firebase
           });
         }
       }
+    } else {
+      console.log(`⚠️ No client document found for ${clientId}, checking template scripts`);
+      
+      // Fallback to template scripts for new clients
+      availableScripts.push({
+        name: 'Basic Reconciliation',
+        deployedAt: new Date().toISOString(),
+        size: 1000,
+        type: 'template',
+        preview: 'Default reconciliation script',
+        status: 'active',
+        scriptPath: 'clients/template/scripts/reconciliation.js',
+        githubUrl: 'https://raw.githubusercontent.com/davisricart/grbalance/main/clients/template/scripts/reconciliation.js'
+      });
     }
 
     // Remove duplicates by name
