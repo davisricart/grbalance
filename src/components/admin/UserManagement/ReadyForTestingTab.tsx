@@ -62,8 +62,44 @@ export default function ReadyForTestingTab({
         approvedAt: new Date().toISOString(),
         createdAt: user.createdAt
       });
+      
+      console.log('✅ Client approved and live:', user.id);
+      
     } finally {
       setProcessingUser(null);
+    }
+  };
+
+  const cleanupDuplicateClients = async () => {
+    console.log('🧹 Starting cleanup of duplicate client data...');
+    
+    try {
+      // TODO: Implement actual cleanup API call
+      // This handles the specific scenario:
+      // Same session creates: /clientname1 + /clientname2
+      // Only /clientname2 goes live → Keep /clientname2, Delete /clientname1
+      
+      const response = await fetch('/.netlify/functions/cleanup-duplicate-clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'cleanup_same_session_duplicates',
+          strategy: 'keep_approved_delete_abandoned', // Keep what went live, remove what didn't
+          sessionBased: true // Look for same user with different client paths
+        })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Duplicate cleanup completed:', result);
+        alert(`Cleanup completed: Removed ${result.abandonedSites} abandoned test sites, kept ${result.liveSites} live sites`);
+      } else {
+        throw new Error('Duplicate cleanup failed');
+      }
+      
+    } catch (error) {
+      console.error('❌ Duplicate cleanup failed:', error);
+      alert('Duplicate cleanup failed - see console for details');
     }
   };
 
@@ -78,6 +114,24 @@ export default function ReadyForTestingTab({
     setProcessingUser(rejectingUser);
     try {
       await onSendBackToPending(rejectingUser, rejectReason);
+      
+      // NUCLEAR RESET: Make it like this client never existed in QA
+      console.log('🧨 COMPLETE RESET: Erasing all traces of client:', rejectingUser);
+      
+      // Reset ALL local state - virgin slate
+      setWebsiteStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
+      setScriptStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
+      setCustomUrls(prev => ({ ...prev, [rejectingUser]: undefined }));
+      setTestingNotes(prev => ({ ...prev, [rejectingUser]: '' }));
+      
+      // Log what needs manual cleanup
+      console.log('📋 MANUAL CLEANUP REQUIRED:');
+      console.log('1. Firebase: Delete clients/{clientId} document');
+      console.log('2. GitHub: Delete /clients/{clientname}/ folder');
+      console.log('3. Any client portal data');
+      console.log('4. Any deployment artifacts');
+      console.log('🎯 Goal: Make it like they never entered QA testing');
+      
       setRejectingUser(null);
       setRejectReason('');
     } finally {
@@ -204,6 +258,8 @@ export default function ReadyForTestingTab({
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
       console.log('✅ Website created successfully:', clientData);
+      console.log('🔍 Current clientPath after creation:', clientPath);
+      console.log('🔍 CustomUrls state:', customUrls[userId]);
       
     } catch (error) {
       console.error('❌ Error creating website:', error);
@@ -256,7 +312,7 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Client portals: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+            Client portals: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/[clientname]</code>
           </div>
         </div>
       </div>
@@ -439,7 +495,32 @@ export default function ReadyForTestingTab({
                         }}
                       />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">Preview this portal above → test login, upload files, run scripts</div>
+                    
+                    {/* Full URL Display with Copy/Visit Options */}
+                    <div className="mt-2 p-2 bg-gray-50 rounded-md border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-500 mb-1">Full URL:</div>
+                          <code className="text-xs font-mono text-gray-800 select-all">
+                            {`https://grbalance.netlify.app/${clientPath}`}
+                          </code>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <button
+                            onClick={() => navigator.clipboard.writeText(`https://grbalance.netlify.app/${clientPath}`)}
+                            className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                          >
+                            Copy
+                          </button>
+                          <button
+                            onClick={() => window.open(`https://grbalance.netlify.app/${clientPath}`, '_blank')}
+                            className="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                          >
+                            Visit
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Script Workflow */}
