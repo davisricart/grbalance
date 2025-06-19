@@ -113,14 +113,14 @@ export default function ReadyForTestingTab({
       if (response.ok) {
         const result = await response.json();
         console.log('✅ Duplicate cleanup completed:', result);
-        alert(`Cleanup completed: Removed ${result.abandonedSites} abandoned test sites, kept ${result.liveSites} live sites`);
+        console.log(`✅ Cleanup completed: Removed ${result.abandonedSites} abandoned test sites, kept ${result.liveSites} live sites`);
       } else {
         throw new Error('Duplicate cleanup failed');
       }
       
     } catch (error) {
       console.error('❌ Duplicate cleanup failed:', error);
-      alert('Duplicate cleanup failed - see console for details');
+      console.error('❌ Duplicate cleanup failed - see console for details');
     }
   };
 
@@ -253,7 +253,7 @@ export default function ReadyForTestingTab({
       
     } catch (error) {
       console.error('❌ Error testing script:', error);
-      alert(`Failed to test script: ${error.message}`);
+      // No popup - just log the error
     } finally {
       setProcessingUser(null);
     }
