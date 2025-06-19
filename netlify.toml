@@ -8,9 +8,10 @@
   NODE_VERSION = "18"
   NODE_OPTIONS = "--max-old-space-size=4096"
 
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["firebase-admin", "@firebase/*", "@supabase/supabase-js", "jwks-rsa", "jose", "jsonwebtoken", "node-forge", "uuid", "limiter", "lru-memoizer", "debug", "just-performance", "farmhash-modern", "node-fetch"]
+# Functions disabled - using direct frontend calls
+# [functions]
+#   node_bundler = "esbuild"
+#   external_node_modules = ["firebase-admin", "@firebase/*", "@supabase/supabase-js", "jwks-rsa", "jose", "jsonwebtoken", "node-forge", "uuid", "limiter", "lru-memoizer", "debug", "just-performance", "farmhash-modern", "node-fetch"]
 
 # Redirect rules for SPA
 [[redirects]]
