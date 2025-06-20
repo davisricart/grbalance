@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle } from 'lucide-react';
 import { ReadyForTestingUser } from '../../../types/admin';
 
@@ -24,6 +24,41 @@ export default function ReadyForTestingTab({
   const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
   const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
   const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
+
+  // Check Supabase for existing websites when component loads
+  useEffect(() => {
+    const checkExistingWebsites = async () => {
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      
+      for (const user of readyForTestingUsers) {
+        try {
+          const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${user.id}`, {
+            method: 'GET',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const clients = await response.json();
+            if (clients && clients.length > 0) {
+              setWebsiteStatus(prev => ({ ...prev, [user.id]: 'created' }));
+              console.log('🔄 Found existing website for:', user.id);
+            }
+          }
+        } catch (error) {
+          console.warn('Error checking existing website for:', user.id);
+        }
+      }
+    };
+
+    if (readyForTestingUsers.length > 0) {
+      checkExistingWebsites();
+    }
+  }, [readyForTestingUsers]);
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
@@ -454,10 +489,11 @@ export default function ReadyForTestingTab({
                         <span>Ready {new Date(user.readyForTestingAt).toLocaleDateString()}</span>
                       </div>
                       
-                      {/* Client Portal URL - Moved to prominent position */}
-                      <div className="mt-2">
-                        <div className="flex items-center gap-2">
-                          {websiteStatus[user.id] === 'created' ? (
+                      {/* PROMINENT CLIENT PORTAL URL - As requested */}
+                      {websiteStatus[user.id] === 'created' && (
+                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium text-blue-800">Client Portal:</span>
                             <a
                               href={`https://grbalance.netlify.app/${clientPath}`}
                               target="_blank"
@@ -466,25 +502,10 @@ export default function ReadyForTestingTab({
                             >
                               grbalance.netlify.app/{clientPath}
                             </a>
-                          ) : (
-                            <>
-                              <span className="text-sm text-gray-500">grbalance.netlify.app/</span>
-                              <input
-                                type="text"
-                                value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
-                                onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
-                                placeholder="Enter client business name here..."
-                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 max-w-xs"
-                                onFocus={(e) => {
-                                  if (customUrls[user.id] === undefined) {
-                                    setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
-                                  }
-                                }}
-                              />
-                            </>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      
                     </div>
 
                     {/* QA Status & Actions */}
