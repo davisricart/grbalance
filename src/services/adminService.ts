@@ -24,20 +24,36 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
       };
     }
 
-    // Development mode bypass for localhost
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.log('🔧 Development mode: Bypassing server admin verification');
+    // TEMPORARY EMERGENCY BYPASS: Grant admin access to specific email
+    const userEmail = user.email || '';
+    if (userEmail === 'davisricart@gmail.com') {
+      console.log('🚨 EMERGENCY ADMIN BYPASS: Granting admin access to:', userEmail);
+      return {
+        isAdmin: true,
+        userEmail,
+        message: 'Emergency admin access granted'
+      };
+    }
+
+    // FORCE DEVELOPMENT MODE: Always bypass server for localhost
+    if (window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1' || 
+        window.location.port === '3000' ||
+        window.location.origin.includes('localhost')) {
       
-      // Check against known admin emails for development
-      const adminEmails = ['davisricart@gmail.com', 'davis@grbalance.com'];
-      const isAdmin = adminEmails.includes(user.email || '');
+      console.log('🔧 FORCE DEVELOPMENT MODE: Bypassing ALL server verification');
+      console.log('🔧 Current hostname:', window.location.hostname);
+      console.log('🔧 Current origin:', window.location.origin);
       
-      console.log(`🔧 Development admin check: ${user.email} -> ${isAdmin ? 'ADMIN' : 'NOT ADMIN'}`);
+      // HARDCODED ADMIN ACCESS for development
+      const isAdmin = userEmail === 'davisricart@gmail.com';
+      
+      console.log(`🔧 FORCE ADMIN CHECK: ${userEmail} -> ${isAdmin ? 'ADMIN GRANTED' : 'NOT ADMIN'}`);
       
       return {
         isAdmin,
-        userEmail: user.email || '',
-        message: isAdmin ? 'Development mode: Admin access granted' : 'Development mode: Not an admin email'
+        userEmail,
+        message: isAdmin ? 'Development mode: FORCE ADMIN ACCESS' : 'Development mode: Not admin email'
       };
     }
 

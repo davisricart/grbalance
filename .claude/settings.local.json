@@ -67,7 +67,9 @@
       "Bash(npm view:*)",
       "Bash(npm config delete:*)",
       "Bash(sudo npm i -g @anthropic-ai/claude-code)",
-      "Bash(netlify dev:*)"
+      "Bash(netlify dev:*)",
+      "Bash(npm start)",
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npx vite --port 3000)"
     ],
     "deny": []
   }
