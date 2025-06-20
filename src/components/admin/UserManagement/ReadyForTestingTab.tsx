@@ -537,6 +537,28 @@ export default function ReadyForTestingTab({
                         <span>Ready {new Date(user.readyForTestingAt).toLocaleDateString()}</span>
                       </div>
                       
+                      {/* Client Portal URL Input */}
+                      {websiteStatus[user.id] !== 'created' && (
+                        <div className="mt-2">
+                          <label className="block text-xs text-gray-600 mb-1">Client Portal URL:</label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-500">grbalance.netlify.app/</span>
+                            <input
+                              type="text"
+                              value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
+                              onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
+                              placeholder="Enter client portal name..."
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 max-w-xs"
+                              onFocus={(e) => {
+                                if (customUrls[user.id] === undefined) {
+                                  setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      
                     </div>
 
                     {/* QA Status & Actions */}
