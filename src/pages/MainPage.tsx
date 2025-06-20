@@ -49,6 +49,19 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     const urlParams = new URLSearchParams(window.location.search);
     let clientId = urlParams.get('client');
     
+    // Check if we're on a client portal path (e.g., /salontest)
+    if (!clientId) {
+      const path = window.location.pathname;
+      const pathSegments = path.split('/').filter(segment => segment.length > 0);
+      
+      // If there's a path segment that's not a known route, treat it as client ID
+      if (pathSegments.length === 1 && 
+          !['app', 'admin', 'login', 'register', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'billing', 'mockup-billing'].includes(pathSegments[0])) {
+        clientId = pathSegments[0];
+        console.log('🎯 Detected client portal path:', clientId);
+      }
+    }
+    
     // If no client parameter, try to get from environment variable (for deployed sites)
     if (!clientId) {
       // For deployed Netlify sites, the CLIENT_ID should be available
