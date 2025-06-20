@@ -19,8 +19,6 @@ export default function ReadyForTestingTab({
 }: ReadyForTestingTabProps) {
   const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [testingNotes, setTestingNotes] = useState<{[key: string]: string}>({});
-  const [rejectingUser, setRejectingUser] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
   const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
   const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
   const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
@@ -175,58 +173,54 @@ export default function ReadyForTestingTab({
   };
 
   const handleSendBack = (userId: string) => {
-    setRejectingUser(userId);
-    setRejectReason('');
+    if (confirm('⚠️ Are you sure you want to send this client back to pending? This will reset their status and remove all testing data.')) {
+      confirmSendBack(userId);
+    }
   };
 
-  const confirmSendBack = async () => {
-    if (!rejectingUser || !rejectReason.trim()) return;
-    
-    setProcessingUser(rejectingUser);
+  const confirmSendBack = async (userId: string) => {
+    setProcessingUser(userId);
     try {
-      await onSendBackToPending(rejectingUser, rejectReason);
+      await onSendBackToPending(userId, 'Sent back from QA testing');
       
       // NUCLEAR RESET: LIVE deletion of all client data
-      console.log('🧨 LIVE COMPLETE RESET: Erasing all traces of client:', rejectingUser);
-      
-      try {
-        // DIRECT SUPABASE DELETION: Remove client record completely
-        const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+              console.log('🧨 LIVE COMPLETE RESET: Erasing all traces of client:', userId);
         
-        const deleteResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${rejectingUser}`, {
-          method: 'DELETE',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
+        try {
+          // DIRECT SUPABASE DELETION: Remove client record completely
+          const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+          
+          const deleteResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+            method: 'DELETE',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (deleteResponse.ok) {
+            console.log('✅ LIVE Supabase deletion completed for client:', userId);
+          } else {
+            console.warn('⚠️ Supabase deletion failed - continuing with local reset');
           }
-        });
-        
-        if (deleteResponse.ok) {
-          console.log('✅ LIVE Supabase deletion completed for client:', rejectingUser);
-        } else {
-          console.warn('⚠️ Supabase deletion failed - continuing with local reset');
+        } catch (error) {
+          console.warn('⚠️ Data wipe failed - continuing with local reset:', error);
+          // Don't fail the send-back operation if deletion fails
         }
-      } catch (error) {
-        console.warn('⚠️ Data wipe failed - continuing with local reset:', error);
-        // Don't fail the send-back operation if deletion fails
-      }
-      
-      // Reset ALL local state - virgin slate
-      setWebsiteStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
-      setScriptStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
-      setCustomUrls(prev => {
-        const newUrls = { ...prev };
-        delete newUrls[rejectingUser];
-        return newUrls;
-      });
-      setTestingNotes(prev => ({ ...prev, [rejectingUser]: '' }));
-      
-      console.log('🎯 LIVE RESET: Client never existed - fresh start ready');
-      
-      setRejectingUser(null);
-      setRejectReason('');
+        
+        // Reset ALL local state - virgin slate
+        setWebsiteStatus(prev => ({ ...prev, [userId]: 'none' }));
+        setScriptStatus(prev => ({ ...prev, [userId]: 'none' }));
+        setCustomUrls(prev => {
+          const newUrls = { ...prev };
+          delete newUrls[userId];
+          return newUrls;
+        });
+        setTestingNotes(prev => ({ ...prev, [userId]: '' }));
+        
+        console.log('🎯 LIVE RESET: Client never existed - fresh start ready');
     } finally {
       setProcessingUser(null);
     }
@@ -466,7 +460,33 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Created client portals appear as clickable links below each client
+            {/* Show active client portals here */}
+            {readyForTestingUsers.some(user => websiteStatus[user.id] === 'created') ? (
+              <div className="space-y-1">
+                <span className="text-gray-400 text-xs">Client Portals:</span>
+                {readyForTestingUsers
+                  .filter(user => websiteStatus[user.id] === 'created')
+                  .map(user => {
+                    const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                                     user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+                    return (
+                      <div key={user.id} className="flex items-center gap-2">
+                        <span className="text-gray-600 text-xs">{user.businessName}:</span>
+                        <a
+                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 hover:text-green-800 underline font-medium text-xs"
+                        >
+                          grbalance.netlify.app/{clientPath}
+                        </a>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <span>Created client portals appear as clickable links below each client</span>
+            )}
           </div>
         </div>
       </div>
@@ -514,20 +534,17 @@ export default function ReadyForTestingTab({
                     <div className="flex items-center gap-3">
                       {/* Create/Preview Website */}
                       {websiteStatus[user.id] === 'created' ? (
-                        <div className="bg-blue-100 border border-blue-200 rounded-md p-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium">Client Portal:</span>
-                            <a
-                              href={`https://grbalance.netlify.app/${clientPath}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 underline font-medium"
-                            >
-                              grbalance.netlify.app/{clientPath}
-                            </a>
-                          </div>
-                        </div>
+                        <a
+                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors border border-green-200"
+                        >
+                          <CheckCircle className="h-3 w-3" />
+                          <span>Website Ready</span>
+                          <span className="text-xs">/{clientPath}</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
                       ) : (
                         <button
                           onClick={() => handleCreateWebsite(user.id)}
@@ -691,43 +708,7 @@ export default function ReadyForTestingTab({
                 </div>
               </div>
 
-              {/* Inline Rejection Form */}
-              {rejectingUser === user.id && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <div className="p-1.5 bg-red-100 rounded-lg flex-shrink-0">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h5 className="text-sm font-medium text-red-800 mb-2">Send Back to Pending</h5>
-                      <textarea
-                        value={rejectReason}
-                        onChange={(e) => setRejectReason(e.target.value)}
-                        placeholder="Explain what needs to be fixed..."
-                        className="w-full px-3 py-2 text-sm border border-red-300 rounded-md focus:ring-red-500 focus:border-red-500"
-                        rows={3}
-                        autoFocus
-                      />
-                      <div className="flex items-center gap-2 mt-3">
-                        <button
-                          onClick={confirmSendBack}
-                          disabled={!rejectReason.trim() || isProcessing}
-                          className="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          Send Back
-                        </button>
-                        <button
-                          onClick={() => setRejectingUser(null)}
-                          disabled={isProcessing}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-md hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
             </div>
           );
         })}
