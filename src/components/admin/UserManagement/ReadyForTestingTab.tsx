@@ -25,33 +25,48 @@ export default function ReadyForTestingTab({
   const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
   const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
 
-  // Check Supabase for existing websites when component loads
+  // Check Supabase for existing websites when component loads - PERSISTENT STATUS
   useEffect(() => {
     const checkExistingWebsites = async () => {
+      console.log('🔄 CHECKING PERSISTENT WEBSITE STATUS - Loading from Supabase...');
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      for (const user of readyForTestingUsers) {
-        try {
-          const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${user.id}`, {
-            method: 'GET',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
+      // Load all existing clients at once for better performance
+      try {
+        const userIds = readyForTestingUsers.map(user => user.id).join(',');
+        const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=in.(${userIds})&select=id,client_path,website_created`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const clients = await response.json();
+          console.log('📊 Supabase persistence check:', clients.length, 'existing websites found');
+          
+          // Update status for all found clients
+          const newWebsiteStatus: {[key: string]: 'none' | 'created'} = {};
+          clients.forEach((client: any) => {
+            if (client.website_created) {
+              newWebsiteStatus[client.id] = 'created';
+              console.log('✅ PERSISTENT: Website exists for', client.id, '→', client.client_path);
             }
           });
           
-          if (response.ok) {
-            const clients = await response.json();
-            if (clients && clients.length > 0) {
-              setWebsiteStatus(prev => ({ ...prev, [user.id]: 'created' }));
-              console.log('🔄 Found existing website for:', user.id);
-            }
+          // Batch update the state
+          if (Object.keys(newWebsiteStatus).length > 0) {
+            setWebsiteStatus(prev => ({ ...prev, ...newWebsiteStatus }));
+            console.log('🎯 PERSISTENT STATUS RESTORED:', Object.keys(newWebsiteStatus).length, 'websites');
           }
-        } catch (error) {
-          console.warn('Error checking existing website for:', user.id);
+        } else {
+          console.warn('⚠️ Failed to load persistent website status');
         }
+      } catch (error) {
+        console.error('❌ Error checking persistent website status:', error);
       }
     };
 
@@ -201,7 +216,11 @@ export default function ReadyForTestingTab({
       // Reset ALL local state - virgin slate
       setWebsiteStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
       setScriptStatus(prev => ({ ...prev, [rejectingUser]: 'none' }));
-      setCustomUrls(prev => ({ ...prev, [rejectingUser]: undefined }));
+      setCustomUrls(prev => {
+        const newUrls = { ...prev };
+        delete newUrls[rejectingUser];
+        return newUrls;
+      });
       setTestingNotes(prev => ({ ...prev, [rejectingUser]: '' }));
       
       console.log('🎯 LIVE RESET: Client never existed - fresh start ready');
@@ -489,40 +508,26 @@ export default function ReadyForTestingTab({
                         <span>Ready {new Date(user.readyForTestingAt).toLocaleDateString()}</span>
                       </div>
                       
-                      {/* PROMINENT CLIENT PORTAL URL - As requested */}
-                      {websiteStatus[user.id] === 'created' && (
-                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-blue-800">Client Portal:</span>
-                            <a
-                              href={`https://grbalance.netlify.app/${clientPath}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
-                            >
-                              grbalance.netlify.app/{clientPath}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                      
                     </div>
 
                     {/* QA Status & Actions */}
                     <div className="flex items-center gap-3">
                       {/* Create/Preview Website */}
                       {websiteStatus[user.id] === 'created' ? (
-                        <a
-                          href={`https://grbalance.netlify.app/${clientPath}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors border border-green-200"
-                        >
-                          <CheckCircle className="h-3 w-3" />
-                          <span>Website Ready</span>
-                          <span className="text-xs">/{clientPath}</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+                        <div className="bg-blue-100 border border-blue-200 rounded-md p-3">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium">Client Portal:</span>
+                            <a
+                              href={`https://grbalance.netlify.app/${clientPath}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 underline font-medium"
+                            >
+                              grbalance.netlify.app/{clientPath}
+                            </a>
+                          </div>
+                        </div>
                       ) : (
                         <button
                           onClick={() => handleCreateWebsite(user.id)}

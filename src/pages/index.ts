@@ -1,6 +1,7 @@
 // Main application pages
 export { default as AdminPage } from './AdminPage';
 export { default as BookingPage } from './BookingPage';
+export { default as ClientPortalPage } from './ClientPortalPage';
 export { default as ContactPage } from './ContactPage';
 export { default as DemoPage } from './DemoPage';
 export { default as DocumentationPage } from './DocumentationPage';

@@ -22,6 +22,7 @@ import SupportPage from './pages/SupportPage';
 import TermsPage from './pages/TermsPage';
 import BillingPage from './pages/BillingPage';
 import BillingWireframe from './mockups/BillingWireframe';
+import ClientPortalPage from './pages/ClientPortalPage';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuthState();
@@ -131,6 +132,8 @@ export default function App() {
                 <BillingWireframe />
               </ProtectedRoute>
             } />
+            {/* Dynamic Client Portal Route */}
+            <Route path="/:clientname" element={<ClientPortalPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
