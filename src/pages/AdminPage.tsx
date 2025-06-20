@@ -1772,10 +1772,16 @@ WARNING:
 
   const getDaysAgo = (date: Date | string) => {
     const now = new Date();
+    
+    // Handle null/undefined dates
+    if (!date) {
+      return 0;
+    }
+    
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     
-    // Check if the date is valid
-    if (isNaN(dateObj.getTime())) {
+    // Check if the date is valid and has getTime method
+    if (!dateObj || typeof dateObj.getTime !== 'function' || isNaN(dateObj.getTime())) {
       return 0; // Return 0 for invalid dates
     }
     
