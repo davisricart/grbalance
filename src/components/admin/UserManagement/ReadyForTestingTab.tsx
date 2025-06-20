@@ -302,18 +302,49 @@ export default function ReadyForTestingTab({
       console.log('📡 Making direct Supabase API call to:', `${supabaseUrl}/rest/v1/clients`);
       console.log('📦 Client data payload:', clientData);
       
-      const createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
-        method: 'POST',
+      // First, check if client already exists
+      const checkResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+        method: 'GET',
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(clientData)
+          'Content-Type': 'application/json'
+        }
       });
       
-      console.log('📨 Supabase API response status:', createResponse.status);
+      const existingClients = await checkResponse.json();
+      const clientExists = existingClients && existingClients.length > 0;
+      
+      console.log('🔍 Client exists check:', clientExists ? 'YES - will UPDATE' : 'NO - will CREATE');
+      
+      let createResponse;
+      if (clientExists) {
+        // UPDATE existing client
+        createResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(clientData)
+        });
+        console.log('📨 UPDATE response status:', createResponse.status);
+      } else {
+        // CREATE new client
+        createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(clientData)
+        });
+        console.log('📨 CREATE response status:', createResponse.status);
+      }
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
@@ -322,7 +353,7 @@ export default function ReadyForTestingTab({
       }
 
       const result = await createResponse.json();
-      console.log('✅ LIVE Website created directly in Supabase:', result);
+      console.log('✅ LIVE Website processed directly in Supabase:', result);
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
       console.log('🔍 Current clientPath after creation:', clientPath);
@@ -419,6 +450,38 @@ export default function ReadyForTestingTab({
                         <span>{user.email}</span>
                         <span>•</span>
                         <span>Ready {new Date(user.readyForTestingAt).toLocaleDateString()}</span>
+                      </div>
+                      
+                      {/* Client Portal URL - Moved to prominent position */}
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2">
+                          {websiteStatus[user.id] === 'created' ? (
+                            <a
+                              href={`https://grbalance.netlify.app/${clientPath}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-blue-600 hover:text-blue-800 underline font-medium"
+                            >
+                              grbalance.netlify.app/{clientPath}
+                            </a>
+                          ) : (
+                            <>
+                              <span className="text-sm text-gray-500">grbalance.netlify.app/</span>
+                              <input
+                                type="text"
+                                value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
+                                onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
+                                placeholder="Enter client business name here..."
+                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 max-w-xs"
+                                onFocus={(e) => {
+                                  if (customUrls[user.id] === undefined) {
+                                    setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
+                                  }
+                                }}
+                              />
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -543,39 +606,6 @@ export default function ReadyForTestingTab({
                     </div>
                   </div>
 
-                  {/* Client Portal URL */}
-                  <div className="mt-3 ml-0">
-                    <label className="block text-xs text-gray-600 mb-1">Client Portal URL:</label>
-                    <div className="flex items-center gap-2">
-                      {websiteStatus[user.id] === 'created' ? (
-                        <a
-                          href={`https://grbalance.netlify.app/${clientPath}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 underline"
-                        >
-                          grbalance.netlify.app/{clientPath}
-                        </a>
-                      ) : (
-                        <>
-                          <span className="text-xs text-gray-500">grbalance.netlify.app/</span>
-                          <input
-                            type="text"
-                            value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
-                            onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
-                            placeholder="Enter client business name here..."
-                            className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-xs focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400"
-                            onFocus={(e) => {
-                              // Clear the field on first focus if it's still the default
-                              if (customUrls[user.id] === undefined) {
-                                setCustomUrls(prev => ({ ...prev, [user.id]: '' }));
-                              }
-                            }}
-                          />
-                        </>
-                      )}
-                    </div>
-                  </div>
 
                   {/* Script Workflow */}
                   <div className="mt-3 ml-0">
