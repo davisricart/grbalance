@@ -173,9 +173,8 @@ export default function ReadyForTestingTab({
   };
 
   const handleSendBack = (userId: string) => {
-    if (confirm('⚠️ Are you sure you want to send this client back to pending? This will reset their status and remove all testing data.')) {
-      confirmSendBack(userId);
-    }
+    // Direct send back - no popup confirmation
+    confirmSendBack(userId);
   };
 
   const confirmSendBack = async (userId: string) => {
