@@ -890,7 +890,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
             </div>
           </div>
           <div className="mt-4 sm:mt-6 max-w-full sm:max-w-xs">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Select Comparison Script</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Codes</label>
             <select 
               value={script}
               onChange={handleScriptChange}
@@ -900,7 +900,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                   : 'border-gray-200'
               } focus:border-emerald-500 focus:ring-emerald-500`}
             >
-              <option value="">Select a script...</option>
+              <option value="">Select a Code</option>
               {availableScripts.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}

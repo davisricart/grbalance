@@ -252,27 +252,35 @@ export default function ReadyForTestingTab({
           size: file.size
         });
 
-        // REAL UPLOAD: Send to Netlify function for GitHub + Firebase
-        const uploadResponse = await fetch('/.netlify/functions/upload-client-script', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        // DIRECT SUPABASE: Save script to client record
+        const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+        
+        const scriptData = {
+          id: file.name.replace(/\.(js|ts)$/, ''),
+          name: file.name.replace(/\.(js|ts)$/, ''),
+          content: scriptContent,
+          uploaded_at: new Date().toISOString()
+        };
+
+        // Update client record with new script
+        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+          method: 'PATCH',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify({
-            clientId: userId,
-            clientPath: clientPath,
-            fileName: file.name,
-            scriptContent: scriptContent,
-            scriptMetadata: {
-              name: file.name.replace(/\.(js|ts)$/, '')
-            }
+            deployed_scripts: [scriptData]
           })
         });
 
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        if (!updateResponse.ok) {
+          throw new Error(`Script upload failed: ${updateResponse.statusText}`);
         }
 
-        const result = await uploadResponse.json();
-        console.log('✅ Script uploaded successfully:', result);
+        console.log('✅ Script uploaded to Supabase successfully:', scriptData);
         
         setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
         console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + Firebase!`);
