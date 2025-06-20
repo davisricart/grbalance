@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { getDoc, doc } from 'firebase/firestore';
 import { Helmet } from 'react-helmet';
 import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
-
-import { auth, db } from '../main';
+import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 
 export default function LoginPage() {
@@ -32,59 +29,37 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Check user's approval status
-      const userStatusDoc = await getDoc(doc(db, 'usage', user.uid));
-      
-      if (userStatusDoc.exists() && userStatusDoc.data().status === 'pending') {
-        // User is pending approval - redirect to pending page
-        navigate('/pending-approval');
-        return;
-      }
-      
-      // Check if user is associated with a specific client
-      const clientId = detectClientFromEmail(email);
-      
-      if (clientId) {
-        // Redirect to client-specific portal
-        navigate(`/app?client=${clientId}`);
-      } else {
-        // Check if there's already a client parameter in the URL
-        const urlParams = new URLSearchParams(location.search);
-        const existingClient = urlParams.get('client');
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      if (data.user) {
+        // Check if user is associated with a specific client
+        const clientId = detectClientFromEmail(email);
         
-        if (existingClient) {
-          // Preserve the client parameter from the URL
-          navigate(`/app?client=${existingClient}`);
+        if (clientId) {
+          // Redirect to client-specific portal
+          navigate(`/app?client=${clientId}`);
         } else {
-          // Default redirect to main app
-      navigate('/app');
+          // Check if there's already a client parameter in the URL
+          const urlParams = new URLSearchParams(location.search);
+          const existingClient = urlParams.get('client');
+          
+          if (existingClient) {
+            // Preserve the client parameter from the URL
+            navigate(`/app?client=${existingClient}`);
+          } else {
+            // Default redirect to main app
+            navigate('/app');
+          }
         }
       }
     } catch (error: any) {
-      switch (error.code) {
-        case 'auth/invalid-email':
-          setError('Invalid email address');
-          break;
-        case 'auth/invalid-login-credentials':
-        case 'auth/wrong-password':
-        case 'auth/user-not-found':
-          setError('Incorrect email or password');
-          break;
-        case 'auth/user-disabled':
-          setError('This account has been disabled');
-          break;
-        case 'auth/too-many-requests':
-          setError('Too many attempts. Try again later');
-          break;
-        case 'auth/network-request-failed':
-          setError('Network error. Check your connection');
-          break;
-        default:
-          setError('Incorrect email or password');
-      }
+      console.error('Login error:', error);
+      setError(error.message || 'Incorrect email or password');
     } finally {
       setIsLoading(false);
     }

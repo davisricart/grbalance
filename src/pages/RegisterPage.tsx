@@ -1,12 +1,10 @@
 // PAGE MARKER: Register Page Component
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import { Helmet } from 'react-helmet';
 import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Building } from 'lucide-react';
 
-import { auth, db } from '../main';
+import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 
 const TIER_LIMITS = {
@@ -188,50 +186,84 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+      });
+
+      if (signUpError) {
+        throw signUpError;
+      }
+
+      const user = data.user;
+      if (!user) {
+        throw new Error('User creation failed');
+      }
 
       // Create pending approval record
-      await setDoc(doc(db, 'pendingUsers', user.uid), {
-        email: user.email,
-        businessName: businessName.trim(),
-        businessType: businessType.trim(),
-        subscriptionTier: selectedTier,
-        billingCycle: isAnnual ? 'annual' : 'monthly',
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+      const { error: pendingUserError } = await supabase
+        .from('pendingUsers')
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            businessName: businessName.trim(),
+            businessType: businessType.trim(),
+            subscriptionTier: selectedTier,
+            billingCycle: isAnnual ? 'annual' : 'monthly',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]);
+
+      if (pendingUserError) {
+        throw pendingUserError;
+      }
 
       // Create initial usage record with pending status
-      await setDoc(doc(db, 'usage', user.uid), {
-        email: user.email,
-        comparisonsUsed: 0,
-        comparisonsLimit: 0, // No access until approved
-        subscriptionTier: selectedTier,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+      const { error: usageError } = await supabase
+        .from('usage')
+        .insert([
+          {
+            id: user.id,
+            email: user.email,
+            comparisonsUsed: 0,
+            comparisonsLimit: 0, // No access until approved
+            subscriptionTier: selectedTier,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]);
+
+      if (usageError) {
+        throw usageError;
+      }
 
       // Redirect to pending approval page instead of main app
       navigate('/pending-approval');
     } catch (error: any) {
       console.error('Registration error:', error);
-      switch (error.code) {
-        case 'auth/email-already-in-use':
+      switch (error.message) {
+        case 'User already registered':
           setError('This email is already registered. If you recently deleted this account, please try a different email or contact support.');
           break;
-        case 'auth/invalid-email':
+        case 'Invalid email':
           setError('Invalid email address');
           break;
-        case 'auth/operation-not-allowed':
+        case 'Signup is disabled':
           setError('Email/password accounts are not enabled');
           break;
-        case 'auth/weak-password':
+        case 'Password should be at least 6 characters':
           setError('Password is too weak');
           break;
         default:
-          setError('Failed to create account. Please try again.');
+          if (error.message.includes('already registered')) {
+            setError('This email is already registered. If you recently deleted this account, please try a different email or contact support.');
+          } else {
+            setError('Failed to create account. Please try again.');
+          }
       }
     } finally {
       setIsLoading(false);

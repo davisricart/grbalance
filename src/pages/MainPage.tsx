@@ -1,10 +1,8 @@
 // PAGE MARKER: Main Page Component
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { User, signOut } from 'firebase/auth';
 import { FileSpreadsheet, Download, AlertCircle, LogOut, BarChart3, TrendingUp, DollarSign, Lightbulb, CheckCircle, XCircle, Users } from 'lucide-react';
-import { doc, runTransaction, collection, query, where, getDocs } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
-import { auth, db } from '../main';
+import { supabase } from '../config/supabase';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
 import VirtualTable from '../components/VirtualTable';
@@ -21,7 +19,7 @@ import {
 } from '../types';
 
 interface MainPageProps {
-  user: User;
+  user: any; // Supabase user type
 }
 
 const MainPage = React.memo(({ user }: MainPageProps) => {
@@ -166,7 +164,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const handleSignOut = useCallback(async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
