@@ -1575,16 +1575,16 @@ WARNING:
           return `
             <div class="p-4">
               <div class="overflow-x-auto">
-                <table class="min-w-full border-collapse border-2 border-gray-400">
-                  <thead class="bg-gray-50">
+                <table style="border-collapse: collapse; border: 2px solid #9CA3AF; width: 100%;">
+                  <thead>
                     <tr>
-                      ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-2 border-gray-400 bg-gray-100">${header}</th>`).join('')}
+                      ${headers.map(header => `<th style="padding: 12px 24px; text-align: left; font-size: 12px; font-weight: 500; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border: 2px solid #9CA3AF; background-color: #F3F4F6;">${header}</th>`).join('')}
                     </tr>
                   </thead>
-                  <tbody class="bg-white">
+                  <tbody>
                     ${results.slice(0, 5).map(row => `
-                      <tr class="hover:bg-gray-50">
-                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-gray-300">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
+                      <tr style="background-color: white;">
+                        ${headers.map(header => `<td style="padding: 16px 24px; white-space: nowrap; font-size: 14px; color: #111827; border: 2px solid #D1D5DB;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
                       </tr>
                     `).join('')}
                   </tbody>
