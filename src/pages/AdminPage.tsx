@@ -1575,16 +1575,16 @@ WARNING:
           return `
             <div class="p-4">
               <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200 border border-gray-300">
+                <table class="min-w-full border-collapse border-2 border-gray-400">
                   <thead class="bg-gray-50">
                     <tr>
-                      ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">${header}</th>`).join('')}
+                      ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-2 border-gray-400 bg-gray-100">${header}</th>`).join('')}
                     </tr>
                   </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
+                  <tbody class="bg-white">
                     ${results.slice(0, 5).map(row => `
-                      <tr>
-                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-200">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
+                      <tr class="hover:bg-gray-50">
+                        ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-2 border-gray-300">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
                       </tr>
                     `).join('')}
                   </tbody>
