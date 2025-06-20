@@ -140,21 +140,23 @@ export default function ReadyForTestingTab({
       console.log('🧨 LIVE COMPLETE RESET: Erasing all traces of client:', rejectingUser);
       
       try {
-        // REAL DELETION: Call Netlify function to wipe everything
-        const deleteResponse = await fetch('/.netlify/functions/delete-client-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            clientId: rejectingUser,
-            action: 'complete_wipe'
-          })
+        // DIRECT SUPABASE DELETION: Remove client record completely
+        const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+        
+        const deleteResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${rejectingUser}`, {
+          method: 'DELETE',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
         });
         
         if (deleteResponse.ok) {
-          const result = await deleteResponse.json();
-          console.log('✅ LIVE deletion completed:', result);
+          console.log('✅ LIVE Supabase deletion completed for client:', rejectingUser);
         } else {
-          console.warn('⚠️ Deletion API call failed - continuing with local reset');
+          console.warn('⚠️ Supabase deletion failed - continuing with local reset');
         }
       } catch (error) {
         console.warn('⚠️ Data wipe failed - continuing with local reset:', error);
@@ -410,7 +412,7 @@ export default function ReadyForTestingTab({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            Client portals: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/[clientname]</code>
+            Created client portals appear as clickable links below each client
           </div>
         </div>
       </div>
