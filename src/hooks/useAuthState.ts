@@ -27,6 +27,16 @@ export function useAuthState(): UserStatus {
         setUser(firebaseUser);
         
         try {
+          // ADMIN BYPASS: Auto-approve admin email
+          if (firebaseUser.email === 'davisricart@gmail.com') {
+            console.log('🚨 ADMIN APPROVAL BYPASS: Auto-approving admin email');
+            setUserStatus('approved');
+            setIsApproved(true);
+            setIsPending(false);
+            setIsLoading(false);
+            return;
+          }
+          
           // Check user's approval status in Firebase
           const userStatusDoc = await getDoc(doc(db, 'usage', firebaseUser.uid));
           
