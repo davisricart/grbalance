@@ -71,7 +71,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     if (clientId) {
       // Load client-specific scripts from Firebase
       console.log(`Loading scripts for client: ${clientId}`);
-      loadClientScriptsFromFirebase(clientId);
+      loadClientScriptsFromSupabase(clientId);
     } else {
       // For local development, start with no scripts
       console.log('Local development mode - no default scripts');
@@ -80,44 +80,48 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     }
   }, []);
 
-  const loadClientScriptsFromFirebase = async (clientId: string) => {
+  const loadClientScriptsFromSupabase = async (clientPath: string) => {
     try {
-      console.log('🔍 Loading scripts from Firebase for client:', clientId);
+      console.log('🔍 Loading scripts from Supabase for client path:', clientPath);
       
-      // First, try to find the user by matching the clientId with their business name or ID
-      const usageCollection = collection(db, 'usage');
-      const clientQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated']));
-      const snapshot = await getDocs(clientQuery);
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      let userDoc: UserDoc | null = null;
-      snapshot.forEach((doc) => {
-        const userData = doc.data();
-        const userClientId = userData.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || doc.id;
-        
-        if (userClientId === clientId || doc.id === clientId) {
-          userDoc = { id: doc.id, ...userData };
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
         }
       });
       
-      if (!userDoc) {
-        console.log('❌ Client not found in Firebase, using empty script list');
+      if (!response.ok) {
+        console.log('❌ Client not found in Supabase, using empty script list');
         setAvailableScripts([]);
         setScript('');
         return;
       }
       
-      console.log('✅ Found client in Firebase:', userDoc.businessName || userDoc.email);
+      const clients = await response.json();
+      if (!clients || clients.length === 0) {
+        console.log('❌ No client data found in Supabase, using empty script list');
+        setAvailableScripts([]);
+        setScript('');
+        return;
+      }
+      
+      const clientData = clients[0];
+      console.log('✅ Found client in Supabase:', clientData.business_name);
       
       // Get deployed scripts for this client
-      const deployedScripts = userDoc.deployedScripts || [];
-      console.log('📜 Raw deployed scripts:', deployedScripts);
+      const deployedScripts = clientData.deployed_scripts || [];
+      console.log('📜 Raw deployed scripts from Supabase:', deployedScripts);
       
-      // Extract script names from both old string format and new object format
-      const scriptNames = deployedScripts.map((script: string | { name: string; [key: string]: unknown }) => {
-        if (typeof script === 'string') {
-          return script;
-        } else if (script && typeof script === 'object' && 'name' in script) {
-          return script.name as string;
+      // Extract script names from script objects
+      const scriptNames = deployedScripts.map((script: any) => {
+        if (script && typeof script === 'object' && script.name) {
+          return script.name;
         }
         return null;
       }).filter(Boolean);
@@ -142,9 +146,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   };
 
   const loadClientScripts = (clientId: string) => {
-    // DEPRECATED: This function is replaced by loadClientScriptsFromFirebase
+    // DEPRECATED: This function is replaced by loadClientScriptsFromSupabase
     // Keeping for backward compatibility but now loads from Firebase
-    loadClientScriptsFromFirebase(clientId);
+    loadClientScriptsFromSupabase(clientId);
   };
 
   const handleSignOut = useCallback(async () => {
