@@ -163,7 +163,11 @@ export default function App() {
             <Route path="/book" element={<BookingPage />} />
             <Route path="/demo" element={<DemoPage />} />
             <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminPage />
+              </ProtectedRoute>
+            } />
             <Route path="/billing" element={
               <ProtectedRoute>
                 <BillingPage />

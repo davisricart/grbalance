@@ -6,7 +6,21 @@ import { useAuthState } from '../hooks/useAuthState';
 import UsageCounter from './UsageCounter';
 
 export default function Header() {
-  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
+  // Safely use auth state with fallback for router context issues
+  let authState;
+  try {
+    authState = useAuthState();
+  } catch (error) {
+    console.warn('Auth state error in Header, using fallback values:', error);
+    authState = {
+      isAuthenticated: false,
+      isApproved: false,
+      isPending: false,
+      isLoading: false
+    };
+  }
+
+  const { isAuthenticated, isApproved, isPending, isLoading } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => {
