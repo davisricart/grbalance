@@ -1,8 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-// TEMPORARY: Comment out Firebase auth for localhost testing
-// import { useAuthState } from './hooks/useAuthState';
+import { useAuthState } from './hooks/useAuthState';
 
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -28,31 +27,8 @@ const BillingPage = React.lazy(() => import('./pages/BillingPage'));
 const BillingWireframe = React.lazy(() => import('./mockups/BillingWireframe'));
 const ClientPortalPage = React.lazy(() => import('./pages/ClientPortalPage'));
 
-// TEMPORARY: Mock auth state for localhost testing
-const useMockAuthState = () => {
-  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  
-  if (isLocalhost) {
-    return {
-      isAuthenticated: true,
-      isApproved: true,
-      isPending: false,
-      isLoading: false
-    };
-  }
-  
-  // For production, return not authenticated
-  return {
-    isAuthenticated: false,
-    isApproved: false,
-    isPending: false,
-    isLoading: false
-  };
-};
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  // const { isAuthenticated, isLoading } = useAuthState();
-  const { isAuthenticated, isLoading } = useMockAuthState();
+  const { isAuthenticated, isLoading } = useAuthState();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -66,8 +42,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
-  // const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
-  const { isAuthenticated, isApproved, isPending, isLoading } = useMockAuthState();
+  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
   
   if (isLoading) {
     return <div>Loading...</div>;

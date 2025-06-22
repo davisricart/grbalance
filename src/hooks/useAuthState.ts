@@ -38,29 +38,35 @@ export function useAuthState(): UserStatus {
       setUser(session.user);
       
       try {
-        // ADMIN BYPASS: Auto-approve admin email
-        if (session.user.email === 'davisricart@gmail.com') {
-          console.log('🚨 ADMIN APPROVAL BYPASS: Auto-approving admin email');
+        // Check user approval status in Supabase
+        const { data: userProfile, error } = await supabase
+          .from('user_profiles')
+          .select('status, approved_at')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching user profile:', error);
+          setUserStatus('pending');
+          setIsApproved(false);
+          setIsPending(true);
+        } else if (userProfile?.status === 'approved') {
           setUserStatus('approved');
           setIsApproved(true);
           setIsPending(false);
-          setIsLoading(false);
-          return;
+        } else {
+          // User not approved or doesn't exist in profiles table
+          setUserStatus('pending');
+          setIsApproved(false);
+          setIsPending(true);
         }
         
-        // For other users, auto-approve for now (since we migrated from Firebase)
-        // TODO: Implement proper user approval system in Supabase
-        console.log('✅ Auto-approving user during migration period');
-        setUserStatus('approved');
-        setIsApproved(true);
-        setIsPending(false);
-        
-      } catch (error) {
+              } catch (error) {
         console.error('Error checking user status:', error);
-        // Default to approved during migration
-        setUserStatus('approved');
-        setIsApproved(true);
-        setIsPending(false);
+        // Default to pending for security
+        setUserStatus('pending');
+        setIsApproved(false);
+        setIsPending(true);
       }
     } else {
       // User not authenticated

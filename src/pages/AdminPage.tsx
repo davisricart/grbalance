@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// TEMPORARY: Comment out Supabase for testing
-// import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
-// import { supabase } from '../config/supabase';
+  import { useAuthState } from '../hooks/useAuthState';
+  import { supabase } from '../config/supabase';
 // Firebase imports removed - using Supabase now
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
@@ -165,13 +164,7 @@ const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
   
-  // TEMPORARY: Mock auth for localhost testing
-  const skipAuth = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const mockUser = skipAuth ? { email: 'test@localhost.dev', id: 'localhost-test' } : null;
-  const user = mockUser;
-  const authLoading = false;
-  const signIn = async (email: string, password: string) => ({ error: null });
-  const signOut = async () => ({ error: null });
+  const { user, isLoading: authLoading } = useAuthState();
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
