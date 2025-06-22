@@ -38,7 +38,17 @@ export function useAuthState(): UserStatus {
       setUser(session.user);
       
       try {
-        // Check user approval status in Supabase
+        // Admin bypass for owner email
+        if (session.user.email === 'davisricart@gmail.com') {
+          console.log('Admin email detected - granting admin access');
+          setUserStatus('approved');
+          setIsApproved(true);
+          setIsPending(false);
+          setIsLoading(false);
+          return;
+        }
+
+        // Check user approval status in Supabase for other users
         const { data: userProfile, error } = await supabase
           .from('user_profiles')
           .select('status, approved_at')
