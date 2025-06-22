@@ -3,22 +3,42 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react({
+    // Enable fast refresh for faster development
+    fastRefresh: true
+  })],
   server: {
     host: '0.0.0.0',
     port: 3000,
     strictPort: false,
+    // Optimize file watching for better performance
     watch: {
-      usePolling: true,
-      interval: 100
+      usePolling: false, // Use native file system events instead of polling
+      ignored: ['**/node_modules/**', '**/.git/**']
     },
-    // Ensure CSP headers don't conflict with our meta tag
-    headers: {
-      'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: https:; object-src 'none'; base-uri 'self';"
-    }
+    // Remove CSP headers in development for faster loading
+    // headers: {
+    //   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: https:; object-src 'none'; base-uri 'self';"
+    // }
   },
+  // Aggressive dependency pre-bundling for faster dev startup
   optimizeDeps: {
-    include: ['xlsx', 'react', 'react-dom', 'react-router-dom', '@supabase/supabase-js']
+    include: [
+      'react', 
+      'react-dom', 
+      'react-router-dom', 
+      '@supabase/supabase-js',
+      'react-icons/fi',
+      'lucide-react',
+      'papaparse'
+    ],
+    exclude: ['xlsx'], // Exclude large deps that slow down dev server startup
+    force: true // Force re-optimization
+  },
+  // Enable esbuild for faster builds
+  esbuild: {
+    target: 'esnext',
+    format: 'esm'
   },
   build: {
     // Increase chunk size warning limit to reduce build warnings

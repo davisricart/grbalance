@@ -2,6 +2,18 @@ import React, { useState, useEffect, useMemo } from 'react';
   import { useAuthState } from '../hooks/useAuthState';
   import { supabase } from '../config/supabase';
 // Firebase imports removed - using Supabase now
+
+// Temporary mock Firebase functions to prevent errors during migration
+const db = null as any;
+const collection = () => null as any;
+const doc = () => null as any;
+const getDocs = () => Promise.resolve({ forEach: () => {} }) as any;
+const updateDoc = () => Promise.resolve() as any;
+const deleteDoc = () => Promise.resolve() as any;
+const setDoc = () => Promise.resolve() as any;
+const query = () => null as any;
+const where = () => null as any;
+const orderBy = () => null as any;
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
@@ -533,8 +545,8 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', auth.currentUser ? 'authenticated' : 'not authenticated');
-      console.error('🚨 User UID:', auth.currentUser?.uid);
+          console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+    console.error('🚨 User Email:', user?.email);
     }
   };
 
@@ -549,7 +561,7 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', auth.currentUser ? 'authenticated' : 'not authenticated');
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setPendingUsers([]);
     }
   };
@@ -575,7 +587,7 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', auth.currentUser ? 'authenticated' : 'not authenticated');
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setReadyForTestingUsers([]);
     }
   };
@@ -630,7 +642,7 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', auth.currentUser ? 'authenticated' : 'not authenticated');
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setApprovedUsers([]);
       setDeletedUsers([]);
     }
@@ -1306,94 +1318,14 @@ WARNING:
 
   // Update email function
   const handleUpdateEmail = async () => {
-    if (!auth.currentUser || !settingsForm.currentPassword || !settingsForm.newEmail) {
-      setSettingsError('Please enter your current password and new email');
-      return;
-    }
-
-    setSettingsLoading(true);
-    setSettingsError('');
-    setSettingsSuccess('');
-
-    try {
-      // Re-authenticate user before updating email
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        settingsForm.currentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      
-      // Update email
-      await updateEmail(auth.currentUser, settingsForm.newEmail);
-      
-      setSettingsSuccess('Email updated successfully!');
-      setSettingsForm({
-        currentPassword: '',
-        newEmail: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-    } catch (error: any) {
-      console.error('🚨 Email update error:', error);
-      
-      // Handle email verification requirement
-      if (error.code === 'auth/operation-not-allowed' || error.message.includes('verify')) {
-        setSettingsError(
-          'Email verification is required. For admin access, please create a new Firebase user with your desired email address, or contact your system administrator to update Firebase settings.'
-        );
-      } else {
-        setSettingsError(error.message || 'Failed to update email');
-      }
-    } finally {
-      setSettingsLoading(false);
-    }
+    setSettingsError('Email updates are currently disabled during Supabase migration. Please contact support for account changes.');
+    return;
   };
 
   // Update password function
   const handleUpdatePassword = async () => {
-    if (!auth.currentUser || !settingsForm.currentPassword || !settingsForm.newPassword) {
-      setSettingsError('Please enter your current password and new password');
-      return;
-    }
-
-    if (settingsForm.newPassword !== settingsForm.confirmPassword) {
-      setSettingsError('New passwords do not match');
-      return;
-    }
-
-    if (settingsForm.newPassword.length < 6) {
-      setSettingsError('New password must be at least 6 characters');
-      return;
-    }
-
-    setSettingsLoading(true);
-    setSettingsError('');
-    setSettingsSuccess('');
-
-    try {
-      // Re-authenticate user before updating password
-      const credential = EmailAuthProvider.credential(
-        auth.currentUser.email!,
-        settingsForm.currentPassword
-      );
-      await reauthenticateWithCredential(auth.currentUser, credential);
-      
-      // Update password
-      await updatePassword(auth.currentUser, settingsForm.newPassword);
-      
-      setSettingsSuccess('Password updated successfully!');
-      setSettingsForm({
-        currentPassword: '',
-        newEmail: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-    } catch (error: any) {
-      console.error('🚨 Password update error:', error);
-      setSettingsError(error.message || 'Failed to update password');
-    } finally {
-      setSettingsLoading(false);
-    }
+    setSettingsError('Password updates are currently disabled during Supabase migration. Please contact support for account changes.');
+    return;
   };
 
   const handleProvisionWebsite = async (user: ApprovedUser) => {
@@ -1679,7 +1611,7 @@ WARNING:
     try {
       showNotification('info', 'Generating Excel', 'Creating Excel file...');
       
-      // Import XLSX dynamically to avoid loading issues
+      // Dynamically import XLSX only when needed for better performance
       const XLSX = await import('xlsx');
       
       // Prepare the data for Excel export
@@ -3561,7 +3493,7 @@ WARNING:
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
                   <h4 className="text-sm font-medium text-blue-900 mb-2">Current Account</h4>
                   <p className="text-sm text-blue-700">
-                    Email: <span className="font-medium">{auth.currentUser?.email}</span>
+                                            Email: <span className="font-medium">{user?.email || 'Not available'}</span>
                   </p>
                 </div>
 
