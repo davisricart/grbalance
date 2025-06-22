@@ -7,10 +7,12 @@ import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+
 import RegisterPage from './pages/RegisterPage';
 
 // Lazy load heavy components to improve initial load time
 const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const AdminLoginPage = React.lazy(() => import('./pages/AdminLoginPage'));
 const BookingPage = React.lazy(() => import('./pages/BookingPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
 const DemoPage = React.lazy(() => import('./pages/DemoPage'));
@@ -113,52 +115,60 @@ export default function App() {
             v7_relativeSplatPath: true
           }}
         >
-        <Layout>
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/app" element={
-              <ApprovedUserRoute>
-                <ReconciliationApp />
-              </ApprovedUserRoute>
-            } />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/pending-approval" element={
-              <ProtectedRoute>
-                <PendingApprovalPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/docs" element={<DocumentationPage />} />
-            <Route path="/support" element={<SupportPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/pricing" element={<PricingPage />} />
-            <Route path="/book" element={<BookingPage />} />
-            <Route path="/demo" element={<DemoPage />} />
-            <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
-            <Route path="/admin" element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/billing" element={
-              <ProtectedRoute>
-                <BillingPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/mockup-billing" element={
-              <ProtectedRoute>
-                <BillingWireframe />
-              </ProtectedRoute>
-            } />
-            {/* Dynamic Client Portal Route */}
-            <Route path="/:clientname" element={<ClientPortalPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
+              {/* Admin routes - no layout */}
+              <Route path="/admin" element={<AdminLoginPage />} />
+              <Route path="/admin/dashboard" element={
+                <ProtectedRoute>
+                  <AdminPage />
+                </ProtectedRoute>
+              } />
+              
+              {/* All other routes - with layout */}
+              <Route path="/*" element={
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/app" element={
+                      <ApprovedUserRoute>
+                        <ReconciliationApp />
+                      </ApprovedUserRoute>
+                    } />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/pending-approval" element={
+                      <ProtectedRoute>
+                        <PendingApprovalPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/docs" element={<DocumentationPage />} />
+                    <Route path="/support" element={<SupportPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/book" element={<BookingPage />} />
+                    <Route path="/demo" element={<DemoPage />} />
+                    <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
+                    <Route path="/billing" element={
+                      <ProtectedRoute>
+                        <BillingPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/mockup-billing" element={
+                      <ProtectedRoute>
+                        <BillingWireframe />
+                      </ProtectedRoute>
+                    } />
+                    {/* Dynamic Client Portal Route */}
+                    <Route path="/:clientname" element={<ClientPortalPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
+                </Layout>
+              } />
+            </Routes>
           </Suspense>
-        </Layout>
       </Router>
       </HelmetProvider>
     </ErrorBoundary>

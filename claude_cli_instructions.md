@@ -182,3 +182,74 @@ If any found, remove them completely.
 
 ---
 *This migration removes Firebase completely and ensures clean Supabase-only implementation.* 
+
+# Claude CLI Instructions: Fix Table Header Column Dividers
+
+## Problem Description
+The table headers in the script testing section don't show vertical dividers between columns, while the data rows do show dividers correctly. Previous attempts to fix this by modifying the header cell borders have not worked.
+
+## Exact Location
+File: `src/pages/AdminPage.tsx`
+Function: `createResultsHTML` (around line 1558-1585)
+Specific line: Line 1569 (the table header generation line)
+
+## Current Problematic Code
+```javascript
+${headers.map(header => `<th style="padding: 12px; text-align: left; border: 1px solid #ddd; font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
+```
+
+## Root Cause Analysis
+The issue is likely that `border-collapse: collapse` on the table is causing adjacent borders to merge, making the vertical dividers invisible in the header row. The data rows work because they use a different border approach.
+
+## Solution: Change Table Border Model
+Instead of modifying individual cell borders, change the table's border-collapse property to `separate` with `border-spacing: 0`.
+
+## Exact Changes Required
+
+### Step 1: Find the table style line (around line 1566)
+**Current:**
+```html
+<table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+```
+
+**Change to:**
+```html
+<table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #ddd;">
+```
+
+### Step 2: Update header cell styles (line 1569)
+**Current:**
+```javascript
+${headers.map(header => `<th style="padding: 12px; text-align: left; border: 1px solid #ddd; font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
+```
+
+**Change to:**
+```javascript
+${headers.map((header, index) => `<th style="padding: 12px; text-align: left; border-top: 1px solid #ddd; border-bottom: 1px solid #ddd; border-right: 1px solid #ddd; ${index === 0 ? 'border-left: 1px solid #ddd;' : ''} font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
+```
+
+## Expected Result
+- Clear vertical dividers between all header columns
+- Header dividers match the data row dividers
+- No double borders or missing borders
+
+## Test Instructions
+1. Navigate to Script Testing tab in admin panel
+2. Upload and run a script
+3. Verify that header row shows vertical lines between each column
+4. Confirm headers match data rows visually
+
+## Critical Notes
+- Make ONLY these two specific changes
+- Do not modify any other table styling
+- Do not change the data row (`<td>`) styling
+- The change affects both "Script Builder" and "Client View" tables since they use the same function
+
+## Fallback Option (if above doesn't work)
+If the border-separate approach doesn't work, try adding explicit border-left to all header cells:
+
+```javascript
+${headers.map(header => `<th style="padding: 12px; text-align: left; border: 1px solid #ddd; border-left: 1px solid #ddd !important; font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
+```
+
+The `!important` flag should override any CSS conflicts. 

@@ -165,6 +165,10 @@ const AdminPage: React.FC = () => {
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
   
   const { user, isLoading: authLoading } = useAuthState();
+  
+  // Skip auth for testing (only on localhost)
+  const skipAuth = false; // Set to true only for testing
+  const mockUser = { email: 'davisricart@gmail.com' }; // Mock user for testing
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -1559,16 +1563,21 @@ WARNING:
           const html = `
             <div style="padding: 16px; background-color: #fff;">
               <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; border: 2px solid #000 !important;">
+                <table style="width: 100%; border-collapse: collapse; border: 1px solid #666;">
                   <thead>
-                    <tr style="background-color: #f5f5f5;">
-                      ${headers.map(header => `<th style="padding: 12px; text-align: left; border: 2px solid #000 !important; font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
+                    <tr>
+                      ${headers.map((header, index) => `
+                        <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f8f8f8; position: relative;">
+                          ${header}
+                          ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
+                        </th>
+                      `).join('')}
                     </tr>
                   </thead>
                   <tbody>
                     ${results.slice(0, 5).map((row, index) => `
-                      <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f0f0f0'};">
-                        ${headers.map(header => `<td style="padding: 12px; border: 2px solid #000 !important;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
+                      <tr>
+                        ${headers.map(header => `<td style="padding: 12px; border: 1px solid #666;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
                       </tr>
                     `).join('')}
                   </tbody>
@@ -1576,7 +1585,7 @@ WARNING:
               </div>
               
               <div style="margin-top: 16px; color: #666; font-size: 14px;">
-                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''} - TABLE BORDERS SHOULD BE VISIBLE!
+                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
               </div>
             </div>
           `;
