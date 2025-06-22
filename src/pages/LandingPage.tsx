@@ -1,7 +1,7 @@
 // PAGE MARKER: Landing Page Component
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle } from 'lucide-react';
 
 import ROICalculator from '../components/ROICalculator';

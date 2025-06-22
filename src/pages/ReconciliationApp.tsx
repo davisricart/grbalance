@@ -1,31 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-
-import { auth } from '../main';
+import { supabase } from '../config/supabase';
 import LoginPage from './LoginPage';
 import { MainPage } from './MainPage';
 
 const ReconciliationApp: React.FC = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(
-      auth,
-      (user) => {
-        setUser(user);
-        setIsLoading(false);
-        setError(null);
-      },
-      (error) => {
-        console.error('Auth error:', error);
-        setError('Authentication service is unavailable. Please try again later.');
-        setIsLoading(false);
-      }
-    );
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+      setIsLoading(false);
+    });
 
-    return () => unsubscribe();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user || null);
+      setIsLoading(false);
+      setError(null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   if (isLoading) {

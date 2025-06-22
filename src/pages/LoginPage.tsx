@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { LogIn, AlertCircle, ArrowLeft, Home, CheckSquare } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
@@ -69,6 +69,7 @@ export default function LoginPage() {
   const detectClientFromEmail = (email: string): string | null => {
     // Mock client associations - in production, this would come from your database
     const clientAssociations: { [key: string]: string } = {
+      'davisricart@gmail.com': 'demo',  // Added for owner testing
       'test@test.com': 'demo',  // Added for testing
       'tony@pizzashop.com': 'tonys-pizza',
       'manager@salonspa.com': 'salon-pro',

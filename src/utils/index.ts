@@ -11,4 +11,3 @@ export * from './universalFileValidator';
 
 // Debug and monitoring utilities
 export * from './debugFileOperations';
-export * from './firebaseDebug';

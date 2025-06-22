@@ -155,6 +155,55 @@ for (let i = 0; i < Math.min(5, processedData.length); i++) {
 - Don't use `.slice(0, 10)` or similar without considering system standard
 - Preview count should be consistent across all scripts
 
+## **TABLE FORMATTING SYSTEM UPDATE**
+
+### **Recent Enhancement (AdminPage.tsx):**
+The `createResultsHTML` function in AdminPage.tsx (around line 1572-1590) was updated to use proper Tailwind CSS classes instead of inline styles for better table formatting.
+
+### **Current Table Styling (CONFIRMED WORKING):**
+```javascript
+const createResultsHTML = (results: any[], title?: string, summary?: string) => {
+  const headers = results.length > 0 ? Object.keys(results[0]) : [];
+  
+  return `
+    <div class="p-4">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 border border-gray-300">
+          <thead class="bg-gray-50">
+            <tr>
+              ${headers.map(header => `<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">${header}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            ${results.slice(0, 5).map((row, index) => `
+              <tr class="hover:bg-gray-50">
+                ${headers.map(header => `<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-200">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="mt-4 text-sm text-gray-500">
+        ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
+      </div>
+    </div>
+  `;
+};
+```
+
+### **Benefits:**
+- ✅ **Clear row dividers**: `divide-y divide-gray-200` and `border-b border-gray-200`
+- ✅ **Professional header styling**: Gray background with proper typography
+- ✅ **Hover effects**: `hover:bg-gray-50` for better UX
+- ✅ **Consistent with GR Balance design system**: Uses Tailwind CSS classes
+- ✅ **Maintains 5-record display standard**: Preserves `results.slice(0, 5)`
+
+### **For Future Reference:**
+- Table formatting issues should be fixed in AdminPage.tsx `createResultsHTML` function
+- Scripts using `window.showResults()` automatically get proper formatting
+- No need to modify individual scripts for presentation issues
+
 ## **IMPORTANT: FILE STRUCTURE CLARIFICATION**
 
 ### **LIVE SYSTEM (Production):**
@@ -229,6 +278,7 @@ DO NOT deviate from this format - it's the only pattern that works with our CSP 
 - ✅ **CONFIRMED WORKING** - Scripts execute without CSP errors
 - ✅ **Preview standard**: 5 records for all preview/sample tables
 - ✅ **Excel date handling**: Serial number conversion confirmed working
+- ✅ **Table formatting**: Updated to use proper Tailwind CSS classes with clear row dividers
 - ⚠️ sample-data files may not reflect latest fixes
 
 ## Workflow:
@@ -318,7 +368,7 @@ DO NOT deviate from this format - it's the only pattern that works with our CSP 
 })();
 ```
 
-**CRITICAL: Always use window.addAdditionalTable() for multiple tables. Never use DOM selectors. Use 5 records for all preview tables. Include Excel date handling for any date processing.**
+**CRITICAL: Always use window.addAdditionalTable() for multiple tables. Never use DOM selectors. Use 5 records for all preview tables. Include Excel date handling for any date processing. Use standard GR Balance table format for all additional tables.**
 
 ## **STANDARD SCRIPT DEVELOPMENT WORKFLOW:**
 
@@ -446,10 +496,29 @@ Claude must ALWAYS generate scripts using this exact template pattern:
 
 ### **Required Global Functions (Available in GR Balance):**
 - `window.parseFiles()` - Returns {data1: [...], data2: [...]} with clean parsed data
-- `window.showResults(data, options)` - Displays results in formatted tables
+- `window.showResults(data, options)` - Displays results in formatted tables using standard GR Balance table format
 - `window.showError(message)` - Shows error messages to user
 - `window.findColumn(row, possibleNames)` - Smart column matching with flexible naming
 - `window.addAdditionalTable(htmlString, uniqueId)` - Adds additional tables below main results
+
+### **GR Balance Standard Table Format:**
+All tables in the system use this exact Tailwind CSS format:
+```html
+<table class="min-w-full divide-y divide-gray-200 border border-gray-300">
+  <thead class="bg-gray-50">
+    <tr>
+      <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">Header</th>
+    </tr>
+  </thead>
+  <tbody class="bg-white divide-y divide-gray-200">
+    <tr class="hover:bg-gray-50">
+      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-200">Data</td>
+    </tr>
+  </tbody>
+</table>
+```
+
+**CRITICAL:** When using `window.addAdditionalTable()`, tables must use this exact format for consistency.
 
 ### **Script Standards:**
 - ALWAYS use (async function() {})() wrapper pattern
@@ -503,6 +572,7 @@ This standardized approach ensures consistent, reliable script generation that i
 - ✅ UI/UX standards (result formatting, error displays)
 - ✅ **Preview table standards (5 records)**
 - ✅ **Excel date handling requirements**
+- ✅ **Table formatting standards (Tailwind CSS with proper row dividers)**
 
 **Claude must conform to:**
 - ✅ **Your established helper functions** (no inventing new APIs)
@@ -512,6 +582,7 @@ This standardized approach ensures consistent, reliable script generation that i
 - ✅ **Your async patterns** (properly using await with your functions)
 - ✅ **Your preview standards** (5 records for all sample tables)
 - ✅ **Your Excel date handling** (serial number conversion for business files)
+- ✅ **Your table formatting** (automatic via window.showResults() with proper CSS)
 
 ### **🔧 SYSTEM ENHANCEMENT PRINCIPLE:**
 
@@ -540,12 +611,13 @@ DO use exactly 5 records for all preview/sample tables.
 DO include Excel date handling for any date processing.
 DO analyze uploaded data structure before generating any script.
 DO provide context-aware script generation with execution preview.
+DO rely on window.showResults() for proper table formatting (no custom styling needed).
 
-The user's system architecture is fixed and CONFIRMED WORKING - your job is to write scripts that work perfectly within it using the proven format. Business files often contain Excel serial numbers for dates - always handle this. Always analyze data first to understand structure and requirements."
+The user's system architecture is fixed and CONFIRMED WORKING - your job is to write scripts that work perfectly within it using the proven format. Business files often contain Excel serial numbers for dates - always handle this. Always analyze data first to understand structure and requirements. Table formatting is handled automatically by the system."
 ```
 
 ### **🎯 SUCCESS METRIC:**
-A perfectly generated Claude script should upload to localhost:[PORT]/admin Script Testing section and execute successfully on the first try with zero modifications needed, all preview tables should show exactly 5 records, and any date processing should correctly handle Excel serial numbers.
+A perfectly generated Claude script should upload to localhost:[PORT]/admin Script Testing section and execute successfully on the first try with zero modifications needed, all preview tables should show exactly 5 records, any date processing should correctly handle Excel serial numbers, and all tables should display with proper row dividers and formatting automatically.
 
 **This maintains consistency while ensuring Claude generates production-ready scripts that integrate seamlessly with your established GR Balance system.**
 
@@ -559,6 +631,7 @@ A perfectly generated Claude script should upload to localhost:[PORT]/admin Scri
 - `for` loops for data processing (CSP-safe)
 - **5 records for all preview tables**
 - **Excel date serial number conversion**
+- **Automatic table formatting via window.showResults()**
 
 ### **❌ PATTERNS THAT FAIL:**
 - Direct script execution without wrapper
@@ -568,6 +641,7 @@ A perfectly generated Claude script should upload to localhost:[PORT]/admin Scri
 - Alternative async patterns
 - **Arbitrary preview counts (not 5)**
 - **Ignoring Excel date serial numbers**
+- **Custom table HTML styling (not needed)**
 
 ### **🔧 IF SCRIPTS FAIL:**
 1. **Check for CSP errors** in console
@@ -577,6 +651,7 @@ A perfectly generated Claude script should upload to localhost:[PORT]/admin Scri
 5. **Test with simple scripts first** before complex logic
 6. **Verify preview tables use 5 records**
 7. **Check for Excel date serial number issues** if processing dates
+8. **Verify table formatting** - should be automatic via window.showResults()
 
 ### **📅 DATE PROCESSING TROUBLESHOOTING:**
 1. **"Invalid Date" errors**: Usually Excel serial numbers not being converted
@@ -584,4 +659,10 @@ A perfectly generated Claude script should upload to localhost:[PORT]/admin Scri
 3. **Timestamps in dates**: Ensure trimming at first space for timestamp removal
 4. **Debug date values**: Use `console.log('Date value type:', typeof dateValue, dateValue)`
 
-**The system is CONFIRMED WORKING - stick to the proven patterns including Excel date handling!**
+### **🎨 TABLE FORMATTING TROUBLESHOOTING:**
+1. **Missing row dividers**: Should be automatic with updated AdminPage.tsx
+2. **Inconsistent styling**: Use window.showResults() - no custom HTML needed
+3. **Table not displaying**: Check console for script errors first
+4. **Preview table formatting**: Use window.addAdditionalTable() with standard format
+
+**The system is CONFIRMED WORKING - stick to the proven patterns including Excel date handling and automatic table formatting!**

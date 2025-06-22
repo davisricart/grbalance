@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
-
-import { db, auth } from '../main';
+import { supabase } from '../config/supabase';
 
 interface UsageData {
   comparisonsUsed: number;
@@ -20,61 +18,46 @@ export default function UsageCounter() {
   const [usage, setUsage] = useState<UsageData | null>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
-
-    const userDoc = doc(db, 'usage', auth.currentUser.uid);
+    // Only show default values without API call to improve performance
+    // During development/migration phase, use default values
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     
-    const unsubscribe = onSnapshot(userDoc, 
-      async (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const data = docSnapshot.data() as any; // Use any to handle old tier names
-          
-          // Migration logic: Convert old tier names to new ones
-          let migratedTier = data.subscriptionTier;
-          let migratedLimit = data.comparisonsLimit;
-          
-          // Map old tier names to new ones
-          if (data.subscriptionTier === 'basic') {
-            migratedTier = 'starter';
-            migratedLimit = TIER_LIMITS.starter;
-          } else if (data.subscriptionTier === 'premium') {
-            migratedTier = 'professional';
-            migratedLimit = TIER_LIMITS.professional;
-          } else if (data.subscriptionTier === 'enterprise') {
-            migratedTier = 'business';
-            migratedLimit = TIER_LIMITS.business;
-          }
-          
-          // Update if migration is needed or limits don't match
-          const needsUpdate = 
-            data.subscriptionTier !== migratedTier || 
-            data.comparisonsLimit !== migratedLimit ||
-            !data.email;
-            
-          if (needsUpdate) {
-            const updatedData = {
-              ...data,
-              subscriptionTier: migratedTier,
-              comparisonsLimit: migratedLimit,
-              email: auth.currentUser?.email || data.email
-            };
-            
-            await setDoc(userDoc, updatedData, { merge: true });
-            setUsage(updatedData as UsageData);
-          } else {
-            setUsage(data as UsageData);
-          }
-        } else {
-          // Don't auto-create documents - let registration handle this
-          // This prevents automatic recreation of deleted test accounts
-        }
-      },
-      (error) => {
+    if (isLocalhost) {
+      // For localhost testing, show default values immediately
+      const defaultUsage: UsageData = {
+        comparisonsUsed: 0,
+        comparisonsLimit: TIER_LIMITS.starter,
+        subscriptionTier: 'starter',
+        email: 'demo@example.com'
+      };
+      setUsage(defaultUsage);
+      return;
+    }
+
+    // For production, only fetch if needed (lazy load this API call)
+    const fetchUsageData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // For now, set default values during Supabase migration
+        // TODO: Implement proper usage tracking in Supabase
+        const defaultUsage: UsageData = {
+          comparisonsUsed: 0,
+          comparisonsLimit: TIER_LIMITS.starter,
+          subscriptionTier: 'starter',
+          email: user.email || ''
+        };
+
+        setUsage(defaultUsage);
+      } catch (error) {
         console.error('Error fetching usage:', error);
       }
-    );
+    };
 
-    return () => unsubscribe();
+    // Delay the API call to not block initial page load
+    const timeoutId = setTimeout(fetchUsageData, 1000);
+    return () => clearTimeout(timeoutId);
   }, []);
 
   if (!usage) {

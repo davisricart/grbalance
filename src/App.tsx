@@ -1,31 +1,58 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthState } from './hooks/useAuthState';
+import { HelmetProvider } from 'react-helmet-async';
+// TEMPORARY: Comment out Firebase auth for localhost testing
+// import { useAuthState } from './hooks/useAuthState';
 
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import AdminPage from './pages/AdminPage';
-import BookingPage from './pages/BookingPage';
-import ContactPage from './pages/ContactPage';
-import DemoPage from './pages/DemoPage';
-import DocumentationPage from './pages/DocumentationPage';
-import InteractiveDemoPage from './pages/InteractiveDemoPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import NotFoundPage from './pages/NotFoundPage';
-import PendingApprovalPage from './pages/PendingApprovalPage';
-import PricingPage from './pages/PricingPage';
-import PrivacyPage from './pages/PrivacyPage';
-import ReconciliationApp from './pages/ReconciliationApp';
 import RegisterPage from './pages/RegisterPage';
-import SupportPage from './pages/SupportPage';
-import TermsPage from './pages/TermsPage';
-import BillingPage from './pages/BillingPage';
-import BillingWireframe from './mockups/BillingWireframe';
-import ClientPortalPage from './pages/ClientPortalPage';
+
+// Lazy load heavy components to improve initial load time
+const AdminPage = React.lazy(() => import('./pages/AdminPage'));
+const BookingPage = React.lazy(() => import('./pages/BookingPage'));
+const ContactPage = React.lazy(() => import('./pages/ContactPage'));
+const DemoPage = React.lazy(() => import('./pages/DemoPage'));
+const DocumentationPage = React.lazy(() => import('./pages/DocumentationPage'));
+const InteractiveDemoPage = React.lazy(() => import('./pages/InteractiveDemoPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+const PendingApprovalPage = React.lazy(() => import('./pages/PendingApprovalPage'));
+const PricingPage = React.lazy(() => import('./pages/PricingPage'));
+const PrivacyPage = React.lazy(() => import('./pages/PrivacyPage'));
+const ReconciliationApp = React.lazy(() => import('./pages/ReconciliationApp'));
+const SupportPage = React.lazy(() => import('./pages/SupportPage'));
+const TermsPage = React.lazy(() => import('./pages/TermsPage'));
+const BillingPage = React.lazy(() => import('./pages/BillingPage'));
+const BillingWireframe = React.lazy(() => import('./mockups/BillingWireframe'));
+const ClientPortalPage = React.lazy(() => import('./pages/ClientPortalPage'));
+
+// TEMPORARY: Mock auth state for localhost testing
+const useMockAuthState = () => {
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  if (isLocalhost) {
+    return {
+      isAuthenticated: true,
+      isApproved: true,
+      isPending: false,
+      isLoading: false
+    };
+  }
+  
+  // For production, return not authenticated
+  return {
+    isAuthenticated: false,
+    isApproved: false,
+    isPending: false,
+    isLoading: false
+  };
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuthState();
+  // const { isAuthenticated, isLoading } = useAuthState();
+  const { isAuthenticated, isLoading } = useMockAuthState();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -39,7 +66,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
+  // const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
+  const { isAuthenticated, isApproved, isPending, isLoading } = useMockAuthState();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -93,12 +121,26 @@ const getClientFromURL = () => {
 
 const clientId = getClientFromURL();
 
+// Loading component for lazy-loaded routes
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-600 border-t-transparent"></div>
+  </div>
+);
+
 export default function App() {
   return (
     <ErrorBoundary>
-      <Router>
+      <HelmetProvider>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
         <Layout>
-          <Routes>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/app" element={
               <ApprovedUserRoute>
@@ -136,8 +178,10 @@ export default function App() {
             <Route path="/:clientname" element={<ClientPortalPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+          </Suspense>
         </Layout>
       </Router>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 }

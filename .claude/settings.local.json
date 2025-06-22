@@ -69,7 +69,10 @@
       "Bash(sudo npm i -g @anthropic-ai/claude-code)",
       "Bash(netlify dev:*)",
       "Bash(npm start)",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npx vite --port 3000)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npx vite --port 3000)",
+      "Bash(netlify env:list:*)",
+      "Bash(chmod:*)",
+      "Bash(./node_modules/.bin/vite)"
     ],
     "deny": []
   }

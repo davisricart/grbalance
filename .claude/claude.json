@@ -1,0 +1,77 @@
+{
+  "name": "GRBalance",
+  "description": "Excel reconciliation and business automation platform with React frontend and Netlify functions backend",
+  "language": "typescript",
+  "framework": "react",
+  "build_tool": "vite",
+  "package_manager": "npm",
+  "entry_points": [
+    "src/main.tsx",
+    "src/App.tsx",
+    "index.html"
+  ],
+  "key_directories": [
+    "src/",
+    "src/components/",
+    "src/pages/",
+    "src/services/",
+    "src/utils/",
+    "netlify/functions/",
+    "scripts/",
+    "clients/"
+  ],
+  "test_files": [
+    "src/**/*.test.tsx",
+    "src/**/*.test.ts"
+  ],
+  "build_output": "dist/",
+  "dev_server": {
+    "command": "npm run dev",
+    "port": 3000,
+    "url": "http://localhost:3000"
+  },
+  "scripts": {
+    "dev": "npm run dev",
+    "build": "npm run build",
+    "test": "npm test",
+    "lint": "npx eslint src/",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "context": {
+    "primary_features": [
+      "Excel file processing and reconciliation",
+      "Admin panel for client management",
+      "Automated billing workflows",
+      "User authentication and role management",
+      "Script execution and testing"
+    ],
+    "tech_stack": [
+      "React 18 with TypeScript",
+      "Vite for bundling",
+      "Tailwind CSS for styling",
+      "Netlify Functions for backend",
+      "Firebase for authentication",
+      "Stripe for payments"
+    ],
+    "key_components": [
+      "AdminPage.tsx - Main admin interface",
+      "ReconciliationApp.tsx - Core Excel processing",
+      "UserManagement/ - User role management",
+      "ClientManagement/ - Client configuration",
+      "ExcelFileReader.tsx - File processing"
+    ]
+  },
+  "ignore_patterns": [
+    "node_modules/",
+    "dist/",
+    ".vite/",
+    "coverage/",
+    "*.log",
+    ".env*",
+    "Claude Knowledge/",
+    "sample-data/"
+  ],
+  "preferred_models": [
+    "claude-3-5-sonnet-20241022"
+  ]
+} 

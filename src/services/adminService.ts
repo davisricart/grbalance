@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from 'firebase/auth';
-import { auth } from '../main';
+import { supabase } from '../config/supabase';
 
 interface AdminVerificationResponse {
   isAdmin: boolean;
@@ -15,8 +14,8 @@ interface AdminVerificationResponse {
  */
 export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> => {
   try {
-    // Get current user's ID token
-    const user = auth.currentUser;
+    // Get current user from Supabase
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return {
         isAdmin: false,
@@ -57,15 +56,15 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
       };
     }
 
-    // Get fresh ID token
-    const idToken = await user.getIdToken(true);
-
+    // Get Supabase session token
+    const { data: { session } } = await supabase.auth.getSession();
+    
     // Call secure server-side verification
     const response = await fetch('/.netlify/functions/verify-admin', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${idToken}`,
+        'Authorization': `Bearer ${session?.access_token}`,
       },
     });
 
@@ -113,8 +112,8 @@ export const useAdminVerification = () => {
     };
 
     // Only check if user is authenticated
-    const unsubscribe = auth.onAuthStateChanged((user: User | null) => {
-      if (user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
         checkAdminStatus();
       } else {
         setIsAdmin(false);
@@ -123,7 +122,7 @@ export const useAdminVerification = () => {
       }
     });
 
-    return () => unsubscribe();
+    return () => subscription.unsubscribe();
   }, []);
 
   return { isAdmin, isLoading, error };

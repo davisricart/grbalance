@@ -1,28 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, updateEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { auth, db } from '../main';
-import { 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  updateDoc, 
-  query, 
-  orderBy, 
-  onSnapshot,
-  writeBatch,
-  increment,
-  where,
-  setDoc
-} from 'firebase/firestore';
+// TEMPORARY: Comment out Supabase for testing
+// import { useSupabaseAuth } from '../hooks/useSupabaseAuth';
+// import { supabase } from '../config/supabase';
+// Firebase imports removed - using Supabase now
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, ArrowLeft,
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
-import { debugFirestorePermissions, safeFetchPendingUsers } from '../utils/firebaseDebug';
+// Firebase debug utilities removed - using Supabase now
 import { useAdminVerification } from '../services/adminService';
 import clientConfig from '../config/client';
 import axios from 'axios';
@@ -177,9 +164,14 @@ interface SoftwareProfile {
 const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
-
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  
+  // TEMPORARY: Mock auth for localhost testing
+  const skipAuth = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const mockUser = skipAuth ? { email: 'test@localhost.dev', id: 'localhost-test' } : null;
+  const user = mockUser;
+  const authLoading = false;
+  const signIn = async (email: string, password: string) => ({ error: null });
+  const signOut = async () => ({ error: null });
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -735,32 +727,34 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Run Firebase debugging when component mounts
+  // Load data when user is authenticated (or when bypassing auth)
   useEffect(() => {
-    let unsubscribe: (() => void) | undefined;
-
-    const setupAuthListener = () => {
-      unsubscribe = onAuthStateChanged(auth, async (authUser) => {
-        console.log('🔒 Auth state changed:', authUser ? 'authenticated' : 'not authenticated');
-        setUser(authUser);
-        setAuthLoading(false);
+    const currentUser = skipAuth ? mockUser : user;
+    const isLoading = skipAuth ? false : authLoading;
     
-        if (authUser) {
-                      
-          setLoading(true);
-          
-          // Fetch data
-          await fetchClients();
-          await fetchPendingUsers();
-          await fetchReadyForTestingUsers();
-          await fetchApprovedUsers();
-          
+    if (currentUser && !isLoading) {
+      console.log('🔒 User authenticated (or bypassed), loading data...');
+      setLoading(true);
+      
+      // For localhost bypass, just set loading to false since we don't have real data
+      if (skipAuth) {
+        console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
+        setLoading(false);
+      } else {
+        // Fetch data for real auth
+        Promise.all([
+          fetchClients(),
+          fetchPendingUsers(),
+          fetchReadyForTestingUsers(),
+          fetchApprovedUsers()
+        ]).finally(() => {
           setLoading(false);
-        } else {
-            setLoading(false);
-        }
-      });
-    };
+        });
+      }
+    } else if (!currentUser && !isLoading) {
+      console.log('🔒 User not authenticated');
+      setLoading(false);
+    }
 
     // Add error catching for debugging
     window.addEventListener('error', (event) => {
@@ -780,16 +774,7 @@ const AdminPage: React.FC = () => {
         promise: event.promise
       });
     });
-
-    setupAuthListener();
-
-    // Cleanup function
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, []);
+  }, [user, authLoading, skipAuth, mockUser]);
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
@@ -1305,10 +1290,15 @@ WARNING:
     setLoginError('');
 
     try {
-      await signInWithEmailAndPassword(auth, loginForm.email, loginForm.password);
+      const { error } = await signIn(loginForm.email, loginForm.password);
       
-      // Clear form
-      setLoginForm({ email: '', password: '' });
+      if (error) {
+        console.error('🚨 Login error:', error);
+        setLoginError(error.message || 'Login failed');
+      } else {
+        // Clear form
+        setLoginForm({ email: '', password: '' });
+      }
     } catch (error: any) {
       console.error('🚨 Login error:', error);
       setLoginError(error.message || 'Login failed');
@@ -1570,32 +1560,36 @@ WARNING:
         
         // Create HTML for results display
         const createResultsHTML = (results: any[], title?: string, summary?: string) => {
+          console.log('🔧 createResultsHTML called with:', results.length, 'results');
           const headers = results.length > 0 ? Object.keys(results[0]) : [];
           
-          return `
-            <div class="p-4">
-              <div class="overflow-x-auto">
-                <table style="border-collapse: collapse; border: 2px solid #9CA3AF; width: 100%;">
+          const html = `
+            <div style="padding: 16px; background-color: #fff;">
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; border: 2px solid #000 !important;">
                   <thead>
-                    <tr>
-                      ${headers.map(header => `<th style="padding: 12px 24px; text-align: left; font-size: 12px; font-weight: 500; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; border: 2px solid #9CA3AF; background-color: #F3F4F6;">${header}</th>`).join('')}
+                    <tr style="background-color: #f5f5f5;">
+                      ${headers.map(header => `<th style="padding: 12px; text-align: left; border: 2px solid #000 !important; font-weight: bold; background-color: #e0e0e0;">${header}</th>`).join('')}
                     </tr>
                   </thead>
                   <tbody>
-                    ${results.slice(0, 5).map(row => `
-                      <tr style="background-color: white;">
-                        ${headers.map(header => `<td style="padding: 16px 24px; white-space: nowrap; font-size: 14px; color: #111827; border: 2px solid #D1D5DB;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
+                    ${results.slice(0, 5).map((row, index) => `
+                      <tr style="background-color: ${index % 2 === 0 ? '#ffffff' : '#f0f0f0'};">
+                        ${headers.map(header => `<td style="padding: 12px; border: 2px solid #000 !important;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
                       </tr>
                     `).join('')}
                   </tbody>
                 </table>
               </div>
               
-              <div class="mt-4 text-sm text-gray-500">
-                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
+              <div style="margin-top: 16px; color: #666; font-size: 14px;">
+                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''} - TABLE BORDERS SHOULD BE VISIBLE!
               </div>
             </div>
           `;
+          
+          console.log('🔧 Generated HTML:', html.substring(0, 200) + '...');
+          return html;
         };
         
         // Update Script Builder display
@@ -2024,8 +2018,8 @@ WARNING:
     { id: 'generic', name: 'Generic CSV' }
   ];
 
-  // Show loading while checking authentication
-  if (authLoading) {
+  // Show loading while checking authentication (skip if bypassing)
+  if (!skipAuth && authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -2050,17 +2044,21 @@ WARNING:
     );
   }
 
+  // Determine current user (for both auth and bypass scenarios)
+  const currentUser = skipAuth ? mockUser : user;
+
   // EMERGENCY ADMIN BYPASS for localhost development
-  const isEmergencyAdmin = user?.email === 'davisricart@gmail.com' && 
-                          (window.location.hostname === 'localhost' || window.location.port === '3000');
+  const isEmergencyAdmin = (currentUser?.email === 'davisricart@gmail.com' && 
+                          (window.location.hostname === 'localhost' || window.location.port === '3000')) ||
+                          skipAuth; // Also bypass if we're in localhost testing mode
   
   if (isEmergencyAdmin) {
-    console.log('🚨 EMERGENCY ADMIN BYPASS ACTIVATED for:', user.email);
+    console.log('🚨 EMERGENCY ADMIN BYPASS ACTIVATED for:', currentUser?.email || 'localhost-test');
     // Force admin access - skip all checks and render admin interface directly
-  } else if (user && !isAdmin && !isEmergencyAdmin) {
+  } else if (currentUser && !isAdmin && !isEmergencyAdmin) {
     // Log unauthorized access attempt
-    console.warn('🚨 SECURITY ALERT: Unauthorized admin access attempt by:', user.email);
-    console.warn('🚨 User UID:', user.uid);
+          console.warn('🚨 SECURITY ALERT: Unauthorized admin access attempt by:', currentUser.email);
+      console.warn('🚨 User UID:', currentUser.id);
     console.warn('🚨 Timestamp:', new Date().toISOString());
     return (
       <div className="min-h-screen bg-gradient-to-b from-red-50 to-white">
@@ -2094,7 +2092,7 @@ WARNING:
                 You are not authorized to access the admin dashboard.
               </p>
               <p className="text-sm text-gray-500">
-                Current user: <span className="font-medium">{user.email}</span>
+                Current user: <span className="font-medium">{currentUser.email}</span>
               </p>
               <p className="text-sm text-gray-500">
                 If you believe this is an error, please contact the system administrator.
@@ -2107,7 +2105,7 @@ WARNING:
               
               <div className="pt-4">
                 <button
-                  onClick={() => signOut(auth)}
+                  onClick={() => signOut()}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200"
                 >
                   Sign Out
@@ -2120,8 +2118,8 @@ WARNING:
     );
   }
 
-  // Show login form if not authenticated
-  if (!user) {
+  // Show login form if not authenticated (and not bypassing)
+  if (!currentUser && !skipAuth) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

@@ -1,7 +1,7 @@
 // PAGE MARKER: Register Page Component
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Building } from 'lucide-react';
 
 import { supabase } from '../config/supabase';
