@@ -2,19 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
   import { useAuthState } from '../hooks/useAuthState';
   import { supabase } from '../config/supabase';
 // Using Supabase for all data operations
-
-// Temporary mock functions to prevent crashes during Firebase cleanup
-const db = null as any;
-const collection = () => null as any;
-const doc = () => null as any;
-const getDocs = () => Promise.resolve({ forEach: () => {} }) as any;
-const updateDoc = () => Promise.resolve() as any;
-const deleteDoc = () => Promise.resolve() as any;
-const setDoc = () => Promise.resolve() as any;
-const query = () => null as any;
-const where = () => null as any;
-const orderBy = () => null as any;
-const safeFetchPendingUsers = () => Promise.resolve([]) as any;
+// TODO: Replace remaining Firebase function calls with proper Supabase operations
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
@@ -584,7 +572,7 @@ const AdminPage: React.FC = () => {
       
       setReadyForTestingUsers(readyForTestingUsersData);
     } catch (error: any) {
-      console.error('🚨 FIREBASE ERROR in fetchReadyForTestingUsers:');
+      console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
@@ -639,7 +627,7 @@ const AdminPage: React.FC = () => {
       // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
     } catch (error: any) {
-      console.error('🚨 FIREBASE ERROR in fetchApprovedUsers:');
+      console.error('🚨 DATABASE ERROR in fetchApprovedUsers:');
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);

@@ -84,7 +84,7 @@ const mockUser: User = {
   toJSON: jest.fn(),
   phoneNumber: null,
   photoURL: null,
-  providerId: 'firebase'
+        providerId: 'supabase'
 };
 
 describe('MainPage', () => {
@@ -203,7 +203,7 @@ describe('MainPage', () => {
   });
 
   it('handles sign out', async () => {
-    const { signOut } = require('firebase/auth');
+    const { signOut } = require('../hooks/useAuthState');
     
     render(
       <TestWrapper>

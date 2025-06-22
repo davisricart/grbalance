@@ -117,7 +117,7 @@ export default function ReadyForTestingTab({
         // Original approval flow
         onFinalApprove(user.id, userData),
         
-        // New live approval with Firebase updates
+        // New live approval with database updates
         fetch('/.netlify/functions/approve-client-live', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -130,7 +130,7 @@ export default function ReadyForTestingTab({
 
       if (liveResponse.ok) {
         const result = await liveResponse.json();
-        console.log('🎯 Client LIVE approved in Firebase:', result);
+        console.log('🎯 Client LIVE approved in database:', result);
       }
       
       console.log('✅ Client fully approved and LIVE:', user.id);
@@ -246,7 +246,7 @@ export default function ReadyForTestingTab({
       try {
         const scriptContent = await file.text();
         
-        console.log('📤 Uploading script to GitHub + Firebase:', {
+        console.log('📤 Uploading script to GitHub + database:', {
           filename: file.name,
           clientPath: clientPath,
           size: file.size
@@ -283,7 +283,7 @@ export default function ReadyForTestingTab({
         console.log('✅ Script uploaded to Supabase successfully:', scriptData);
         
         setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
-        console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + Firebase!`);
+                  console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + database!`);
         
       } catch (error) {
         console.error('❌ Error uploading script:', error);
