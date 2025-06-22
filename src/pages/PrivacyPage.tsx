@@ -45,15 +45,21 @@ export default function PrivacyPage() {
 
           <div className="prose prose-emerald max-w-none">
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">1. Data Collection</h2>
-              <p className="text-gray-600">
-                We collect minimal personal information necessary for account creation and service provision. This includes:
+              <h2 className="text-2xl font-bold mb-4">Data Collection and Storage</h2>
+              <p className="mb-4">
+                We collect minimal information necessary to provide our service:
               </p>
-              <ul className="list-disc list-inside text-gray-600 mt-2">
-                <li>Email address</li>
-                <li>Usage statistics</li>
-                <li>Authentication data</li>
+              <ul className="list-disc list-inside mb-6 space-y-2">
+                <li>Email address for account creation and communication</li>
+                <li>Business name and type for customization purposes</li>
+                <li>Subscription tier and billing information</li>
+                <li>Usage statistics (number of comparisons performed)</li>
+                <li>Technical logs for debugging and service improvement</li>
               </ul>
+              
+              <p className="mb-6">
+                We use Supabase (PostgreSQL) to store account information and usage statistics. We do not store any of your uploaded files or comparison results.
+              </p>
             </section>
 
             <section className="mb-8">
@@ -64,14 +70,7 @@ export default function PrivacyPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">3. Data Storage</h2>
-              <p className="text-gray-600">
-                We use Firebase Authentication and Firestore to store account information and usage statistics. We do not store any of your uploaded files or comparison results.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">4. Data Security</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 mb-4">3. Data Security</h2>
               <p className="text-gray-600">
                 We implement industry-standard security measures to protect your personal information. This includes:
               </p>
@@ -83,9 +82,9 @@ export default function PrivacyPage() {
             </section>
 
             <section className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">5. Third-Party Services</h2>
-              <p className="text-gray-600">
-                We use Firebase for authentication and analytics. Please review Google's privacy policy for information about how they handle your data.
+              <h2 className="text-2xl font-bold mb-4">Third-Party Services</h2>
+              <p className="mb-6">
+                We use Supabase for authentication and database services. Please review Supabase's privacy policy for information about how they handle your data.
               </p>
             </section>
 

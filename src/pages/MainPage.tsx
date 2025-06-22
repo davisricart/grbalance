@@ -73,14 +73,14 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           // Remove the random suffix (last part) to get the client name
           const clientParts = parts.slice(0, -1);
           const extractedName = clientParts.join('-');
-          // Convert to the same format used in Firebase (no spaces, no hyphens)
+          // Convert to the same format used in database (no spaces, no hyphens)
           clientId = extractedName.replace(/[-\s]/g, '').toLowerCase();
         }
       }
     }
     
     if (clientId) {
-      // Load client-specific scripts from Firebase
+      // Load client-specific scripts from database
       console.log(`Loading scripts for client: ${clientId}`);
       loadClientScriptsFromSupabase(clientId);
     } else {
@@ -149,8 +149,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       }
       
     } catch (error) {
-      console.error('❌ Error loading scripts from Firebase:', error);
-      // Fallback to empty array if Firebase fails
+      console.error('❌ Error loading scripts from database:', error);
+      // Fallback to empty array if database fails
       setAvailableScripts([]);
       setScript('');
     }
@@ -158,7 +158,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const loadClientScripts = (clientId: string) => {
     // DEPRECATED: This function is replaced by loadClientScriptsFromSupabase
-    // Keeping for backward compatibility but now loads from Firebase
+    // Keeping for backward compatibility but now loads from database
     loadClientScriptsFromSupabase(clientId);
   };
 

@@ -163,18 +163,8 @@ export interface ValidationResult {
   data?: ArrayBuffer | string;
 }
 
-// Firebase user types
-export interface PendingUser {
-  id: string;
-  email: string;
-  businessName: string;
-  businessType: string;
-  subscriptionTier: string;
-  billingCycle: string;
-  createdAt: string;
-}
-
-export interface ApprovedUser {
+// Supabase user types
+export interface UserDoc {
   id: string;
   email: string;
   businessName?: string;
@@ -184,25 +174,9 @@ export interface ApprovedUser {
   comparisonsUsed: number;
   comparisonsLimit: number;
   status: string;
-  approvedAt: string;
   createdAt: string;
-  softwareProfile?: string;
-  showInsights?: boolean;
-  deployedScripts?: Array<string | { name: string; [key: string]: unknown }>;
-  
-  // Minimal consultation tracking
-  consultationCompleted?: boolean;
-  scriptReady?: boolean;
-  consultationNotes?: string;
-}
-
-// Admin page types
-export interface UserDoc {
-  id: string;
-  businessName?: string;
-  email?: string;
-  deployedScripts?: Array<string | { name: string; [key: string]: unknown }>;
-  [key: string]: unknown;
+  approvedAt?: string;
+  lastActiveAt?: string;
 }
 
 export interface ScriptExecutionResult {

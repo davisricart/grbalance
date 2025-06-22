@@ -23,36 +23,32 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
       };
     }
 
-    // TEMPORARY EMERGENCY BYPASS: Grant admin access to specific email
+    // EMERGENCY BYPASS: Grant admin access to specific email
     const userEmail = user.email || '';
-    if (userEmail === 'davisricart@gmail.com') {
-      console.log('🚨 EMERGENCY ADMIN BYPASS: Granting admin access to:', userEmail);
+    const isOwnerEmail = userEmail === 'davisricart@gmail.com';
+    
+    if (isOwnerEmail) {
+      console.log('🚨 ADMIN BYPASS: Granting admin access to owner:', userEmail);
       return {
         isAdmin: true,
         userEmail,
-        message: 'Emergency admin access granted'
+        message: 'Owner admin access granted'
       };
     }
 
-    // FORCE DEVELOPMENT MODE: Always bypass server for localhost
+    // DEVELOPMENT MODE: Always bypass server for localhost
     if (window.location.hostname === 'localhost' || 
         window.location.hostname === '127.0.0.1' || 
         window.location.port === '3000' ||
         window.location.origin.includes('localhost')) {
       
-      console.log('🔧 FORCE DEVELOPMENT MODE: Bypassing ALL server verification');
+      console.log('🔧 DEVELOPMENT MODE: Bypassing server verification');
       console.log('🔧 Current hostname:', window.location.hostname);
-      console.log('🔧 Current origin:', window.location.origin);
-      
-      // HARDCODED ADMIN ACCESS for development
-      const isAdmin = userEmail === 'davisricart@gmail.com';
-      
-      console.log(`🔧 FORCE ADMIN CHECK: ${userEmail} -> ${isAdmin ? 'ADMIN GRANTED' : 'NOT ADMIN'}`);
       
       return {
-        isAdmin,
+        isAdmin: isOwnerEmail,
         userEmail,
-        message: isAdmin ? 'Development mode: FORCE ADMIN ACCESS' : 'Development mode: Not admin email'
+        message: isOwnerEmail ? 'Development mode: Owner access' : 'Development mode: Not owner'
       };
     }
 

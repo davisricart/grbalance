@@ -18,7 +18,6 @@
     "rename": "node scripts/setup.js",
     "create-instance": "node scripts/create-instance.js",
     "typecheck": "npx tsc --noEmit",
-    "cleanup-firebase": "node scripts/cleanup.js",
     "setup-github": "node scripts/setup-github.js",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",

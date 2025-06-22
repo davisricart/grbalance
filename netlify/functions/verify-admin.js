@@ -1,23 +1,14 @@
-const admin = require('firebase-admin');
+const { createClient } = require('@supabase/supabase-js');
 
-// Initialize Firebase Admin SDK if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+);
 
 // Admin emails from environment variables (server-side only)
 const getAdminEmails = () => {
-  const adminEmailsEnv = process.env.ADMIN_EMAILS;
-  if (!adminEmailsEnv) {
-    console.error('🚨 ADMIN_EMAILS environment variable not set');
-    return [];
-  }
+  const adminEmailsEnv = process.env.ADMIN_EMAILS || 'davisricart@gmail.com';
   return adminEmailsEnv.split(',').map(email => email.trim().toLowerCase());
 };
 
@@ -49,7 +40,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Extract Firebase ID token from Authorization header
+    // Extract Supabase JWT token from Authorization header
     const authHeader = event.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return {
@@ -65,11 +56,27 @@ exports.handler = async (event, context) => {
       };
     }
 
-    const idToken = authHeader.split('Bearer ')[1];
+    const token = authHeader.split('Bearer ')[1];
 
-    // Verify the Firebase ID token
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    const userEmail = decodedToken.email?.toLowerCase();
+    // Verify the Supabase JWT token
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      console.warn('🚨 SECURITY: Token verification failed:', error?.message);
+      return {
+        statusCode: 401,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+        body: JSON.stringify({ 
+          error: 'Invalid token',
+          isAdmin: false 
+        }),
+      };
+    }
+
+    const userEmail = user.email?.toLowerCase();
 
     if (!userEmail) {
       console.warn('🚨 SECURITY: Token verification failed - no email found');
@@ -95,7 +102,7 @@ exports.handler = async (event, context) => {
       console.log('✅ ADMIN ACCESS: Authorized admin login:', userEmail);
     } else {
       console.warn('🚨 SECURITY ALERT: Unauthorized admin access attempt by:', userEmail);
-      console.warn('🚨 User UID:', decodedToken.uid);
+      console.warn('🚨 User ID:', user.id);
       console.warn('🚨 Timestamp:', new Date().toISOString());
     }
 

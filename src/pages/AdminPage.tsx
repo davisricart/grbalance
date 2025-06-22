@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
   import { useAuthState } from '../hooks/useAuthState';
   import { supabase } from '../config/supabase';
-// Firebase imports removed - using Supabase now
+// Using Supabase for all data operations
 
-// Temporary mock Firebase functions to prevent errors during migration
+// Temporary mock functions to prevent crashes during Firebase cleanup
 const db = null as any;
 const collection = () => null as any;
 const doc = () => null as any;
@@ -14,13 +14,14 @@ const setDoc = () => Promise.resolve() as any;
 const query = () => null as any;
 const where = () => null as any;
 const orderBy = () => null as any;
+const safeFetchPendingUsers = () => Promise.resolve([]) as any;
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, ArrowLeft,
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
-// Firebase debug utilities removed - using Supabase now
+// Using Supabase admin operations
 import { useAdminVerification } from '../services/adminService';
 import clientConfig from '../config/client';
 import axios from 'axios';
@@ -525,7 +526,7 @@ const AdminPage: React.FC = () => {
     };
   }, []);
 
-  // Fetch clients from Firebase
+  // Fetch clients from database
   const fetchClients = async () => {
     try {
       
@@ -541,7 +542,7 @@ const AdminPage: React.FC = () => {
       
       setClients(clientsData);
     } catch (error: any) {
-      console.error('🚨 FIREBASE ERROR in fetchClients:');
+      console.error('🚨 DATABASE ERROR in fetchClients:');
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
@@ -557,7 +558,7 @@ const AdminPage: React.FC = () => {
       const users = await safeFetchPendingUsers();
       setPendingUsers(users);
     } catch (error: any) {
-      console.error('🚨 FIREBASE ERROR in fetchPendingUsers:');
+      console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);

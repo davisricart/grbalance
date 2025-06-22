@@ -1,28 +1,34 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
-import { User } from 'firebase/auth';
+import { User } from '@supabase/supabase-js';
 import MainPage from './MainPage';
 
-// Mock Firebase
-jest.mock('../main', () => ({
-  auth: {},
-  db: {}
+// Mock Supabase
+jest.mock('../config/supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: jest.fn(),
+      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } }))
+    },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => Promise.resolve({ data: [], error: null }))
+      }))
+    }))
+  }
 }));
 
-// Mock Firebase auth functions
-jest.mock('firebase/auth', () => ({
-  signOut: jest.fn()
-}));
-
-// Mock Firebase firestore functions
-jest.mock('firebase/firestore', () => ({
-  doc: jest.fn(),
-  runTransaction: jest.fn(),
-  collection: jest.fn(),
-  query: jest.fn(),
-  where: jest.fn(),
-  getDocs: jest.fn()
+// Mock Supabase auth functions
+jest.mock('../hooks/useAuthState', () => ({
+  useAuthState: () => ({
+    user: null,
+    isAuthenticated: false,
+    isApproved: false,
+    isPending: false,
+    isLoading: false,
+    userStatus: null
+  })
 }));
 
 // Mock XLSX
