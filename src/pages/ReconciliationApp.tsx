@@ -18,8 +18,8 @@ const ReconciliationApp: React.FC = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
-      setIsLoading(false);
-      setError(null);
+        setIsLoading(false);
+        setError(null);
     });
 
     return () => subscription.unsubscribe();

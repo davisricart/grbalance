@@ -29,6 +29,7 @@
     "analyze": "npm run build && npx vite-bundle-analyzer dist/stats.html",
     "build:analyze": "vite build --mode analyze",
     "stats": "npx vite-bundle-analyzer",
+    "perf-test": "npm run build && npx lighthouse http://localhost:3000 --output=html --output-path=./perf-report.html",
     "check-csp": "node scripts/check-csp-consistency.cjs"
   },
   "dependencies": {

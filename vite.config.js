@@ -3,10 +3,7 @@ import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react({
-    // Enable fast refresh for faster development
-    fastRefresh: true
-  })],
+  plugins: [react()],
   server: {
     host: '0.0.0.0',
     port: 3000,
@@ -17,23 +14,31 @@ export default defineConfig({
       ignored: ['**/node_modules/**', '**/.git/**']
     },
     // Remove CSP headers in development for faster loading
-    // headers: {
-    //   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co; img-src 'self' data: https:; object-src 'none'; base-uri 'self';"
-    // }
+    headers: {
+      // Remove CSP in development for speed
+    }
   },
-  // Aggressive dependency pre-bundling for faster dev startup
+  // Strategic dependency optimization for performance
   optimizeDeps: {
+    // Force include stable, frequently used dependencies
     include: [
-      'react', 
-      'react-dom', 
-      'react-router-dom', 
-      '@supabase/supabase-js',
-      'react-icons/fi',
-      'lucide-react',
-      'papaparse'
+      'react', 'react-dom', 'react-router-dom'
     ],
-    exclude: ['xlsx'], // Exclude large deps that slow down dev server startup
-    force: true // Force re-optimization
+    
+    // Exclude heavy/conditional dependencies for on-demand loading
+    exclude: [
+      'xlsx', 'react-icons/fi', 'lucide-react', 
+      'papaparse', '@supabase/supabase-js', 'react-helmet-async'
+    ],
+    
+    esbuildOptions: {
+      target: 'es2020',
+      // Optimize for modern browsers
+      supported: {
+        'dynamic-import': true,
+        'import-meta': true
+      }
+    }
   },
   // Enable esbuild for faster builds
   esbuild: {
@@ -41,18 +46,31 @@ export default defineConfig({
     format: 'esm'
   },
   build: {
-    // Increase chunk size warning limit to reduce build warnings
+    target: 'es2020',
     chunkSizeWarningLimit: 1000,
+    
     rollupOptions: {
       output: {
-        // CACHE BUSTING: Force new filenames with hashes
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
+        // Optimized file naming for better caching
+        chunkFileNames: 'js/[name]-[hash].js',
+        entryFileNames: 'js/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Manually chunk large dependencies
+        
+        // Strategic manual chunking for better caching
         manualChunks: {
-          'xlsx': ['xlsx'],
-          'vendor': ['react', 'react-dom', 'react-router-dom']
+          // Core framework (most stable, cache-friendly)
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          
+          // UI libraries (only include what's actually installed)
+          // 'ui-headless': ['@headlessui/react'], // Not installed
+          // 'ui-icons': ['@heroicons/react/24/outline'], // Not installed
+          
+          // Feature-specific chunks
+          'auth': ['@supabase/supabase-js'],
+          'admin-utils': ['react-helmet-async'],
+          
+          // Keep xlsx dynamic - never chunk it for on-demand loading
         }
       }
     }

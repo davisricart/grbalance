@@ -58,7 +58,7 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
 
     // Get Supabase session token
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     // Call secure server-side verification
     const response = await fetch('/.netlify/functions/verify-admin', {
       method: 'POST',
