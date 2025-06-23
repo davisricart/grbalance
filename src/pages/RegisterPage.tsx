@@ -186,13 +186,21 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      console.log('Attempting signup with:', { email, password: '***' });
+      
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email,
+        email: email.trim().toLowerCase(),
         password: password,
         options: {
-          emailRedirectTo: 'https://grbalance.netlify.app/dashboard'
+          emailRedirectTo: 'https://grbalance.netlify.app/dashboard',
+          data: {
+            business_name: businessName,
+            business_type: businessType
+          }
         }
       });
+
+      console.log('Signup response:', { data, error: signUpError });
 
       if (signUpError) {
         throw signUpError;
