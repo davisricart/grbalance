@@ -1,5 +1,23 @@
 # Technical Changelog - Firebase to Supabase Migration
 
+## Latest Updates (January 2025)
+
+### 2025-01-23 - BookingPage Email Integration Fix
+**Issue**: BookingPage contact form was using mock email submission instead of actual EmailJS
+**Solution**: 
+- Added EmailJS integration to BookingPage.tsx matching ContactPage configuration
+- Implemented proper email validation with domain/TLD requirements
+- Added EmailJS initialization with user ID: `e-n1Rxb8CRaf_RfPm`
+- Updated form to use service: `service_grbalance` and template: `template_rm62n5a`
+- Changed error message to match validation requirements
+
+**Files Modified**:
+- `src/pages/BookingPage.tsx` - Added EmailJS imports, validation, and proper email sending
+
+**Result**: Both ContactPage and BookingPage now send emails to the same destination
+
+---
+
 ## Database Schema Changes
 
 ### Supabase `clients` Table Structure

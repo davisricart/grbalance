@@ -189,6 +189,9 @@ export default function RegisterPage() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: password,
+        options: {
+          emailRedirectTo: 'https://grbalance.netlify.app/dashboard'
+        }
       });
 
       if (signUpError) {
@@ -322,12 +325,6 @@ export default function RegisterPage() {
             <ArrowLeft className="h-5 w-5" />
             Back to Home
           </Link>
-          <Link 
-            to="/login"
-            className="text-sm text-gray-600 hover:text-emerald-600 transition-colors duration-200"
-          >
-            Already have an account? Sign in
-            </Link>
         </div>
       </nav>
 

@@ -69,7 +69,7 @@ This comprehensive index provides quick navigation and search capabilities for t
 | `/pricing` | PricingPage | PricingPage.tsx | Subscription plans |
 | `/demo` | DemoPage | DemoPage.tsx | Static demo |
 | `/interactive-demo` | InteractiveDemoPage | InteractiveDemoPage.tsx | Interactive demo |
-| `/book` | BookingPage | BookingPage.tsx | Consultation booking |
+| `/book` | BookingPage | BookingPage.tsx | Consultation booking + EmailJS contact form |
 | `/docs` | DocumentationPage | DocumentationPage.tsx | User guides |
 | `/support` | SupportPage | SupportPage.tsx | FAQ & help |
 | `/contact` | ContactPage | ContactPage.tsx | Contact form |
