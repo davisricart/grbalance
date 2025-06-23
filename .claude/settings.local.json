@@ -72,7 +72,23 @@
       "Bash(NODE_OPTIONS=\"--max-old-space-size=2048\" npx vite --port 3000)",
       "Bash(netlify env:list:*)",
       "Bash(chmod:*)",
-      "Bash(./node_modules/.bin/vite)"
+      "Bash(./node_modules/.bin/vite)",
+      "Bash(npm test:*)",
+      "Bash(if [ -d \"src/services\" ])",
+      "Bash(then grep -r \"firebase\" src/services/)",
+      "Bash(else echo \"PASS: No services directory found\")",
+      "Bash(fi)",
+      "Bash(if [ -d \"netlify/functions\" ])",
+      "Bash(then grep -r \"firebase\" netlify/functions/)",
+      "Bash(else echo \"PASS: No netlify/functions directory found\")",
+      "Bash(if [ -d \"src/config\" ])",
+      "Bash(then grep -r \"firebase\" src/config/)",
+      "Bash(else echo \"PASS: No config directory found\")",
+      "Bash(if [ -d \"src/types\" ])",
+      "Bash(then grep -r \"firebase\" src/types/)",
+      "Bash(else echo \"PASS: No types directory found\")",
+      "Bash(echo:*)",
+      "Bash(PORT=3000 npm run dev)"
     ],
     "deny": []
   }

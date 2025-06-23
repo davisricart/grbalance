@@ -8,6 +8,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     strictPort: false,
+    // Allow overlay to be dismissed
+    hmr: {
+      overlay: true
+    },
     // Optimize file watching for better performance
     watch: {
       usePolling: false, // Use native file system events instead of polling
@@ -22,13 +26,13 @@ export default defineConfig({
   optimizeDeps: {
     // Force include stable, frequently used dependencies
     include: [
-      'react', 'react-dom', 'react-router-dom'
+      'react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'
     ],
     
     // Exclude heavy/conditional dependencies for on-demand loading
     exclude: [
-      'xlsx', 'react-icons/fi', 'lucide-react', 
-      'papaparse', '@supabase/supabase-js', 'react-helmet-async'
+      'xlsx', 'react-icons/fi', 
+      'papaparse', 'react-helmet-async'
     ],
     
     esbuildOptions: {

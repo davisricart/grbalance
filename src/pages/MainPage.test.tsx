@@ -203,7 +203,14 @@ describe('MainPage', () => {
   });
 
   it('handles sign out', async () => {
-    const { signOut } = require('../hooks/useAuthState');
+    // Mock Supabase auth
+const mockSupabase = {
+  auth: {
+    signOut: jest.fn(),
+    getUser: jest.fn(),
+    onAuthStateChange: jest.fn()
+  }
+};
     
     render(
       <TestWrapper>
@@ -214,7 +221,7 @@ describe('MainPage', () => {
     const signOutButton = screen.getByLabelText(/sign out/i);
     fireEvent.click(signOutButton);
 
-    expect(signOut).toHaveBeenCalled();
+          expect(mockSupabase.auth.signOut).toHaveBeenCalled();
   });
 
   it('shows processing state during file processing', () => {

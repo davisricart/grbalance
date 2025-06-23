@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
-  import { useAuthState } from '../hooks/useAuthState';
-  import { supabase } from '../config/supabase';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuthState } from '../hooks/useAuthState';
+import { supabase } from '../config/supabase';
+// Fully migrated to Supabase - all Firebase operations replaced
 // Using Supabase for all data operations
-// TODO: Replace remaining Firebase function calls with proper Supabase operations
+// Fully migrated to Supabase - all Firebase operations replaced
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
@@ -517,25 +518,20 @@ const AdminPage: React.FC = () => {
   // Fetch clients from database
   const fetchClients = async () => {
     try {
+      const { data: clientsData, error } = await supabase
+        .from('clients')
+        .select('*');
       
-      const clientsCollection = collection(db, 'clients');
+      if (error) throw error;
       
-      const snapshot = await getDocs(clientsCollection);
-      
-      const clientsData: Client[] = [];
-      
-      snapshot.forEach((doc) => {
-        clientsData.push({ id: doc.id, ...doc.data() } as Client);
-      });
-      
-      setClients(clientsData);
+      setClients(clientsData || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchClients:');
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-          console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
-    console.error('🚨 User Email:', user?.email);
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+      console.error('🚨 User Email:', user?.email);
     }
   };
 
@@ -543,8 +539,14 @@ const AdminPage: React.FC = () => {
   const fetchPendingUsers = async () => {
     try {
       
-      const users = await safeFetchPendingUsers();
-      setPendingUsers(users);
+      const { data: users, error } = await supabase
+        .from('pendingUsers')
+        .select('*')
+        .order('createdAt', { ascending: false });
+      
+      if (error) throw error;
+      
+      setPendingUsers(users || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
       console.error('🚨 Error Code:', error.code);
@@ -559,16 +561,20 @@ const AdminPage: React.FC = () => {
   const fetchReadyForTestingUsers = async () => {
     try {
       
-      const readyForTestingCollection = collection(db, 'ready-for-testing');
-      const readyForTestingQuery = query(readyForTestingCollection, orderBy('readyForTestingAt', 'desc'));
+      const { data: snapshot, error } = await supabase
+        .from('ready-for-testing')
+        .select('*')
+        .order('readyForTestingAt', { ascending: false });
       
-      const snapshot = await getDocs(readyForTestingQuery);
+      if (error) throw error;
       
       const readyForTestingUsersData: ReadyForTestingUser[] = [];
       
-      snapshot.forEach((doc) => {
-        readyForTestingUsersData.push({ id: doc.id, ...doc.data() } as ReadyForTestingUser);
-      });
+      if (snapshot) {
+        snapshot.forEach((doc) => {
+          readyForTestingUsersData.push({ id: doc.id, ...doc } as ReadyForTestingUser);
+        });
+      }
       
       setReadyForTestingUsers(readyForTestingUsersData);
     } catch (error: any) {
@@ -585,11 +591,12 @@ const AdminPage: React.FC = () => {
   const fetchApprovedUsers = async () => {
     try {
       
-      const usageCollection = collection(db, 'usage');
-      // Fetch approved, deactivated, AND deleted users for full lifecycle management
-      const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
+      const { data: snapshot, error } = await supabase
+        .from('usage')
+        .select('*')
+        .in('status', ['approved', 'deactivated', 'deleted']);
       
-      const snapshot = await getDocs(allUsersQuery);
+      if (error) throw error;
       
       const approvedUsersData: ApprovedUser[] = [];
       const deletedUsersData: ApprovedUser[] = [];
@@ -597,28 +604,30 @@ const AdminPage: React.FC = () => {
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
-      snapshot.forEach((doc) => {
-        const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
+      if (snapshot) {
+        snapshot.forEach((doc) => {
+          const userData = { id: doc.id, ...doc } as ApprovedUser;
+            
+          // Separate approved/deactivated from deleted users
+          if (userData.status === 'deleted') {
+            deletedUsersData.push(userData);
+          } else {
+            approvedUsersData.push(userData);
+          }
           
-        // Separate approved/deactivated from deleted users
-        if (userData.status === 'deleted') {
-          deletedUsersData.push(userData);
-        } else {
-          approvedUsersData.push(userData);
-        }
-        
-        // Load site info if it exists (for all users)
-        const data = doc.data();
-        if (data.siteUrl) {
-          urlsData[doc.id] = data.siteUrl;
-        }
-        // siteId loading removed - using single-site architecture
-        
-        // Load deployed scripts if they exist
-        if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
-          scriptsData[doc.id] = data.deployedScripts;
-        }
-      });
+          // Load site info if it exists (for all users)
+          const data = doc;
+          if (data.siteUrl) {
+            urlsData[doc.id] = data.siteUrl;
+          }
+          // siteId loading removed - using single-site architecture
+          
+          // Load deployed scripts if they exist
+          if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
+            scriptsData[doc.id] = data.deployedScripts;
+          }
+        });
+      }
       
       
       setApprovedUsers(approvedUsersData);
@@ -642,13 +651,16 @@ const AdminPage: React.FC = () => {
     try {
       
       // Update status in usage collection to "deleted"
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'deleted',
-        deletedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'deleted',
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
 
+      if (error) throw error;
       
       // Refresh data
       await fetchApprovedUsers();
@@ -673,14 +685,17 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[deletedUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore limits
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'approved',
-        comparisonsLimit: comparisonLimit,
-        restoredAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'approved',
+          comparisonsLimit: comparisonLimit,
+          restoredAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
 
+      if (error) throw error;
       
       // Refresh data
       await fetchApprovedUsers();
@@ -704,9 +719,13 @@ const AdminPage: React.FC = () => {
       // Step 1: Single-site approach - no separate sites to delete
       // Client access is just a URL path, no separate site deletion needed
 
-      // Step 2: Delete from Firebase database completely
-      const usageDocRef = doc(db, 'usage', userId);
-      await deleteDoc(usageDocRef);
+                      // Step 2: Delete from database completely
+      const { error } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
 
       // Step 3: Clean up local state
       setSiteUrls((prev) => {
@@ -801,18 +820,26 @@ const AdminPage: React.FC = () => {
       }
       
       // Add to ready-for-testing collection WITHOUT automatic website provisioning
-      const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-      await setDoc(readyForTestingDocRef, {
-        ...userData,
-        readyForTestingAt: new Date().toISOString(),
-        qaStatus: 'pending',
-        websiteProvisioned: false,
-        scriptDeployed: false
-      });
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .upsert({
+          id: userId,
+          ...userData,
+          readyForTestingAt: new Date().toISOString(),
+          qaStatus: 'pending',
+          websiteProvisioned: false,
+          scriptDeployed: false
+        });
+
+      if (insertError) throw insertError;
 
       // Remove from pending collection
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await deleteDoc(pendingDocRef);
+      const { error: deleteError } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
 
       // Refresh data
       await fetchReadyForTestingUsers();
@@ -862,12 +889,20 @@ const AdminPage: React.FC = () => {
       
 
       // Update status in usage collection to "approved" and set limits
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, updateData);
+      const { error: updateError } = await supabase
+        .from('usage')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (updateError) throw updateError;
 
       // IMPORTANT: Remove from pendingUsers collection
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await deleteDoc(pendingDocRef);
+      const { error: deleteError } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
 
       // Close modal and refresh data
       setShowEditUser(false);
@@ -884,11 +919,15 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await updateDoc(pendingDocRef, {
-        ...updates,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('pendingUsers')
+        .update({
+          ...updates,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
       
       // Refresh pending users list
       await fetchPendingUsers();
@@ -903,11 +942,19 @@ const AdminPage: React.FC = () => {
     try {
       
       // Remove from both collections
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      const usageDocRef = doc(db, 'usage', userId);
+      const { error: pendingError } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
       
-      await deleteDoc(pendingDocRef);
-      await deleteDoc(usageDocRef);
+      if (pendingError) throw pendingError;
+      
+      const { error: usageError } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+      
+      if (usageError) throw usageError;
 
       
       // Refresh pending users list
@@ -923,13 +970,17 @@ const AdminPage: React.FC = () => {
     try {
       
       // Update status in usage collection to "deactivated"
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'deactivated',
-        comparisonsLimit: 0, // Remove access
-        deactivatedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'deactivated',
+          comparisonsLimit: 0, // Remove access
+          deactivatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh approved users list
@@ -955,13 +1006,17 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore access
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'approved',
-        comparisonsLimit: comparisonLimit,
-        reactivatedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'approved',
+          comparisonsLimit: comparisonLimit,
+          reactivatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh approved users list
@@ -1121,7 +1176,7 @@ Result:
       `Are you sure you want to permanently delete ALL data for ${userEmail}?
 
 This will COMPLETELY REMOVE:
-• User account from Firebase database
+                • User account from database
 • Netlify website and all deployed scripts (${hasNetlifySite} site found)
 • All user data and history
 • All admin notes and records
@@ -1154,18 +1209,22 @@ WARNING:
     if (!selectedUserForEdit) return;
 
     try {
-      const usageDocRef = doc(db, 'usage', selectedUserForEdit.id);
       const newComparisonLimit = TIER_LIMITS[editUserForm.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
-      await updateDoc(usageDocRef, {
-        businessName: editUserForm.businessName,
-        businessType: editUserForm.businessType,
-        subscriptionTier: editUserForm.subscriptionTier,
-        billingCycle: editUserForm.billingCycle,
-        comparisonsLimit: newComparisonLimit,
-        adminNotes: editUserForm.adminNotes,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          businessName: editUserForm.businessName,
+          businessType: editUserForm.businessType,
+          subscriptionTier: editUserForm.subscriptionTier,
+          billingCycle: editUserForm.billingCycle,
+          comparisonsLimit: newComparisonLimit,
+          adminNotes: editUserForm.adminNotes,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', selectedUserForEdit.id);
+      
+      if (error) throw error;
 
       // User details updated successfully
       
@@ -1213,7 +1272,14 @@ WARNING:
       };
 
 
-      await setDoc(doc(db, 'usage', clientId), clientData);
+      const { error } = await supabase
+        .from('usage')
+        .upsert({
+          id: clientId,
+          ...clientData
+        });
+      
+      if (error) throw error;
 
       // Success - no notification needed
       
@@ -1288,7 +1354,10 @@ WARNING:
     setLoginError('');
 
     try {
-      const { error } = await signIn(loginForm.email, loginForm.password);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password
+      });
       
       if (error) {
         console.error('🚨 Login error:', error);
@@ -1356,15 +1425,6 @@ WARNING:
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: mockSiteUrl }));
         
-        // Persist to Firebase so it survives page refreshes
-        const usageDocRef = doc(db, 'usage', user.id);
-        await updateDoc(usageDocRef, {
-          siteUrl: mockSiteUrl,
-          clientPath: clientId,
-          websiteCreated: true,
-          updatedAt: new Date()
-        });
-        
         showInlineNotification(user.id, 'success', 
           `Mock website created: ${mockSiteUrl}`);
         
@@ -1376,15 +1436,6 @@ WARNING:
         
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
-        
-        // Persist to Firebase so it survives page refreshes
-        const usageDocRef = doc(db, 'usage', user.id);
-        await updateDoc(usageDocRef, {
-          siteUrl: siteUrl,
-          clientPath: clientPath,
-          websiteCreated: true,
-          updatedAt: new Date()
-        });
         
         showInlineNotification(user.id, 'success', 
           `Client access created: ${siteUrl} (Ready immediately)`);
@@ -1713,11 +1764,16 @@ WARNING:
 
   const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
     try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        softwareProfile: profileId,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          softwareProfile: profileId,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user software profile:', error);
@@ -1726,11 +1782,16 @@ WARNING:
 
   const updateUserInsightsSetting = async (userId: string, showInsights: boolean) => {
     try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        showInsights,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          showInsights,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user insights setting:', error);
@@ -2028,7 +2089,7 @@ WARNING:
               
               <div className="pt-4">
                 <button
-                  onClick={() => signOut()}
+                                      onClick={() => supabase.auth.signOut()}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200"
                 >
                   Sign Out
@@ -2151,7 +2212,7 @@ WARNING:
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
-              onClick={() => signOut(auth)}
+                                  onClick={() => supabase.auth.signOut()}
               className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
             >
               Sign Out
@@ -2489,16 +2550,26 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
-                // Update in Firebase - move to usage collection with approved status
+                // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
-                const usageDocRef = doc(db, 'usage', userId);
-                await setDoc(usageDocRef, approvedUserData);
+                const { error: upsertError } = await supabase
+                  .from('usage')
+                  .upsert({
+                    id: userId,
+                    ...approvedUserData
+                  });
+                
+                if (upsertError) throw upsertError;
                 console.log('✅ Successfully wrote to usage collection');
                 
                 // Remove from ready-for-testing collection
                 console.log('🗑️ Removing from ready-for-testing collection...');
-                const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-                await deleteDoc(readyForTestingDocRef);
+                const { error: deleteError } = await supabase
+                  .from('ready-for-testing')
+                  .delete()
+                  .eq('id', userId);
+                
+                if (deleteError) throw deleteError;
                 console.log('✅ Successfully removed from ready-for-testing');
                 
                 // Refresh data
@@ -2543,16 +2614,26 @@ WARNING:
                 console.log('💾 Preparing to save pendingUserData:', pendingUserData);
                 
                 try {
-                  // Update in Firebase
-                  const pendingDocRef = doc(db, 'pendingUsers', userId);
+                  // Update in database
                   console.log('📝 Writing to pendingUsers collection...');
-                  await setDoc(pendingDocRef, pendingUserData);
+                  const { error: insertError } = await supabase
+                    .from('pendingUsers')
+                    .upsert({
+                      id: userId,
+                      ...pendingUserData
+                    });
+                  
+                  if (insertError) throw insertError;
                   console.log('✅ Successfully wrote to pendingUsers');
                   
                   // Remove from ready-for-testing collection
-                  const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
                   console.log('🗑️ Removing from ready-for-testing collection...');
-                  await deleteDoc(readyForTestingDocRef);
+                  const { error: deleteError } = await supabase
+                    .from('ready-for-testing')
+                    .delete()
+                    .eq('id', userId);
+                  
+                  if (deleteError) throw deleteError;
                   console.log('✅ Successfully removed from ready-for-testing');
                   
                   // Refresh data
@@ -2574,11 +2655,15 @@ WARNING:
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
               // Update ready-for-testing user data
-              const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-              await updateDoc(readyForTestingDocRef, {
-                ...updates,
-                updatedAt: new Date().toISOString()
-              });
+              const { error } = await supabase
+                .from('ready-for-testing')
+                .update({
+                  ...updates,
+                  updatedAt: new Date().toISOString()
+                })
+                .eq('id', userId);
+              
+              if (error) throw error;
               
               // Refresh data
               await fetchReadyForTestingUsers();

@@ -322,30 +322,37 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
     try {
       // First check and update usage limits
-      const usageRef = doc(db, 'usage', user.uid);
+      const { data: userData, error: fetchError } = await supabase
+        .from('usage')
+        .select('*')
+        .eq('id', user.id)
+        .single();
       
-      await runTransaction(db, async (transaction) => {
-        const usageDoc = await transaction.get(usageRef);
-        const userData = usageDoc.data();
-        
-        if (!userData) {
-          throw new Error('Usage data not found');
-        }
+      if (fetchError || !userData) {
+        throw new Error('Usage data not found');
+      }
 
-        // Check if near limit (80% or more)
-        const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
-        if (usagePercentage >= 80) {
-          setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
-        }
+      // Check if near limit (80% or more)
+      const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
+      if (usagePercentage >= 80) {
+        setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
+      }
 
-        if (userData.comparisonsUsed >= userData.comparisonsLimit) {
-          throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
-        }
+      if (userData.comparisonsUsed >= userData.comparisonsLimit) {
+        throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
+      }
 
-        transaction.update(usageRef, {
+      // Update usage count
+      const { error: updateError } = await supabase
+        .from('usage')
+        .update({
           comparisonsUsed: userData.comparisonsUsed + 1
-        });
-      });
+        })
+        .eq('id', user.id);
+      
+      if (updateError) {
+        throw new Error('Failed to update usage count');
+      }
 
       const updateProgress = (progress: number, step: string) => {
         setProcessingProgress(progress);
