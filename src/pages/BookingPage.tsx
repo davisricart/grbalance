@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BookingCalendar from '../components/BookingCalendar';
 import { Clock, Calendar, VideoIcon, CheckCircle, Mail } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 
 export default function BookingPage() {
   const [contactForm, setContactForm] = useState({
@@ -12,17 +13,41 @@ export default function BookingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
+  useEffect(() => {
+    emailjs.init("e-n1Rxb8CRaf_RfPm");
+  }, []);
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Email validation - require proper domain with TLD
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(contactForm.email)) {
+      setSubmitStatus('error');
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate form submission - replace with actual implementation
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const templateParams = {
+        from_name: contactForm.name,
+        from_email: contactForm.email,
+        subject: 'General Inquiry',
+        message: contactForm.message
+      };
+
+      await emailjs.send(
+        'service_grbalance',
+        'template_rm62n5a',
+        templateParams
+      );
+
       setSubmitStatus('success');
       setContactForm({ name: '', email: '', message: '' });
     } catch (error) {
       setSubmitStatus('error');
+      console.error('EmailJS Error:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -132,7 +157,7 @@ export default function BookingPage() {
                     )}
                   </button>
                   {submitStatus === 'error' && (
-                    <p className="text-red-600 text-sm text-center">There was an error sending your message. Please try again.</p>
+                    <p className="text-red-600 text-sm text-center">Please enter a valid email address (e.g., name@domain.com)</p>
                   )}
                 </form>
               )}
