@@ -26,7 +26,8 @@ export default defineConfig({
   optimizeDeps: {
     // Force include stable, frequently used dependencies
     include: [
-      'react', 'react-dom', 'react-router-dom', '@supabase/supabase-js'
+      'react', 'react-dom', 'react-router-dom', '@supabase/supabase-js',
+      'react-fast-compare'
     ],
     
     // Exclude heavy/conditional dependencies for on-demand loading
@@ -43,6 +44,11 @@ export default defineConfig({
         'import-meta': true
       }
     }
+  },
+  
+  // Fix CommonJS import issues
+  define: {
+    global: 'globalThis',
   },
   // Enable esbuild for faster builds
   esbuild: {
