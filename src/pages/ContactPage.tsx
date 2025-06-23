@@ -35,6 +35,13 @@ export default function ContactPage() {
     e.preventDefault();
     setError('');
     
+    // Email validation - require proper domain with TLD
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address (e.g., name@domain.com)');
+      return;
+    }
+    
     if (!isHuman) {
       setError('Please verify that you are human');
       return;
