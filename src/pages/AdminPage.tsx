@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthState } from '../hooks/useAuthState';
 import { supabase } from '../config/supabase';
 // Fully migrated to Supabase - all Firebase operations replaced
