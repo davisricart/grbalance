@@ -151,27 +151,27 @@ export default function PricingPage() {
 
         {/* Annual/Monthly Toggle - Positioned right above pricing */}
         <div className="flex justify-center mb-8">
-          <div className="relative flex items-center bg-gray-100 rounded-lg p-1">
+          <div className="relative flex items-center bg-gray-50 rounded-xl p-1.5 shadow-md border border-gray-200">
             <button
               onClick={() => setIsAnnual(false)}
-              className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
+              className={`px-7 py-3 text-base font-semibold rounded-lg transition-all ${
                 !isAnnual
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white text-gray-900 shadow-lg border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
               Monthly
             </button>
             <button
               onClick={() => setIsAnnual(true)}
-              className={`px-6 py-2 text-sm font-medium rounded-md transition-all ${
+              className={`px-7 py-3 text-base font-semibold rounded-lg transition-all ${
                 isAnnual
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-900'
+                  ? 'bg-white text-gray-900 shadow-lg border border-gray-200'
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
               }`}
             >
               Annual
-              <span className="ml-1 text-xs text-emerald-600 font-semibold">Best Value</span>
+              <span className="ml-2 px-2 py-0.5 text-xs text-white bg-emerald-600 rounded-full font-bold">Best Value</span>
             </button>
           </div>
         </div>
