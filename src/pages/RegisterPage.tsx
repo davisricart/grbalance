@@ -213,7 +213,7 @@ export default function RegisterPage() {
 
       // Create pending approval record
       const { error: pendingUserError } = await supabase
-        .from('pendingUsers')
+        .from('pendingusers')
         .insert([
           {
             id: user.id,
