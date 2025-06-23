@@ -128,8 +128,29 @@ export default function PricingPage() {
           </p>
         </div>
 
-        {/* Annual/Monthly Toggle */}
-        <div className="mt-12 flex justify-center">
+        {/* Benefits Section */}
+        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
+          {benefits.map((benefit) => (
+            <div key={benefit.title} className="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <div className="absolute top-6 left-6">
+                <benefit.icon className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div className="pt-12">
+                <h3 className="text-lg font-semibold text-gray-900">{benefit.title}</h3>
+                <p className="mt-2 text-gray-600">{benefit.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Social Proof Text Section */}
+        <div className="text-center mt-10 mb-8">
+          <span className="text-gray-700 font-medium text-lg">Works with salon software you already use:</span>
+          <div className="mt-2 text-emerald-700 font-semibold text-base">DaySmart &bull; Square &bull; Stripe &bull; PaymentCloud &bull; BookedBy</div>
+        </div>
+
+        {/* Annual/Monthly Toggle - Positioned right above pricing */}
+        <div className="flex justify-center mb-8">
           <div className="relative flex items-center bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setIsAnnual(false)}
@@ -153,29 +174,6 @@ export default function PricingPage() {
               <span className="ml-1 text-xs text-emerald-600 font-semibold">Best Value</span>
             </button>
           </div>
-        </div>
-
-
-
-        {/* Benefits Section */}
-        <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-3">
-          {benefits.map((benefit) => (
-            <div key={benefit.title} className="relative bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-              <div className="absolute top-6 left-6">
-                <benefit.icon className="h-6 w-6 text-emerald-600" />
-              </div>
-              <div className="pt-12">
-                <h3 className="text-lg font-semibold text-gray-900">{benefit.title}</h3>
-                <p className="mt-2 text-gray-600">{benefit.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Social Proof Text Section */}
-        <div className="text-center mt-10 mb-4">
-          <span className="text-gray-700 font-medium text-lg">Works with salon software you already use:</span>
-          <div className="mt-2 text-emerald-700 font-semibold text-base">DaySmart &bull; Square &bull; Stripe &bull; PaymentCloud &bull; BookedBy</div>
         </div>
 
         {/* Pricing Cards */}
