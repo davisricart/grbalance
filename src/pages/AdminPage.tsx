@@ -919,6 +919,15 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
+      // Optimistic update - update state immediately
+      setPendingUsers(prev => 
+        prev.map(user => 
+          user.id === userId 
+            ? { ...user, ...updates, updatedAt: new Date().toISOString() }
+            : user
+        )
+      );
+
       const { error } = await supabase
         .from('pendingUsers')
         .update({
@@ -927,10 +936,11 @@ const AdminPage: React.FC = () => {
         })
         .eq('id', userId);
       
-      if (error) throw error;
-      
-      // Refresh pending users list
-      await fetchPendingUsers();
+      if (error) {
+        // Revert optimistic update on error
+        await fetchPendingUsers();
+        throw error;
+      }
       
     } catch (error) {
       console.error('Error updating pending user:', error);
@@ -940,6 +950,9 @@ const AdminPage: React.FC = () => {
   // Reject pending user
   const rejectPendingUser = async (userId: string) => {
     try {
+      // Optimistic update - remove from state immediately
+      const originalUsers = pendingUsers;
+      setPendingUsers(prev => prev.filter(user => user.id !== userId));
       
       // Remove from both collections
       const { error: pendingError } = await supabase
@@ -947,18 +960,22 @@ const AdminPage: React.FC = () => {
         .delete()
         .eq('id', userId);
       
-      if (pendingError) throw pendingError;
+      if (pendingError) {
+        // Revert optimistic update on error
+        setPendingUsers(originalUsers);
+        throw pendingError;
+      }
       
       const { error: usageError } = await supabase
         .from('usage')
         .delete()
         .eq('id', userId);
       
-      if (usageError) throw usageError;
-
-      
-      // Refresh pending users list
-      await fetchPendingUsers();
+      if (usageError) {
+        // Revert optimistic update on error
+        setPendingUsers(originalUsers);
+        throw usageError;
+      }
       
     } catch (error) {
       console.error('Error rejecting user:', error);
