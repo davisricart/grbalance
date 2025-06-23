@@ -256,7 +256,9 @@ export default function RegisterPage() {
       navigate('/pending-approval');
     } catch (error: any) {
       console.error('Registration error:', error);
-      switch (error.message) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
+      
+      switch (errorMessage) {
         case 'User already registered':
           setError('This email is already registered. If you recently deleted this account, please try a different email or contact support.');
           break;
@@ -270,7 +272,7 @@ export default function RegisterPage() {
           setError('Password is too weak');
           break;
         default:
-          if (error.message.includes('already registered')) {
+          if (errorMessage.includes('already registered')) {
             setError('This email is already registered. If you recently deleted this account, please try a different email or contact support.');
           } else {
             setError('Failed to create account. Please try again.');
