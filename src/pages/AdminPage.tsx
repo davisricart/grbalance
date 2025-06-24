@@ -652,12 +652,16 @@ const AdminPage: React.FC = () => {
     try {
       
       // Update status in usage collection to "deleted"
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'deleted',
-        deletedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'deleted',
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh data
@@ -683,13 +687,17 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[deletedUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore limits
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'approved',
-        comparisonsLimit: comparisonLimit,
-        restoredAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'approved',
+          comparisonsLimit: comparisonLimit,
+          restoredAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh data
@@ -715,8 +723,12 @@ const AdminPage: React.FC = () => {
       // Client access is just a URL path, no separate site deletion needed
 
       // Step 2: Delete from database completely
-      const usageDocRef = doc(db, 'usage', userId);
-      await deleteDoc(usageDocRef);
+      const { error } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       // Step 3: Clean up local state
       setSiteUrls((prev) => {
@@ -814,18 +826,26 @@ const AdminPage: React.FC = () => {
       }
       
       // Add to ready-for-testing collection WITHOUT automatic website provisioning
-      const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-      await setDoc(readyForTestingDocRef, {
-        ...userData,
-        readyForTestingAt: new Date().toISOString(),
-        qaStatus: 'pending',
-        websiteProvisioned: false,
-        scriptDeployed: false
-      });
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .insert({
+          ...userData,
+          id: userId,
+          readyForTestingAt: new Date().toISOString(),
+          qaStatus: 'pending',
+          websiteProvisioned: false,
+          scriptDeployed: false
+        });
+      
+      if (insertError) throw insertError;
 
       // Remove from pending collection
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await deleteDoc(pendingDocRef);
+      const { error: deleteError } = await supabase
+        .from('pendingusers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
 
       // Refresh data
       await fetchReadyForTestingUsers();
@@ -916,11 +936,18 @@ const AdminPage: React.FC = () => {
     try {
       
       // Remove from both collections
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      const usageDocRef = doc(db, 'usage', userId);
+      const { error: pendingError } = await supabase
+        .from('pendingusers')
+        .delete()
+        .eq('id', userId);
       
-      await deleteDoc(pendingDocRef);
-      await deleteDoc(usageDocRef);
+      const { error: usageError } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+      
+      if (pendingError) throw pendingError;
+      if (usageError) throw usageError;
 
       
       // Refresh pending users list
