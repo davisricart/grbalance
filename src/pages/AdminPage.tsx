@@ -989,12 +989,32 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     (window as any).debugUserState = debugUserState;
     (window as any).addMissingUserToPending = addMissingUserToPending;
+    (window as any).fetchPendingUsers = fetchPendingUsers;
+    (window as any).pendingUsers = pendingUsers;
+    (window as any).forceRefreshData = async () => {
+      console.log('🔄 Force refreshing all admin data...');
+      setLoading(true);
+      try {
+        await fetchPendingUsers();
+        await fetchReadyForTestingUsers();
+        await fetchApprovedUsers();
+        await fetchClients();
+        console.log('✅ Refresh complete');
+      } catch (error) {
+        console.error('❌ Refresh failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
     return () => {
       delete (window as any).debugUserState;
       delete (window as any).addMissingUserToPending;
+      delete (window as any).fetchPendingUsers;
+      delete (window as any).pendingUsers;
+      delete (window as any).forceRefreshData;
     };
-  }, []);
+  }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
