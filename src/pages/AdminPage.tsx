@@ -161,6 +161,9 @@ interface SoftwareProfile {
   };
 }
 
+// Mock user for testing - moved outside component to prevent re-creation
+const mockUser = { email: 'davisricart@gmail.com' };
+
 const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
@@ -169,7 +172,6 @@ const AdminPage: React.FC = () => {
   
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
-  const mockUser = { email: 'davisricart@gmail.com' }; // Mock user for testing
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -514,13 +516,18 @@ const AdminPage: React.FC = () => {
     };
   }, []);
 
-  // Fetch clients from database
-  const fetchClients = async () => {
+  // Fetch clients
+  const fetchClients = useCallback(async () => {
     try {
+      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
+      console.log('⚠️ fetchClients: Temporarily disabled (table missing)');
+      setClients([]);
+      return;
       
       const { data: clientsData, error } = await supabase
         .from('clients')
-        .select('*');
+        .select('*')
+        .order('createdAt', { ascending: false });
       
       if (error) throw error;
       
@@ -530,13 +537,13 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Error Code:', error.code);
       console.error('🚨 Error Message:', error.message);
       console.error('🚨 Full Error Object:', error);
-          console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
-    console.error('🚨 User Email:', user?.email);
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+      setClients([]);
     }
-  };
+  }, [user]);
 
-  // Fetch pending users with debugging
-  const fetchPendingUsers = async () => {
+  // Fetch pending users
+  const fetchPendingUsers = useCallback(async () => {
     try {
       
       const { data: users, error } = await supabase
@@ -554,10 +561,10 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setPendingUsers([]);
     }
-  };
+  }, [user]);
 
   // Fetch ready-for-testing users
-  const fetchReadyForTestingUsers = async () => {
+  const fetchReadyForTestingUsers = useCallback(async () => {
     try {
       // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
       console.log('⚠️ fetchReadyForTestingUsers: Temporarily disabled (table missing)');
@@ -580,10 +587,10 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setReadyForTestingUsers([]);
     }
-  };
+  }, [user]);
 
   // Fetch approved users
-  const fetchApprovedUsers = async () => {
+  const fetchApprovedUsers = useCallback(async () => {
     try {
       
       // Fetch approved, deactivated, AND deleted users for full lifecycle management
@@ -637,7 +644,7 @@ const AdminPage: React.FC = () => {
       setApprovedUsers([]);
       setDeletedUsers([]);
     }
-  };
+  }, [user]);
 
   // Delete user (soft delete)
   const deleteUser = async (userId: string) => {
@@ -774,7 +781,7 @@ const AdminPage: React.FC = () => {
         promise: event.promise
       });
     });
-  }, [user, authLoading, skipAuth, mockUser]);
+  }, [user, authLoading, skipAuth, mockUser, fetchClients, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers]);
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
