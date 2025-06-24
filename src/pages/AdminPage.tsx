@@ -925,11 +925,15 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await updateDoc(pendingDocRef, {
-        ...updates,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('pendingusers')
+        .update({
+          ...updates,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
       
       // Refresh pending users list
       await fetchPendingUsers();
@@ -971,13 +975,17 @@ const AdminPage: React.FC = () => {
     try {
       
       // Update status in usage collection to "deactivated"
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'deactivated',
-        comparisonsLimit: 0, // Remove access
-        deactivatedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'deactivated',
+          comparisonsLimit: 0, // Remove access
+          deactivatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh approved users list
@@ -1003,13 +1011,17 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore access
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        status: 'approved',
-        comparisonsLimit: comparisonLimit,
-        reactivatedAt: new Date(),
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'approved',
+          comparisonsLimit: comparisonLimit,
+          reactivatedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
 
       
       // Refresh approved users list
@@ -2563,14 +2575,21 @@ WARNING:
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
-                const usageDocRef = doc(db, 'usage', userId);
-                await setDoc(usageDocRef, approvedUserData);
+                const { error: upsertError } = await supabase
+                  .from('usage')
+                  .upsert(approvedUserData);
+                
+                if (upsertError) throw upsertError;
                 console.log('✅ Successfully wrote to usage collection');
                 
                 // Remove from ready-for-testing collection
                 console.log('🗑️ Removing from ready-for-testing collection...');
-                const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-                await deleteDoc(readyForTestingDocRef);
+                const { error: deleteError } = await supabase
+                  .from('ready-for-testing')
+                  .delete()
+                  .eq('id', userId);
+                
+                if (deleteError) throw deleteError;
                 console.log('✅ Successfully removed from ready-for-testing');
                 
                 // Refresh data
@@ -2616,15 +2635,22 @@ WARNING:
                 
                 try {
                   // Update in database
-                  const pendingDocRef = doc(db, 'pendingUsers', userId);
                   console.log('📝 Writing to pendingUsers collection...');
-                  await setDoc(pendingDocRef, pendingUserData);
+                  const { error: insertError } = await supabase
+                    .from('pendingusers')
+                    .upsert(pendingUserData);
+                  
+                  if (insertError) throw insertError;
                   console.log('✅ Successfully wrote to pendingUsers');
                   
                   // Remove from ready-for-testing collection
-                  const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
                   console.log('🗑️ Removing from ready-for-testing collection...');
-                  await deleteDoc(readyForTestingDocRef);
+                  const { error: deleteError } = await supabase
+                    .from('ready-for-testing')
+                    .delete()
+                    .eq('id', userId);
+                  
+                  if (deleteError) throw deleteError;
                   console.log('✅ Successfully removed from ready-for-testing');
                   
                   // Refresh data
@@ -2646,11 +2672,15 @@ WARNING:
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
               // Update ready-for-testing user data
-              const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
-              await updateDoc(readyForTestingDocRef, {
-                ...updates,
-                updatedAt: new Date().toISOString()
-              });
+              const { error } = await supabase
+                .from('ready-for-testing')
+                .update({
+                  ...updates,
+                  updatedAt: new Date().toISOString()
+                })
+                .eq('id', userId);
+              
+              if (error) throw error;
               
               // Refresh data
               await fetchReadyForTestingUsers();
