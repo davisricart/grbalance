@@ -921,11 +921,8 @@ const AdminPage: React.FC = () => {
       return;
     }
     
-    // Skip if already loading or if we already loaded data successfully
-    if (loading) {
-      console.log('📊 Data loading in progress...');
-      return;
-    }
+    // Skip if we already loaded data successfully
+    // NOTE: Don't check loading state here as it prevents initial load
     
     // Check if we actually have data loaded (better check)
     const hasActualData = pendingUsers.length > 0 || approvedUsers.length > 0 || readyForTestingUsers.length > 0;
