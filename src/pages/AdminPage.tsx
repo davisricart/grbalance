@@ -949,8 +949,7 @@ const AdminPage: React.FC = () => {
           : user
       ));
       
-      // Refresh pending users list
-      await fetchPendingUsers();
+      // Don't refresh from database to preserve local UI state
       
     } catch (error) {
       console.error('Error updating pending user:', error);
