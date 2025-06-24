@@ -180,6 +180,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.warn('🔐 AuthProvider: Sign out error:', error.message);
+      } else {
+        // Ensure state is cleared immediately on successful sign out
+        setUser(null);
+        setIsAuthenticated(false);
+        console.log('🔐 AuthProvider: Sign out successful, state cleared');
       }
     } catch (error: any) {
       console.warn('🔐 AuthProvider: Failed to sign out:', error.message);
