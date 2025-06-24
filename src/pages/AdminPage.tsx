@@ -2030,7 +2030,7 @@ WARNING:
               
               <div className="pt-4">
                 <button
-                  onClick={() => signOut()}
+                  onClick={() => supabase.auth.signOut()}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200"
                 >
                   Sign Out
@@ -2153,7 +2153,7 @@ WARNING:
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
-              onClick={() => signOut(auth)}
+              onClick={() => supabase.auth.signOut()}
               className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
             >
               Sign Out
