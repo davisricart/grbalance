@@ -910,74 +910,98 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Load data when user is authenticated (or when bypassing auth)
+  // Load data when user is authenticated - simplified and more robust
   useEffect(() => {
     const currentUser = skipAuth ? mockUser : user;
-    const isLoading = skipAuth ? false : authLoading;
+    const isAuthLoading = skipAuth ? false : authLoading;
     
-    // Prevent multiple simultaneous data loads
-    if (loading) {
-      console.log('📊 Data already loading, skipping...');
+    // Only proceed if we have a user and auth is not loading
+    if (!currentUser || isAuthLoading) {
+      console.log('🔒 Waiting for auth...', { hasUser: !!currentUser, isAuthLoading });
       return;
     }
     
-    // Allow refresh if no data was actually loaded yet
-    if (hasLoadedInitialData.current && pendingUsers.length === 0 && approvedUsers.length === 0) {
-      console.log('📊 Data marked as loaded but arrays are empty, forcing reload...');
-      hasLoadedInitialData.current = false;
+    // Skip if already loading or if we already loaded data successfully
+    if (loading) {
+      console.log('📊 Data loading in progress...');
+      return;
     }
     
-    if (hasLoadedInitialData.current) {
-      console.log('📊 Data already loaded, skipping...', {
+    // Check if we actually have data loaded (better check)
+    const hasActualData = pendingUsers.length > 0 || approvedUsers.length > 0 || readyForTestingUsers.length > 0;
+    if (hasLoadedInitialData.current && hasActualData) {
+      console.log('📊 Data already loaded successfully', {
         pendingCount: pendingUsers.length,
-        approvedCount: approvedUsers.length
+        approvedCount: approvedUsers.length,
+        testingCount: readyForTestingUsers.length
       });
       return;
     }
     
-    if (currentUser && !isLoading) {
-      console.log('🔒 User authenticated (or bypassed), loading data...');
-      setLoading(true);
-      
-      // For localhost bypass, just set loading to false since we don't have real data
-      if (skipAuth) {
-        console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
-        setLoading(false);
-        hasLoadedInitialData.current = true;
-      } else {
-        // Fetch data sequentially to avoid ERR_INSUFFICIENT_RESOURCES
-        const loadDataSequentially = async () => {
-          try {
-            console.log('📊 Loading data sequentially to prevent connection exhaustion...');
-            
-            // Load critical data first
-            await fetchPendingUsers();
-            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between requests
-            
-            await fetchReadyForTestingUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            await fetchApprovedUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Load less critical data last
-            await fetchClients();
-            
-            console.log('✅ All data loaded successfully');
-          } catch (error) {
-            console.error('🚨 Error loading data sequentially:', error);
-          }
-        };
-        
-        loadDataSequentially().finally(() => {
-          setLoading(false);
-          hasLoadedInitialData.current = true;
-        });
-      }
-    } else if (!currentUser && !isLoading) {
-      console.log('🔒 User not authenticated');
+    // Load data
+    console.log('🔒 Loading admin data for authenticated user:', currentUser.email);
+    setLoading(true);
+    hasLoadedInitialData.current = false; // Reset before loading
+    
+    if (skipAuth) {
+      console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
       setLoading(false);
+      hasLoadedInitialData.current = true;
+      return;
     }
+    
+    // Fetch data sequentially with better error handling
+    const loadDataSequentially = async () => {
+      try {
+        console.log('📊 Loading admin data sequentially...');
+        
+        await fetchPendingUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchReadyForTestingUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchApprovedUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchClients();
+        
+        console.log('✅ All admin data loaded successfully', {
+          pendingCount: pendingUsers.length,
+          approvedCount: approvedUsers.length
+        });
+        
+      } catch (error) {
+        console.error('🚨 Error loading admin data:', error);
+        // Don't mark as loaded if there was an error
+        hasLoadedInitialData.current = false;
+      }
+    };
+    
+    loadDataSequentially().finally(() => {
+      setLoading(false);
+      // Only mark as loaded if we didn't have an error
+      if (!hasLoadedInitialData.current) {
+        hasLoadedInitialData.current = true;
+      }
+    });
+  }, [user, authLoading, skipAuth, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+
+  // Automatic fallback - if we're authenticated but have no data after 5 seconds, try loading again
+  useEffect(() => {
+    if (!user || authLoading || loading) return;
+    
+    const timer = setTimeout(() => {
+      const hasAnyData = pendingUsers.length > 0 || approvedUsers.length > 0 || readyForTestingUsers.length > 0;
+      if (!hasAnyData && hasLoadedInitialData.current) {
+        console.log('🔄 Auto-retry: No data loaded after 5 seconds, attempting reload...');
+        hasLoadedInitialData.current = false;
+        // Trigger the main useEffect to reload
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [user, authLoading, loading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
 
     // Add error catching for debugging
     window.addEventListener('error', (event) => {
@@ -1032,6 +1056,20 @@ const AdminPage: React.FC = () => {
       setLoading(false);
     };
     
+    // Development helper - show data loading status in console
+    (window as any).showDataStatus = () => {
+      console.log('📊 Current Data Status:', {
+        authenticated: !!user,
+        authLoading: authLoading,
+        dataLoading: loading,
+        hasLoadedInitialData: hasLoadedInitialData.current,
+        pendingUsers: pendingUsers.length,
+        approvedUsers: approvedUsers.length,
+        readyForTestingUsers: readyForTestingUsers.length,
+        clients: clients.length
+      });
+    };
+    
     return () => {
       delete (window as any).debugUserState;
       delete (window as any).addMissingUserToPending;
@@ -1039,6 +1077,7 @@ const AdminPage: React.FC = () => {
       delete (window as any).pendingUsers;
       delete (window as any).forceRefreshData;
       delete (window as any).resetLoadingFlag;
+      delete (window as any).showDataStatus;
     };
   }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
 
