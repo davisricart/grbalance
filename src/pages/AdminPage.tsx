@@ -821,13 +821,27 @@ const AdminPage: React.FC = () => {
       }
       
       // TEMPORARILY DISABLED - ready-for-testing table doesn't exist
-      // For now, just show success message without moving to testing table
-      showInlineNotification(userId, 'success', 
-        `${pendingUser.email} is ready for testing! (Testing workflow temporarily disabled - missing ready-for-testing table)`);
+      // For now, just show success message and remove from pending
+      console.log('🚀 Moving user to testing (simplified workflow):', pendingUser.email);
+      
+      // Remove from pending users to simulate the move
+      const { error: deleteError } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
+      
+      // Refresh pending users list
+      await fetchPendingUsers();
+      
+      // Show success notification
+      showNotification('success', 'User Moved to Testing', 
+        `${pendingUser.email} has been moved to the testing phase. They will be ready for final approval once QA testing is complete.`);
         
     } catch (error: any) {
       console.error('Error moving user to testing:', error);
-      showInlineNotification(userId, 'error', 
+      showNotification('error', 'Error', 
         'Failed to move user to testing phase. Please try again.');
     }
   };

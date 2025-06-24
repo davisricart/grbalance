@@ -8,28 +8,19 @@ Last Updated: June 24, 2025
 - **`CLAUDE.md`** - 🚨 **CRITICAL maintenance rules - READ BEFORE ANY CHANGES**
 - **`PROGRESS_LOG.md`** - Current project status and recent progress  
 - **`README.md`** - Main project documentation and setup guide
-
-### 🛠️ **Development & Setup**
 - **`CODEBASE_INDEX.md`** - This file - project structure guide
-- **`DEPLOYMENT_NOTES.md`** - Deployment instructions and notes
-- **`ENVIRONMENT_VARIABLES.md`** - Environment configuration guide
-- **`STRIPE_SETUP_GUIDE.md`** - Payment integration setup
-- **`TECHNICAL_CHANGELOG.md`** - Change tracking and version history
 
-### 📊 **Business & Product**
-- **`PRODUCT_PHILOSOPHY.md`** - Business logic and product vision
-- **`EMAIL_AUTOMATION_STRATEGY.md`** - Email workflow automation
-- **`CLIENT_PREVIEW_FLOW.md`** - Client onboarding process
+### 📁 **Organized Documentation**
+- **`documentation/essential/`** - Copies of critical docs for backup
+- **`documentation/setup/`** - Deployment, environment, and integration setup
+- **`documentation/business/`** - Product philosophy and business workflows  
+- **`documentation/development/`** - Dev guides, troubleshooting, and changelogs
+- **`documentation/reports/`** - Performance and status reports
 
-### 🔧 **Admin & Troubleshooting** 
-- **`AI_DEVELOPMENT_CHEATSHEET.md`** - Development tips and patterns
-- **`CLAUDE_HELP_MESSAGE_BOX.md`** - Help system documentation
-- **`claude_cli_instructions.md`** - Claude CLI usage guide
-- **`TROUBLESHOOTING_COPY_BOX.md`** - Common issue fixes
-
-### 📈 **Reports & Results**
-- **`PERFORMANCE_OPTIMIZATION_RESULTS.md`** - Performance improvement tracking
-- **`READY_FOR_REAL_WORLD_TESTING.md`** - Testing readiness status
+### 🤖 **AI Context & Automation**
+- **`ai-context/claude-knowledge/`** - Claude AI patterns and learning
+- **`ai-context/automation/`** - Workflow automation documentation
+- **`ai-context/patterns/`** - AI development patterns (future use)
 
 ---
 
@@ -72,17 +63,29 @@ src/
 ```
 grbalance/
 ├── 📁 src/              # Main application code (see above)
-├── 📁 public/           # Static assets (images, favicon, workers)
-├── 📁 netlify/          # Deployment configuration & serverless functions
-├── 📁 clients/          # Client-specific scripts and configurations
-├── 📁 scripts/          # Build, development, and setup scripts
-├── 📁 sample-data/      # Test Excel files for development
-├── 📁 docs/             # Additional documentation
-├── 📁 Claude Knowledge/ # AI assistant context and patterns
-├── 📄 package.json      # Dependencies and scripts
-├── 📄 vite.config.js    # Build configuration
+├── 📁 documentation/    # 📚 Organized documentation
+│   ├── essential/       # Critical docs (CLAUDE.md, README.md, PROGRESS_LOG.md)
+│   ├── setup/          # Deployment, environment, integration guides
+│   ├── business/       # Product philosophy and workflows
+│   ├── development/    # Dev guides, troubleshooting, changelogs
+│   └── reports/        # Performance and status reports
+├── 📁 ai-context/      # 🤖 AI assistance and automation
+│   ├── claude-knowledge/ # Claude AI patterns and learning
+│   ├── automation/     # Workflow automation docs
+│   └── patterns/       # AI development patterns
+├── 📁 public/          # Static assets (images, favicon, workers)
+├── 📁 netlify/         # Deployment configuration & serverless functions
+├── 📁 clients/         # Client-specific scripts and configurations
+├── 📁 scripts/         # Build, development, and setup scripts
+├── 📁 sample-data/     # Test Excel files for development
+├── 📄 CLAUDE.md        # 🚨 CRITICAL maintenance rules
+├── 📄 README.md        # Main project documentation
+├── 📄 PROGRESS_LOG.md  # Current project status
+├── 📄 CODEBASE_INDEX.md # This navigation file
+├── 📄 package.json     # Dependencies and scripts
+├── 📄 vite.config.js   # Build configuration
 ├── 📄 tailwind.config.js # Styling configuration
-└── 📄 netlify.toml      # Netlify deployment settings
+└── 📄 netlify.toml     # Netlify deployment settings
 ```
 
 ---
