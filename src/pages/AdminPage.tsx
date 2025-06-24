@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../config/supabase';
-// Fully migrated to Supabase - all Firebase operations replaced
-// Using Supabase for all data operations
-// Fully migrated to Supabase - all Firebase operations replaced
+// All data operations using Supabase
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
@@ -1369,7 +1367,7 @@ WARNING:
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: mockSiteUrl }));
         
-        // Persist to Firebase so it survives page refreshes
+        // Persist to database so it survives page refreshes
         const usageDocRef = doc(db, 'usage', user.id);
         await updateDoc(usageDocRef, {
           siteUrl: mockSiteUrl,
@@ -1390,7 +1388,7 @@ WARNING:
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
         
-        // Persist to Firebase so it survives page refreshes
+        // Persist to database so it survives page refreshes
         const usageDocRef = doc(db, 'usage', user.id);
         await updateDoc(usageDocRef, {
           siteUrl: siteUrl,
