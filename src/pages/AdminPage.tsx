@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useAuth } from '../contexts/AuthProvider';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuthState } from '../hooks/useAuthState';
 import { supabase } from '../config/supabase';
 // Fully migrated to Supabase - all Firebase operations replaced
 // Using Supabase for all data operations
@@ -166,7 +166,7 @@ const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
   
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuthState();
   
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
@@ -203,9 +203,6 @@ const AdminPage: React.FC = () => {
     confirmStyle: '',
     onConfirm: () => {}
   });
-  
-  // Ref to track if initial data load has been completed
-  const hasLoadedInitialData = useRef(false);
   
   // Form states
   const [newClient, setNewClient] = useState({
@@ -518,150 +515,82 @@ const AdminPage: React.FC = () => {
     };
   }, []);
 
-  // Helper function for retrying database requests
-  const retryRequest = async <T,>(
-    requestFn: () => Promise<T>, 
-    requestName: string, 
-    maxRetries: number = 3,
-    baseDelay: number = 1000
-  ): Promise<T | null> => {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`🔄 ${requestName} - Attempt ${attempt}/${maxRetries}`);
-        const result = await requestFn();
-        console.log(`✅ ${requestName} - Success on attempt ${attempt}`);
-        return result;
-      } catch (error: any) {
-        const isNetworkError = error.message?.includes('Failed to fetch') || 
-                              error.message?.includes('ERR_INSUFFICIENT_RESOURCES') ||
-                              error.code === 'ECONNRESET' ||
-                              error.name === 'NetworkError';
-        
-        // Database schema errors should not be retried
-        const isSchemaError = error.code === '42P01' || // relation does not exist
-                             error.code === '42703' || // column does not exist
-                             error.message?.includes('does not exist');
-        
-        if (isSchemaError) {
-          console.warn(`⚠ ${requestName} - Schema error, skipping retries:`, {
-            code: error.code,
-            message: error.message,
-            table: error.message?.match(/relation "([^"]+)"/)?.[1] || 'unknown'
-          });
-          return null; // Don't retry schema errors
-        }
-        
-        if (isNetworkError && attempt < maxRetries) {
-          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
-          console.warn(`⚠ ${requestName} - Network error on attempt ${attempt}, retrying in ${delay}ms:`, error.message);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        } else {
-          console.error(`🚨 ${requestName} - Failed after ${attempt} attempts:`, {
-            code: error.code,
-            message: error.message,
-            authState: user ? 'authenticated' : 'not authenticated',
-            userEmail: user?.email
-          });
-          
-          if (attempt === maxRetries) {
-            return null; // Return null instead of throwing to prevent cascading failures
-          }
-        }
-      }
-    }
-    return null;
-  };
-
-  // Fetch clients from database with retry logic
+  // Fetch clients from database
   const fetchClients = async () => {
-    const result = await retryRequest(
-      async () => {
-        const { data: clientsData, error } = await supabase
-          .from('clients')
-          .select('*');
-        
-        if (error) throw error;
-        return clientsData || [];
-      },
-      'fetchClients'
-    );
-    
-    if (result !== null) {
-      setClients(result);
+    try {
+      
+      const clientsCollection = collection(db, 'clients');
+      
+      const snapshot = await getDocs(clientsCollection);
+      
+      const clientsData: Client[] = [];
+      
+      snapshot.forEach((doc) => {
+        clientsData.push({ id: doc.id, ...doc.data() } as Client);
+      });
+      
+      setClients(clientsData);
+    } catch (error: any) {
+      console.error('🚨 DATABASE ERROR in fetchClients:');
+      console.error('🚨 Error Code:', error.code);
+      console.error('🚨 Error Message:', error.message);
+      console.error('🚨 Full Error Object:', error);
+          console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+    console.error('🚨 User Email:', user?.email);
     }
   };
 
-  // Fetch pending users with retry logic
+  // Fetch pending users with debugging
   const fetchPendingUsers = async () => {
-    const result = await retryRequest(
-      async () => {
-        const { data: users, error } = await supabase
-          .from('pendingUsers')
-          .select('*')
-          .order('createdAt', { ascending: false });
-        
-        if (error) throw error;
-        return users || [];
-      },
-      'fetchPendingUsers'
-    );
-    
-    if (result !== null) {
-      setPendingUsers(result);
-    } else {
+    try {
+      
+      const users = await safeFetchPendingUsers();
+      setPendingUsers(users);
+    } catch (error: any) {
+      console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
+      console.error('🚨 Error Code:', error.code);
+      console.error('🚨 Error Message:', error.message);
+      console.error('🚨 Full Error Object:', error);
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setPendingUsers([]);
     }
   };
 
-  // Fetch ready-for-testing users with retry logic
+  // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = async () => {
-    // Temporarily disabled - table 'ready-for-testing' does not exist
-    // Need to check if this data is stored elsewhere or create the table
-    console.warn('⚠ fetchReadyForTestingUsers - Table "ready-for-testing" does not exist, using empty array');
-    setReadyForTestingUsers([]);
-    return;
-    
-    /* COMMENTED OUT UNTIL TABLE IS CREATED:
-    const result = await retryRequest(
-      async () => {
-        const { data: snapshot, error } = await supabase
-          .from('ready-for-testing')
-          .select('*')
-          .order('readyForTestingAt', { ascending: false });
-        
-        if (error) throw error;
-        
-        const readyForTestingUsersData: ReadyForTestingUser[] = [];
-        
-        if (snapshot) {
-          snapshot.forEach((doc) => {
-            readyForTestingUsersData.push({ id: doc.id, ...doc } as ReadyForTestingUser);
-          });
-        }
-        
-        return readyForTestingUsersData;
-      },
-      'fetchReadyForTestingUsers'
-    );
-    
-    if (result !== null) {
-      setReadyForTestingUsers(result);
-    } else {
+    try {
+      
+      const readyForTestingCollection = collection(db, 'ready-for-testing');
+      const readyForTestingQuery = query(readyForTestingCollection, orderBy('readyForTestingAt', 'desc'));
+      
+      const snapshot = await getDocs(readyForTestingQuery);
+      
+      const readyForTestingUsersData: ReadyForTestingUser[] = [];
+      
+      snapshot.forEach((doc) => {
+        readyForTestingUsersData.push({ id: doc.id, ...doc.data() } as ReadyForTestingUser);
+      });
+      
+      setReadyForTestingUsers(readyForTestingUsersData);
+    } catch (error: any) {
+      console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
+      console.error('🚨 Error Code:', error.code);
+      console.error('🚨 Error Message:', error.message);
+      console.error('🚨 Full Error Object:', error);
+      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setReadyForTestingUsers([]);
     }
-    */
   };
 
   // Fetch approved users
   const fetchApprovedUsers = async () => {
     try {
       
-      const { data: snapshot, error } = await supabase
-        .from('usage')
-        .select('*')
-        .in('status', ['approved', 'deactivated', 'deleted']);
+      const usageCollection = collection(db, 'usage');
+      // Fetch approved, deactivated, AND deleted users for full lifecycle management
+      const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
       
-      if (error) throw error;
+      const snapshot = await getDocs(allUsersQuery);
       
       const approvedUsersData: ApprovedUser[] = [];
       const deletedUsersData: ApprovedUser[] = [];
@@ -669,30 +598,28 @@ const AdminPage: React.FC = () => {
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
-      if (snapshot) {
-        snapshot.forEach((doc) => {
-          const userData = { id: doc.id, ...doc } as ApprovedUser;
-            
-          // Separate approved/deactivated from deleted users
-          if (userData.status === 'deleted') {
-            deletedUsersData.push(userData);
-          } else {
-            approvedUsersData.push(userData);
-          }
+      snapshot.forEach((doc) => {
+        const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
           
-          // Load site info if it exists (for all users)
-          const data = doc;
-          if (data.siteUrl) {
-            urlsData[doc.id] = data.siteUrl;
-          }
-          // siteId loading removed - using single-site architecture
-          
-          // Load deployed scripts if they exist
-          if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
-            scriptsData[doc.id] = data.deployedScripts;
-          }
-        });
-      }
+        // Separate approved/deactivated from deleted users
+        if (userData.status === 'deleted') {
+          deletedUsersData.push(userData);
+        } else {
+          approvedUsersData.push(userData);
+        }
+        
+        // Load site info if it exists (for all users)
+        const data = doc.data();
+        if (data.siteUrl) {
+          urlsData[doc.id] = data.siteUrl;
+        }
+        // siteId loading removed - using single-site architecture
+        
+        // Load deployed scripts if they exist
+        if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
+          scriptsData[doc.id] = data.deployedScripts;
+        }
+      });
       
       
       setApprovedUsers(approvedUsersData);
@@ -711,122 +638,18 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Debug function to check current state
-  const debugUserState = async (userEmail: string) => {
-    try {
-      console.log('🔍 Debugging user state for:', userEmail);
-      
-      // Check auth users
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) {
-        console.log('❌ Auth check failed:', authError);
-      } else {
-        const authUser = authUsers.users.find(u => u.email === userEmail);
-        console.log('🔐 Auth user exists:', !!authUser);
-        if (authUser) {
-          console.log('🔐 Auth user details:', {
-            id: authUser.id,
-            email: authUser.email,
-            created_at: authUser.created_at,
-            user_metadata: authUser.user_metadata
-          });
-        }
-      }
-      
-      // Check pendingUsers table
-      const { data: pendingUser, error: pendingError } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .eq('email', userEmail)
-        .single();
-      
-      console.log('📋 Pending user exists:', !pendingError);
-      if (pendingError) {
-        console.log('📋 Pending user error:', pendingError);
-      } else {
-        console.log('📋 Pending user data:', pendingUser);
-      }
-      
-      // Check all pendingUsers to see what's there
-      const { data: allPending, error: allError } = await supabase
-        .from('pendingUsers')
-        .select('email, createdAt')
-        .order('createdAt', { ascending: false });
-      
-      console.log('📋 All pending users:', allPending);
-      
-    } catch (error) {
-      console.error('🚨 Debug error:', error);
-    }
-  };
-
-  // Manual function to add missing authenticated users to pending list
-  const addMissingUserToPending = async (userEmail: string) => {
-    try {
-      console.log('🔧 Manually adding user to pending list:', userEmail);
-      
-      // First check if user already exists
-      const { data: existingUser } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .eq('email', userEmail)
-        .single();
-      
-      if (existingUser) {
-        console.log('⚠️ User already exists in pending:', existingUser);
-        return true;
-      }
-      
-      // Add to pendingUsers table with default values
-      const { data, error } = await supabase
-        .from('pendingUsers')
-        .insert([
-          {
-            id: crypto.randomUUID(), // Generate a new ID for now
-            email: userEmail,
-            businessName: 'Unknown Business',
-            businessType: 'Other', 
-            subscriptionTier: 'professional',
-            billingCycle: 'monthly',
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ])
-        .select();
-      
-      if (error) {
-        console.error('Error adding user to pending:', error);
-        return false;
-      }
-      
-      console.log('✅ Successfully added user to pending:', data);
-      
-      // Refresh pending users list
-      await fetchPendingUsers();
-      return true;
-      
-    } catch (error) {
-      console.error('🚨 Error in addMissingUserToPending:', error);
-      return false;
-    }
-  };
-
   // Delete user (soft delete)
   const deleteUser = async (userId: string) => {
     try {
       
       // Update status in usage collection to "deleted"
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'deleted',
-          deletedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'deleted',
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      });
 
-      if (error) throw error;
       
       // Refresh data
       await fetchApprovedUsers();
@@ -851,17 +674,14 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[deletedUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore limits
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'approved',
-          comparisonsLimit: comparisonLimit,
-          restoredAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'approved',
+        comparisonsLimit: comparisonLimit,
+        restoredAt: new Date(),
+        updatedAt: new Date()
+      });
 
-      if (error) throw error;
       
       // Refresh data
       await fetchApprovedUsers();
@@ -886,12 +706,8 @@ const AdminPage: React.FC = () => {
       // Client access is just a URL path, no separate site deletion needed
 
                       // Step 2: Delete from database completely
-      const { error } = await supabase
-        .from('usage')
-        .delete()
-        .eq('id', userId);
-
-      if (error) throw error;
+      const usageDocRef = doc(db, 'usage', userId);
+      await deleteDoc(usageDocRef);
 
       // Step 3: Clean up local state
       setSiteUrls((prev) => {
@@ -910,472 +726,54 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Load data when user is authenticated - simplified and more robust
+  // Load data when user is authenticated (or when bypassing auth)
   useEffect(() => {
     const currentUser = skipAuth ? mockUser : user;
-    const isAuthLoading = skipAuth ? false : authLoading;
+    const isLoading = skipAuth ? false : authLoading;
     
-    // Only proceed if we have a user and auth is not loading
-    if (!currentUser || isAuthLoading) {
-      console.log('🔒 Waiting for auth...', { hasUser: !!currentUser, isAuthLoading });
-      return;
-    }
-    
-    // Skip if we already loaded data successfully
-    // NOTE: Don't check loading state here as it prevents initial load
-    
-    // Check if we actually have data loaded (better check)
-    const hasActualData = pendingUsers.length > 0 || approvedUsers.length > 0 || readyForTestingUsers.length > 0;
-    if (hasLoadedInitialData.current && hasActualData) {
-      console.log('📊 Data already loaded successfully', {
-        pendingCount: pendingUsers.length,
-        approvedCount: approvedUsers.length,
-        testingCount: readyForTestingUsers.length
-      });
-      return;
-    }
-    
-    // Load data
-    console.log('🔒 Loading admin data for authenticated user:', currentUser.email);
-    setLoading(true);
-    hasLoadedInitialData.current = false; // Reset before loading
-    
-    if (skipAuth) {
-      console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
-      setLoading(false);
-      hasLoadedInitialData.current = true;
-      return;
-    }
-    
-    // Fetch data sequentially with better error handling
-    const loadDataSequentially = async () => {
-      try {
-        console.log('📊 Loading admin data sequentially...');
-        
-        await fetchPendingUsers();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        await fetchReadyForTestingUsers();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        await fetchApprovedUsers();
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        await fetchClients();
-        
-        console.log('✅ All admin data loaded successfully', {
-          pendingCount: pendingUsers.length,
-          approvedCount: approvedUsers.length
+    if (currentUser && !isLoading) {
+      console.log('🔒 User authenticated (or bypassed), loading data...');
+      setLoading(true);
+      
+      // For localhost bypass, just set loading to false since we don't have real data
+      if (skipAuth) {
+        console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
+        setLoading(false);
+      } else {
+        // Fetch data for real auth
+        Promise.all([
+          fetchClients(),
+          fetchPendingUsers(),
+          fetchReadyForTestingUsers(),
+          fetchApprovedUsers()
+        ]).finally(() => {
+          setLoading(false);
         });
-        
-      } catch (error) {
-        console.error('🚨 Error loading admin data:', error);
-        // Don't mark as loaded if there was an error
-        hasLoadedInitialData.current = false;
       }
-    };
-    
-    loadDataSequentially().finally(() => {
+    } else if (!currentUser && !isLoading) {
+      console.log('🔒 User not authenticated');
       setLoading(false);
-      // Always mark as loaded when we finish, even if there was an error
-      // This prevents infinite loading loops
-      hasLoadedInitialData.current = true;
-      console.log('📊 Initial data load completed', {
-        pendingCount: pendingUsers.length,
-        approvedCount: approvedUsers.length,
-        readyForTestingCount: readyForTestingUsers.length
+    }
+
+    // Add error catching for debugging
+    window.addEventListener('error', (event) => {
+      console.error('🚨 UNHANDLED ERROR:', event.error);
+      console.error('🚨 ERROR DETAILS:', {
+        message: event.error?.message,
+        stack: event.error?.stack,
+        filename: event.filename,
+        lineno: event.lineno
       });
     });
-  }, [user, authLoading, skipAuth]); // Remove array length dependencies that cause infinite loops
-
-  // Simplified: No more fallback needed since main loading should work properly now
-
-  // PERMANENT FIX: Loading timeout monitor to prevent stuck loading states
-  useEffect(() => {
-    if (!loading) return;
     
-    console.log('⏱️ Loading timeout monitor started - will auto-reset after 15 seconds if stuck');
-    
-    const loadingTimeoutId = setTimeout(() => {
-      console.warn('🚨 LOADING TIMEOUT: Data loading has been stuck for 15 seconds, forcing reset');
-      console.log('📊 Pre-reset status:', {
-        authenticated: !!user,
-        authLoading: authLoading,
-        dataLoading: loading,
-        hasLoadedInitialData: hasLoadedInitialData.current,
-        pendingUsers: pendingUsers.length,
-        approvedUsers: approvedUsers.length,
-        readyForTestingUsers: readyForTestingUsers.length
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('🚨 UNHANDLED PROMISE REJECTION:', event.reason);
+      console.error('🚨 REJECTION DETAILS:', {
+        reason: event.reason,
+        promise: event.promise
       });
-      
-      // Force reset the loading state
-      setLoading(false);
-      hasLoadedInitialData.current = false;
-      
-      // ACTUALLY COMPLETE THE RECOVERY - don't just reset flags
-      setTimeout(async () => {
-        if (user && !authLoading) {
-          console.log('🔄 Auto-recovery: FORCING complete data reload...');
-          hasLoadedInitialData.current = false;
-          setLoading(true);
-          try {
-            await fetchPendingUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchReadyForTestingUsers();  
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchApprovedUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchClients();
-            console.log('✅ AUTOMATIC RECOVERY COMPLETE - no manual intervention needed');
-          } catch (error) {
-            console.error('❌ Auto-recovery failed:', error);
-          } finally {
-            setLoading(false);
-            hasLoadedInitialData.current = true;
-          }
-        }
-      }, 1000);
-      
-    }, 15000); // 15 second timeout
-    
-    return () => {
-      clearTimeout(loadingTimeoutId);
-    };
-  }, [loading, user, authLoading]);
-
-  // Enhanced data loading validation to detect stuck states
-  useEffect(() => {
-    if (!user || authLoading) return;
-    
-    // Check every 10 seconds if we're in a potentially problematic state
-    const validationInterval = setInterval(() => {
-      const isStuckLoading = loading && hasLoadedInitialData.current;
-      const hasNoDataButShouldHave = !loading && hasLoadedInitialData.current && 
-        pendingUsers.length === 0 && approvedUsers.length === 0 && readyForTestingUsers.length === 0;
-      
-      if (isStuckLoading) {
-        console.warn('🚨 DETECTED STUCK LOADING STATE - loading:true but hasLoadedInitialData:true');
-        console.log('🔄 FORCING recovery from stuck loading state...');
-        setLoading(false);
-        hasLoadedInitialData.current = false;
-        // Force immediate recovery
-        setTimeout(async () => {
-          setLoading(true);
-          try {
-            await fetchPendingUsers();
-            await fetchReadyForTestingUsers();
-            await fetchApprovedUsers();
-            await fetchClients();
-            console.log('✅ STUCK STATE RECOVERY COMPLETE');
-          } finally {
-            setLoading(false);
-            hasLoadedInitialData.current = true;
-          }
-        }, 500);
-      }
-      
-      if (hasNoDataButShouldHave) {
-        console.warn('🚨 DETECTED EMPTY DATA STATE - should have data but arrays are empty');
-        console.log('🔄 FORCING recovery from empty data state...');
-        hasLoadedInitialData.current = false;
-        setLoading(true);
-        // Force immediate data load
-        (async () => {
-          try {
-            await fetchPendingUsers();
-            await fetchReadyForTestingUsers();
-            await fetchApprovedUsers();
-            await fetchClients();
-            console.log('✅ EMPTY DATA RECOVERY COMPLETE');
-          } finally {
-            setLoading(false);
-            hasLoadedInitialData.current = true;
-          }
-        })();
-      }
-      
-    }, 10000); // Check every 10 seconds
-    
-    return () => clearInterval(validationInterval);
-  }, [user, authLoading, loading]); // Remove problematic array length dependencies
-
-  // Failsafe: Detect infinite auth loops that prevent data loading
-  const authStateChanges = useRef(0);
-  const lastAuthChange = useRef(Date.now());
-  
-  useEffect(() => {
-    // Track auth state changes to detect infinite loops
-    authStateChanges.current++;
-    lastAuthChange.current = Date.now();
-    
-    // If we have more than 10 auth state changes in 30 seconds, something is wrong
-    const resetCountTimeout = setTimeout(() => {
-      authStateChanges.current = 0;
-    }, 30000);
-    
-    if (authStateChanges.current > 10) {
-      console.error('🚨 INFINITE AUTH LOOP DETECTED: Too many auth state changes in short period');
-      console.log('🔧 Auth loop recovery: Forcing loading state reset to break the cycle');
-      
-      // Break the infinite loop by resetting loading states
-      setLoading(false);
-      hasLoadedInitialData.current = false;
-      
-      // Reset auth change counter to prevent repeated triggers
-      authStateChanges.current = 0;
-      
-      console.log('⚠️ If this problem persists, there may be an issue with AuthProvider or Supabase auth');
-    }
-    
-    return () => clearTimeout(resetCountTimeout);
-  }, [user, authLoading]);
-
-  // Health check monitor - runs every 30 seconds to ensure system is healthy
-  useEffect(() => {
-    if (!user) return;
-    
-    const healthCheckInterval = setInterval(() => {
-      const now = Date.now();
-      const timeSinceLastAuthChange = now - lastAuthChange.current;
-      
-      // If auth has been stable for >30 seconds and we should have data but don't
-      if (timeSinceLastAuthChange > 30000 && 
-          !loading && 
-          !authLoading && 
-          pendingUsers.length === 0 && 
-          approvedUsers.length === 0 && 
-          readyForTestingUsers.length === 0) {
-        
-        console.log('🏥 HEALTH CHECK: Detected potentially stale data state');
-        console.log('📊 Health check status:', {
-          timeSinceLastAuthChange: Math.round(timeSinceLastAuthChange / 1000) + 's',
-          authStable: true,
-          hasData: false,
-          shouldAttemptLoad: !hasLoadedInitialData.current
-        });
-        
-        if (!hasLoadedInitialData.current) {
-          console.log('🔄 Health check recovery: FORCING complete data reload...');
-          setLoading(true);
-          // Actually load the data instead of just hoping useEffect triggers
-          (async () => {
-            try {
-              await fetchPendingUsers();
-              await new Promise(resolve => setTimeout(resolve, 100));
-              await fetchReadyForTestingUsers();
-              await new Promise(resolve => setTimeout(resolve, 100));
-              await fetchApprovedUsers();
-              await new Promise(resolve => setTimeout(resolve, 100));
-              await fetchClients();
-              console.log('✅ HEALTH CHECK RECOVERY COMPLETE');
-            } catch (error) {
-              console.error('❌ Health check recovery failed:', error);
-            } finally {
-              setLoading(false);
-              hasLoadedInitialData.current = true;
-            }
-          })();
-        }
-      }
-    }, 30000); // Every 30 seconds
-    
-    return () => clearInterval(healthCheckInterval);
-  }, [user, loading, authLoading]); // Remove problematic array length dependencies
-
-  // Make debug functions available globally for console access
-  useEffect(() => {
-    (window as any).debugUserState = debugUserState;
-    (window as any).addMissingUserToPending = addMissingUserToPending;
-    (window as any).fetchPendingUsers = fetchPendingUsers;
-    (window as any).pendingUsers = pendingUsers;
-    (window as any).forceRefreshData = async () => {
-      console.log('🔄 Force refreshing all admin data...');
-      hasLoadedInitialData.current = false; // Reset the loading flag
-      setLoading(true);
-      try {
-        await fetchPendingUsers();
-        await fetchReadyForTestingUsers();
-        await fetchApprovedUsers();
-        await fetchClients();
-        console.log('✅ Refresh complete', {
-          pendingCount: pendingUsers.length,
-          approvedCount: approvedUsers.length
-        });
-      } catch (error) {
-        console.error('❌ Refresh failed:', error);
-      } finally {
-        setLoading(false);
-        hasLoadedInitialData.current = true;
-      }
-    };
-    
-    (window as any).resetLoadingFlag = () => {
-      console.log('🔄 Resetting loading flag...');
-      hasLoadedInitialData.current = false;
-      setLoading(false);
-    };
-    
-    // Enhanced loading state diagnostics and recovery
-    (window as any).diagnoseLoadingState = () => {
-      const status = {
-        authenticated: !!user,
-        authLoading: authLoading,
-        dataLoading: loading,
-        hasLoadedInitialData: hasLoadedInitialData.current,
-        pendingUsers: pendingUsers.length,
-        approvedUsers: approvedUsers.length,
-        readyForTestingUsers: readyForTestingUsers.length,
-        clients: clients.length,
-        timestamp: new Date().toISOString()
-      };
-      
-      console.log('🔍 LOADING STATE DIAGNOSIS:', status);
-      
-      // Auto-detect problems and suggest fixes
-      if (status.dataLoading && status.hasLoadedInitialData) {
-        console.warn('⚠️ PROBLEM DETECTED: Loading is stuck (dataLoading:true + hasLoadedInitialData:true)');
-        console.log('💡 SUGGESTED FIX: Run resetLoadingFlag() or wait for automatic timeout');
-      }
-      
-      if (!status.dataLoading && status.hasLoadedInitialData && 
-          status.pendingUsers === 0 && status.approvedUsers === 0 && status.readyForTestingUsers === 0) {
-        console.warn('⚠️ PROBLEM DETECTED: No data loaded despite marked as complete');
-        console.log('💡 SUGGESTED FIX: Run forceRefreshData() to reload data');
-      }
-      
-      if (status.authenticated && !status.authLoading && !status.dataLoading && !status.hasLoadedInitialData) {
-        console.log('✅ READY TO LOAD: All conditions met for data loading');
-      }
-      
-      return status;
-    };
-    
-    // Force recovery from any stuck state
-    (window as any).forceRecovery = () => {
-      console.log('🚑 FORCE RECOVERY: Resetting all loading states and forcing fresh data load...');
-      
-      // Reset all states
-      setLoading(false);
-      hasLoadedInitialData.current = false;
-      
-      // Clear any existing timeouts/intervals that might interfere
-      setTimeout(async () => {
-        if (user && !authLoading) {
-          console.log('🔄 Starting fresh data load...');
-          setLoading(true);
-          try {
-            await fetchPendingUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchReadyForTestingUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchApprovedUsers();
-            await new Promise(resolve => setTimeout(resolve, 100));
-            await fetchClients();
-            console.log('✅ Force recovery complete');
-          } catch (error) {
-            console.error('❌ Force recovery failed:', error);
-          } finally {
-            setLoading(false);
-            hasLoadedInitialData.current = true;
-          }
-        }
-      }, 500);
-    };
-    
-    // Development helper - show data loading status in console
-    (window as any).showDataStatus = () => {
-      console.log('📊 Current Data Status:', {
-        authenticated: !!user,
-        authLoading: authLoading,
-        dataLoading: loading,
-        hasLoadedInitialData: hasLoadedInitialData.current,
-        pendingUsers: pendingUsers.length,
-        approvedUsers: approvedUsers.length,
-        readyForTestingUsers: readyForTestingUsers.length,
-        clients: clients.length
-      });
-    };
-    
-    // Cleanup function for duplicate user entries
-    (window as any).cleanupDuplicateUser = async (userEmail: string) => {
-      try {
-        console.log('🧹 Cleaning up duplicate entries for:', userEmail);
-        
-        // Check all tables for this email
-        const [clientsCheck, usageCheck, pendingCheck] = await Promise.all([
-          supabase.from('clients').select('*').eq('email', userEmail),
-          supabase.from('usage').select('*').eq('email', userEmail),
-          supabase.from('pendingUsers').select('*').eq('email', userEmail)
-        ]);
-        
-        console.log('📊 Found entries:', {
-          clients: clientsCheck.data?.length || 0,
-          usage: usageCheck.data?.length || 0,
-          pending: pendingCheck.data?.length || 0
-        });
-        
-        // If user exists in pending (correct) and also in clients/usage (incorrect)
-        if (pendingCheck.data?.length > 0) {
-          console.log('✅ User correctly exists in pendingUsers table');
-          
-          // Remove from clients table if present
-          if (clientsCheck.data?.length > 0) {
-            console.log('🗑️ Removing duplicate from clients table...');
-            const { error: clientDeleteError } = await supabase
-              .from('clients')
-              .delete()
-              .eq('email', userEmail);
-            
-            if (clientDeleteError) {
-              console.error('❌ Error removing from clients:', clientDeleteError);
-            } else {
-              console.log('✅ Removed from clients table');
-            }
-          }
-          
-          // Remove from usage table if present  
-          if (usageCheck.data?.length > 0) {
-            console.log('🗑️ Removing duplicate from usage table...');
-            const { error: usageDeleteError } = await supabase
-              .from('usage')
-              .delete()
-              .eq('email', userEmail);
-            
-            if (usageDeleteError) {
-              console.error('❌ Error removing from usage:', usageDeleteError);
-            } else {
-              console.log('✅ Removed from usage table');
-            }
-          }
-          
-          // Refresh admin data to update UI
-          console.log('🔄 Refreshing admin data...');
-          await fetchClients();
-          await fetchApprovedUsers();
-          
-          console.log('✅ Cleanup complete! User should only appear in Pending tab now.');
-        } else {
-          console.log('⚠️ User not found in pending table - manual cleanup needed');
-        }
-        
-      } catch (error) {
-        console.error('🚨 Error during cleanup:', error);
-      }
-    };
-    
-    return () => {
-      delete (window as any).debugUserState;
-      delete (window as any).addMissingUserToPending;
-      delete (window as any).fetchPendingUsers;
-      delete (window as any).pendingUsers;
-      delete (window as any).forceRefreshData;
-      delete (window as any).resetLoadingFlag;
-      delete (window as any).showDataStatus;
-      delete (window as any).cleanupDuplicateUser;
-      delete (window as any).diagnoseLoadingState;
-      delete (window as any).forceRecovery;
-    };
-  }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
+    });
+  }, [user, authLoading, skipAuth, mockUser]);
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
@@ -1404,26 +802,18 @@ const AdminPage: React.FC = () => {
       }
       
       // Add to ready-for-testing collection WITHOUT automatic website provisioning
-      const { error: insertError } = await supabase
-        .from('ready-for-testing')
-        .upsert({
-          id: userId,
-          ...userData,
-          readyForTestingAt: new Date().toISOString(),
-          qaStatus: 'pending',
-          websiteProvisioned: false,
-          scriptDeployed: false
-        });
-
-      if (insertError) throw insertError;
+      const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
+      await setDoc(readyForTestingDocRef, {
+        ...userData,
+        readyForTestingAt: new Date().toISOString(),
+        qaStatus: 'pending',
+        websiteProvisioned: false,
+        scriptDeployed: false
+      });
 
       // Remove from pending collection
-      const { error: deleteError } = await supabase
-        .from('pendingUsers')
-        .delete()
-        .eq('id', userId);
-      
-      if (deleteError) throw deleteError;
+      const pendingDocRef = doc(db, 'pendingUsers', userId);
+      await deleteDoc(pendingDocRef);
 
       // Refresh data
       await fetchReadyForTestingUsers();
@@ -1473,20 +863,12 @@ const AdminPage: React.FC = () => {
       
 
       // Update status in usage collection to "approved" and set limits
-      const { error: updateError } = await supabase
-        .from('usage')
-        .update(updateData)
-        .eq('id', userId);
-
-      if (updateError) throw updateError;
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, updateData);
 
       // IMPORTANT: Remove from pendingUsers collection
-      const { error: deleteError } = await supabase
-        .from('pendingUsers')
-        .delete()
-        .eq('id', userId);
-      
-      if (deleteError) throw deleteError;
+      const pendingDocRef = doc(db, 'pendingUsers', userId);
+      await deleteDoc(pendingDocRef);
 
       // Close modal and refresh data
       setShowEditUser(false);
@@ -1503,12 +885,23 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
-      console.log('🔄 Updating pending user:', { userId, updates });
+      // Filter out fields that don't exist in the database schema
+      const { consultationCompleted, scriptReady, consultationNotes, ...safeUpdates } = updates;
       
-      // Filter out fields that don't exist in database schema
-      const { consultationCompleted, scriptReady, consultationNotes, ...dbUpdates } = updates;
+      // Only update fields that exist in the database
+      const dbUpdates = {
+        ...safeUpdates,
+        updatedAt: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('pendingUsers')
+        .update(dbUpdates)
+        .eq('id', userId);
       
-      // Always update state immediately for UI responsiveness
+      if (error) throw error;
+
+      // Update local state with ALL updates (including consultation fields for UI)
       setPendingUsers(prev => 
         prev.map(user => 
           user.id === userId 
@@ -1516,67 +909,30 @@ const AdminPage: React.FC = () => {
             : user
         )
       );
-
-      // Only update database if there are valid fields to update
-      if (Object.keys(dbUpdates).length > 0) {
-        const { error } = await supabase
-          .from('pendingUsers')
-          .update({
-            ...dbUpdates,
-            updatedAt: new Date().toISOString()
-          })
-          .eq('id', userId);
-        
-        if (error) {
-          console.error('❌ Database update failed:', error);
-          // Revert optimistic update on error
-          await fetchPendingUsers();
-          throw error;
-        }
-      }
       
-      // For consultation/script fields, just keep them in local state
-      if (consultationCompleted !== undefined || scriptReady !== undefined || consultationNotes !== undefined) {
-        console.log('📝 Consultation/script status updated in local state only (database columns will be added later)');
-      }
-      
-      console.log('✅ Pending user updated successfully');
+      console.log('✅ Pending user updated successfully:', { userId, updates });
       
     } catch (error) {
       console.error('Error updating pending user:', error);
-      throw error;
+      // Don't re-fetch on error to avoid flickering
+      showNotification('error', 'Update Failed', 'Failed to update user status');
     }
   };
 
   // Reject pending user
   const rejectPendingUser = async (userId: string) => {
     try {
-      // Optimistic update - remove from state immediately
-      const originalUsers = pendingUsers;
-      setPendingUsers(prev => prev.filter(user => user.id !== userId));
       
       // Remove from both collections
-      const { error: pendingError } = await supabase
-        .from('pendingUsers')
-        .delete()
-        .eq('id', userId);
+      const pendingDocRef = doc(db, 'pendingUsers', userId);
+      const usageDocRef = doc(db, 'usage', userId);
       
-      if (pendingError) {
-        // Revert optimistic update on error
-        setPendingUsers(originalUsers);
-        throw pendingError;
-      }
+      await deleteDoc(pendingDocRef);
+      await deleteDoc(usageDocRef);
+
       
-      const { error: usageError } = await supabase
-        .from('usage')
-        .delete()
-        .eq('id', userId);
-      
-      if (usageError) {
-        // Revert optimistic update on error
-        setPendingUsers(originalUsers);
-        throw usageError;
-      }
+      // Refresh pending users list
+      await fetchPendingUsers();
       
     } catch (error) {
       console.error('Error rejecting user:', error);
@@ -1588,17 +944,13 @@ const AdminPage: React.FC = () => {
     try {
       
       // Update status in usage collection to "deactivated"
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'deactivated',
-          comparisonsLimit: 0, // Remove access
-          deactivatedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'deactivated',
+        comparisonsLimit: 0, // Remove access
+        deactivatedAt: new Date(),
+        updatedAt: new Date()
+      });
 
       
       // Refresh approved users list
@@ -1624,17 +976,13 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
       // Update status back to "approved" and restore access
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'approved',
-          comparisonsLimit: comparisonLimit,
-          reactivatedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        status: 'approved',
+        comparisonsLimit: comparisonLimit,
+        reactivatedAt: new Date(),
+        updatedAt: new Date()
+      });
 
       
       // Refresh approved users list
@@ -1827,22 +1175,18 @@ WARNING:
     if (!selectedUserForEdit) return;
 
     try {
+      const usageDocRef = doc(db, 'usage', selectedUserForEdit.id);
       const newComparisonLimit = TIER_LIMITS[editUserForm.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          businessName: editUserForm.businessName,
-          businessType: editUserForm.businessType,
-          subscriptionTier: editUserForm.subscriptionTier,
-          billingCycle: editUserForm.billingCycle,
-          comparisonsLimit: newComparisonLimit,
-          adminNotes: editUserForm.adminNotes,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', selectedUserForEdit.id);
-      
-      if (error) throw error;
+      await updateDoc(usageDocRef, {
+        businessName: editUserForm.businessName,
+        businessType: editUserForm.businessType,
+        subscriptionTier: editUserForm.subscriptionTier,
+        billingCycle: editUserForm.billingCycle,
+        comparisonsLimit: newComparisonLimit,
+        adminNotes: editUserForm.adminNotes,
+        updatedAt: new Date()
+      });
 
       // User details updated successfully
       
@@ -1890,14 +1234,7 @@ WARNING:
       };
 
 
-      const { error } = await supabase
-        .from('usage')
-        .upsert({
-          id: clientId,
-          ...clientData
-        });
-      
-      if (error) throw error;
+      await setDoc(doc(db, 'usage', clientId), clientData);
 
       // Success - no notification needed
       
@@ -1972,10 +1309,7 @@ WARNING:
     setLoginError('');
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginForm.email,
-        password: loginForm.password
-      });
+      const { error } = await signIn(loginForm.email, loginForm.password);
       
       if (error) {
         console.error('🚨 Login error:', error);
@@ -2043,6 +1377,15 @@ WARNING:
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: mockSiteUrl }));
         
+        // Persist to Firebase so it survives page refreshes
+        const usageDocRef = doc(db, 'usage', user.id);
+        await updateDoc(usageDocRef, {
+          siteUrl: mockSiteUrl,
+          clientPath: clientId,
+          websiteCreated: true,
+          updatedAt: new Date()
+        });
+        
         showInlineNotification(user.id, 'success', 
           `Mock website created: ${mockSiteUrl}`);
         
@@ -2054,6 +1397,15 @@ WARNING:
         
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
+        
+        // Persist to Firebase so it survives page refreshes
+        const usageDocRef = doc(db, 'usage', user.id);
+        await updateDoc(usageDocRef, {
+          siteUrl: siteUrl,
+          clientPath: clientPath,
+          websiteCreated: true,
+          updatedAt: new Date()
+        });
         
         showInlineNotification(user.id, 'success', 
           `Client access created: ${siteUrl} (Ready immediately)`);
@@ -2382,16 +1734,11 @@ WARNING:
 
   const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
     try {
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          softwareProfile: profileId,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
-      
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        softwareProfile: profileId,
+        updatedAt: new Date()
+      });
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user software profile:', error);
@@ -2400,16 +1747,11 @@ WARNING:
 
   const updateUserInsightsSetting = async (userId: string, showInsights: boolean) => {
     try {
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          showInsights,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
-      
+      const usageDocRef = doc(db, 'usage', userId);
+      await updateDoc(usageDocRef, {
+        showInsights,
+        updatedAt: new Date()
+      });
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user insights setting:', error);
@@ -3170,24 +2512,14 @@ WARNING:
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
-                const { error: upsertError } = await supabase
-                  .from('usage')
-                  .upsert({
-                    id: userId,
-                    ...approvedUserData
-                  });
-                
-                if (upsertError) throw upsertError;
+                const usageDocRef = doc(db, 'usage', userId);
+                await setDoc(usageDocRef, approvedUserData);
                 console.log('✅ Successfully wrote to usage collection');
                 
                 // Remove from ready-for-testing collection
                 console.log('🗑️ Removing from ready-for-testing collection...');
-                const { error: deleteError } = await supabase
-                  .from('ready-for-testing')
-                  .delete()
-                  .eq('id', userId);
-                
-                if (deleteError) throw deleteError;
+                const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
+                await deleteDoc(readyForTestingDocRef);
                 console.log('✅ Successfully removed from ready-for-testing');
                 
                 // Refresh data
@@ -3233,25 +2565,15 @@ WARNING:
                 
                 try {
                   // Update in database
+                  const pendingDocRef = doc(db, 'pendingUsers', userId);
                   console.log('📝 Writing to pendingUsers collection...');
-                  const { error: insertError } = await supabase
-                    .from('pendingUsers')
-                    .upsert({
-                      id: userId,
-                      ...pendingUserData
-                    });
-                  
-                  if (insertError) throw insertError;
+                  await setDoc(pendingDocRef, pendingUserData);
                   console.log('✅ Successfully wrote to pendingUsers');
                   
                   // Remove from ready-for-testing collection
+                  const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
                   console.log('🗑️ Removing from ready-for-testing collection...');
-                  const { error: deleteError } = await supabase
-                    .from('ready-for-testing')
-                    .delete()
-                    .eq('id', userId);
-                  
-                  if (deleteError) throw deleteError;
+                  await deleteDoc(readyForTestingDocRef);
                   console.log('✅ Successfully removed from ready-for-testing');
                   
                   // Refresh data
@@ -3273,15 +2595,11 @@ WARNING:
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
               // Update ready-for-testing user data
-              const { error } = await supabase
-                .from('ready-for-testing')
-                .update({
-                  ...updates,
-                  updatedAt: new Date().toISOString()
-                })
-                .eq('id', userId);
-              
-              if (error) throw error;
+              const readyForTestingDocRef = doc(db, 'ready-for-testing', userId);
+              await updateDoc(readyForTestingDocRef, {
+                ...updates,
+                updatedAt: new Date().toISOString()
+              });
               
               // Refresh data
               await fetchReadyForTestingUsers();

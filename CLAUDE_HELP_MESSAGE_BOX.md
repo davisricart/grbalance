@@ -96,4 +96,67 @@ Add to whitelist:
 Once server accessible, test admin login at `/admin` with `davisricart@gmail.com`
 
 ---
-**COPY THIS ENTIRE BOX FOR CLAUDE ASSISTANCE** 
+**COPY THIS ENTIRE BOX FOR CLAUDE ASSISTANCE**
+
+# Claude Help Request: Fix Persistent 406 Auth Errors
+
+## Current Issue
+Despite implementing error handling improvements in `useAuthState.ts`, we're still seeing persistent **406 (Not Acceptable)** errors in the browser console from Supabase auth requests. The application works perfectly, but these console errors need to be eliminated.
+
+## Errors Observed
+- Multiple GET requests to `auth-DoljvRgB.js` returning 406 status
+- All pointing to `https://qkrptazfydtaoyhhczyr.supabase.co/rest/`
+- Errors appear on pages where users are not authenticated (like pending approval page)
+
+## What We've Tried
+1. ✅ Improved error handling in `useAuthState` hook
+2. ✅ Added request caching to prevent duplicates  
+3. ✅ Added proper cleanup and mounted checks
+4. ✅ Changed console.error to console.warn
+
+## Current Architecture
+- **Supabase Config**: `src/config/supabase.ts` - basic client setup
+- **Auth Hook**: `src/hooks/useAuthState.ts` - handles auth state across app
+- **Multiple Components**: AdminPage, Header, App.tsx all use `useAuthState`
+
+## Suspected Root Causes
+1. **Race Conditions**: Multiple components calling auth simultaneously
+2. **Initialization Timing**: Auth requests happening before proper setup
+3. **CORS/Headers**: Supabase client configuration issues
+4. **Request Format**: Something in how requests are structured
+
+## Requested Structural Changes
+Please help with ONE of these approaches:
+
+### Option A: Centralized Auth Provider
+Create a React Context provider to manage auth state globally instead of multiple hook instances.
+
+### Option B: Lazy Auth Loading  
+Only initialize auth when actually needed, not on every component mount.
+
+### Option C: Supabase Client Optimization
+Review and optimize the Supabase client configuration to prevent 406 responses.
+
+### Option D: Request Interceptor
+Add a request interceptor to handle 406s gracefully or prevent them entirely.
+
+## Files to Focus On
+- `src/config/supabase.ts` - Client configuration
+- `src/hooks/useAuthState.ts` - Auth state management  
+- `src/App.tsx` - Main app auth flow
+- Any new auth provider/context files
+
+## Success Criteria
+- ✅ Zero 406 errors in browser console
+- ✅ All functionality continues to work perfectly
+- ✅ Clean, maintainable auth structure
+- ✅ No performance degradation
+
+## Additional Context
+- App is deployed on Netlify
+- Using Supabase for auth and database
+- Users see pending approval page after registration
+- Admin dashboard works perfectly despite errors
+- This is purely a "clean console" improvement
+
+Please provide a comprehensive structural solution to eliminate these 406 auth errors permanently while maintaining all current functionality. 
