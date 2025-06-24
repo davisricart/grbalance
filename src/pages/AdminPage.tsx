@@ -825,35 +825,10 @@ const AdminPage: React.FC = () => {
         throw new Error('User must complete consultation and have script ready before moving to testing.');
       }
       
-      // Add to ready-for-testing collection WITHOUT automatic website provisioning
-      const { error: insertError } = await supabase
-        .from('ready-for-testing')
-        .insert({
-          ...userData,
-          id: userId,
-          readyForTestingAt: new Date().toISOString(),
-          qaStatus: 'pending',
-          websiteProvisioned: false,
-          scriptDeployed: false
-        });
-      
-      if (insertError) throw insertError;
-
-      // Remove from pending collection
-      const { error: deleteError } = await supabase
-        .from('pendingusers')
-        .delete()
-        .eq('id', userId);
-      
-      if (deleteError) throw deleteError;
-
-      // Refresh data
-      await fetchReadyForTestingUsers();
-      await fetchPendingUsers();
-      
-      // Use inline notification instead of popup
+      // TEMPORARILY DISABLED - ready-for-testing table doesn't exist
+      // For now, just show success message without moving to testing table
       showInlineNotification(userId, 'success', 
-        `${pendingUser.email} moved to testing phase. Create their website to begin QA testing.`);
+        `${pendingUser.email} is ready for testing! (Testing workflow temporarily disabled - missing ready-for-testing table)`);
         
     } catch (error: any) {
       console.error('Error moving user to testing:', error);
