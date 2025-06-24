@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { useAuthState } from './hooks/useAuthState';
+import { AuthProvider, useAuth } from './contexts/AuthProvider';
 
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -30,7 +30,7 @@ const BillingWireframe = React.lazy(() => import('./mockups/BillingWireframe'));
 const ClientPortalPage = React.lazy(() => import('./pages/ClientPortalPage'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuthState();
+  const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -44,7 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isApproved, isPending, isLoading } = useAuthState();
+  const { isAuthenticated, isApproved, isPending, isLoading } = useAuth();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -109,13 +109,14 @@ export default function App() {
   return (
     <ErrorBoundary>
       <HelmetProvider>
-        <Router
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true
-          }}
-        >
-          <Suspense fallback={<LoadingSpinner />}>
+        <AuthProvider>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true
+            }}
+          >
+            <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               {/* Admin routes - no layout */}
               <Route path="/admin" element={<AdminLoginPage />} />
@@ -169,7 +170,8 @@ export default function App() {
               } />
             </Routes>
           </Suspense>
-      </Router>
+        </Router>
+      </AuthProvider>
       </HelmetProvider>
     </ErrorBoundary>
   );

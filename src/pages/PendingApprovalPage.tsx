@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Clock, CheckCircle, Settings, User, Calendar, Mail, Phone, ExternalLink, ChevronDown } from 'lucide-react';
-import { useAuthState } from '../hooks/useAuthState';
+import { useAuth } from '../contexts/AuthProvider';
 
 export default function PendingApprovalPage() {
-  const { user } = useAuthState();
+  const { user } = useAuth();
   const [showEmailOptions, setShowEmailOptions] = useState(false);
 
   const emailOptions = [

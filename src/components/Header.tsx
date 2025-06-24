@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard } from 'lucide-react';
 import clientConfig from '../config/client';
-import { useAuthState } from '../hooks/useAuthState';
+import { useAuth } from '../contexts/AuthProvider';
 import UsageCounter from './UsageCounter';
 
 export default function Header() {
   // Safely use auth state with fallback for router context issues
   let authState;
   try {
-    authState = useAuthState();
+    authState = useAuth();
   } catch (error) {
     console.warn('Auth state error in Header, using fallback values:', error);
     authState = {

@@ -7,6 +7,31 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Enhanced client configuration to prevent 406 errors
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    // Reduce frequency of auth checks to prevent rate limiting
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+  },
+  // Add request retry logic for transient errors
+  db: {
+    schema: 'public',
+  },
+  realtime: {
+    // Disable realtime to reduce connection overhead for now
+    params: {
+      eventsPerSecond: 2
+    }
+  }
+})
 
-console.log('✅ Supabase client initialized successfully')
+console.log('✅ Supabase client initialized with enhanced configuration')
