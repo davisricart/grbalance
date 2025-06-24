@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../config/supabase';
 
 interface UserStatus {
@@ -10,6 +10,11 @@ interface UserStatus {
   userStatus: string | null;
 }
 
+// Simple cache to prevent duplicate requests across components
+let authCache: UserStatus | null = null;
+let authCacheTime = 0;
+const CACHE_TTL = 30000; // 30 seconds
+
 export function useAuthState(): UserStatus {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
@@ -17,23 +22,79 @@ export function useAuthState(): UserStatus {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userStatus, setUserStatus] = useState<string | null>(null);
+  const mounted = useRef(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleAuthChange(session);
-    });
+    mounted.current = true;
+    
+    // Check cache first
+    const now = Date.now();
+    if (authCache && (now - authCacheTime) < CACHE_TTL) {
+      if (mounted.current) {
+        setIsAuthenticated(authCache.isAuthenticated);
+        setIsApproved(authCache.isApproved);
+        setIsPending(authCache.isPending);
+        setIsLoading(false);
+        setUser(authCache.user);
+        setUserStatus(authCache.userStatus);
+      }
+      return;
+    }
+    
+    // Get initial session with error handling
+    const initAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.warn('Auth session error:', error.message);
+          // Don't throw error, just set unauthenticated state
+          handleAuthChange(null);
+          return;
+        }
+        if (mounted.current) {
+          handleAuthChange(session);
+        }
+      } catch (error) {
+        console.warn('Failed to get initial session:', error);
+        if (mounted.current) {
+          handleAuthChange(null);
+        }
+      }
+    };
+
+    initAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleAuthChange(session);
+      if (mounted.current) {
+        handleAuthChange(session);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted.current = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
+  const updateCache = (newState: Partial<UserStatus>) => {
+    authCache = {
+      isAuthenticated,
+      isApproved,
+      isPending,
+      isLoading: false,
+      user,
+      userStatus,
+      ...newState
+    };
+    authCacheTime = Date.now();
+  };
+
   const handleAuthChange = async (session: any) => {
+    if (!mounted.current) return;
+    
     if (session?.user) {
+      const newState: Partial<UserStatus> = { isAuthenticated: true, user: session.user };
       setIsAuthenticated(true);
       setUser(session.user);
       
@@ -41,10 +102,20 @@ export function useAuthState(): UserStatus {
         // Admin bypass for owner email
         if (session.user.email === 'davisricart@gmail.com') {
           console.log('Admin email detected - granting admin access');
-          setUserStatus('approved');
-          setIsApproved(true);
-          setIsPending(false);
-          setIsLoading(false);
+          if (mounted.current) {
+            const adminState = {
+              ...newState,
+              userStatus: 'approved',
+              isApproved: true,
+              isPending: false,
+              isLoading: false
+            };
+            setUserStatus('approved');
+            setIsApproved(true);
+            setIsPending(false);
+            setIsLoading(false);
+            updateCache(adminState);
+          }
           return;
         }
 
@@ -55,39 +126,85 @@ export function useAuthState(): UserStatus {
           .eq('user_id', session.user.id)
           .single();
 
+        if (!mounted.current) return;
+
+        let finalState = { ...newState };
+        
         if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
+          console.warn('User profile fetch error:', error.message);
+          finalState = {
+            ...finalState,
+            userStatus: 'pending',
+            isApproved: false,
+            isPending: true
+          };
           setUserStatus('pending');
           setIsApproved(false);
           setIsPending(true);
         } else if (userProfile?.status === 'approved') {
+          finalState = {
+            ...finalState,
+            userStatus: 'approved',
+            isApproved: true,
+            isPending: false
+          };
           setUserStatus('approved');
           setIsApproved(true);
           setIsPending(false);
         } else {
           // User not approved or doesn't exist in profiles table
+          finalState = {
+            ...finalState,
+            userStatus: 'pending',
+            isApproved: false,
+            isPending: true
+          };
           setUserStatus('pending');
           setIsApproved(false);
           setIsPending(true);
         }
         
-              } catch (error) {
-        console.error('Error checking user status:', error);
-        // Default to pending for security
-        setUserStatus('pending');
-        setIsApproved(false);
-        setIsPending(true);
+        updateCache(finalState);
+        
+      } catch (error) {
+        console.warn('Error checking user status:', error);
+        if (mounted.current) {
+          // Default to pending for security
+          const pendingState = {
+            ...newState,
+            userStatus: 'pending',
+            isApproved: false,
+            isPending: true
+          };
+          setUserStatus('pending');
+          setIsApproved(false);
+          setIsPending(true);
+          updateCache(pendingState);
+        }
       }
     } else {
       // User not authenticated
-      setIsAuthenticated(false);
-      setIsApproved(false);
-      setIsPending(false);
-      setUser(null);
-      setUserStatus(null);
+      if (mounted.current) {
+        const unauthState = {
+          isAuthenticated: false,
+          isApproved: false,
+          isPending: false,
+          user: null,
+          userStatus: null,
+          isLoading: false
+        };
+        setIsAuthenticated(false);
+        setIsApproved(false);
+        setIsPending(false);
+        setUser(null);
+        setUserStatus(null);
+        updateCache(unauthState);
+      }
     }
     
-    setIsLoading(false);
+    if (mounted.current) {
+      setIsLoading(false);
+    }
   };
 
   return { 
