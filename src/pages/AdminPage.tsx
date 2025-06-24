@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-  import { useAuthState } from '../hooks/useAuthState';
+import { useAuth } from '../contexts/AuthProvider';
   import { supabase } from '../config/supabase';
 // Using Supabase for all data operations
 // All operations using Supabase
@@ -518,17 +518,13 @@ const AdminPage: React.FC = () => {
   const fetchClients = async () => {
     try {
       
-      const clientsCollection = collection(db, 'clients');
+      const { data: clientsData, error } = await supabase
+        .from('clients')
+        .select('*');
       
-      const snapshot = await getDocs(clientsCollection);
+      if (error) throw error;
       
-      const clientsData: Client[] = [];
-      
-      snapshot.forEach((doc) => {
-        clientsData.push({ id: doc.id, ...doc.data() } as Client);
-      });
-      
-      setClients(clientsData);
+      setClients(clientsData || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchClients:');
       console.error('🚨 Error Code:', error.code);
@@ -543,8 +539,13 @@ const AdminPage: React.FC = () => {
   const fetchPendingUsers = async () => {
     try {
       
-      const users = await safeFetchPendingUsers();
-      setPendingUsers(users);
+      const { data: users, error } = await supabase
+        .from('pendingusers')
+        .select('*')
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      setPendingUsers(users || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
       console.error('🚨 Error Code:', error.code);
@@ -559,18 +560,14 @@ const AdminPage: React.FC = () => {
   const fetchReadyForTestingUsers = async () => {
     try {
       
-      const readyForTestingCollection = collection(db, 'ready-for-testing');
-      const readyForTestingQuery = query(readyForTestingCollection, orderBy('readyForTestingAt', 'desc'));
+      const { data: readyForTestingUsersData, error } = await supabase
+        .from('ready-for-testing')
+        .select('*')
+        .order('readyForTestingAt', { ascending: false });
       
-      const snapshot = await getDocs(readyForTestingQuery);
+      if (error) throw error;
       
-      const readyForTestingUsersData: ReadyForTestingUser[] = [];
-      
-      snapshot.forEach((doc) => {
-        readyForTestingUsersData.push({ id: doc.id, ...doc.data() } as ReadyForTestingUser);
-      });
-      
-      setReadyForTestingUsers(readyForTestingUsersData);
+      setReadyForTestingUsers(readyForTestingUsersData || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
       console.error('🚨 Error Code:', error.code);
@@ -585,11 +582,13 @@ const AdminPage: React.FC = () => {
   const fetchApprovedUsers = async () => {
     try {
       
-      const usageCollection = collection(db, 'usage');
       // Fetch approved, deactivated, AND deleted users for full lifecycle management
-      const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
+      const { data: snapshot, error } = await supabase
+        .from('usage')
+        .select('*')
+        .in('status', ['approved', 'deactivated', 'deleted']);
       
-      const snapshot = await getDocs(allUsersQuery);
+      if (error) throw error;
       
       const approvedUsersData: ApprovedUser[] = [];
       const deletedUsersData: ApprovedUser[] = [];
@@ -597,8 +596,8 @@ const AdminPage: React.FC = () => {
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
-      snapshot.forEach((doc) => {
-        const userData = { id: doc.id, ...doc.data() } as ApprovedUser;
+      (snapshot || []).forEach((userData) => {
+        const userDataWithId = { ...userData } as ApprovedUser;
           
         // Separate approved/deactivated from deleted users
         if (userData.status === 'deleted') {
@@ -608,15 +607,14 @@ const AdminPage: React.FC = () => {
         }
         
         // Load site info if it exists (for all users)
-        const data = doc.data();
-        if (data.siteUrl) {
-          urlsData[doc.id] = data.siteUrl;
+        if (userData.siteUrl) {
+          urlsData[userData.id] = userData.siteUrl;
         }
         // siteId loading removed - using single-site architecture
         
         // Load deployed scripts if they exist
-        if (data.deployedScripts && Array.isArray(data.deployedScripts)) {
-          scriptsData[doc.id] = data.deployedScripts;
+        if (userData.deployedScripts && Array.isArray(userData.deployedScripts)) {
+          scriptsData[userData.id] = userData.deployedScripts;
         }
       });
       
