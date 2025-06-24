@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthProvider';
-import { supabase } from '../config/supabase';
-// All data operations using Supabase
+import React, { useState, useEffect, useMemo } from 'react';
+  import { useAuthState } from '../hooks/useAuthState';
+  import { supabase } from '../config/supabase';
+// Using Supabase for all data operations
+// All operations using Supabase
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
@@ -164,7 +165,7 @@ const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
   
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuthState();
   
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
@@ -516,17 +517,25 @@ const AdminPage: React.FC = () => {
   // Fetch clients from database
   const fetchClients = async () => {
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('createdAt', { ascending: false });
       
-      if (error) throw error;
+      const clientsCollection = collection(db, 'clients');
       
-      setClients(data || []);
+      const snapshot = await getDocs(clientsCollection);
+      
+      const clientsData: Client[] = [];
+      
+      snapshot.forEach((doc) => {
+        clientsData.push({ id: doc.id, ...doc.data() } as Client);
+      });
+      
+      setClients(clientsData);
     } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchClients:', error);
-      setClients([]);
+      console.error('🚨 DATABASE ERROR in fetchClients:');
+      console.error('🚨 Error Code:', error.code);
+      console.error('🚨 Error Message:', error.message);
+      console.error('🚨 Full Error Object:', error);
+          console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+    console.error('🚨 User Email:', user?.email);
     }
   };
 
@@ -695,7 +704,7 @@ const AdminPage: React.FC = () => {
       // Step 1: Single-site approach - no separate sites to delete
       // Client access is just a URL path, no separate site deletion needed
 
-                      // Step 2: Delete from database completely
+      // Step 2: Delete from database completely
       const usageDocRef = doc(db, 'usage', userId);
       await deleteDoc(usageDocRef);
 
@@ -875,37 +884,17 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
-      // Filter out fields that don't exist in the database schema
-      const { consultationCompleted, scriptReady, consultationNotes, ...safeUpdates } = updates;
+      const pendingDocRef = doc(db, 'pendingUsers', userId);
+      await updateDoc(pendingDocRef, {
+        ...updates,
+        updatedAt: new Date()
+      });
       
-      // Only update fields that exist in the database
-      const dbUpdates = {
-        ...safeUpdates,
-        updatedAt: new Date().toISOString()
-      };
-
-      const { error } = await supabase
-        .from('pendingUsers')
-        .update(dbUpdates)
-        .eq('id', userId);
-      
-      if (error) throw error;
-
-      // Update local state with ALL updates (including consultation fields for UI)
-      setPendingUsers(prev => 
-        prev.map(user => 
-          user.id === userId 
-            ? { ...user, ...updates, updatedAt: new Date().toISOString() }
-            : user
-        )
-      );
-      
-      console.log('✅ Pending user updated successfully:', { userId, updates });
+      // Refresh pending users list
+      await fetchPendingUsers();
       
     } catch (error) {
       console.error('Error updating pending user:', error);
-      // Don't re-fetch on error to avoid flickering
-      showNotification('error', 'Update Failed', 'Failed to update user status');
     }
   };
 
@@ -1132,7 +1121,7 @@ Result:
       `Are you sure you want to permanently delete ALL data for ${userEmail}?
 
 This will COMPLETELY REMOVE:
-                • User account from database
+• User account from database
 • Netlify website and all deployed scripts (${hasNetlifySite} site found)
 • All user data and history
 • All admin notes and records
@@ -2039,7 +2028,7 @@ WARNING:
               
               <div className="pt-4">
                 <button
-                                      onClick={() => supabase.auth.signOut()}
+                  onClick={() => signOut()}
                   className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded-lg transition duration-200"
                 >
                   Sign Out
@@ -2162,7 +2151,7 @@ WARNING:
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
-                                  onClick={() => supabase.auth.signOut()}
+              onClick={() => signOut(auth)}
               className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors"
             >
               Sign Out
