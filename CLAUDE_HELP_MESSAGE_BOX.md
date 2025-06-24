@@ -160,3 +160,196 @@ Add a request interceptor to handle 406s gracefully or prevent them entirely.
 - This is purely a "clean console" improvement
 
 Please provide a comprehensive structural solution to eliminate these 406 auth errors permanently while maintaining all current functionality. 
+
+# URGENT: React Import Error - useMemo is not defined
+
+## Current Error
+```
+ReferenceError: useMemo is not defined
+    at Vr (AdminPage-Cl8vCRMe.js:32:44595)
+```
+
+## Problem
+The AdminPage component is missing React imports, specifically `useMemo`. The error occurs when the component tries to use React hooks that aren't imported.
+
+## Required Fix
+Check `src/pages/AdminPage.tsx` and ensure all React imports are present at the top:
+
+```typescript
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+```
+
+## Current Status
+- ✅ Database schema fix is working
+- ✅ Build files are deployed
+- ❌ React imports are missing causing runtime error
+- ❌ Admin dashboard won't load due to this error
+
+## Action Needed
+1. Fix the React imports in AdminPage.tsx
+2. Rebuild and deploy
+3. Test that admin dashboard loads without errors
+
+## Context
+This is a critical blocking error preventing the admin dashboard from functioning. The database fixes are in place but can't be tested until this import issue is resolved.
+
+## Priority: CRITICAL
+User cannot access admin dashboard due to this runtime error. 
+
+# CRITICAL: AdminPage.tsx is completely broken - Firebase/Supabase mixing disaster
+
+## Current Status: BROKEN
+The AdminPage.tsx file is a complete disaster with Firebase and Supabase code mixed throughout:
+
+### Errors:
+- `collection is not defined`
+- `safeFetchPendingUsers is not defined` 
+- `doc is not defined`
+- `getDocs is not defined`
+- `updateDoc is not defined`
+- `deleteDoc is not defined`
+
+### Root Cause:
+The file has HUNDREDS of Firebase function calls but no Firebase imports. All Firebase functions are undefined:
+- `collection(db, 'clients')` - Line 521
+- `getDocs(clientsCollection)` - Line 523
+- `doc(db, 'usage', userId)` - Line 645
+- `updateDoc(usageDocRef, {...})` - Line 646
+- And 50+ more Firebase calls throughout
+
+### Critical Issue:
+The `db` variable is completely undefined - there are no Firebase imports but the entire file uses Firebase syntax.
+
+### Required Action:
+**COMPLETE REWRITE NEEDED** - The AdminPage.tsx needs to be completely rewritten to use ONLY Supabase:
+
+1. Replace ALL Firebase collection/doc operations with Supabase table operations
+2. Replace ALL Firebase queries with Supabase queries  
+3. Remove ALL Firebase function calls
+4. Convert ALL data operations to Supabase syntax
+
+### Tables to Convert:
+- `collection(db, 'clients')` → `supabase.from('clients')`
+- `collection(db, 'pendingUsers')` → `supabase.from('pendingUsers')`
+- `collection(db, 'usage')` → `supabase.from('usage')`
+- `collection(db, 'ready-for-testing')` → `supabase.from('ready-for-testing')`
+
+### Priority: EMERGENCY
+The admin dashboard is completely non-functional due to this Firebase/Supabase mixing. 
+
+# EMERGENCY: AdminPage.tsx Complete Rewrite Needed - Firebase/Supabase Disaster
+
+## CRITICAL SITUATION
+The AdminPage.tsx file is completely broken with Firebase and Supabase code mixed throughout. The admin dashboard is non-functional.
+
+## Current Errors:
+- `collection is not defined` 
+- `doc is not defined`
+- `getDocs is not defined` 
+- `updateDoc is not defined`
+- `deleteDoc is not defined`
+- `setDoc is not defined`
+- `query is not defined`
+- `where is not defined`
+- `orderBy is not defined`
+
+## Root Cause:
+The file has 100+ Firebase function calls but NO Firebase imports. All Firebase functions are undefined.
+
+## URGENT REQUEST FOR CLAUDE:
+Please completely rewrite `src/pages/AdminPage.tsx` to use ONLY Supabase. Here's what needs to be converted:
+
+### Database Operations to Convert:
+
+#### 1. Fetch Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const clientsCollection = collection(db, 'clients');
+const snapshot = await getDocs(clientsCollection);
+snapshot.forEach((doc) => {
+  clientsData.push({ id: doc.id, ...doc.data() } as Client);
+});
+
+// TO (Supabase - WORKING):
+const { data, error } = await supabase
+  .from('clients')
+  .select('*')
+  .order('createdAt', { ascending: false });
+```
+
+#### 2. Update Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const usageDocRef = doc(db, 'usage', userId);
+await updateDoc(usageDocRef, { status: 'approved' });
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('usage')
+  .update({ status: 'approved' })
+  .eq('id', userId);
+```
+
+#### 3. Delete Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const pendingDocRef = doc(db, 'pendingUsers', userId);
+await deleteDoc(pendingDocRef);
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('pendingUsers')
+  .delete()
+  .eq('id', userId);
+```
+
+#### 4. Insert Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+await setDoc(doc(db, 'usage', clientId), clientData);
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('usage')
+  .insert([{ id: clientId, ...clientData }]);
+```
+
+### Tables That Need Conversion:
+- `clients` table
+- `pendingUsers` table  
+- `usage` table
+- `ready-for-testing` table
+
+### Critical Functions to Rewrite:
+1. `fetchClients()` - Line 519
+2. `fetchPendingUsers()` - Line 544
+3. `fetchReadyForTestingUsers()` - Line 560
+4. `fetchApprovedUsers()` - Line 586
+5. `deleteUser()` - Line 642
+6. `restoreUser()` - Line 663
+7. `permanentlyDeleteUser()` - Line 695
+8. `moveToTesting()` - Line 790
+9. `approvePendingUser()` - Line 834
+10. `rejectPendingUser()` - Line 923
+11. `deactivateApprovedUser()` - Line 943
+12. `reactivateApprovedUser()` - Line 965
+13. `addClient()` - Line 1205
+14. `updateUserSoftwareProfile()` - Line 1735
+15. `updateUserInsightsSetting()` - Line 1748
+
+### Requirements:
+- Keep ALL existing functionality
+- Maintain ALL interfaces and types
+- Keep ALL UI components unchanged
+- Use ONLY Supabase operations
+- Remove ALL Firebase imports and calls
+- Preserve error handling
+- Maintain the fast loading performance we just achieved
+
+### Context:
+This is blocking the user from accessing their admin dashboard completely. The database schema fix for consultation tracking is ready but can't be tested until this is resolved.
+
+## PRIORITY: MAXIMUM EMERGENCY
+User cannot access admin dashboard at all due to this Firebase/Supabase mixing disaster.
+
+Please provide a complete, working AdminPage.tsx that uses only Supabase operations. 
