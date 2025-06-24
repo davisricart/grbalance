@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../contexts/AuthProvider';
-  import { supabase } from '../config/supabase';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuthState } from '../hooks/useAuthState';
+import { supabase } from '../config/supabase';
 // Using Supabase for all data operations
 // All operations using Supabase
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
