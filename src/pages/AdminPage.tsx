@@ -542,7 +542,7 @@ const AdminPage: React.FC = () => {
   const fetchPendingUsers = useCallback(async () => {
     try {
       const { data: users, error } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .select('*')
         .eq('status', 'pending');
       
@@ -564,7 +564,7 @@ const AdminPage: React.FC = () => {
       const { data: readyForTestingUsersData, error } = await supabase
         .from('ready-for-testing')
         .select('*')
-        .order('readyForTestingAt', { ascending: false });
+        .order('readyfortestingat', { ascending: false });
       
       if (error) throw error;
       
@@ -830,7 +830,7 @@ const AdminPage: React.FC = () => {
         subscriptionTier: pendingUser.subscriptionTier,
         billingCycle: pendingUser.billingCycle,
         createdAt: pendingUser.createdAt,
-        readyForTestingAt: new Date().toISOString(),
+        readyfortestingat: new Date().toISOString(),
         qaStatus: 'pending',
         websiteProvisioned: false,
         scriptDeployed: false,
@@ -851,7 +851,7 @@ const AdminPage: React.FC = () => {
       
       // Remove from pending users
       const { error: deleteError } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .delete()
         .eq('id', userId);
       
@@ -916,7 +916,7 @@ const AdminPage: React.FC = () => {
 
       // IMPORTANT: Remove from pendingUsers collection
       const { error: deleteError } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .delete()
         .eq('id', userId);
       
@@ -945,7 +945,7 @@ const AdminPage: React.FC = () => {
       
       // Only send fields that exist in the database
       const { error } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .update({
           ...dbUpdates,
           updatedAt: new Date().toISOString()
@@ -974,7 +974,7 @@ const AdminPage: React.FC = () => {
       
       // Remove from both collections
       const { error: pendingError } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .delete()
         .eq('id', userId);
       
@@ -2662,7 +2662,7 @@ WARNING:
                   // Update in database
                   console.log('📝 Writing to pendingUsers collection...');
                   const { error: insertError } = await supabase
-                    .from('pendingusers')
+                    .from('pendingUsers')
                     .upsert(pendingUserData);
                   
                   if (insertError) throw insertError;
