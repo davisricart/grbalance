@@ -985,6 +985,17 @@ const AdminPage: React.FC = () => {
     });
   }, [user, authLoading, skipAuth, mockUser]);
 
+  // Make debug functions available globally for console access
+  useEffect(() => {
+    (window as any).debugUserState = debugUserState;
+    (window as any).addMissingUserToPending = addMissingUserToPending;
+    
+    return () => {
+      delete (window as any).debugUserState;
+      delete (window as any).addMissingUserToPending;
+    };
+  }, []);
+
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
     if (activeTab === 'script-testing') {
