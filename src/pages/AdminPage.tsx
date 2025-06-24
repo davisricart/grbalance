@@ -541,9 +541,8 @@ const AdminPage: React.FC = () => {
   // Fetch pending users
   const fetchPendingUsers = useCallback(async () => {
     try {
-      
       const { data: users, error } = await supabase
-        .from('pendingUsers')
+        .from('pendingusers')
         .select('*')
         .eq('status', 'pending');
       
@@ -562,11 +561,6 @@ const AdminPage: React.FC = () => {
   // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = useCallback(async () => {
     try {
-      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
-      console.log('⚠️ fetchReadyForTestingUsers: Temporarily disabled (table missing)');
-      setReadyForTestingUsers([]);
-      return;
-      
       const { data: readyForTestingUsersData, error } = await supabase
         .from('ready-for-testing')
         .select('*')
@@ -808,6 +802,8 @@ const AdminPage: React.FC = () => {
   // Move pending user to ready-for-testing (3-stage workflow)
   const moveToTesting = async (userId: string, userData: Partial<ReadyForTestingUser>) => {
     try {
+      console.log('🚀 moveToTesting called with userId:', userId);
+      
       // Get the pending user data
       const pendingUser = pendingUsers.find(user => user.id === userId);
       if (!pendingUser) {
@@ -815,32 +811,64 @@ const AdminPage: React.FC = () => {
         return;
       }
       
+      console.log('✅ Found pending user:', pendingUser);
+      
       // Check if consultation is complete and script is ready
       if (!pendingUser.consultationCompleted || !pendingUser.scriptReady) {
         throw new Error('User must complete consultation and have script ready before moving to testing.');
       }
       
-      // TEMPORARILY DISABLED - ready-for-testing table doesn't exist
-      // For now, just show success message and remove from pending
-      console.log('🚀 Moving user to testing (simplified workflow):', pendingUser.email);
+      // Create the ready-for-testing table entry
+      console.log('🚀 Moving user to ready-for-testing:', pendingUser.email);
       
-      // Remove from pending users to simulate the move
+      // First, insert into ready-for-testing table
+      const readyForTestingData = {
+        id: userId,
+        email: pendingUser.email,
+        businessName: pendingUser.businessName,
+        businessType: pendingUser.businessType,
+        subscriptionTier: pendingUser.subscriptionTier,
+        billingCycle: pendingUser.billingCycle,
+        createdAt: pendingUser.createdAt,
+        readyForTestingAt: new Date().toISOString(),
+        qaStatus: 'pending',
+        websiteProvisioned: false,
+        scriptDeployed: false,
+        updatedAt: new Date().toISOString()
+      };
+      
+      console.log('📝 Inserting ready-for-testing data:', readyForTestingData);
+      
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .insert([readyForTestingData]);
+      
+      console.log('📝 Insert result:', { insertError });
+      
+      if (insertError) throw insertError;
+      
+      console.log('✅ Successfully inserted into ready-for-testing');
+      
+      // Remove from pending users
       const { error: deleteError } = await supabase
-        .from('pendingUsers')
+        .from('pendingusers')
         .delete()
         .eq('id', userId);
       
+      console.log('🗑️ Delete result:', { deleteError });
+      
       if (deleteError) throw deleteError;
       
-      // Refresh pending users list
-      await fetchPendingUsers();
+      console.log('✅ Successfully removed from pending users');
       
-      // Show success notification
-      showNotification('success', 'User Moved to Testing', 
-        `${pendingUser.email} has been moved to the testing phase. They will be ready for final approval once QA testing is complete.`);
+      // Refresh both lists
+      console.log('🔄 Refreshing data...');
+      await fetchPendingUsers();
+      await fetchReadyForTestingUsers();
+      console.log('✅ Data refresh completed');
         
     } catch (error: any) {
-      console.error('Error moving user to testing:', error);
+      console.error('❌ Error moving user to testing:', error);
       showNotification('error', 'Error', 
         'Failed to move user to testing phase. Please try again.');
     }
@@ -917,7 +945,7 @@ const AdminPage: React.FC = () => {
       
       // Only send fields that exist in the database
       const { error } = await supabase
-        .from('pendingUsers')
+        .from('pendingusers')
         .update({
           ...dbUpdates,
           updatedAt: new Date().toISOString()
@@ -946,7 +974,7 @@ const AdminPage: React.FC = () => {
       
       // Remove from both collections
       const { error: pendingError } = await supabase
-        .from('pendingUsers')
+        .from('pendingusers')
         .delete()
         .eq('id', userId);
       
