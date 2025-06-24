@@ -926,7 +926,7 @@ const AdminPage: React.FC = () => {
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
       const { error } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .update({
           ...updates,
           updatedAt: new Date().toISOString()
@@ -949,7 +949,7 @@ const AdminPage: React.FC = () => {
       
       // Remove from both collections
       const { error: pendingError } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .delete()
         .eq('id', userId);
       
