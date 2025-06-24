@@ -886,8 +886,8 @@ const AdminPage: React.FC = () => {
       const updateData = {
         status: 'approved',
         comparisonsLimit: comparisonLimit,
-        approvedAt: new Date(),
-        updatedAt: new Date(),
+        approvedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         businessName: pendingUser.businessName,
         businessType: pendingUser.businessType,
         billingCycle: pendingUser.billingCycle
@@ -895,12 +895,20 @@ const AdminPage: React.FC = () => {
       
 
       // Update status in usage collection to "approved" and set limits
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, updateData);
+      const { error: updateError } = await supabase
+        .from('usage')
+        .update(updateData)
+        .eq('id', userId);
+      
+      if (updateError) throw updateError;
 
       // IMPORTANT: Remove from pendingUsers collection
-      const pendingDocRef = doc(db, 'pendingUsers', userId);
-      await deleteDoc(pendingDocRef);
+      const { error: deleteError } = await supabase
+        .from('pendingusers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
 
       // Close modal and refresh data
       setShowEditUser(false);
@@ -1194,18 +1202,22 @@ WARNING:
     if (!selectedUserForEdit) return;
 
     try {
-      const usageDocRef = doc(db, 'usage', selectedUserForEdit.id);
       const newComparisonLimit = TIER_LIMITS[editUserForm.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
-      await updateDoc(usageDocRef, {
-        businessName: editUserForm.businessName,
-        businessType: editUserForm.businessType,
-        subscriptionTier: editUserForm.subscriptionTier,
-        billingCycle: editUserForm.billingCycle,
-        comparisonsLimit: newComparisonLimit,
-        adminNotes: editUserForm.adminNotes,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          businessName: editUserForm.businessName,
+          businessType: editUserForm.businessType,
+          subscriptionTier: editUserForm.subscriptionTier,
+          billingCycle: editUserForm.billingCycle,
+          comparisonsLimit: newComparisonLimit,
+          adminNotes: editUserForm.adminNotes,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', selectedUserForEdit.id);
+      
+      if (error) throw error;
 
       // User details updated successfully
       
@@ -1238,6 +1250,7 @@ WARNING:
 
 
       const clientData = {
+        id: clientId,
         email: newClient.email,
         businessName: newClient.businessName,
         businessType: newClient.businessType,
@@ -1246,14 +1259,17 @@ WARNING:
         comparisonsUsed: 0,
         comparisonsLimit: comparisonLimit,
         status: 'approved',
-        createdAt: new Date(),
-        approvedAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         createdBy: 'admin'
       };
 
-
-      await setDoc(doc(db, 'usage', clientId), clientData);
+      const { error } = await supabase
+        .from('usage')
+        .insert(clientData);
+      
+      if (error) throw error;
 
       // Success - no notification needed
       
@@ -1397,13 +1413,17 @@ WARNING:
         setSiteUrls((prev) => ({ ...prev, [user.id]: mockSiteUrl }));
         
         // Persist to database so it survives page refreshes
-        const usageDocRef = doc(db, 'usage', user.id);
-        await updateDoc(usageDocRef, {
-          siteUrl: mockSiteUrl,
-          clientPath: clientId,
-          websiteCreated: true,
-          updatedAt: new Date()
-        });
+        const { error } = await supabase
+          .from('usage')
+          .update({
+            siteUrl: mockSiteUrl,
+            clientPath: clientId,
+            websiteCreated: true,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        if (error) throw error;
         
         showInlineNotification(user.id, 'success', 
           `Mock website created: ${mockSiteUrl}`);
@@ -1418,13 +1438,17 @@ WARNING:
         setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
         
         // Persist to database so it survives page refreshes
-        const usageDocRef = doc(db, 'usage', user.id);
-        await updateDoc(usageDocRef, {
-          siteUrl: siteUrl,
-          clientPath: clientPath,
-          websiteCreated: true,
-          updatedAt: new Date()
-        });
+        const { error } = await supabase
+          .from('usage')
+          .update({
+            siteUrl: siteUrl,
+            clientPath: clientPath,
+            websiteCreated: true,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', user.id);
+        
+        if (error) throw error;
         
         showInlineNotification(user.id, 'success', 
           `Client access created: ${siteUrl} (Ready immediately)`);
@@ -1753,11 +1777,15 @@ WARNING:
 
   const updateUserSoftwareProfile = async (userId: string, profileId: string) => {
     try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        softwareProfile: profileId,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          softwareProfile: profileId,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user software profile:', error);
@@ -1766,11 +1794,15 @@ WARNING:
 
   const updateUserInsightsSetting = async (userId: string, showInsights: boolean) => {
     try {
-      const usageDocRef = doc(db, 'usage', userId);
-      await updateDoc(usageDocRef, {
-        showInsights,
-        updatedAt: new Date()
-      });
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          showInsights,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
       await fetchApprovedUsers();
     } catch (error) {
       console.error('Error updating user insights setting:', error);
