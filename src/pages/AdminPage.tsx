@@ -1050,6 +1050,73 @@ const AdminPage: React.FC = () => {
       });
     };
     
+    // Cleanup function for duplicate user entries
+    (window as any).cleanupDuplicateUser = async (userEmail: string) => {
+      try {
+        console.log('🧹 Cleaning up duplicate entries for:', userEmail);
+        
+        // Check all tables for this email
+        const [clientsCheck, usageCheck, pendingCheck] = await Promise.all([
+          supabase.from('clients').select('*').eq('email', userEmail),
+          supabase.from('usage').select('*').eq('email', userEmail),
+          supabase.from('pendingUsers').select('*').eq('email', userEmail)
+        ]);
+        
+        console.log('📊 Found entries:', {
+          clients: clientsCheck.data?.length || 0,
+          usage: usageCheck.data?.length || 0,
+          pending: pendingCheck.data?.length || 0
+        });
+        
+        // If user exists in pending (correct) and also in clients/usage (incorrect)
+        if (pendingCheck.data?.length > 0) {
+          console.log('✅ User correctly exists in pendingUsers table');
+          
+          // Remove from clients table if present
+          if (clientsCheck.data?.length > 0) {
+            console.log('🗑️ Removing duplicate from clients table...');
+            const { error: clientDeleteError } = await supabase
+              .from('clients')
+              .delete()
+              .eq('email', userEmail);
+            
+            if (clientDeleteError) {
+              console.error('❌ Error removing from clients:', clientDeleteError);
+            } else {
+              console.log('✅ Removed from clients table');
+            }
+          }
+          
+          // Remove from usage table if present  
+          if (usageCheck.data?.length > 0) {
+            console.log('🗑️ Removing duplicate from usage table...');
+            const { error: usageDeleteError } = await supabase
+              .from('usage')
+              .delete()
+              .eq('email', userEmail);
+            
+            if (usageDeleteError) {
+              console.error('❌ Error removing from usage:', usageDeleteError);
+            } else {
+              console.log('✅ Removed from usage table');
+            }
+          }
+          
+          // Refresh admin data to update UI
+          console.log('🔄 Refreshing admin data...');
+          await fetchClients();
+          await fetchApprovedUsers();
+          
+          console.log('✅ Cleanup complete! User should only appear in Pending tab now.');
+        } else {
+          console.log('⚠️ User not found in pending table - manual cleanup needed');
+        }
+        
+      } catch (error) {
+        console.error('🚨 Error during cleanup:', error);
+      }
+    };
+    
     return () => {
       delete (window as any).debugUserState;
       delete (window as any).addMissingUserToPending;
@@ -1058,6 +1125,7 @@ const AdminPage: React.FC = () => {
       delete (window as any).forceRefreshData;
       delete (window as any).resetLoadingFlag;
       delete (window as any).showDataStatus;
+      delete (window as any).cleanupDuplicateUser;
     };
   }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
 
