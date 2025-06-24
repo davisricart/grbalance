@@ -980,10 +980,14 @@ const AdminPage: React.FC = () => {
     
     loadDataSequentially().finally(() => {
       setLoading(false);
-      // Only mark as loaded if we didn't have an error
-      if (!hasLoadedInitialData.current) {
-        hasLoadedInitialData.current = true;
-      }
+      // Always mark as loaded when we finish, even if there was an error
+      // This prevents infinite loading loops
+      hasLoadedInitialData.current = true;
+      console.log('📊 Initial data load completed', {
+        pendingCount: pendingUsers.length,
+        approvedCount: approvedUsers.length,
+        readyForTestingCount: readyForTestingUsers.length
+      });
     });
   }, [user, authLoading, skipAuth, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
 
