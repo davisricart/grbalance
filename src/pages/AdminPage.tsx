@@ -926,7 +926,10 @@ const AdminPage: React.FC = () => {
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
       // Filter out fields that don't exist in the database table
-      const { consultationCompleted, scriptReady, consultationNotes, ...dbUpdates } = updates;
+      const dbUpdates = { ...updates };
+      delete dbUpdates.consultationCompleted;
+      delete dbUpdates.scriptReady;
+      delete dbUpdates.consultationNotes;
       
       // Only send fields that exist in the database
       const { error } = await supabase
