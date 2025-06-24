@@ -1505,7 +1505,10 @@ const AdminPage: React.FC = () => {
     try {
       console.log('🔄 Updating pending user:', { userId, updates });
       
-      // Optimistic update - update state immediately
+      // Filter out fields that don't exist in database schema
+      const { consultationCompleted, scriptReady, consultationNotes, ...dbUpdates } = updates;
+      
+      // Always update state immediately for UI responsiveness
       setPendingUsers(prev => 
         prev.map(user => 
           user.id === userId 
@@ -1514,34 +1517,34 @@ const AdminPage: React.FC = () => {
         )
       );
 
-      const { error } = await supabase
-        .from('pendingUsers')
-        .update({
-          ...updates,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) {
-        console.error('❌ Database update failed:', {
-          error: error,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          userId,
-          updates
-        });
-        // Revert optimistic update on error
-        await fetchPendingUsers();
-        throw error;
-      } else {
-        console.log('✅ Pending user updated successfully');
+      // Only update database if there are valid fields to update
+      if (Object.keys(dbUpdates).length > 0) {
+        const { error } = await supabase
+          .from('pendingUsers')
+          .update({
+            ...dbUpdates,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', userId);
+        
+        if (error) {
+          console.error('❌ Database update failed:', error);
+          // Revert optimistic update on error
+          await fetchPendingUsers();
+          throw error;
+        }
       }
+      
+      // For consultation/script fields, just keep them in local state
+      if (consultationCompleted !== undefined || scriptReady !== undefined || consultationNotes !== undefined) {
+        console.log('📝 Consultation/script status updated in local state only (database columns will be added later)');
+      }
+      
+      console.log('✅ Pending user updated successfully');
       
     } catch (error) {
       console.error('Error updating pending user:', error);
-      throw error; // Re-throw so the UI can handle it
+      throw error;
     }
   };
 
