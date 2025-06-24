@@ -538,13 +538,9 @@ const AdminPage: React.FC = () => {
   // Fetch pending users with debugging
   const fetchPendingUsers = async () => {
     try {
-      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
-      console.log('⚠️ fetchPendingUsers: Temporarily disabled (table missing)');
-      setPendingUsers([]);
-      return;
       
       const { data: users, error } = await supabase
-        .from('pendingusers')
+        .from('pendingUsers')
         .select('*')
         .eq('status', 'pending');
       
