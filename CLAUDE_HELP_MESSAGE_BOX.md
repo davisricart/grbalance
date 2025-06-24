@@ -353,3 +353,166 @@ This is blocking the user from accessing their admin dashboard completely. The d
 User cannot access admin dashboard at all due to this Firebase/Supabase mixing disaster.
 
 Please provide a complete, working AdminPage.tsx that uses only Supabase operations. 
+
+# URGENT: Complete AdminPage.tsx Rewrite - Firebase/Supabase Mixed Code Disaster
+
+## SITUATION SUMMARY
+The AdminPage.tsx file claims to be "fully migrated to Supabase" but actually contains 100+ Firebase function calls with no Firebase imports, causing complete failure. User needs immediate fix.
+
+## CURRENT ERRORS
+- `collection is not defined`
+- `doc is not defined` 
+- `getDocs is not defined`
+- `updateDoc is not defined`
+- `deleteDoc is not defined`
+- `setDoc is not defined`
+- `query is not defined`
+- `where is not defined`
+- `orderBy is not defined`
+
+## WHAT NEEDS TO BE DONE
+Please completely rewrite `src/pages/AdminPage.tsx` to use ONLY Supabase operations. The file is located at `src/pages/AdminPage-Broken.tsx` (backup of broken version).
+
+## CRITICAL REQUIREMENTS
+1. **Keep ALL existing functionality** - Same UI, same features, same interfaces
+2. **Convert ALL Firebase operations to Supabase**
+3. **Maintain ALL TypeScript interfaces** (PendingUser, ApprovedUser, Client, etc.)
+4. **Preserve ALL React components and UI structure**
+5. **Keep ALL error handling and notifications**
+6. **Maintain the fast loading performance**
+
+## DATABASE CONVERSION GUIDE
+
+### Tables to Use:
+- `clients` (Supabase table)
+- `pendingUsers` (Supabase table)
+- `usage` (Supabase table) 
+- `ready-for-testing` (Supabase table)
+
+### Firebase → Supabase Conversion Examples:
+
+#### FETCH Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const clientsCollection = collection(db, 'clients');
+const snapshot = await getDocs(clientsCollection);
+const clientsData: Client[] = [];
+snapshot.forEach((doc) => {
+  clientsData.push({ id: doc.id, ...doc.data() } as Client);
+});
+
+// TO (Supabase - WORKING):
+const { data, error } = await supabase
+  .from('clients')
+  .select('*')
+  .order('createdAt', { ascending: false });
+if (error) throw error;
+setClients(data || []);
+```
+
+#### UPDATE Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const usageDocRef = doc(db, 'usage', userId);
+await updateDoc(usageDocRef, {
+  status: 'approved',
+  comparisonsLimit: comparisonLimit
+});
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('usage')
+  .update({
+    status: 'approved',
+    comparisonsLimit: comparisonLimit,
+    updatedAt: new Date().toISOString()
+  })
+  .eq('id', userId);
+if (error) throw error;
+```
+
+#### DELETE Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const pendingDocRef = doc(db, 'pendingUsers', userId);
+await deleteDoc(pendingDocRef);
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('pendingUsers')
+  .delete()
+  .eq('id', userId);
+if (error) throw error;
+```
+
+#### INSERT Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+await setDoc(doc(db, 'usage', clientId), clientData);
+
+// TO (Supabase - WORKING):
+const { error } = await supabase
+  .from('usage')
+  .insert([{ id: clientId, ...clientData }]);
+if (error) throw error;
+```
+
+#### QUERY Operations:
+```typescript
+// FROM (Firebase - BROKEN):
+const usageCollection = collection(db, 'usage');
+const allUsersQuery = query(usageCollection, where('status', 'in', ['approved', 'deactivated', 'deleted']));
+const snapshot = await getDocs(allUsersQuery);
+
+// TO (Supabase - WORKING):
+const { data, error } = await supabase
+  .from('usage')
+  .select('*')
+  .in('status', ['approved', 'deactivated', 'deleted'])
+  .order('approvedAt', { ascending: false });
+if (error) throw error;
+```
+
+## FUNCTIONS THAT NEED COMPLETE REWRITE
+
+1. **fetchClients()** - Line 519
+2. **fetchPendingUsers()** - Line 544  
+3. **fetchReadyForTestingUsers()** - Line 560
+4. **fetchApprovedUsers()** - Line 586
+5. **deleteUser()** - Line 642
+6. **restoreUser()** - Line 663
+7. **permanentlyDeleteUser()** - Line 695
+8. **moveToTesting()** - Line 790
+9. **approvePendingUser()** - Line 834
+10. **rejectPendingUser()** - Line 923
+11. **deactivateApprovedUser()** - Line 943
+12. **reactivateApprovedUser()** - Line 965
+13. **addClient()** - Line 1205
+14. **updateUserSoftwareProfile()** - Line 1735
+15. **updateUserInsightsSetting()** - Line 1748
+
+## IMPORTANT CONTEXT
+- The `updatePendingUser()` function is ALREADY correctly converted to Supabase
+- Supabase import is already present: `import { supabase } from '../config/supabase';`
+- All TypeScript interfaces are correct and should be preserved
+- Error handling should follow the pattern: `if (error) throw error;`
+- The consultation tracking database schema fix is already implemented
+
+## WHAT TO PRESERVE
+- ALL React state management
+- ALL UI components and JSX
+- ALL TypeScript interfaces
+- ALL error notifications
+- ALL confirmation dialogs
+- ALL loading states
+- The existing fast loading performance
+
+## WHAT TO REMOVE
+- ALL Firebase function calls (collection, doc, getDocs, updateDoc, deleteDoc, setDoc, query, where, orderBy)
+- ANY undefined `db` variable references
+- ANY Firebase-specific error handling
+
+## REQUEST
+Please provide the complete, working AdminPage.tsx file with ALL Firebase operations converted to Supabase. The user needs this urgently as their admin dashboard is completely non-functional.
+
+The file should be a drop-in replacement that maintains all existing functionality while using only Supabase operations. 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useAuthState } from '../hooks/useAuthState';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../config/supabase';
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
@@ -23,16 +23,6 @@ import {
 import PendingUsersTab from '../components/admin/UserManagement/PendingUsersTab';
 import ReadyForTestingTab from '../components/admin/UserManagement/ReadyForTestingTab';
 import { ReadyForTestingUser } from '../types/admin';
-
-// Add this at the top of the file, after imports
-declare global {
-  interface Window {
-    uploadedFile1?: FileRow[];
-    uploadedFile2?: FileRow[];
-    aiFile1Data?: FileRow[];
-    aiFile2Data?: FileRow[];
-  }
-}
 
 const TIER_LIMITS = {
   starter: 50,
@@ -77,10 +67,10 @@ interface ApprovedUser {
   status: string;
   approvedAt: string;
   createdAt: string;
-  deletedAt?: string; // For soft deletes
-  updatedAt?: string; // For tracking updates
-  softwareProfile?: string; // NEW: Software profile ID
-  showInsights?: boolean; // NEW: Individual control for insights tab
+  deletedAt?: string;
+  updatedAt?: string;
+  softwareProfile?: string;
+  showInsights?: boolean;
   
   // Minimal consultation tracking
   consultationCompleted?: boolean;
@@ -88,502 +78,28 @@ interface ApprovedUser {
   consultationNotes?: string;
 }
 
-interface Script {
-  name: string;
-  file: File | null;
-  clientId: string;
-}
-
-interface ScriptInfo {
-  name: string;
-  deployedAt: string;
-  size: number;
-  type: 'custom' | 'demo';
-  preview: string;
-  status: 'active' | 'inactive';
-  // Enhanced fields for dynamic script execution
-  logic?: {
-    columnMappings: {
-      file1Column: string;
-      file2Column: string;
-    };
-    algorithm: 'simple-count' | 'full-reconciliation' | 'custom';
-    generatedCode: string; // The actual JavaScript logic
-    description: string;
-  };
-}
-
-interface ConfirmationDialog {
-  isOpen: boolean;
-  title: string;
-  message: string;
-  confirmText: string;
-  confirmStyle: string;
-  onConfirm: () => void;
-}
-
-interface NotificationItem {
-  id: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-}
-
-// Enhanced interfaces for software configuration
-interface SoftwareProfile {
-  id: string;
-  name: string;
-  displayName: string;
-  dataStructure: {
-    dateColumn: string[];
-    amountColumn: string[];
-    customerColumn: string[];
-    cardBrandColumn: string[];
-    feeColumn: string[];
-  };
-  insightsConfig: {
-    showInsights: boolean;
-    showPaymentTrends: boolean;
-    showCustomerBehavior: boolean;
-    showOperationalMetrics: boolean;
-    showRiskFactors: boolean;
-    showBusinessIntelligence: boolean;
-  };
-  availableTabs: {
-    overview: boolean;
-    insights: boolean;
-    details: boolean;
-    reports: boolean;
-  };
-}
-
 const AdminPage: React.FC = () => {
-  // Use secure server-side admin verification
-  const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
+  const { user, authLoading } = useAuth();
+  const { isAdminVerified, isLoading: adminLoading } = useAdminVerification();
   
-  const { user, isLoading: authLoading } = useAuthState();
-  
-  // Skip auth for testing (only on localhost)
-  const skipAuth = false; // Set to true only for testing
-  const mockUser = { email: 'davisricart@gmail.com' }; // Mock user for testing
-  const [activeTab, setActiveTab] = useState('users');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [tierFilter, setTierFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('approvedAt');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [notification, setNotification] = useState<NotificationItem | null>(null);
-  const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-  const [siteDeletionState, setSiteDeletionState] = useState<Record<string, string>>({});
-  const [csvData, setCsvData] = useState<FileRow[]>([]);
-  const [isExporting, setIsExporting] = useState(false);
-  const [dynamicProfiles, setDynamicProfiles] = useState<SoftwareProfile[]>([]);
-
-  const [libraryStatus, setLibraryStatus] = useState<'initializing' | 'ready'>('initializing');
-
-  const [clients, setClients] = useState<Client[]>([]);
+  // State
+  const [activeTab, setActiveTab] = useState('pending');
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [readyForTestingUsers, setReadyForTestingUsers] = useState<ReadyForTestingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
+  const [readyForTestingUsers, setReadyForTestingUsers] = useState<ReadyForTestingUser[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddClient, setShowAddClient] = useState(false);
-  const [showUploadScript, setShowUploadScript] = useState(false);
-  const [selectedClientForScript, setSelectedClientForScript] = useState<string>('');
-  const [confirmDialog, setConfirmDialog] = useState<ConfirmationDialog>({
-    isOpen: false,
-    title: '',
-    message: '',
-    confirmText: '',
-    confirmStyle: '',
-    onConfirm: () => {}
-  });
-
-  // Notification system
-  const showNotification = useCallback((type: NotificationItem['type'], title: string, message: string) => {
-    const newNotification: NotificationItem = {
-      id: Date.now().toString(),
-      type,
-      title,
-      message,
-      timestamp: new Date(),
-      read: false
-    };
-    setNotification(newNotification);
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => setNotification(null), 5000);
-  }, []);
-
-  // Fetch pending users using Supabase
-  const fetchPendingUsers = useCallback(async () => {
-    try {
-      console.log('🔄 Fetching pending users from Supabase...');
-      
-      const { data, error } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .eq('status', 'pending')
-        .order('createdAt', { ascending: false });
-
-      if (error) {
-        console.error('❌ Supabase error in fetchPendingUsers:', error);
-        throw error;
-      }
-
-      console.log('✅ Successfully fetched pending users:', data);
-      setPendingUsers(data || []);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      setPendingUsers([]);
-      showNotification('error', 'Database Error', 'Failed to fetch pending users');
-    }
-  }, [showNotification]);
-
-  // Fetch ready-for-testing users using Supabase
-  const fetchReadyForTestingUsers = useCallback(async () => {
-    try {
-      console.log('🔄 Fetching ready-for-testing users from Supabase...');
-      
-      const { data, error } = await supabase
-        .from('ready_for_testing')
-        .select('*')
-        .order('readyForTestingAt', { ascending: false });
-
-      if (error) {
-        console.error('❌ Supabase error in fetchReadyForTestingUsers:', error);
-        throw error;
-      }
-
-      console.log('✅ Successfully fetched ready-for-testing users:', data);
-      setReadyForTestingUsers(data || []);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      setReadyForTestingUsers([]);
-      showNotification('error', 'Database Error', 'Failed to fetch ready-for-testing users');
-    }
-  }, [showNotification]);
-
-  // Fetch approved users using Supabase
-  const fetchApprovedUsers = useCallback(async () => {
-    try {
-      console.log('🔄 Fetching approved users from Supabase...');
-      
-      const { data, error } = await supabase
-        .from('usage')
-        .select('*')
-        .in('status', ['approved', 'deactivated', 'deleted'])
-        .order('approvedAt', { ascending: false });
-
-      if (error) {
-        console.error('❌ Supabase error in fetchApprovedUsers:', error);
-        throw error;
-      }
-
-      console.log('✅ Successfully fetched approved users:', data);
-      
-      const approvedUsersData: ApprovedUser[] = [];
-      const deletedUsersData: ApprovedUser[] = [];
-      
-      (data || []).forEach((userData) => {
-        // Separate approved/deactivated from deleted users
-        if (userData.status === 'deleted') {
-          deletedUsersData.push(userData as ApprovedUser);
-        } else {
-          approvedUsersData.push(userData as ApprovedUser);
-        }
-      });
-
-      setApprovedUsers(approvedUsersData);
-      setDeletedUsers(deletedUsersData);
-      
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchApprovedUsers:');
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      setApprovedUsers([]);
-      setDeletedUsers([]);
-      showNotification('error', 'Database Error', 'Failed to fetch approved users');
-    }
-  }, [showNotification]);
-
-  // Delete user (soft delete) using Supabase
-  const deleteUser = useCallback(async (userId: string) => {
-    try {
-      console.log('🗑️ Soft deleting user:', userId);
-
-      // Update status in usage collection to "deleted"
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'deleted',
-          deletedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('❌ Failed to delete user:', error);
-        throw error;
-      }
-
-      console.log('✅ User successfully deleted (soft delete)');
-      showNotification('success', 'User Deleted', 'User has been moved to deleted users');
-      
-      // Refresh data
-      await fetchApprovedUsers();
-      
-    } catch (error: any) {
-      console.error('❌ Error in deleteUser:', error);
-      showNotification('error', 'Delete Failed', error.message || 'Failed to delete user');
-    }
-  }, [fetchApprovedUsers, showNotification]);
-
-  // Restore user from deleted using Supabase
-  const restoreUser = useCallback(async (userId: string) => {
-    try {
-      console.log('🔄 Restoring user:', userId);
-
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'approved',
-          deletedAt: null,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (error) {
-        console.error('❌ Failed to restore user:', error);
-        throw error;
-      }
-
-      console.log('✅ User successfully restored');
-      showNotification('success', 'User Restored', 'User has been restored from deleted users');
-      
-      // Refresh data
-      await fetchApprovedUsers();
-      
-    } catch (error: any) {
-      console.error('❌ Error in restoreUser:', error);
-      showNotification('error', 'Restore Failed', error.message || 'Failed to restore user');
-    }
-  }, [fetchApprovedUsers, showNotification]);
-
-  // Permanently delete user using Supabase
-  const permanentlyDeleteUser = useCallback(async (userId: string) => {
-    try {
-      console.log('🗑️ Permanently deleting user:', userId);
-
-      const { error } = await supabase
-        .from('usage')
-        .delete()
-        .eq('id', userId);
-
-      if (error) {
-        console.error('❌ Failed to permanently delete user:', error);
-        throw error;
-      }
-
-      console.log('✅ User permanently deleted');
-      showNotification('success', 'User Permanently Deleted', 'User has been permanently removed from the system');
-      
-      // Refresh data
-      await fetchApprovedUsers();
-      
-    } catch (error: any) {
-      console.error('❌ Error in permanentlyDeleteUser:', error);
-      showNotification('error', 'Delete Failed', error.message || 'Failed to permanently delete user');
-    }
-  }, [fetchApprovedUsers, showNotification]);
-
-  // Approve pending user using Supabase
-  const approvePendingUser = useCallback(async (userId: string, subscriptionTier: string = 'starter') => {
-    try {
-      console.log('✅ Approving pending user:', userId);
-
-      // Get pending user data first
-      const { data: pendingUserData, error: fetchError } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (fetchError || !pendingUserData) {
-        throw new Error('Failed to fetch pending user data');
-      }
-
-      // Calculate limits based on subscription tier
-      const comparisonsLimit = TIER_LIMITS[subscriptionTier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter;
-
-      const approvedUserData = {
-        id: userId,
-        email: pendingUserData.email,
-        businessName: pendingUserData.businessName,
-        businessType: pendingUserData.businessType,
-        subscriptionTier: subscriptionTier,
-        billingCycle: pendingUserData.billingCycle,
-        comparisonsUsed: 0,
-        comparisonsLimit: comparisonsLimit,
-        status: 'approved',
-        approvedAt: new Date().toISOString(),
-        createdAt: pendingUserData.createdAt,
-        updatedAt: new Date().toISOString()
-      };
-
-      // Update status in usage collection to "approved" and set limits
-      const { error: updateError } = await supabase
-        .from('usage')
-        .update(approvedUserData)
-        .eq('id', userId);
-
-      if (updateError) {
-        console.error('❌ Failed to update usage record:', updateError);
-        throw updateError;
-      }
-
-      // Remove from pending users
-      const { error: deleteError } = await supabase
-        .from('pendingUsers')
-        .delete()
-        .eq('id', userId);
-
-      if (deleteError) {
-        console.error('❌ Failed to remove from pending users:', deleteError);
-        throw deleteError;
-      }
-
-      console.log('✅ User successfully approved');
-      showNotification('success', 'User Approved', `User has been approved with ${subscriptionTier} plan`);
-      
-      // Refresh data
-      await Promise.all([fetchPendingUsers(), fetchApprovedUsers()]);
-      
-    } catch (error: any) {
-      console.error('❌ Error in approvePendingUser:', error);
-      showNotification('error', 'Approval Failed', error.message || 'Failed to approve user');
-    }
-  }, [fetchPendingUsers, fetchApprovedUsers, showNotification]);
-
-  // Reject pending user using Supabase
-  const rejectPendingUser = useCallback(async (userId: string, reason: string = '') => {
-    try {
-      console.log('❌ Rejecting pending user:', userId);
-
-      // Remove from pending users
-      const { error: pendingError } = await supabase
-        .from('pendingUsers')
-        .delete()
-        .eq('id', userId);
-
-      if (pendingError) {
-        console.error('❌ Failed to remove from pending users:', pendingError);
-        throw pendingError;
-      }
-
-      // Remove from usage (if exists)
-      const { error: usageError } = await supabase
-        .from('usage')
-        .delete()
-        .eq('id', userId);
-
-      // Don't throw error if usage record doesn't exist
-      if (usageError && !usageError.message?.includes('No rows found')) {
-        console.error('❌ Failed to remove from usage:', usageError);
-        throw usageError;
-      }
-
-      console.log('✅ User successfully rejected');
-      showNotification('success', 'User Rejected', 'User registration has been rejected');
-      
-      // Refresh data
-      await fetchPendingUsers();
-      
-    } catch (error: any) {
-      console.error('❌ Error in rejectPendingUser:', error);
-      showNotification('error', 'Rejection Failed', error.message || 'Failed to reject user');
-    }
-  }, [fetchPendingUsers, showNotification]);
-
-  // Initialize data on component mount
-  useEffect(() => {
-    const initializeData = async () => {
-      setLoading(true);
-      try {
-        await Promise.all([
-          fetchPendingUsers(),
-          fetchApprovedUsers(),
-          fetchReadyForTestingUsers()
-        ]);
-      } catch (error) {
-        console.error('Failed to initialize data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if ((user && user.email === 'davisricart@gmail.com') || skipAuth) {
-      initializeData();
-    }
-  }, [user, skipAuth, fetchPendingUsers, fetchApprovedUsers, fetchReadyForTestingUsers]);
-
-  // Filter and sort users
-  const filteredAndSortedApprovedUsers = useMemo(() => {
-    let filtered = approvedUsers.filter(user => {
-      const matchesSearch = !searchTerm || 
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.businessName?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || user.status === statusFilter;
-      const matchesTier = tierFilter === 'all' || user.subscriptionTier === tierFilter;
-      
-      return matchesSearch && matchesStatus && matchesTier;
-    });
-
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-      
-      switch (sortBy) {
-        case 'email':
-          aValue = a.email;
-          bValue = b.email;
-          break;
-        case 'businessName':
-          aValue = a.businessName || '';
-          bValue = b.businessName || '';
-          break;
-        case 'subscriptionTier':
-          aValue = a.subscriptionTier || '';
-          bValue = b.subscriptionTier || '';
-          break;
-        case 'comparisonsUsed':
-          aValue = a.comparisonsUsed;
-          bValue = b.comparisonsUsed;
-          break;
-        case 'approvedAt':
-        default:
-          aValue = new Date(a.approvedAt || a.createdAt);
-          bValue = new Date(b.approvedAt || b.createdAt);
-          break;
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-
-    return filtered;
-  }, [approvedUsers, searchTerm, statusFilter, tierFilter, sortBy, sortOrder]);
-
-  // Authentication check
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tierFilter, setTierFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sortBy, setSortBy] = useState('approvedAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  
+  // Refs
+  const hasLoadedInitialData = useRef(false);
+  
+  // Check authentication and admin access
   if (authLoading || adminLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -595,7 +111,7 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  if (!skipAuth && (!user || user.email !== 'davisricart@gmail.com')) {
+  if (!user || !isAdminVerified) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -606,12 +122,395 @@ const AdminPage: React.FC = () => {
     );
   }
 
+  // Helper function for retrying database requests
+  const retryRequest = async <T,>(
+    requestFn: () => Promise<T>, 
+    requestName: string, 
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T | null> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 ${requestName} - Attempt ${attempt}/${maxRetries}`);
+        const result = await requestFn();
+        console.log(`✅ ${requestName} - Success on attempt ${attempt}`);
+        return result;
+      } catch (error: any) {
+        const isNetworkError = error.message?.includes('Failed to fetch') || 
+                              error.message?.includes('ERR_INSUFFICIENT_RESOURCES') ||
+                              error.code === 'ECONNRESET' ||
+                              error.name === 'NetworkError';
+        
+        const isSchemaError = error.code === '42P01' || 
+                             error.code === '42703' || 
+                             error.message?.includes('does not exist');
+        
+        if (isSchemaError) {
+          console.warn(`⚠ ${requestName} - Schema error, skipping retries:`, {
+            code: error.code,
+            message: error.message,
+            table: error.message?.match(/relation "([^"]+)"/)?.[1] || 'unknown'
+          });
+          return null;
+        }
+        
+        if (isNetworkError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1);
+          console.warn(`⚠ ${requestName} - Network error on attempt ${attempt}, retrying in ${delay}ms:`, error.message);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          console.error(`🚨 ${requestName} - Failed after ${attempt} attempts:`, {
+            code: error.code,
+            message: error.message,
+            authState: user ? 'authenticated' : 'not authenticated',
+            userEmail: user?.email
+          });
+          
+          if (attempt === maxRetries) {
+            return null;
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Fetch pending users
+  const fetchPendingUsers = async () => {
+    const result = await retryRequest(
+      async () => {
+        const { data: users, error } = await supabase
+          .from('pendingUsers')
+          .select('*')
+          .order('createdAt', { ascending: false });
+        
+        if (error) throw error;
+        return users || [];
+      },
+      'fetchPendingUsers'
+    );
+    
+    if (result !== null) {
+      setPendingUsers(result);
+    } else {
+      setPendingUsers([]);
+    }
+  };
+
+  // Fetch ready-for-testing users
+  const fetchReadyForTestingUsers = async () => {
+    console.warn('⚠ fetchReadyForTestingUsers - Table "ready-for-testing" does not exist, using empty array');
+    setReadyForTestingUsers([]);
+    return;
+  };
+
+  // Fetch approved users
+  const fetchApprovedUsers = async () => {
+    const result = await retryRequest(
+      async () => {
+        const { data: users, error } = await supabase
+          .from('usage')
+          .select('*')
+          .in('status', ['approved', 'deactivated', 'deleted'])
+          .order('approvedAt', { ascending: false });
+        
+        if (error) throw error;
+        return users || [];
+      },
+      'fetchApprovedUsers'
+    );
+    
+    if (result !== null) {
+      const approvedUsersData: ApprovedUser[] = [];
+      const deletedUsersData: ApprovedUser[] = [];
+      
+      result.forEach((user: any) => {
+        const userData: ApprovedUser = {
+          id: user.id,
+          email: user.email,
+          businessName: user.businessName,
+          businessType: user.businessType,
+          subscriptionTier: user.subscriptionTier,
+          billingCycle: user.billingCycle,
+          comparisonsUsed: user.comparisonsUsed || 0,
+          comparisonsLimit: user.comparisonsLimit || 0,
+          status: user.status,
+          approvedAt: user.approvedAt || user.createdAt,
+          createdAt: user.createdAt,
+          deletedAt: user.deletedAt,
+          updatedAt: user.updatedAt,
+          softwareProfile: user.softwareProfile,
+          showInsights: user.showInsights,
+          consultationCompleted: user.consultationCompleted,
+          scriptReady: user.scriptReady,
+          consultationNotes: user.consultationNotes
+        };
+        
+        if (user.status === 'deleted') {
+          deletedUsersData.push(userData);
+        } else {
+          approvedUsersData.push(userData);
+        }
+      });
+      
+      setApprovedUsers(approvedUsersData);
+      setDeletedUsers(deletedUsersData);
+    } else {
+      setApprovedUsers([]);
+      setDeletedUsers([]);
+    }
+  };
+
+  // Fetch clients
+  const fetchClients = async () => {
+    const result = await retryRequest(
+      async () => {
+        const { data: clientsData, error } = await supabase
+          .from('clients')
+          .select('*')
+          .order('createdAt', { ascending: false });
+        
+        if (error) throw error;
+        return clientsData || [];
+      },
+      'fetchClients'
+    );
+    
+    if (result !== null) {
+      setClients(result);
+    } else {
+      setClients([]);
+    }
+  };
+
+  // Update pending user
+  const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
+    try {
+      console.log('🔄 Updating pending user:', { userId, updates });
+      
+      // Filter out fields that don't exist in database schema
+      const { consultationCompleted, scriptReady, consultationNotes, ...dbUpdates } = updates;
+      
+      // Always update state immediately for UI responsiveness
+      setPendingUsers(prev => 
+        prev.map(user => 
+          user.id === userId 
+            ? { ...user, ...updates, updatedAt: new Date().toISOString() }
+            : user
+        )
+      );
+
+      // Only update database if there are valid fields to update
+      if (Object.keys(dbUpdates).length > 0) {
+        const { error } = await supabase
+          .from('pendingUsers')
+          .update({
+            ...dbUpdates,
+            updatedAt: new Date().toISOString()
+          })
+          .eq('id', userId);
+        
+        if (error) {
+          console.error('❌ Database update failed:', error);
+          await fetchPendingUsers();
+          throw error;
+        }
+      }
+      
+      // For consultation/script fields, just keep them in local state
+      if (consultationCompleted !== undefined || scriptReady !== undefined || consultationNotes !== undefined) {
+        console.log('📝 Consultation/script status updated in local state only');
+      }
+      
+      console.log('✅ Pending user updated successfully');
+      
+    } catch (error) {
+      console.error('Error updating pending user:', error);
+      throw error;
+    }
+  };
+
+  // Approve pending user
+  const approvePendingUser = async (userId: string) => {
+    try {
+      const pendingUser = pendingUsers.find(user => user.id === userId);
+      if (!pendingUser) {
+        console.error('🚨 Pending user not found');
+        return;
+      }
+
+      const comparisonLimit = TIER_LIMITS[pendingUser.subscriptionTier as keyof typeof TIER_LIMITS] || 50;
+
+      // Create approved user in usage table
+      const { error: insertError } = await supabase
+        .from('usage')
+        .insert([{
+          id: userId,
+          email: pendingUser.email,
+          businessName: pendingUser.businessName,
+          businessType: pendingUser.businessType,
+          subscriptionTier: pendingUser.subscriptionTier,
+          billingCycle: pendingUser.billingCycle,
+          comparisonsUsed: 0,
+          comparisonsLimit: comparisonLimit,
+          status: 'approved',
+          approvedAt: new Date().toISOString(),
+          createdAt: pendingUser.createdAt,
+          updatedAt: new Date().toISOString()
+        }]);
+
+      if (insertError) throw insertError;
+
+      // Remove from pending users
+      const { error: deleteError } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
+      
+      if (deleteError) throw deleteError;
+
+      // Refresh data
+      await fetchPendingUsers();
+      await fetchApprovedUsers();
+      
+      console.log('✅ User approved successfully');
+      
+    } catch (error: any) {
+      console.error('Error approving user:', error);
+      throw error;
+    }
+  };
+
+  // Reject pending user
+  const rejectPendingUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('pendingUsers')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
+
+      await fetchPendingUsers();
+      console.log('✅ User rejected successfully');
+      
+    } catch (error: any) {
+      console.error('Error rejecting user:', error);
+      throw error;
+    }
+  };
+
+  // Move to testing
+  const moveToTesting = async (userId: string, userData: Partial<ReadyForTestingUser>) => {
+    try {
+      const pendingUser = pendingUsers.find(user => user.id === userId);
+      if (!pendingUser) {
+        console.error('🚨 Pending user not found');
+        return;
+      }
+      
+      if (!pendingUser.consultationCompleted || !pendingUser.scriptReady) {
+        throw new Error('User must complete consultation and have script ready before moving to testing.');
+      }
+      
+      // For now, just move directly to approved since ready-for-testing table doesn't exist
+      await approvePendingUser(userId);
+      
+    } catch (error: any) {
+      console.error('Error moving user to testing:', error);
+      throw error;
+    }
+  };
+
+  // Load data when user is authenticated
+  useEffect(() => {
+    if (!user || authLoading) {
+      console.log('🔒 Waiting for auth...', { hasUser: !!user, authLoading });
+      return;
+    }
+    
+    if (hasLoadedInitialData.current) {
+      console.log('📊 Data already loaded');
+      return;
+    }
+    
+    console.log('🔒 Loading admin data for authenticated user:', user.email);
+    setLoading(true);
+    hasLoadedInitialData.current = false;
+    
+    const loadDataSequentially = async () => {
+      try {
+        console.log('📊 Loading admin data sequentially...');
+        
+        await fetchPendingUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchReadyForTestingUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchApprovedUsers();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await fetchClients();
+        
+        console.log('✅ All admin data loaded successfully');
+        
+      } catch (error) {
+        console.error('🚨 Error loading admin data:', error);
+      }
+    };
+    
+    loadDataSequentially().finally(() => {
+      setLoading(false);
+      hasLoadedInitialData.current = true;
+      console.log('📊 Initial data load completed');
+    });
+  }, [user, authLoading]);
+
+  // Filter and sort users
+  const filteredUsers = useMemo(() => {
+    let users = [...approvedUsers];
+    
+    if (searchTerm) {
+      users = users.filter(user => 
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.businessName?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (tierFilter) {
+      users = users.filter(user => user.subscriptionTier === tierFilter);
+    }
+    
+    if (statusFilter) {
+      users = users.filter(user => user.status === statusFilter);
+    }
+    
+    return users.sort((a, b) => {
+      const aValue = a[sortBy as keyof ApprovedUser] as string;
+      const bValue = b[sortBy as keyof ApprovedUser] as string;
+      
+      if (sortOrder === 'asc') {
+        return aValue.localeCompare(bValue);
+      } else {
+        return bValue.localeCompare(aValue);
+      }
+    });
+  }, [approvedUsers, searchTerm, tierFilter, statusFilter, sortBy, sortOrder]);
+
+  const stats = useMemo(() => ({
+    totalUsers: approvedUsers.length,
+    pendingUsers: pendingUsers.length,
+    deletedUsers: deletedUsers.length,
+    readyForTesting: readyForTestingUsers.length
+  }), [approvedUsers.length, pendingUsers.length, deletedUsers.length, readyForTestingUsers.length]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading admin data...</p>
+          <p className="mt-4 text-gray-600">Loading admin dashboard...</p>
         </div>
       </div>
     );
@@ -619,350 +518,161 @@ const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Notification */}
-      {notification && (
-        <div className="fixed top-4 right-4 z-50 max-w-md">
-          <div className={`p-4 rounded-lg shadow-lg ${
-            notification.type === 'success' ? 'bg-green-500 text-white' :
-            notification.type === 'error' ? 'bg-red-500 text-white' :
-            notification.type === 'warning' ? 'bg-yellow-500 text-white' :
-            'bg-blue-500 text-white'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-semibold">{notification.title}</h4>
-                <p className="text-sm">{notification.message}</p>
-              </div>
-              <button
-                onClick={() => setNotification(null)}
-                className="ml-4 text-white hover:text-gray-200"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Dialog */}
-      {confirmDialog.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">{confirmDialog.title}</h3>
-            <p className="text-gray-600 mb-6">{confirmDialog.message}</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  confirmDialog.onConfirm();
-                  setConfirmDialog({ ...confirmDialog, isOpen: false });
-                }}
-                className={`px-4 py-2 rounded text-white ${confirmDialog.confirmStyle}`}
-              >
-                {confirmDialog.confirmText}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-            <Shield className="h-8 w-8 mr-3 text-blue-600" />
-            Admin Dashboard
-          </h1>
-          <p className="mt-2 text-gray-600">Manage users, monitor usage, and oversee system operations</p>
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="mt-2 text-gray-600">Manage users, monitor system health, and oversee operations</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Clock className="h-8 w-8 text-yellow-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Users</p>
-                <p className="text-2xl font-bold text-gray-900">{pendingUsers.length}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
               </div>
+              <Users className="h-8 w-8 text-blue-500" />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Approved Users</p>
-                <p className="text-2xl font-bold text-gray-900">{approvedUsers.length}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Pending Approval</p>
+                <p className="text-2xl font-bold text-orange-600">{stats.pendingUsers}</p>
               </div>
+              <Clock className="h-8 w-8 text-orange-500" />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <FiPlay className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">Ready for Testing</p>
-                <p className="text-2xl font-bold text-gray-900">{readyForTestingUsers.length}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.readyForTesting}</p>
               </div>
+              <UserCheck className="h-8 w-8 text-green-500" />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <Trash2 className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm font-medium text-gray-600">Deleted Users</p>
-                <p className="text-2xl font-bold text-gray-900">{deletedUsers.length}</p>
+                <p className="text-2xl font-bold text-red-600">{stats.deletedUsers}</p>
               </div>
+              <Trash2 className="h-8 w-8 text-red-500" />
             </div>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="mb-6">
-          <nav className="flex space-x-8">
-            {[
-              { id: 'users', label: 'User Management', icon: Users },
-              { id: 'pending', label: 'Pending Users', icon: Clock },
-              { id: 'ready', label: 'Ready for Testing', icon: FiPlay },
-              { id: 'deleted', label: 'Deleted Users', icon: Trash2 }
-            ].map((tab) => {
-              const Icon = tab.icon;
-              return (
+        {/* Main Content */}
+        <div className="bg-white shadow rounded-lg">
+          {/* Tabs */}
+          <div className="border-b border-gray-200">
+            <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+              {[
+                { id: 'pending', name: 'Pending Users', count: stats.pendingUsers },
+                { id: 'users', name: 'Approved Users', count: stats.totalUsers },
+                { id: 'ready-for-testing', name: 'Ready for Testing', count: stats.readyForTesting },
+                { id: 'deleted', name: 'Deleted Users', count: stats.deletedUsers }
+              ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                  className={`${
                     activeTab === tab.id
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2`}
                 >
-                  <Icon className="h-4 w-4 mr-2" />
-                  {tab.label}
+                  {tab.name}
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    activeTab === tab.id ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {tab.count}
+                  </span>
                 </button>
-              );
-            })}
-          </nav>
-        </div>
+              ))}
+            </nav>
+          </div>
 
-        {/* Tab Content */}
-        <div className="bg-white rounded-lg shadow">
-          {activeTab === 'users' && (
-            <div className="p-6">
-              {/* Filters and Search */}
-              <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === 'pending' && (
+              <PendingUsersTab
+                pendingUsers={pendingUsers}
+                onMoveToTesting={moveToTesting}
+                onRejectUser={rejectPendingUser}
+                onUpdatePendingUser={updatePendingUser}
+                isLoading={loading}
+              />
+            )}
+
+            {activeTab === 'ready-for-testing' && (
+              <ReadyForTestingTab
+                readyForTestingUsers={readyForTestingUsers}
+                onApproveUser={approvePendingUser}
+                onRejectUser={rejectPendingUser}
+                isLoading={loading}
+              />
+            )}
+
+            {activeTab === 'users' && (
+              <div>
+                {/* Search and Filters */}
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                     <input
                       type="text"
+                      placeholder="Search users..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Search by email or business name..."
-                      className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 w-full"
                     />
                   </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="approved">Approved</option>
-                    <option value="deactivated">Deactivated</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tier</label>
+                  
                   <select
                     value={tierFilter}
                     onChange={(e) => setTierFilter(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="all">All Tiers</option>
+                    <option value="">All Tiers</option>
                     <option value="starter">Starter</option>
                     <option value="professional">Professional</option>
                     <option value="business">Business</option>
                   </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                  
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">All Status</option>
+                    <option value="approved">Approved</option>
+                    <option value="deactivated">Deactivated</option>
+                  </select>
+                  
                   <select
                     value={`${sortBy}-${sortOrder}`}
                     onChange={(e) => {
-                      const [newSortBy, newSortOrder] = e.target.value.split('-');
-                      setSortBy(newSortBy);
-                      setSortOrder(newSortOrder);
+                      const [field, order] = e.target.value.split('-');
+                      setSortBy(field);
+                      setSortOrder(order as 'asc' | 'desc');
                     }}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="approvedAt-desc">Newest Approved</option>
-                    <option value="approvedAt-asc">Oldest Approved</option>
+                    <option value="approvedAt-desc">Newest First</option>
+                    <option value="approvedAt-asc">Oldest First</option>
                     <option value="email-asc">Email A-Z</option>
                     <option value="email-desc">Email Z-A</option>
-                    <option value="comparisonsUsed-desc">Most Usage</option>
-                    <option value="comparisonsUsed-asc">Least Usage</option>
                   </select>
                 </div>
-              </div>
 
-              {/* Users Table */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Business Info
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Usage
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAndSortedApprovedUsers.map((user) => {
-                      const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
-                      return (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                  <User className="h-5 w-5 text-blue-600" />
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                                <div className="text-sm text-gray-500">
-                                  Approved: {new Date(user.approvedAt || user.createdAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{user.businessName || 'N/A'}</div>
-                            <div className="text-sm text-gray-500">{user.businessType || 'N/A'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {user.comparisonsUsed}/{user.comparisonsLimit}
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full ${
-                                  usagePercentage > 80 ? 'bg-red-500' : 
-                                  usagePercentage > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                                }`}
-                                style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                              ></div>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {user.subscriptionTier?.charAt(0).toUpperCase() + user.subscriptionTier?.slice(1) || 'N/A'} Plan
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              user.status === 'approved' ? 'bg-green-100 text-green-800' :
-                              user.status === 'deactivated' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {user.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({
-                                    isOpen: true,
-                                    title: 'Delete User',
-                                    message: `Are you sure you want to delete ${user.email}? This will move them to deleted users.`,
-                                    confirmText: 'Delete',
-                                    confirmStyle: 'bg-red-600 hover:bg-red-700',
-                                    onConfirm: () => deleteUser(user.id)
-                                  });
-                                }}
-                                className="text-red-600 hover:text-red-900"
-                                title="Delete User"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                
-                {filteredAndSortedApprovedUsers.length === 0 && (
-                  <div className="text-center py-8">
-                    <Users className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      Try adjusting your search or filter criteria.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'pending' && (
-            <PendingUsersTab 
-              pendingUsers={pendingUsers}
-              onApprove={approvePendingUser}
-              onReject={rejectPendingUser}
-              onRefresh={fetchPendingUsers}
-            />
-          )}
-
-          {activeTab === 'ready' && (
-            <ReadyForTestingTab 
-              readyForTestingUsers={readyForTestingUsers}
-              onRefresh={fetchReadyForTestingUsers}
-            />
-          )}
-
-          {activeTab === 'deleted' && (
-            <div className="p-6">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Deleted Users</h3>
-                <p className="text-sm text-gray-500">{deletedUsers.length} users</p>
-              </div>
-              
-              {deletedUsers.length === 0 ? (
-                <div className="text-center py-8">
-                  <Trash2 className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Users that are deleted will appear here.
-                  </p>
-                </div>
-              ) : (
+                {/* Users Table */}
                 <div className="overflow-x-auto">
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -971,13 +681,97 @@ const AdminPage: React.FC = () => {
                           User
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Business Info
+                          Subscription
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Usage
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Approved
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="flex-shrink-0 h-10 w-10">
+                                <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                  <User className="h-5 w-5 text-gray-600" />
+                                </div>
+                              </div>
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
+                                <div className="text-sm text-gray-500">{user.businessName}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 capitalize">{user.subscriptionTier}</div>
+                            <div className="text-sm text-gray-500">{user.billingCycle}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">
+                              {user.comparisonsUsed} / {user.comparisonsLimit}
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full" 
+                                style={{ 
+                                  width: `${Math.min((user.comparisonsUsed / user.comparisonsLimit) * 100, 100)}%` 
+                                }}
+                              ></div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              user.status === 'approved' 
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {user.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {user.approvedAt ? new Date(user.approvedAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {filteredUsers.length === 0 && (
+                  <div className="text-center py-12">
+                    <Users className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Try adjusting your search or filter criteria.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'deleted' && (
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Deleted Users</h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          User
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Deleted At
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
+                          Subscription
                         </th>
                       </tr>
                     </thead>
@@ -987,69 +781,41 @@ const AdminPage: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-red-100 flex items-center justify-center">
-                                  <User className="h-5 w-5 text-red-600" />
+                                <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                  <User className="h-5 w-5 text-gray-600" />
                                 </div>
                               </div>
                               <div className="ml-4">
                                 <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                                <div className="text-sm text-gray-500">
-                                  Originally approved: {new Date(user.approvedAt || user.createdAt).toLocaleDateString()}
-                                </div>
+                                <div className="text-sm text-gray-500">{user.businessName}</div>
                               </div>
                             </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{user.businessName || 'N/A'}</div>
-                            <div className="text-sm text-gray-500">{user.businessType || 'N/A'}</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                             {user.deletedAt ? new Date(user.deletedAt).toLocaleDateString() : 'N/A'}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({
-                                    isOpen: true,
-                                    title: 'Restore User',
-                                    message: `Are you sure you want to restore ${user.email}? They will be moved back to approved users.`,
-                                    confirmText: 'Restore',
-                                    confirmStyle: 'bg-green-600 hover:bg-green-700',
-                                    onConfirm: () => restoreUser(user.id)
-                                  });
-                                }}
-                                className="text-green-600 hover:text-green-900"
-                                title="Restore User"
-                              >
-                                <FiRotateCcw className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setConfirmDialog({
-                                    isOpen: true,
-                                    title: 'Permanently Delete User',
-                                    message: `Are you sure you want to permanently delete ${user.email}? This action cannot be undone and will remove all user data.`,
-                                    confirmText: 'Delete Forever',
-                                    confirmStyle: 'bg-red-600 hover:bg-red-700',
-                                    onConfirm: () => permanentlyDeleteUser(user.id)
-                                  });
-                                }}
-                                className="text-red-600 hover:text-red-900"
-                                title="Permanently Delete User"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900 capitalize">{user.subscriptionTier}</div>
+                            <div className="text-sm text-gray-500">{user.billingCycle}</div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-              )}
-            </div>
-          )}
+
+                {deletedUsers.length === 0 && (
+                  <div className="text-center py-12">
+                    <Trash2 className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Deleted users will appear here.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
