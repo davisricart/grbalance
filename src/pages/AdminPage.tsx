@@ -538,6 +538,10 @@ const AdminPage: React.FC = () => {
   // Fetch pending users with debugging
   const fetchPendingUsers = async () => {
     try {
+      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
+      console.log('⚠️ fetchPendingUsers: Temporarily disabled (table missing)');
+      setPendingUsers([]);
+      return;
       
       const { data: users, error } = await supabase
         .from('pendingusers')
@@ -559,6 +563,10 @@ const AdminPage: React.FC = () => {
   // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = async () => {
     try {
+      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
+      console.log('⚠️ fetchReadyForTestingUsers: Temporarily disabled (table missing)');
+      setReadyForTestingUsers([]);
+      return;
       
       const { data: readyForTestingUsersData, error } = await supabase
         .from('ready-for-testing')
