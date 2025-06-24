@@ -516,7 +516,7 @@ const AdminPage: React.FC = () => {
   }, []);
 
   // Helper function for retrying database requests
-  const retryRequest = async <T>(
+  const retryRequest = async <T,>(
     requestFn: () => Promise<T>, 
     requestName: string, 
     maxRetries: number = 3,
