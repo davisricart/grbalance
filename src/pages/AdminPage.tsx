@@ -1003,26 +1003,6 @@ const AdminPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [user, authLoading, loading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
 
-    // Add error catching for debugging
-    window.addEventListener('error', (event) => {
-      console.error('🚨 UNHANDLED ERROR:', event.error);
-      console.error('🚨 ERROR DETAILS:', {
-        message: event.error?.message,
-        stack: event.error?.stack,
-        filename: event.filename,
-        lineno: event.lineno
-      });
-    });
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('🚨 UNHANDLED PROMISE REJECTION:', event.reason);
-      console.error('🚨 REJECTION DETAILS:', {
-        reason: event.reason,
-        promise: event.promise
-      });
-    });
-  }, [user, authLoading, skipAuth, mockUser]);
-
   // Make debug functions available globally for console access
   useEffect(() => {
     (window as any).debugUserState = debugUserState;
