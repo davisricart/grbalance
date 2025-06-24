@@ -7,7 +7,7 @@ import {
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, ArrowLeft,
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
-import { useAdminVerification } from '../services/adminService';
+// Removed useAdminVerification - using AuthProvider only
 import clientConfig from '../config/client';
 import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
@@ -79,8 +79,7 @@ interface ApprovedUser {
 }
 
 const AdminPage: React.FC = () => {
-  const { user, authLoading } = useAuth();
-  const { isAdminVerified, isLoading: adminLoading } = useAdminVerification();
+  const { user, authLoading, isAuthenticated, isApproved } = useAuth();
   
   // State
   const [activeTab, setActiveTab] = useState('pending');
@@ -99,8 +98,8 @@ const AdminPage: React.FC = () => {
   // Refs
   const hasLoadedInitialData = useRef(false);
   
-  // Check authentication and admin access
-  if (authLoading || adminLoading) {
+  // Check authentication and admin access using AuthProvider only
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -111,7 +110,8 @@ const AdminPage: React.FC = () => {
     );
   }
 
-  if (!user || !isAdminVerified) {
+  // Admin access is granted by AuthProvider for davisricart@gmail.com
+  if (!user || !isAuthenticated || user.email !== 'davisricart@gmail.com') {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

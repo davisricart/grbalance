@@ -28,7 +28,7 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
     const isOwnerEmail = userEmail === 'davisricart@gmail.com';
     
     if (isOwnerEmail) {
-      console.log('🚨 ADMIN BYPASS: Granting admin access to owner:', userEmail);
+      console.log('✅ AdminService: Owner access verified:', userEmail);
       return {
         isAdmin: true,
         userEmail,

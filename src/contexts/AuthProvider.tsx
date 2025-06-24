@@ -106,9 +106,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsAuthenticated(true);
         setUser(session.user);
         
-        // Admin bypass for owner email
+        // Admin access for owner email
         if (session.user.email === 'davisricart@gmail.com') {
-          console.log('🔐 AuthProvider: Admin email detected - granting admin access');
+          console.log('✅ AuthProvider: Admin access granted');
           if (mounted.current) {
             setUserStatus('approved');
             setIsApproved(true);
