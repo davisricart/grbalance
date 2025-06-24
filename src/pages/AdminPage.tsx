@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuthState } from '../hooks/useAuthState';
 import { supabase } from '../config/supabase';
 // Fully migrated to Supabase - all Firebase operations replaced
@@ -203,6 +203,9 @@ const AdminPage: React.FC = () => {
     confirmStyle: '',
     onConfirm: () => {}
   });
+  
+  // Ref to track if initial data load has been completed
+  const hasLoadedInitialData = useRef(false);
   
   // Form states
   const [newClient, setNewClient] = useState({
@@ -811,6 +814,12 @@ const AdminPage: React.FC = () => {
     const currentUser = skipAuth ? mockUser : user;
     const isLoading = skipAuth ? false : authLoading;
     
+    // Prevent multiple simultaneous data loads
+    if (loading || hasLoadedInitialData.current) {
+      console.log('📊 Data already loading or loaded, skipping...');
+      return;
+    }
+    
     if (currentUser && !isLoading) {
       console.log('🔒 User authenticated (or bypassed), loading data...');
       setLoading(true);
@@ -819,6 +828,7 @@ const AdminPage: React.FC = () => {
       if (skipAuth) {
         console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
         setLoading(false);
+        hasLoadedInitialData.current = true;
       } else {
         // Fetch data sequentially to avoid ERR_INSUFFICIENT_RESOURCES
         const loadDataSequentially = async () => {
@@ -846,6 +856,7 @@ const AdminPage: React.FC = () => {
         
         loadDataSequentially().finally(() => {
           setLoading(false);
+          hasLoadedInitialData.current = true;
         });
       }
     } else if (!currentUser && !isLoading) {
