@@ -8,6 +8,7 @@ import {
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { useAdminVerification } from '../services/adminService';
+import clientConfig from '../config/client';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
 import Papa from 'papaparse';
@@ -19,6 +20,8 @@ import {
   UserDoc
 } from '../types';
 import { ReadyForTestingUser } from '../types/admin';
+import PendingUsersTab from '../components/admin/UserManagement/PendingUsersTab';
+import ReadyForTestingTab from '../components/admin/UserManagement/ReadyForTestingTab';
 
 // Add this at the top of the file, after imports
 declare global {
