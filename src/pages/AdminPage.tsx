@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthState } from '../hooks/useAuthState';
 import { supabase } from '../config/supabase';
 // Using Supabase for all data operations
@@ -172,6 +172,7 @@ const AdminPage: React.FC = () => {
   
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
+  const hasInitiallyLoaded = useRef(false);
   const [activeTab, setActiveTab] = useState('users');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -736,10 +737,13 @@ const AdminPage: React.FC = () => {
 
   // Load data when user is authenticated (or when bypassing auth)
   useEffect(() => {
+    if (hasInitiallyLoaded.current) return;
+    
     const currentUser = skipAuth ? mockUser : user;
     const isLoading = skipAuth ? false : authLoading;
     
     if (currentUser && !isLoading) {
+      hasInitiallyLoaded.current = true;
       console.log('🔒 User authenticated (or bypassed), loading data...');
       setLoading(true);
       
@@ -781,7 +785,7 @@ const AdminPage: React.FC = () => {
         promise: event.promise
       });
     });
-  }, [user, authLoading, skipAuth, mockUser, fetchClients, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers]);
+  }, [user, authLoading]);
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
