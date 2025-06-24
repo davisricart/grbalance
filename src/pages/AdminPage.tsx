@@ -711,10 +711,71 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Debug function to check current state
+  const debugUserState = async (userEmail: string) => {
+    try {
+      console.log('🔍 Debugging user state for:', userEmail);
+      
+      // Check auth users
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) {
+        console.log('❌ Auth check failed:', authError);
+      } else {
+        const authUser = authUsers.users.find(u => u.email === userEmail);
+        console.log('🔐 Auth user exists:', !!authUser);
+        if (authUser) {
+          console.log('🔐 Auth user details:', {
+            id: authUser.id,
+            email: authUser.email,
+            created_at: authUser.created_at,
+            user_metadata: authUser.user_metadata
+          });
+        }
+      }
+      
+      // Check pendingUsers table
+      const { data: pendingUser, error: pendingError } = await supabase
+        .from('pendingUsers')
+        .select('*')
+        .eq('email', userEmail)
+        .single();
+      
+      console.log('📋 Pending user exists:', !pendingError);
+      if (pendingError) {
+        console.log('📋 Pending user error:', pendingError);
+      } else {
+        console.log('📋 Pending user data:', pendingUser);
+      }
+      
+      // Check all pendingUsers to see what's there
+      const { data: allPending, error: allError } = await supabase
+        .from('pendingUsers')
+        .select('email, createdAt')
+        .order('createdAt', { ascending: false });
+      
+      console.log('📋 All pending users:', allPending);
+      
+    } catch (error) {
+      console.error('🚨 Debug error:', error);
+    }
+  };
+
   // Manual function to add missing authenticated users to pending list
   const addMissingUserToPending = async (userEmail: string) => {
     try {
       console.log('🔧 Manually adding user to pending list:', userEmail);
+      
+      // First check if user already exists
+      const { data: existingUser } = await supabase
+        .from('pendingUsers')
+        .select('*')
+        .eq('email', userEmail)
+        .single();
+      
+      if (existingUser) {
+        console.log('⚠️ User already exists in pending:', existingUser);
+        return true;
+      }
       
       // Add to pendingUsers table with default values
       const { data, error } = await supabase
