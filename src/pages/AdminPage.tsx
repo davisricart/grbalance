@@ -164,7 +164,7 @@ const AdminPage: React.FC = () => {
   // Use secure server-side admin verification
   const { isAdmin, isLoading: adminLoading, error: adminError } = useAdminVerification();
   
-  const { user, isLoading: authLoading } = useAuthState();
+  const { user, isLoading: authLoading } = useAuth();
   
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
