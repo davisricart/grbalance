@@ -515,74 +515,114 @@ const AdminPage: React.FC = () => {
     };
   }, []);
 
-  // Fetch clients from database
+  // Helper function for retrying database requests
+  const retryRequest = async <T>(
+    requestFn: () => Promise<T>, 
+    requestName: string, 
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+  ): Promise<T | null> => {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 ${requestName} - Attempt ${attempt}/${maxRetries}`);
+        const result = await requestFn();
+        console.log(`✅ ${requestName} - Success on attempt ${attempt}`);
+        return result;
+      } catch (error: any) {
+        const isNetworkError = error.message?.includes('Failed to fetch') || 
+                              error.message?.includes('ERR_INSUFFICIENT_RESOURCES') ||
+                              error.code === 'ECONNRESET' ||
+                              error.name === 'NetworkError';
+        
+        if (isNetworkError && attempt < maxRetries) {
+          const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.warn(`⚠ ${requestName} - Network error on attempt ${attempt}, retrying in ${delay}ms:`, error.message);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          console.error(`🚨 ${requestName} - Failed after ${attempt} attempts:`, {
+            code: error.code,
+            message: error.message,
+            authState: user ? 'authenticated' : 'not authenticated',
+            userEmail: user?.email
+          });
+          
+          if (attempt === maxRetries) {
+            return null; // Return null instead of throwing to prevent cascading failures
+          }
+        }
+      }
+    }
+    return null;
+  };
+
+  // Fetch clients from database with retry logic
   const fetchClients = async () => {
-    try {
-      const { data: clientsData, error } = await supabase
-        .from('clients')
-        .select('*');
-      
-      if (error) throw error;
-      
-      setClients(clientsData || []);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchClients:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
-      console.error('🚨 User Email:', user?.email);
+    const result = await retryRequest(
+      async () => {
+        const { data: clientsData, error } = await supabase
+          .from('clients')
+          .select('*');
+        
+        if (error) throw error;
+        return clientsData || [];
+      },
+      'fetchClients'
+    );
+    
+    if (result !== null) {
+      setClients(result);
     }
   };
 
-  // Fetch pending users with debugging
+  // Fetch pending users with retry logic
   const fetchPendingUsers = async () => {
-    try {
-      
-      const { data: users, error } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .order('createdAt', { ascending: false });
-      
-      if (error) throw error;
-      
-      setPendingUsers(users || []);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+    const result = await retryRequest(
+      async () => {
+        const { data: users, error } = await supabase
+          .from('pendingUsers')
+          .select('*')
+          .order('createdAt', { ascending: false });
+        
+        if (error) throw error;
+        return users || [];
+      },
+      'fetchPendingUsers'
+    );
+    
+    if (result !== null) {
+      setPendingUsers(result);
+    } else {
       setPendingUsers([]);
     }
   };
 
-  // Fetch ready-for-testing users
+  // Fetch ready-for-testing users with retry logic
   const fetchReadyForTestingUsers = async () => {
-    try {
-      
-      const { data: snapshot, error } = await supabase
-        .from('ready-for-testing')
-        .select('*')
-        .order('readyForTestingAt', { ascending: false });
-      
-      if (error) throw error;
-      
-      const readyForTestingUsersData: ReadyForTestingUser[] = [];
-      
-      if (snapshot) {
-        snapshot.forEach((doc) => {
-          readyForTestingUsersData.push({ id: doc.id, ...doc } as ReadyForTestingUser);
-        });
-      }
-      
-      setReadyForTestingUsers(readyForTestingUsersData);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+    const result = await retryRequest(
+      async () => {
+        const { data: snapshot, error } = await supabase
+          .from('ready-for-testing')
+          .select('*')
+          .order('readyForTestingAt', { ascending: false });
+        
+        if (error) throw error;
+        
+        const readyForTestingUsersData: ReadyForTestingUser[] = [];
+        
+        if (snapshot) {
+          snapshot.forEach((doc) => {
+            readyForTestingUsersData.push({ id: doc.id, ...doc } as ReadyForTestingUser);
+          });
+        }
+        
+        return readyForTestingUsersData;
+      },
+      'fetchReadyForTestingUsers'
+    );
+    
+    if (result !== null) {
+      setReadyForTestingUsers(result);
+    } else {
       setReadyForTestingUsers([]);
     }
   };
@@ -758,13 +798,31 @@ const AdminPage: React.FC = () => {
         console.log('🚧 LOCALHOST BYPASS: Skipping data fetch for testing');
         setLoading(false);
       } else {
-        // Fetch data for real auth
-        Promise.all([
-          fetchClients(),
-          fetchPendingUsers(),
-          fetchReadyForTestingUsers(),
-          fetchApprovedUsers()
-        ]).finally(() => {
+        // Fetch data sequentially to avoid ERR_INSUFFICIENT_RESOURCES
+        const loadDataSequentially = async () => {
+          try {
+            console.log('📊 Loading data sequentially to prevent connection exhaustion...');
+            
+            // Load critical data first
+            await fetchPendingUsers();
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay between requests
+            
+            await fetchReadyForTestingUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            await fetchApprovedUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Load less critical data last
+            await fetchClients();
+            
+            console.log('✅ All data loaded successfully');
+          } catch (error) {
+            console.error('🚨 Error loading data sequentially:', error);
+          }
+        };
+        
+        loadDataSequentially().finally(() => {
           setLoading(false);
         });
       }
