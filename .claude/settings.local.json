@@ -89,7 +89,8 @@
       "Bash(else echo \"PASS: No types directory found\")",
       "Bash(echo:*)",
       "Bash(PORT=3000 npm run dev)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(git tag:*)"
     ],
     "deny": []
   }
