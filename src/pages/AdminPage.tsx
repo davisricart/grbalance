@@ -916,8 +916,22 @@ const AdminPage: React.FC = () => {
     const isLoading = skipAuth ? false : authLoading;
     
     // Prevent multiple simultaneous data loads
-    if (loading || hasLoadedInitialData.current) {
-      console.log('📊 Data already loading or loaded, skipping...');
+    if (loading) {
+      console.log('📊 Data already loading, skipping...');
+      return;
+    }
+    
+    // Allow refresh if no data was actually loaded yet
+    if (hasLoadedInitialData.current && pendingUsers.length === 0 && approvedUsers.length === 0) {
+      console.log('📊 Data marked as loaded but arrays are empty, forcing reload...');
+      hasLoadedInitialData.current = false;
+    }
+    
+    if (hasLoadedInitialData.current) {
+      console.log('📊 Data already loaded, skipping...', {
+        pendingCount: pendingUsers.length,
+        approvedCount: approvedUsers.length
+      });
       return;
     }
     
@@ -993,18 +1007,29 @@ const AdminPage: React.FC = () => {
     (window as any).pendingUsers = pendingUsers;
     (window as any).forceRefreshData = async () => {
       console.log('🔄 Force refreshing all admin data...');
+      hasLoadedInitialData.current = false; // Reset the loading flag
       setLoading(true);
       try {
         await fetchPendingUsers();
         await fetchReadyForTestingUsers();
         await fetchApprovedUsers();
         await fetchClients();
-        console.log('✅ Refresh complete');
+        console.log('✅ Refresh complete', {
+          pendingCount: pendingUsers.length,
+          approvedCount: approvedUsers.length
+        });
       } catch (error) {
         console.error('❌ Refresh failed:', error);
       } finally {
         setLoading(false);
+        hasLoadedInitialData.current = true;
       }
+    };
+    
+    (window as any).resetLoadingFlag = () => {
+      console.log('🔄 Resetting loading flag...');
+      hasLoadedInitialData.current = false;
+      setLoading(false);
     };
     
     return () => {
@@ -1013,6 +1038,7 @@ const AdminPage: React.FC = () => {
       delete (window as any).fetchPendingUsers;
       delete (window as any).pendingUsers;
       delete (window as any).forceRefreshData;
+      delete (window as any).resetLoadingFlag;
     };
   }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
 
