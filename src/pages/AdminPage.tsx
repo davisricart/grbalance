@@ -1503,6 +1503,8 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
+      console.log('🔄 Updating pending user:', { userId, updates });
+      
       // Optimistic update - update state immediately
       setPendingUsers(prev => 
         prev.map(user => 
@@ -1521,13 +1523,25 @@ const AdminPage: React.FC = () => {
         .eq('id', userId);
       
       if (error) {
+        console.error('❌ Database update failed:', {
+          error: error,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          userId,
+          updates
+        });
         // Revert optimistic update on error
         await fetchPendingUsers();
         throw error;
+      } else {
+        console.log('✅ Pending user updated successfully');
       }
       
     } catch (error) {
       console.error('Error updating pending user:', error);
+      throw error; // Re-throw so the UI can handle it
     }
   };
 
