@@ -925,15 +925,26 @@ const AdminPage: React.FC = () => {
   // Update pending user (for consultation tracking)
   const updatePendingUser = async (userId: string, updates: Partial<PendingUser>) => {
     try {
+      // Filter out fields that don't exist in the database table
+      const { consultationCompleted, scriptReady, consultationNotes, ...dbUpdates } = updates;
+      
+      // Only send fields that exist in the database
       const { error } = await supabase
         .from('pendingUsers')
         .update({
-          ...updates,
+          ...dbUpdates,
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
       
       if (error) throw error;
+      
+      // Update local state for UI purposes
+      setPendingUsers(prev => prev.map(user => 
+        user.id === userId 
+          ? { ...user, ...updates }
+          : user
+      ));
       
       // Refresh pending users list
       await fetchPendingUsers();
