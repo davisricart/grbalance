@@ -1,21 +1,15 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useAuthState } from '../hooks/useAuthState';
 import { supabase } from '../config/supabase';
-// Using Supabase for all data operations
-// All operations using Supabase
 import { FiUsers, FiUserCheck, FiUserX, FiShield, FiCode, FiSettings, FiEye, FiTrash2, FiRotateCcw, FiUserMinus, FiUserPlus, FiEdit3, FiSave, FiX, FiRefreshCw, FiDownload, FiUpload, FiPlay, FiDatabase, FiBarChart, FiPieChart, FiTrendingUp, FiGrid, FiLock, FiUser, FiMail, FiKey } from 'react-icons/fi';
 import { 
   User, Users, Plus, Download, Search, Filter, Edit, 
   Trash2, Check, X, Clock, AlertTriangle, Eye, EyeOff, ArrowLeft,
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
-// Using Supabase admin operations
 import { useAdminVerification } from '../services/adminService';
-import clientConfig from '../config/client';
-import axios from 'axios';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
-// Remove static XLSX import - will use dynamic import instead
 import Papa from 'papaparse';
 import {
   ReconciliationResult,
@@ -24,8 +18,6 @@ import {
   ScriptExecutionResult,
   UserDoc
 } from '../types';
-import PendingUsersTab from '../components/admin/UserManagement/PendingUsersTab';
-import ReadyForTestingTab from '../components/admin/UserManagement/ReadyForTestingTab';
 import { ReadyForTestingUser } from '../types/admin';
 
 // Add this at the top of the file, after imports
