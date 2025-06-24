@@ -825,16 +825,16 @@ const AdminPage: React.FC = () => {
       const readyForTestingData = {
         id: userId,
         email: pendingUser.email,
-        businessName: pendingUser.businessName,
-        businessType: pendingUser.businessType,
-        subscriptionTier: pendingUser.subscriptionTier,
-        billingCycle: pendingUser.billingCycle,
-        createdAt: pendingUser.createdAt,
+        businessname: pendingUser.businessName,
+        businesstype: pendingUser.businessType,
+        subscriptiontier: pendingUser.subscriptionTier,
+        billingcycle: pendingUser.billingCycle,
+        createdat: pendingUser.createdAt,
         readyfortestingat: new Date().toISOString(),
-        qaStatus: 'pending',
-        websiteProvisioned: false,
-        scriptDeployed: false,
-        updatedAt: new Date().toISOString()
+        qastatus: 'pending',
+        websiteprovisioned: false,
+        scriptdeployed: false,
+        updatedat: new Date().toISOString()
       };
       
       console.log('📝 Inserting ready-for-testing data:', readyForTestingData);
@@ -869,8 +869,7 @@ const AdminPage: React.FC = () => {
         
     } catch (error: any) {
       console.error('❌ Error moving user to testing:', error);
-      showNotification('error', 'Error', 
-        'Failed to move user to testing phase. Please try again.');
+      // Inline error handling - no popup
     }
   };
 
