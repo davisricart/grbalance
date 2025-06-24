@@ -534,6 +534,20 @@ const AdminPage: React.FC = () => {
                               error.code === 'ECONNRESET' ||
                               error.name === 'NetworkError';
         
+        // Database schema errors should not be retried
+        const isSchemaError = error.code === '42P01' || // relation does not exist
+                             error.code === '42703' || // column does not exist
+                             error.message?.includes('does not exist');
+        
+        if (isSchemaError) {
+          console.warn(`⚠ ${requestName} - Schema error, skipping retries:`, {
+            code: error.code,
+            message: error.message,
+            table: error.message?.match(/relation "([^"]+)"/)?.[1] || 'unknown'
+          });
+          return null; // Don't retry schema errors
+        }
+        
         if (isNetworkError && attempt < maxRetries) {
           const delay = baseDelay * Math.pow(2, attempt - 1); // Exponential backoff
           console.warn(`⚠ ${requestName} - Network error on attempt ${attempt}, retrying in ${delay}ms:`, error.message);
@@ -598,6 +612,13 @@ const AdminPage: React.FC = () => {
 
   // Fetch ready-for-testing users with retry logic
   const fetchReadyForTestingUsers = async () => {
+    // Temporarily disabled - table 'ready-for-testing' does not exist
+    // Need to check if this data is stored elsewhere or create the table
+    console.warn('⚠ fetchReadyForTestingUsers - Table "ready-for-testing" does not exist, using empty array');
+    setReadyForTestingUsers([]);
+    return;
+    
+    /* COMMENTED OUT UNTIL TABLE IS CREATED:
     const result = await retryRequest(
       async () => {
         const { data: snapshot, error } = await supabase
@@ -625,6 +646,7 @@ const AdminPage: React.FC = () => {
     } else {
       setReadyForTestingUsers([]);
     }
+    */
   };
 
   // Fetch approved users
