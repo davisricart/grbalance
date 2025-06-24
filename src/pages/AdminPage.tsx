@@ -711,6 +711,46 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Manual function to add missing authenticated users to pending list
+  const addMissingUserToPending = async (userEmail: string) => {
+    try {
+      console.log('🔧 Manually adding user to pending list:', userEmail);
+      
+      // Add to pendingUsers table with default values
+      const { data, error } = await supabase
+        .from('pendingUsers')
+        .insert([
+          {
+            id: crypto.randomUUID(), // Generate a new ID for now
+            email: userEmail,
+            businessName: 'Unknown Business',
+            businessType: 'Other', 
+            subscriptionTier: 'professional',
+            billingCycle: 'monthly',
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ])
+        .select();
+      
+      if (error) {
+        console.error('Error adding user to pending:', error);
+        return false;
+      }
+      
+      console.log('✅ Successfully added user to pending:', data);
+      
+      // Refresh pending users list
+      await fetchPendingUsers();
+      return true;
+      
+    } catch (error) {
+      console.error('🚨 Error in addMissingUserToPending:', error);
+      return false;
+    }
+  };
+
   // Delete user (soft delete)
   const deleteUser = async (userId: string) => {
     try {

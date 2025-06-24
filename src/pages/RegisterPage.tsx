@@ -212,7 +212,16 @@ export default function RegisterPage() {
       }
 
       // Create pending approval record
-      const { error: pendingUserError } = await supabase
+      console.log('Creating pending user record for:', {
+        id: user.id,
+        email: user.email,
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+        subscriptionTier: selectedTier,
+        billingCycle: isAnnual ? 'annual' : 'monthly'
+      });
+
+      const { data: pendingUserData, error: pendingUserError } = await supabase
         .from('pendingUsers')
         .insert([
           {
@@ -226,9 +235,13 @@ export default function RegisterPage() {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
-        ]);
+        ])
+        .select();
+
+      console.log('Pending user insert result:', { data: pendingUserData, error: pendingUserError });
 
       if (pendingUserError) {
+        console.error('Pending user insert failed:', pendingUserError);
         throw pendingUserError;
       }
 
