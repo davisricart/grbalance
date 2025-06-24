@@ -1025,11 +1025,27 @@ const AdminPage: React.FC = () => {
       setLoading(false);
       hasLoadedInitialData.current = false;
       
-      // Trigger a fresh data load attempt after a brief delay
-      setTimeout(() => {
+      // ACTUALLY COMPLETE THE RECOVERY - don't just reset flags
+      setTimeout(async () => {
         if (user && !authLoading) {
-          console.log('🔄 Auto-recovery: Attempting fresh data load after timeout reset');
-          hasLoadedInitialData.current = false; // Ensure fresh load
+          console.log('🔄 Auto-recovery: FORCING complete data reload...');
+          hasLoadedInitialData.current = false;
+          setLoading(true);
+          try {
+            await fetchPendingUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchReadyForTestingUsers();  
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchApprovedUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchClients();
+            console.log('✅ AUTOMATIC RECOVERY COMPLETE - no manual intervention needed');
+          } catch (error) {
+            console.error('❌ Auto-recovery failed:', error);
+          } finally {
+            setLoading(false);
+            hasLoadedInitialData.current = true;
+          }
         }
       }, 1000);
       
@@ -1052,15 +1068,43 @@ const AdminPage: React.FC = () => {
       
       if (isStuckLoading) {
         console.warn('🚨 DETECTED STUCK LOADING STATE - loading:true but hasLoadedInitialData:true');
-        console.log('🔄 Auto-correcting stuck loading state...');
+        console.log('🔄 FORCING recovery from stuck loading state...');
         setLoading(false);
         hasLoadedInitialData.current = false;
+        // Force immediate recovery
+        setTimeout(async () => {
+          setLoading(true);
+          try {
+            await fetchPendingUsers();
+            await fetchReadyForTestingUsers();
+            await fetchApprovedUsers();
+            await fetchClients();
+            console.log('✅ STUCK STATE RECOVERY COMPLETE');
+          } finally {
+            setLoading(false);
+            hasLoadedInitialData.current = true;
+          }
+        }, 500);
       }
       
       if (hasNoDataButShouldHave) {
         console.warn('🚨 DETECTED EMPTY DATA STATE - should have data but arrays are empty');
-        console.log('🔄 Auto-correcting empty data state...');
+        console.log('🔄 FORCING recovery from empty data state...');
         hasLoadedInitialData.current = false;
+        setLoading(true);
+        // Force immediate data load
+        (async () => {
+          try {
+            await fetchPendingUsers();
+            await fetchReadyForTestingUsers();
+            await fetchApprovedUsers();
+            await fetchClients();
+            console.log('✅ EMPTY DATA RECOVERY COMPLETE');
+          } finally {
+            setLoading(false);
+            hasLoadedInitialData.current = true;
+          }
+        })();
       }
       
     }, 10000); // Check every 10 seconds
@@ -1124,8 +1168,26 @@ const AdminPage: React.FC = () => {
         });
         
         if (!hasLoadedInitialData.current) {
-          console.log('🔄 Health check recovery: Triggering data load attempt');
-          hasLoadedInitialData.current = false; // This will trigger the main useEffect
+          console.log('🔄 Health check recovery: FORCING complete data reload...');
+          setLoading(true);
+          // Actually load the data instead of just hoping useEffect triggers
+          (async () => {
+            try {
+              await fetchPendingUsers();
+              await new Promise(resolve => setTimeout(resolve, 100));
+              await fetchReadyForTestingUsers();
+              await new Promise(resolve => setTimeout(resolve, 100));
+              await fetchApprovedUsers();
+              await new Promise(resolve => setTimeout(resolve, 100));
+              await fetchClients();
+              console.log('✅ HEALTH CHECK RECOVERY COMPLETE');
+            } catch (error) {
+              console.error('❌ Health check recovery failed:', error);
+            } finally {
+              setLoading(false);
+              hasLoadedInitialData.current = true;
+            }
+          })();
         }
       }
     }, 30000); // Every 30 seconds
