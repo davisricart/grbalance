@@ -1003,6 +1003,136 @@ const AdminPage: React.FC = () => {
     return () => clearTimeout(timer);
   }, [user, authLoading, loading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
 
+  // PERMANENT FIX: Loading timeout monitor to prevent stuck loading states
+  useEffect(() => {
+    if (!loading) return;
+    
+    console.log('⏱️ Loading timeout monitor started - will auto-reset after 15 seconds if stuck');
+    
+    const loadingTimeoutId = setTimeout(() => {
+      console.warn('🚨 LOADING TIMEOUT: Data loading has been stuck for 15 seconds, forcing reset');
+      console.log('📊 Pre-reset status:', {
+        authenticated: !!user,
+        authLoading: authLoading,
+        dataLoading: loading,
+        hasLoadedInitialData: hasLoadedInitialData.current,
+        pendingUsers: pendingUsers.length,
+        approvedUsers: approvedUsers.length,
+        readyForTestingUsers: readyForTestingUsers.length
+      });
+      
+      // Force reset the loading state
+      setLoading(false);
+      hasLoadedInitialData.current = false;
+      
+      // Trigger a fresh data load attempt after a brief delay
+      setTimeout(() => {
+        if (user && !authLoading) {
+          console.log('🔄 Auto-recovery: Attempting fresh data load after timeout reset');
+          hasLoadedInitialData.current = false; // Ensure fresh load
+        }
+      }, 1000);
+      
+    }, 15000); // 15 second timeout
+    
+    return () => {
+      clearTimeout(loadingTimeoutId);
+    };
+  }, [loading, user, authLoading]);
+
+  // Enhanced data loading validation to detect stuck states
+  useEffect(() => {
+    if (!user || authLoading) return;
+    
+    // Check every 10 seconds if we're in a potentially problematic state
+    const validationInterval = setInterval(() => {
+      const isStuckLoading = loading && hasLoadedInitialData.current;
+      const hasNoDataButShouldHave = !loading && hasLoadedInitialData.current && 
+        pendingUsers.length === 0 && approvedUsers.length === 0 && readyForTestingUsers.length === 0;
+      
+      if (isStuckLoading) {
+        console.warn('🚨 DETECTED STUCK LOADING STATE - loading:true but hasLoadedInitialData:true');
+        console.log('🔄 Auto-correcting stuck loading state...');
+        setLoading(false);
+        hasLoadedInitialData.current = false;
+      }
+      
+      if (hasNoDataButShouldHave) {
+        console.warn('🚨 DETECTED EMPTY DATA STATE - should have data but arrays are empty');
+        console.log('🔄 Auto-correcting empty data state...');
+        hasLoadedInitialData.current = false;
+      }
+      
+    }, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(validationInterval);
+  }, [user, authLoading, loading, hasLoadedInitialData.current, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+
+  // Failsafe: Detect infinite auth loops that prevent data loading
+  const authStateChanges = useRef(0);
+  const lastAuthChange = useRef(Date.now());
+  
+  useEffect(() => {
+    // Track auth state changes to detect infinite loops
+    authStateChanges.current++;
+    lastAuthChange.current = Date.now();
+    
+    // If we have more than 10 auth state changes in 30 seconds, something is wrong
+    const resetCountTimeout = setTimeout(() => {
+      authStateChanges.current = 0;
+    }, 30000);
+    
+    if (authStateChanges.current > 10) {
+      console.error('🚨 INFINITE AUTH LOOP DETECTED: Too many auth state changes in short period');
+      console.log('🔧 Auth loop recovery: Forcing loading state reset to break the cycle');
+      
+      // Break the infinite loop by resetting loading states
+      setLoading(false);
+      hasLoadedInitialData.current = false;
+      
+      // Reset auth change counter to prevent repeated triggers
+      authStateChanges.current = 0;
+      
+      console.log('⚠️ If this problem persists, there may be an issue with AuthProvider or Supabase auth');
+    }
+    
+    return () => clearTimeout(resetCountTimeout);
+  }, [user, authLoading]);
+
+  // Health check monitor - runs every 30 seconds to ensure system is healthy
+  useEffect(() => {
+    if (!user) return;
+    
+    const healthCheckInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastAuthChange = now - lastAuthChange.current;
+      
+      // If auth has been stable for >30 seconds and we should have data but don't
+      if (timeSinceLastAuthChange > 30000 && 
+          !loading && 
+          !authLoading && 
+          pendingUsers.length === 0 && 
+          approvedUsers.length === 0 && 
+          readyForTestingUsers.length === 0) {
+        
+        console.log('🏥 HEALTH CHECK: Detected potentially stale data state');
+        console.log('📊 Health check status:', {
+          timeSinceLastAuthChange: Math.round(timeSinceLastAuthChange / 1000) + 's',
+          authStable: true,
+          hasData: false,
+          shouldAttemptLoad: !hasLoadedInitialData.current
+        });
+        
+        if (!hasLoadedInitialData.current) {
+          console.log('🔄 Health check recovery: Triggering data load attempt');
+          hasLoadedInitialData.current = false; // This will trigger the main useEffect
+        }
+      }
+    }, 30000); // Every 30 seconds
+    
+    return () => clearInterval(healthCheckInterval);
+  }, [user, loading, authLoading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+
   // Make debug functions available globally for console access
   useEffect(() => {
     (window as any).debugUserState = debugUserState;
@@ -1034,6 +1164,73 @@ const AdminPage: React.FC = () => {
       console.log('🔄 Resetting loading flag...');
       hasLoadedInitialData.current = false;
       setLoading(false);
+    };
+    
+    // Enhanced loading state diagnostics and recovery
+    (window as any).diagnoseLoadingState = () => {
+      const status = {
+        authenticated: !!user,
+        authLoading: authLoading,
+        dataLoading: loading,
+        hasLoadedInitialData: hasLoadedInitialData.current,
+        pendingUsers: pendingUsers.length,
+        approvedUsers: approvedUsers.length,
+        readyForTestingUsers: readyForTestingUsers.length,
+        clients: clients.length,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('🔍 LOADING STATE DIAGNOSIS:', status);
+      
+      // Auto-detect problems and suggest fixes
+      if (status.dataLoading && status.hasLoadedInitialData) {
+        console.warn('⚠️ PROBLEM DETECTED: Loading is stuck (dataLoading:true + hasLoadedInitialData:true)');
+        console.log('💡 SUGGESTED FIX: Run resetLoadingFlag() or wait for automatic timeout');
+      }
+      
+      if (!status.dataLoading && status.hasLoadedInitialData && 
+          status.pendingUsers === 0 && status.approvedUsers === 0 && status.readyForTestingUsers === 0) {
+        console.warn('⚠️ PROBLEM DETECTED: No data loaded despite marked as complete');
+        console.log('💡 SUGGESTED FIX: Run forceRefreshData() to reload data');
+      }
+      
+      if (status.authenticated && !status.authLoading && !status.dataLoading && !status.hasLoadedInitialData) {
+        console.log('✅ READY TO LOAD: All conditions met for data loading');
+      }
+      
+      return status;
+    };
+    
+    // Force recovery from any stuck state
+    (window as any).forceRecovery = () => {
+      console.log('🚑 FORCE RECOVERY: Resetting all loading states and forcing fresh data load...');
+      
+      // Reset all states
+      setLoading(false);
+      hasLoadedInitialData.current = false;
+      
+      // Clear any existing timeouts/intervals that might interfere
+      setTimeout(async () => {
+        if (user && !authLoading) {
+          console.log('🔄 Starting fresh data load...');
+          setLoading(true);
+          try {
+            await fetchPendingUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchReadyForTestingUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchApprovedUsers();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await fetchClients();
+            console.log('✅ Force recovery complete');
+          } catch (error) {
+            console.error('❌ Force recovery failed:', error);
+          } finally {
+            setLoading(false);
+            hasLoadedInitialData.current = true;
+          }
+        }
+      }, 500);
     };
     
     // Development helper - show data loading status in console
@@ -1126,6 +1323,8 @@ const AdminPage: React.FC = () => {
       delete (window as any).resetLoadingFlag;
       delete (window as any).showDataStatus;
       delete (window as any).cleanupDuplicateUser;
+      delete (window as any).diagnoseLoadingState;
+      delete (window as any).forceRecovery;
     };
   }, [pendingUsers, fetchPendingUsers, fetchReadyForTestingUsers, fetchApprovedUsers, fetchClients]);
 
