@@ -21,6 +21,7 @@ export default function PendingUsersTab({
   const [viewingUser, setViewingUser] = useState<PendingUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [approvingUser, setApprovingUser] = useState<string | null>(null);
+  const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<PendingUser>>>({});
 
   const handleMoveToTesting = async (user: PendingUser) => {
     setProcessingUser(user.id);
@@ -45,9 +46,29 @@ export default function PendingUsersTab({
   };
 
   const toggleConsultation = async (userId: string, field: 'consultationCompleted' | 'scriptReady', currentValue: boolean) => {
+    const newValue = !currentValue;
+    
+    // Apply optimistic update immediately
+    setOptimisticUpdates(prev => ({
+      ...prev,
+      [userId]: { ...prev[userId], [field]: newValue }
+    }));
+    
     setProcessingUser(userId);
     try {
-      await onUpdatePendingUser(userId, { [field]: !currentValue });
+      await onUpdatePendingUser(userId, { [field]: newValue });
+      // Clear optimistic update on success
+      setOptimisticUpdates(prev => {
+        const { [userId]: removed, ...rest } = prev;
+        return rest;
+      });
+    } catch (error) {
+      // Revert optimistic update on error
+      setOptimisticUpdates(prev => {
+        const { [userId]: removed, ...rest } = prev;
+        return rest;
+      });
+      throw error;
     } finally {
       setProcessingUser(null);
     }
@@ -112,7 +133,12 @@ export default function PendingUsersTab({
 
         <div className="divide-y divide-gray-100">
           {pendingUsers.map((user) => {
-            const isReady = user.consultationCompleted && user.scriptReady;
+            // Apply optimistic updates for immediate UI feedback
+            const userWithOptimisticUpdates = {
+              ...user,
+              ...optimisticUpdates[user.id]
+            };
+            const isReady = userWithOptimisticUpdates.consultationCompleted && userWithOptimisticUpdates.scriptReady;
             const isProcessing = processingUser === user.id;
             
             return (
@@ -128,13 +154,13 @@ export default function PendingUsersTab({
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-semibold text-gray-900 truncate text-sm">{user.email}</h4>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
-                          user.subscriptionTier === 'business' 
+                          userWithOptimisticUpdates.subscriptionTier === 'business' 
                             ? 'bg-purple-100 text-purple-700'
-                            : user.subscriptionTier === 'professional'
+                            : userWithOptimisticUpdates.subscriptionTier === 'professional'
                             ? 'bg-blue-100 text-blue-700'
                             : 'bg-emerald-100 text-emerald-700'
                         }`}>
-                          {user.subscriptionTier}
+                          {userWithOptimisticUpdates.subscriptionTier}
                         </span>
                       </div>
                       
@@ -165,42 +191,42 @@ export default function PendingUsersTab({
                   {/* Workflow Status - Compact Buttons */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
-                      onClick={() => toggleConsultation(user.id, 'consultationCompleted', user.consultationCompleted || false)}
+                      onClick={() => toggleConsultation(user.id, 'consultationCompleted', userWithOptimisticUpdates.consultationCompleted || false)}
                       disabled={isProcessing}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 ${
-                        user.consultationCompleted 
+                        userWithOptimisticUpdates.consultationCompleted 
                           ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200' 
                           : 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200'
                       }`}
                       title="Click to toggle consultation status"
                     >
-                      {user.consultationCompleted ? (
+                      {userWithOptimisticUpdates.consultationCompleted ? (
                         <CheckCircle2 className="h-3 w-3" />
                       ) : (
                         <Clock className="h-3 w-3" />
                       )}
                       <span className="hidden sm:inline">
-                        {user.consultationCompleted ? 'Consult' : 'Pending'}
+                        {userWithOptimisticUpdates.consultationCompleted ? 'Consult' : 'Pending'}
                       </span>
                     </button>
                     
                     <button
-                      onClick={() => toggleConsultation(user.id, 'scriptReady', user.scriptReady || false)}
+                      onClick={() => toggleConsultation(user.id, 'scriptReady', userWithOptimisticUpdates.scriptReady || false)}
                       disabled={isProcessing}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 ${
-                        user.scriptReady 
+                        userWithOptimisticUpdates.scriptReady 
                           ? 'bg-emerald-100 text-emerald-700 border border-emerald-200 hover:bg-emerald-200' 
                           : 'bg-amber-100 text-amber-700 border border-amber-200 hover:bg-amber-200'
                       }`}
                       title="Click to toggle script ready status"
                     >
-                      {user.scriptReady ? (
+                      {userWithOptimisticUpdates.scriptReady ? (
                         <CheckCircle2 className="h-3 w-3" />
                       ) : (
                         <Settings className="h-3 w-3" />
                       )}
                       <span className="hidden sm:inline">
-                        {user.scriptReady ? 'Script' : 'Building'}
+                        {userWithOptimisticUpdates.scriptReady ? 'Script' : 'Building'}
                       </span>
                     </button>
 
@@ -209,15 +235,15 @@ export default function PendingUsersTab({
                       <div className="w-16 bg-gray-200 rounded-full h-1.5">
                         <div 
                           className={`h-1.5 rounded-full transition-all duration-500 ${
-                            isReady ? 'bg-emerald-500' : user.consultationCompleted || user.scriptReady ? 'bg-amber-400' : 'bg-gray-300'
+                            isReady ? 'bg-emerald-500' : userWithOptimisticUpdates.consultationCompleted || userWithOptimisticUpdates.scriptReady ? 'bg-amber-400' : 'bg-gray-300'
                           }`}
                           style={{ 
-                            width: `${isReady ? 100 : (user.consultationCompleted ? 50 : 0) + (user.scriptReady ? 50 : 0)}%` 
+                            width: `${isReady ? 100 : (userWithOptimisticUpdates.consultationCompleted ? 50 : 0) + (userWithOptimisticUpdates.scriptReady ? 50 : 0)}%` 
                           }}
                         />
                       </div>
                       <span className="text-xs text-gray-500 font-medium min-w-0">
-                        {(user.consultationCompleted ? 1 : 0) + (user.scriptReady ? 1 : 0)}/2
+                        {(userWithOptimisticUpdates.consultationCompleted ? 1 : 0) + (userWithOptimisticUpdates.scriptReady ? 1 : 0)}/2
                       </span>
                     </div>
                   </div>
