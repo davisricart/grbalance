@@ -989,23 +989,9 @@ const AdminPage: React.FC = () => {
         readyForTestingCount: readyForTestingUsers.length
       });
     });
-  }, [user, authLoading, skipAuth, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+  }, [user, authLoading, skipAuth]); // Remove array length dependencies that cause infinite loops
 
-  // Automatic fallback - if we're authenticated but have no data after 5 seconds, try loading again
-  useEffect(() => {
-    if (!user || authLoading || loading) return;
-    
-    const timer = setTimeout(() => {
-      const hasAnyData = pendingUsers.length > 0 || approvedUsers.length > 0 || readyForTestingUsers.length > 0;
-      if (!hasAnyData && hasLoadedInitialData.current) {
-        console.log('🔄 Auto-retry: No data loaded after 5 seconds, attempting reload...');
-        hasLoadedInitialData.current = false;
-        // Trigger the main useEffect to reload
-      }
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, [user, authLoading, loading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+  // Simplified: No more fallback needed since main loading should work properly now
 
   // PERMANENT FIX: Loading timeout monitor to prevent stuck loading states
   useEffect(() => {
@@ -1114,7 +1100,7 @@ const AdminPage: React.FC = () => {
     }, 10000); // Check every 10 seconds
     
     return () => clearInterval(validationInterval);
-  }, [user, authLoading, loading, hasLoadedInitialData.current, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+  }, [user, authLoading, loading]); // Remove problematic array length dependencies
 
   // Failsafe: Detect infinite auth loops that prevent data loading
   const authStateChanges = useRef(0);
@@ -1197,7 +1183,7 @@ const AdminPage: React.FC = () => {
     }, 30000); // Every 30 seconds
     
     return () => clearInterval(healthCheckInterval);
-  }, [user, loading, authLoading, pendingUsers.length, approvedUsers.length, readyForTestingUsers.length]);
+  }, [user, loading, authLoading]); // Remove problematic array length dependencies
 
   // Make debug functions available globally for console access
   useEffect(() => {
