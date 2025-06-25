@@ -1091,7 +1091,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                           <button
                             type="button"
                             onClick={downloadResults}
-                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 transition-colors duration-200"
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Download
@@ -1115,7 +1115,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                           borderTop: '1px solid #666', 
                                           borderBottom: '1px solid #666', 
                                           fontWeight: 'bold', 
-                                          backgroundColor: '#dcfce7',
+                                          backgroundColor: '#f0fdf4',
                                           position: 'relative'
                                         }}
                                       >
