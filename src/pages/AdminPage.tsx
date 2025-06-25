@@ -1623,7 +1623,7 @@ WARNING:
                 <thead>
                   <tr>
                     ${headers.map((header, index) => `
-                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #e5e7eb; position: relative;">
+                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #dcfce7; position: relative;">
                         ${header}
                         ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
                       </th>
@@ -3831,8 +3831,8 @@ WARNING:
                       id="test-file1-dropzone"
                       className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group ${
                         file1Data.length > 0 
-                          ? 'border-green-500 bg-green-50' 
-                          : 'border-green-300 hover:border-green-500 hover:bg-green-50'
+                          ? 'border-green-500 bg-green-100' 
+                          : 'border-green-300 hover:border-green-500 hover:bg-green-100'
                       }`}
                     >
                       <input
@@ -3884,8 +3884,8 @@ WARNING:
                       id="test-file2-dropzone"
                       className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group ${
                         file2Data.length > 0 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+                          ? 'border-blue-500 bg-blue-100' 
+                          : 'border-blue-300 hover:border-blue-500 hover:bg-blue-100'
                       }`}
                     >
                       <input
