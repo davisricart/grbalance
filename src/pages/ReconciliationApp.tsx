@@ -3,12 +3,28 @@ import { supabase } from '../config/supabase';
 import LoginPage from './LoginPage';
 import { MainPage } from './MainPage';
 
-const ReconciliationApp: React.FC = () => {
+interface ReconciliationAppProps {
+  clientPortalUser?: any;
+}
+
+const ReconciliationApp: React.FC<ReconciliationAppProps> = ({ clientPortalUser }) => {
   const [user, setUser] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If we have a client portal user, use that instead of Supabase auth
+    if (clientPortalUser) {
+      console.log('🏪 Client Portal Mode: Using client data instead of Supabase auth');
+      console.log('🏪 Client Portal User:', clientPortalUser);
+      setUser(clientPortalUser);
+      setIsLoading(false);
+      return;
+    }
+
+    // Otherwise, use normal Supabase authentication
+    console.log('🔐 Normal Mode: Using Supabase authentication');
+    
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
@@ -23,7 +39,7 @@ const ReconciliationApp: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [clientPortalUser]);
 
   if (isLoading) {
     return (

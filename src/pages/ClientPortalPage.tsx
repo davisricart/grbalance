@@ -9,6 +9,7 @@ interface ClientData {
   business_name: string;
   email: string;
   status: string;
+  subscription_tier?: string;
   usage: {
     comparisons_used: number;
     comparisons_limit: number;
@@ -161,5 +162,15 @@ export default function ClientPortalPage() {
 
   // For client portals, show the same ReconciliationApp interface
   // that admin sees at /app - this ensures identical user experience
-  return <ReconciliationApp />;
+  // Create a mock user object from client data for ReconciliationApp
+  const mockUser = {
+    id: clientData.id,
+    email: clientData.email,
+    user_metadata: {
+      business_name: clientData.business_name,
+      subscription_tier: clientData.subscription_tier || 'starter'
+    }
+  };
+  
+  return <ReconciliationApp clientPortalUser={mockUser} />;
 } 
