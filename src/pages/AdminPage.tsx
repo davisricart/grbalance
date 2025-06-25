@@ -546,7 +546,29 @@ const AdminPage: React.FC = () => {
       
       if (error) throw error;
       
-      setReadyForTestingUsers(readyForTestingUsersData || []);
+      // Map database field names to frontend expected field names
+      const mappedData = (readyForTestingUsersData || []).map((user: any) => ({
+        ...user,
+        // Map database fields to camelCase frontend fields
+        readyForTestingAt: user.readyfortestingat,
+        businessName: user.businessname,
+        businessType: user.businesstype,
+        subscriptionTier: user.subscriptiontier,
+        billingCycle: user.billingcycle,
+        createdAt: user.createdat,
+        qaStatus: user.qastatus,
+        qaTestedAt: user.qatestedat,
+        qaTestingNotes: user.qatestnotes,
+        websiteProvisioned: user.websiteprovisioned,
+        websiteProvisionedAt: user.websiteprovisionedat,
+        scriptDeployed: user.scriptdeployed,
+        scriptDeployedAt: user.scriptdeployedat,
+        siteUrl: user.siteurl,
+        siteId: user.siteid,
+        siteName: user.sitename
+      }));
+      
+      setReadyForTestingUsers(mappedData);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
       console.error('🚨 Error Code:', error.code);

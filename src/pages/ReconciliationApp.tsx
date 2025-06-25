@@ -17,6 +17,9 @@ const ReconciliationApp: React.FC<ReconciliationAppProps> = ({ clientPortalUser 
     if (clientPortalUser) {
       console.log('🏪 Client Portal Mode: Using client data instead of Supabase auth');
       console.log('🏪 Client Portal User:', clientPortalUser);
+      console.log('🏪 Client Portal User isClientPortal:', clientPortalUser.isClientPortal);
+      console.log('🏪 Client Portal User clientStatus:', clientPortalUser.clientStatus);
+      console.log('🏪 FORCING client portal user - ignoring any existing Supabase session');
       setUser(clientPortalUser);
       setIsLoading(false);
       return;
@@ -27,12 +30,14 @@ const ReconciliationApp: React.FC<ReconciliationAppProps> = ({ clientPortalUser 
     
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('🔐 Supabase session:', session?.user?.email);
       setUser(session?.user || null);
       setIsLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('🔐 Auth state change:', event, session?.user?.email);
       setUser(session?.user || null);
         setIsLoading(false);
         setError(null);

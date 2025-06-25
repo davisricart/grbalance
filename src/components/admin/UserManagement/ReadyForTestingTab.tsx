@@ -534,7 +534,10 @@ export default function ReadyForTestingTab({
                       <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
                         <span>{user.email}</span>
                         <span>•</span>
-                        <span>Ready {new Date(user.readyForTestingAt).toLocaleDateString()}</span>
+                        <span>Ready {user.readyForTestingAt ? (() => {
+                          const date = new Date(user.readyForTestingAt);
+                          return isNaN(date.getTime()) ? 'Invalid date' : date.toLocaleDateString();
+                        })() : 'Date not set'}</span>
                       </div>
                       
                       {/* Client Portal URL Input */}

@@ -169,7 +169,10 @@ export default function ClientPortalPage() {
     user_metadata: {
       business_name: clientData.business_name,
       subscription_tier: clientData.subscription_tier || 'starter'
-    }
+    },
+    // Add client portal specific data
+    isClientPortal: true,
+    clientStatus: clientData.status
   };
   
   return <ReconciliationApp clientPortalUser={mockUser} />;

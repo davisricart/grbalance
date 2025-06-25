@@ -42,6 +42,26 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
 
+  // Check if this is a testing client and clear any usage limit errors
+  useEffect(() => {
+    // Multiple ways to detect testing mode:
+    const isTestingClient = (
+      (user?.isClientPortal && user?.clientStatus === 'testing') ||
+      (user?.email === 'test@test.com') ||
+      (window.location.pathname === '/test')
+    );
+    console.log('🔍 DEBUG: MainPage useEffect - user:', user);
+    console.log('🔍 DEBUG: MainPage useEffect - user.email:', user?.email);
+    console.log('🔍 DEBUG: MainPage useEffect - pathname:', window.location.pathname);
+    console.log('🔍 DEBUG: MainPage useEffect - isTestingClient:', isTestingClient);
+    
+    if (isTestingClient) {
+      console.log('🧪 Testing client detected in MainPage - clearing any usage limit errors');
+      setStatus('');
+      setWarning('');
+    }
+  }, [user]);
+
   useEffect(() => {
     // Check for client parameter in URL first
     const urlParams = new URLSearchParams(window.location.search);
@@ -321,37 +341,56 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setProcessingStep('Initializing...');
 
     try {
-      // First check and update usage limits
-      const { data: userData, error: fetchError } = await supabase
-        .from('usage')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      // Debug: Log the user object to see what we're working with
+      console.log('🔍 DEBUG: User object in handleCompare:', user);
+      console.log('🔍 DEBUG: user.isClientPortal:', user.isClientPortal);
+      console.log('🔍 DEBUG: user.clientStatus:', user.clientStatus);
+      console.log('🔍 DEBUG: user.email:', user.email);
       
-      if (fetchError || !userData) {
-        throw new Error('Usage data not found');
-      }
-
-      // Check if near limit (80% or more)
-      const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
-      if (usagePercentage >= 80) {
-        setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
-      }
-
-      if (userData.comparisonsUsed >= userData.comparisonsLimit) {
-        throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
-      }
-
-      // Update usage count
-      const { error: updateError } = await supabase
-        .from('usage')
-        .update({
-          comparisonsUsed: userData.comparisonsUsed + 1
-        })
-        .eq('id', user.id);
+      // Check if this is a testing client - if so, bypass usage limits
+      // Multiple ways to detect testing mode:
+      const isTestingClient = (
+        (user.isClientPortal && user.clientStatus === 'testing') ||
+        (user.email === 'test@test.com') ||
+        (window.location.pathname === '/test')
+      );
+      console.log('🔍 DEBUG: isTestingClient:', isTestingClient);
       
-      if (updateError) {
-        throw new Error('Failed to update usage count');
+      if (!isTestingClient) {
+        // Only check and update usage limits for live users
+        const { data: userData, error: fetchError } = await supabase
+          .from('usage')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (fetchError || !userData) {
+          throw new Error('Usage data not found');
+        }
+
+        // Check if near limit (80% or more)
+        const usagePercentage = (userData.comparisonsUsed / userData.comparisonsLimit) * 100;
+        if (usagePercentage >= 80) {
+          setWarning(`Warning: You have used ${userData.comparisonsUsed} out of ${userData.comparisonsLimit} comparisons (${Math.round(usagePercentage)}%)`);
+        }
+
+        if (userData.comparisonsUsed >= userData.comparisonsLimit) {
+          throw new Error(`Monthly limit of ${userData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
+        }
+
+        // Update usage count
+        const { error: updateError } = await supabase
+          .from('usage')
+          .update({
+            comparisonsUsed: userData.comparisonsUsed + 1
+          })
+          .eq('id', user.id);
+        
+        if (updateError) {
+          throw new Error('Failed to update usage count');
+        }
+      } else {
+        console.log('🧪 Testing mode detected - bypassing usage limits');
       }
 
       const updateProgress = (progress: number, step: string) => {
