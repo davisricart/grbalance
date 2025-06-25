@@ -5,7 +5,7 @@
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "18.19.1"
+  NODE_VERSION = "18.20.7"
 
 # Enable minimal functions for admin verification only
 [functions]
