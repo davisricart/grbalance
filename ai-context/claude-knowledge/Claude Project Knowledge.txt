@@ -1,5 +1,14 @@
 # GR Balance File Comparison System - Project Knowledge
 
+## 🚨 **UPDATED: SEE COMPREHENSIVE RULES DOCUMENT**
+
+**For complete, consolidated development rules, see:**
+`documentation/essential/GR_BALANCE_DEVELOPMENT_RULES.md`
+
+**This document contains the DEFINITIVE assembly line workflow, mandatory script templates, and all system requirements. All future development must follow those rules.**
+
+---
+
 ## System Overview:
 This is a modular file comparison system with a fixed HTML template website and standalone GitHub-hosted scripts. The website handles file uploads and displays results, while separate scripts perform the actual data processing.
 
