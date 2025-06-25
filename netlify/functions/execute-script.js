@@ -117,7 +117,25 @@ exports.handler = async (event, context) => {
           console.warn('⚠️ showResults() called with invalid data:', typeof results);
           scriptResults = [];
         } else {
-          scriptResults = results;
+          // Convert array of objects to array of arrays format for client portal compatibility
+          if (results.length > 0 && typeof results[0] === 'object' && !Array.isArray(results[0])) {
+            console.log('🔄 Converting object format to array format for client portal');
+            
+            // Extract headers from first object
+            const headers = Object.keys(results[0]);
+            const convertedResults = [headers]; // First row is headers
+            
+            // Convert each object to array of values
+            results.forEach(row => {
+              const rowArray = headers.map(header => row[header]);
+              convertedResults.push(rowArray);
+            });
+            
+            scriptResults = convertedResults;
+            console.log('✅ Converted to array format:', convertedResults.length, 'rows');
+          } else {
+            scriptResults = results;
+          }
         }
         
         scriptCompleted = true;
