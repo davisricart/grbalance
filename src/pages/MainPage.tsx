@@ -788,10 +788,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div className="text-center">
               <div className="animate-spin h-12 w-12 border-4 border-emerald-600 border-t-transparent rounded-full mx-auto mb-6"></div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Processing Your Files</h2>
-              <p className="text-gray-600 mb-6">
-                Analyzing {transactionCount > 0 ? transactionCount.toLocaleString() : '2,847'} transactions...
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Processing Your Files</h2>
               
               <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
                 <div 
