@@ -90,7 +90,9 @@
       "Bash(echo:*)",
       "Bash(PORT=3000 npm run dev)",
       "Bash(git revert:*)",
-      "Bash(git tag:*)"
+      "Bash(git tag:*)",
+      "Bash(netlify logs:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }

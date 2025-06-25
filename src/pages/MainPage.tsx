@@ -330,9 +330,50 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   };
 
   const handleCompare = async () => {
+    // Check if this is a testing client first
+    const isTestingClient = (
+      user?.email === 'test@test.com' || 
+      window.location.pathname === '/test' ||
+      window.location.pathname.includes('/test')
+    );
+    
+    console.log('🧪 Testing mode check:', {
+      userEmail: user?.email,
+      pathname: window.location.pathname,
+      isTestingClient: isTestingClient
+    });
+
+    // For testing clients, automatically load sample files if not already loaded
+    let actualFile1 = file1;
+    let actualFile2 = file2;
+    
+    if (isTestingClient && (!file1 || !file2)) {
+      console.log('🧪 TESTING MODE: Auto-loading sample Excel files');
+      
+      try {
+        // Load sample files from the public directory
+        const file1Response = await fetch('/sample-data-file1.xlsx');
+        const file2Response = await fetch('/sample-data-file2.xlsx');
+        
+        if (file1Response.ok && file2Response.ok) {
+          const file1Blob = await file1Response.blob();
+          const file2Blob = await file2Response.blob();
+          
+          actualFile1 = new File([file1Blob], 'Payments Hub Transaction.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          actualFile2 = new File([file2Blob], 'Sales Totals.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          
+          console.log('✅ Sample files loaded successfully');
+        } else {
+          console.warn('⚠️ Could not load sample files, falling back to manual validation');
+        }
+      } catch (error) {
+        console.warn('⚠️ Error loading sample files:', error);
+      }
+    }
+
     const validationErrors: string[] = [];
-    if (!file1) validationErrors.push("Please select the first file");
-    if (!file2) validationErrors.push("Please select the second file");
+    if (!actualFile1) validationErrors.push("Please select the first file");
+    if (!actualFile2) validationErrors.push("Please select the second file");
 
     if (validationErrors.length > 0) {
       setStatus(validationErrors.join(", "));
@@ -344,19 +385,6 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setProcessingStep('Initializing...');
 
     try {
-      // Check if this is a testing client - bypass usage limits for testing
-      const isTestingClient = (
-        user?.email === 'test@test.com' || 
-        window.location.pathname === '/test' ||
-        window.location.pathname.includes('/test')
-      );
-      
-      console.log('🧪 Testing mode check:', {
-        userEmail: user?.email,
-        pathname: window.location.pathname,
-        isTestingClient: isTestingClient
-      });
-      
       if (isTestingClient) {
         console.log('🧪 TESTING MODE: Bypassing all usage limits');
       } else {
@@ -402,9 +430,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
       await updateProgress(10, 'Preparing files...');
 
-      // Parse uploaded files to JSON data
-      const file1Data = await parseFileToJSON(file1!);
-      const file2Data = await parseFileToJSON(file2!);
+      // Parse files to JSON data (using actualFile1/actualFile2 which includes sample files for testing)
+      const file1Data = await parseFileToJSON(actualFile1!);
+      const file2Data = await parseFileToJSON(actualFile2!);
       
       // Store parsed data to localStorage for AdminPage access
       localStorage.setItem('file1Data', JSON.stringify(file1Data));
