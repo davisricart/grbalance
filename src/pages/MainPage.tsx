@@ -144,19 +144,26 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       const deployedScripts = clientData.deployed_scripts || [];
       console.log('📜 Raw deployed scripts from Supabase:', deployedScripts);
       
-      // Extract script names from script objects
-      const scriptNames = deployedScripts.map((script: any) => {
-        if (script && typeof script === 'object' && script.name) {
-          return script.name;
+      // Store both script names and full script objects for content access
+      const scriptNames: string[] = [];
+      const scriptMap = new Map<string, string>();
+      
+      deployedScripts.forEach((script: any) => {
+        if (script && typeof script === 'object' && script.name && script.content) {
+          scriptNames.push(script.name);
+          scriptMap.set(script.name, script.content);
         }
-        return null;
-      }).filter(Boolean);
+      });
       
       console.log('✅ Available scripts for client:', scriptNames);
+      console.log('📄 Script content map created with', scriptMap.size, 'scripts');
+      
+      // Store the script map globally so we can access script content
+      (window as any).clientScriptMap = scriptMap;
       
       if (scriptNames.length > 0) {
         setAvailableScripts(scriptNames);
-        setScript(scriptNames[0]); // Select first script by default
+        setScript(scriptNames[0] || ''); // Select first script by default
       } else {
         console.log('ℹ️ No scripts deployed for this client');
         setAvailableScripts([]);
@@ -408,6 +415,17 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       try {
         await updateProgress(30, 'Uploading files...');
         
+        // Get the actual script content from the script map
+        const scriptMap = (window as any).clientScriptMap;
+        const scriptContent = scriptMap ? scriptMap.get(script) : null;
+        
+        if (!scriptContent) {
+          throw new Error(`Script content not found for: ${script}`);
+        }
+        
+        console.log('📄 Executing script:', script);
+        console.log('📄 Script content length:', scriptContent.length);
+        
         // Call the execute-script function with JSON data (with timeout)
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
@@ -418,7 +436,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            script: script,
+            script: scriptContent, // Send actual script content, not script name
             file1Data,
             file2Data,
           }),
