@@ -529,8 +529,17 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const downloadResults = useCallback(() => {
     if (results.length === 0) return;
     const workbook = XLSX.utils.book_new();
-    // Convert object array to sheet (VirtualTable format)
-    const worksheet = XLSX.utils.json_to_sheet(results);
+    
+    // Handle both array format (from Netlify) and object format
+    let worksheet;
+    if (Array.isArray(results[0])) {
+      // Array format: [["Header1", "Header2"], ["Value1", "Value2"]]
+      worksheet = XLSX.utils.aoa_to_sheet(results);
+    } else {
+      // Object format: [{Header1: "Value1", Header2: "Value2"}]
+      worksheet = XLSX.utils.json_to_sheet(results);
+    }
+    
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Results');
     XLSX.writeFile(workbook, 'comparison_results.xlsx');
   }, [results]);
