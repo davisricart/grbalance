@@ -306,7 +306,6 @@ const AdminPage: React.FC = () => {
   const [clientSelectionOptions, setClientSelectionOptions] = useState<ApprovedUser[]>([]);
 
   // Add notification state after other state declarations
-  const [notifications, setNotifications] = useState<{id: string, type: 'success' | 'error' | 'info' | 'warning', title: string, message: string, timestamp: number}[]>([]);
   
   // Inline notifications state for better UX
   const [inlineNotifications, setInlineNotifications] = useState<Record<string, { type: 'success' | 'error' | 'info'; message: string }>>({});
@@ -396,27 +395,6 @@ const AdminPage: React.FC = () => {
     }, timeout);
   };
 
-  const showNotification = (type: 'success' | 'error' | 'info' | 'warning', title: string, message: string) => {
-    const id = `notification-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const notification = {
-      id,
-      type,
-      title,
-      message,
-      timestamp: Date.now()
-    };
-    
-    setNotifications(prev => [...prev, notification]);
-    
-    // Auto-remove after 5 seconds
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 5000);
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
 
   // Function to show client selection modal
   const showClientSelectionModal = (users: ApprovedUser[]) => {
@@ -494,14 +472,14 @@ const AdminPage: React.FC = () => {
   useEffect(() => {
     const originalAlert = window.alert;
     window.alert = (message: any) => {
-      // Convert alert to our notification system
+      // Convert alert to console logging instead of popups
       if (typeof message === 'string') {
         if (message.toLowerCase().includes('success') || message.toLowerCase().includes('deployed')) {
-          showNotification('success', 'Operation Successful', message);
+          console.log('✓ Operation Successful:', message);
         } else if (message.toLowerCase().includes('error') || message.toLowerCase().includes('failed')) {
-          showNotification('error', 'Operation Failed', message);
+          console.error('❌ Operation Failed:', message);
         } else {
-          showNotification('info', 'System Message', message);
+          console.log('ℹ️ System Message:', message);
         }
       }
     };
@@ -544,7 +522,7 @@ const AdminPage: React.FC = () => {
       const { data: users, error } = await supabase
         .from('pendingUsers')
         .select('*')
-        .eq('status', 'pending');
+        .order('createdAt', { ascending: false });
       
       if (error) throw error;
       setPendingUsers(users || []);
@@ -1274,8 +1252,7 @@ WARNING:
       
       // Validate required fields
       if (!newClient.email || !newClient.businessName || !newClient.businessType) {
-        console.error('🚨 Missing required fields');
-        showNotification('error', 'Missing Information', 'Please fill in all required fields: Email, Business Name, and Business Type');
+        console.error('❌ Missing required fields: Email, Business Name, and Business Type');
         return;
       }
 
@@ -1328,7 +1305,7 @@ WARNING:
         message: error.message,
         stack: error.stack
       });
-      showNotification('error', 'Failed to Add Client', `Error adding client: ${error.message || 'Unknown error'}`);
+      console.error('❌ Failed to add client:', error.message || 'Unknown error');
     }
   };
 
@@ -1412,7 +1389,7 @@ WARNING:
   const handleProvisionWebsite = async (user: ApprovedUser) => {
     // Check if site already exists
           if (siteUrls[user.id]) {
-      showNotification('warning', 'Website Already Exists', `Website already provisioned for ${user.businessName || user.email}: ${siteUrls[user.id]}`);
+      console.log('ℹ️ Website already exists for', user.businessName || user.email, ':', siteUrls[user.id]);
       return;
     }
 
@@ -1500,7 +1477,7 @@ WARNING:
       
       // Show detailed error information
       const status = err.response?.status || 'Unknown';
-      showNotification('error', `Provisioning Failed (${status})`, msg);
+      console.error('❌ Provisioning failed:', status, msg);
       
       console.error('Provisioning error details:', {
         status: err.response?.status,
@@ -1693,12 +1670,12 @@ WARNING:
     console.log('📊 Downloading script results to Excel...');
     
     if (!testScriptResults || !testScriptResults.success) {
-      showNotification('error', 'No Results', 'Please run a script first to generate results');
+      console.error('❌ No results available - run a script first to generate results');
       return;
     }
     
     try {
-      showNotification('info', 'Generating Excel', 'Creating Excel file...');
+      console.log('⚙️ Generating Excel file...');
       
       // Dynamically import XLSX only when needed for better performance
       const XLSX = await import('xlsx');
@@ -1746,7 +1723,7 @@ WARNING:
       
     } catch (error: any) {
       console.error('❌ Excel download error:', error);
-      showNotification('error', 'Export Failed', error.message || 'Failed to generate Excel file');
+      console.error('❌ Export failed:', error.message || 'Failed to generate Excel file');
     }
   };
 
@@ -2567,7 +2544,6 @@ WARNING:
                 
                 if (!readyUser) {
                   console.error('❌ Ready user not found for userId:', userId);
-                  showNotification('error', 'Error', 'User not found in ready for testing list');
                   return;
                 }
 
@@ -2643,15 +2619,11 @@ WARNING:
                 const pendingUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessName: readyUser.businessName,
-                  businessType: readyUser.businessType,
-                  subscriptionTier: readyUser.subscriptionTier,
-                  billingCycle: readyUser.billingCycle,
+                  businessName: readyUser.businessname || readyUser.businessName,
+                  businessType: readyUser.businesstype || readyUser.businessType,
+                  subscriptionTier: readyUser.subscriptiontier || readyUser.subscriptionTier,
+                  billingCycle: readyUser.billingcycle || readyUser.billingCycle,
                   createdAt: readyUser.createdAt,
-                  status: 'pending', // ✅ CRITICAL: Add status field for safeFetchPendingUsers query
-                  consultationCompleted: false,
-                  scriptReady: false,
-                  consultationNotes: reason ? `Sent back from testing: ${reason}` : 'Sent back from testing',
                   updatedAt: new Date().toISOString()
                 };
                 
@@ -2687,11 +2659,9 @@ WARNING:
                   
                 } catch (error) {
                   console.error('❌ Error in sendBackToPending:', error);
-                  showNotification('error', 'Error', `Failed to send user back to pending: ${error.message}`);
                 }
               } else {
                 console.error('❌ Ready user not found for userId:', userId);
-                showNotification('error', 'Error', 'User not found in ready for testing list');
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
@@ -3338,7 +3308,7 @@ WARNING:
                   </div>
                   <div className="mt-3">
                     <button 
-                      onClick={() => showNotification('info', 'Feature Coming Soon', 'Dynamic profile editing will be available in the next update!')}
+                      onClick={() => console.log('ℹ️ Feature Coming Soon: Dynamic profile editing will be available in the next update!')}
                       className="px-3 py-1 bg-yellow-600 text-white rounded text-sm hover:bg-yellow-700"
                     >
                       Request Profile Editor Feature
@@ -3469,14 +3439,14 @@ WARNING:
                         </div>
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => showNotification('info', 'Edit Profile', `Editing keywords for ${profile.displayName} - Feature coming soon!`)}
+                            onClick={() => console.log('ℹ️ Edit Profile feature coming soon for', profile.displayName)}
                             className="bg-blue-100 text-blue-700 px-3 py-1 rounded text-sm hover:bg-blue-200 transition-colors"
                           >
                             <Edit className="w-4 h-4 inline mr-1" />
                             Edit
                           </button>
                           <button
-                            onClick={() => showNotification('info', 'Clone Profile', `Cloning ${profile.displayName} - Feature coming soon!`)}
+                            onClick={() => console.log('ℹ️ Clone Profile feature coming soon for', profile.displayName)}
                             className="bg-purple-100 text-purple-700 px-3 py-1 rounded text-sm hover:bg-purple-200 transition-colors"
                           >
                             <Copy className="w-4 h-4 inline mr-1" />
@@ -4875,7 +4845,7 @@ reconcileData();`;
                     const selectedUserId = dropdown?.value;
                     
                     if (!selectedUserId) {
-                      showNotification('warning', 'No Client Selected', 'Please select a client to deploy the script to.');
+                      console.log('⚠️ No client selected - please select a client to deploy the script to');
                       return;
                     }
                     
@@ -4885,7 +4855,7 @@ reconcileData();`;
                       setShowDeployScript(true);
                       setShowClientSelection(false);
                       setClientSelectionOptions([]);
-                      showNotification('info', 'Ready to Deploy', `Script pre-loaded for ${selectedUser.businessName || selectedUser.email}. Review and deploy!`);
+                      console.log('✓ Script pre-loaded for', selectedUser.businessName || selectedUser.email);
                     }
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
@@ -4897,70 +4867,6 @@ reconcileData();`;
           </div>
         )}
 
-        {/* Notification Display */}
-        <div className="fixed top-4 right-4 z-50 space-y-2">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`max-w-sm p-4 rounded-lg shadow-lg border transition-all duration-300 ${
-                notification.type === 'success'
-                  ? 'bg-green-50 border-green-200 text-green-800'
-                  : notification.type === 'error'
-                  ? 'bg-red-50 border-red-200 text-red-800'
-                  : notification.type === 'warning'
-                  ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                  : 'bg-blue-50 border-blue-200 text-blue-800'
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center">
-                    <div className={`flex-shrink-0 mr-2 ${
-                      notification.type === 'success'
-                        ? 'text-green-400'
-                        : notification.type === 'error'
-                        ? 'text-red-400'
-                        : notification.type === 'warning'
-                        ? 'text-yellow-400'
-                        : 'text-blue-400'
-                    }`}>
-                      {notification.type === 'success' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'error' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'warning' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {notification.type === 'info' && (
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                    </div>
-                    <h4 className="text-sm font-medium">{notification.title}</h4>
-                  </div>
-                  <p className="mt-1 text-sm">{notification.message}</p>
-                </div>
-                <button
-                  onClick={() => removeNotification(notification.id)}
-                  className="ml-4 text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );
