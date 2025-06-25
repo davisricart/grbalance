@@ -1100,8 +1100,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                       </div>
                       <div className="p-0">
                         {results.length > 0 ? (
-                          <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
+                          <div>
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                   <tr>
                                     {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
