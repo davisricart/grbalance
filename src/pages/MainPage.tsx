@@ -384,8 +384,6 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
         if (updateError) {
           throw new Error('Failed to update usage count');
         }
-      } else {
-        console.log('🧪 Testing mode detected - bypassing usage limits');
       }
 
       const updateProgress = (progress: number, step: string) => {
