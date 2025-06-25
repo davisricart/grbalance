@@ -3829,7 +3829,11 @@ WARNING:
                     
                     <div 
                       id="test-file1-dropzone"
-                      className="relative border-2 border-dashed border-green-300 rounded-lg p-6 text-center hover:border-green-500 hover:bg-green-50 transition-colors cursor-pointer group"
+                      className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group ${
+                        file1Data.length > 0 
+                          ? 'border-green-500 bg-green-50' 
+                          : 'border-green-300 hover:border-green-500 hover:bg-green-50'
+                      }`}
                     >
                       <input
                         type="file"
@@ -3878,7 +3882,11 @@ WARNING:
                     
                     <div 
                       id="test-file2-dropzone"
-                      className="relative border-2 border-dashed border-blue-300 rounded-lg p-6 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer group"
+                      className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer group ${
+                        file2Data.length > 0 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-blue-300 hover:border-blue-500 hover:bg-blue-50'
+                      }`}
                     >
                       <input
                         type="file"
