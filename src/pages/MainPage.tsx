@@ -1099,7 +1099,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                               <table className="min-w-full" style={{borderCollapse: 'collapse', border: '1px solid #666'}}>
                                 <thead>
                                   <tr>
-                                    {Object.keys(results[0] || {}).map((header, index) => (
+                                    {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
+                                    {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, index) => (
                                       <th 
                                         key={header}
                                         style={{
@@ -1113,7 +1114,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                         }}
                                       >
                                         {header}
-                                        {index < Object.keys(results[0] || {}).length - 1 && (
+                                        {index < (Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).length - 1 && (
                                           <div style={{
                                             position: 'absolute', 
                                             top: 0, 
@@ -1129,9 +1130,10 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {results.slice(0, 5).map((row, rowIndex) => (
+                                  {/* Handle both array and object formats for data rows */}
+                                  {(Array.isArray(results[0]) ? results.slice(1, 6) : results.slice(0, 5)).map((row, rowIndex) => (
                                     <tr key={rowIndex}>
-                                      {Object.keys(results[0] || {}).map(header => (
+                                      {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, colIndex) => (
                                         <td 
                                           key={header}
                                           style={{
@@ -1139,7 +1141,11 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                             border: '1px solid #666'
                                           }}
                                         >
-                                          {row[header] || row[header] === 0 ? row[header] : '0'}
+                                          {/* Handle both array format (use index) and object format (use header key) */}
+                                          {Array.isArray(results[0]) 
+                                            ? (row[colIndex] || row[colIndex] === 0 ? row[colIndex] : '0')
+                                            : (row[header] || row[header] === 0 ? row[header] : '0')
+                                          }
                                         </td>
                                       ))}
                                     </tr>
@@ -1148,7 +1154,11 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                               </table>
                             </div>
                             <div style={{marginTop: '16px', color: '#666', fontSize: '14px', padding: '0 16px 16px'}}>
-                              {Math.min(results.length, 5)} of {results.length} rows displayed{results.length > 5 ? ' (showing first 5)' : ''}
+                              {/* Handle row count for both array format (subtract header) and object format */}
+                              {Array.isArray(results[0]) 
+                                ? `${Math.min(results.length - 1, 5)} of ${results.length - 1} rows displayed${(results.length - 1) > 5 ? ' (showing first 5)' : ''}`
+                                : `${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}`
+                              }
                             </div>
                           </div>
                         ) : (
