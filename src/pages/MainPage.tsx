@@ -307,8 +307,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const handleOverviewTab = useCallback(() => setActiveTab('overview'), []);
   const handleInsightsTab = useCallback(() => setActiveTab('insights'), []);
 
-  // Helper function to parse Excel file to JSON
-  const parseFileToJSON = async (file: File): Promise<TransactionRow[]> => {
+  // Helper function to parse Excel file to array of arrays format for execute-script
+  const parseFileToJSON = async (file: File): Promise<any[][]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -317,8 +317,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           const workbook = XLSX.read(data, { type: 'array' });
           const sheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-          resolve(jsonData);
+          // Use sheet_to_json with header: 1 to get array of arrays format
+          const arrayData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          resolve(arrayData);
         } catch (error) {
           reject(error);
         }
