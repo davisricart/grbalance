@@ -1048,11 +1048,61 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                       <div className="p-6">
                         {results.length > 0 ? (
                           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                            <VirtualTable 
-                              data={results} 
-                              maxRows={100}
-                              className="w-full"
-                            />
+                            <div className="overflow-x-auto">
+                              <table className="min-w-full" style={{borderCollapse: 'collapse', border: '1px solid #666'}}>
+                                <thead>
+                                  <tr>
+                                    {Object.keys(results[0] || {}).map((header, index) => (
+                                      <th 
+                                        key={header}
+                                        style={{
+                                          padding: '12px', 
+                                          textAlign: 'left', 
+                                          borderTop: '1px solid #666', 
+                                          borderBottom: '1px solid #666', 
+                                          fontWeight: 'bold', 
+                                          backgroundColor: '#f8f8f8',
+                                          position: 'relative'
+                                        }}
+                                      >
+                                        {header}
+                                        {index < Object.keys(results[0] || {}).length - 1 && (
+                                          <div style={{
+                                            position: 'absolute', 
+                                            top: 0, 
+                                            right: '-1px', 
+                                            width: '1px', 
+                                            height: '100%', 
+                                            backgroundColor: '#666', 
+                                            zIndex: 100
+                                          }}></div>
+                                        )}
+                                      </th>
+                                    ))}
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {results.slice(0, 5).map((row, rowIndex) => (
+                                    <tr key={rowIndex}>
+                                      {Object.keys(results[0] || {}).map(header => (
+                                        <td 
+                                          key={header}
+                                          style={{
+                                            padding: '12px', 
+                                            border: '1px solid #666'
+                                          }}
+                                        >
+                                          {row[header] || row[header] === 0 ? row[header] : '0'}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div style={{marginTop: '16px', color: '#666', fontSize: '14px', padding: '0 16px 16px'}}>
+                              {Math.min(results.length, 5)} of {results.length} rows displayed{results.length > 5 ? ' (showing first 5)' : ''}
+                            </div>
                           </div>
                         ) : (
                           <div className="text-center text-emerald-600 py-16">
