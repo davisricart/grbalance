@@ -42,25 +42,20 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
 
-  // Check if this is a testing client and clear any usage limit errors
+  // Clear usage limit errors for testing clients
   useEffect(() => {
-    // Multiple ways to detect testing mode:
     const isTestingClient = (
-      (user?.isClientPortal && user?.clientStatus === 'testing') ||
-      (user?.email === 'test@test.com') ||
-      (window.location.pathname === '/test')
+      user?.email === 'test@test.com' || 
+      window.location.pathname === '/test' ||
+      window.location.pathname.includes('/test')
     );
-    console.log('🔍 DEBUG: MainPage useEffect - user:', user);
-    console.log('🔍 DEBUG: MainPage useEffect - user.email:', user?.email);
-    console.log('🔍 DEBUG: MainPage useEffect - pathname:', window.location.pathname);
-    console.log('🔍 DEBUG: MainPage useEffect - isTestingClient:', isTestingClient);
     
     if (isTestingClient) {
-      console.log('🧪 Testing client detected in MainPage - clearing any usage limit errors');
+      console.log('🧪 Testing client detected - clearing usage limit errors');
       setStatus('');
       setWarning('');
     }
-  }, [user]);
+  }, [user, status]);
 
   useEffect(() => {
     // Check for client parameter in URL first
@@ -341,22 +336,22 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setProcessingStep('Initializing...');
 
     try {
-      // Debug: Log the user object to see what we're working with
-      console.log('🔍 DEBUG: User object in handleCompare:', user);
-      console.log('🔍 DEBUG: user.isClientPortal:', user.isClientPortal);
-      console.log('🔍 DEBUG: user.clientStatus:', user.clientStatus);
-      console.log('🔍 DEBUG: user.email:', user.email);
-      
-      // Check if this is a testing client - if so, bypass usage limits
-      // Multiple ways to detect testing mode:
+      // Check if this is a testing client - bypass usage limits for testing
       const isTestingClient = (
-        (user.isClientPortal && user.clientStatus === 'testing') ||
-        (user.email === 'test@test.com') ||
-        (window.location.pathname === '/test')
+        user?.email === 'test@test.com' || 
+        window.location.pathname === '/test' ||
+        window.location.pathname.includes('/test')
       );
-      console.log('🔍 DEBUG: isTestingClient:', isTestingClient);
       
-      if (!isTestingClient) {
+      console.log('🧪 Testing mode check:', {
+        userEmail: user?.email,
+        pathname: window.location.pathname,
+        isTestingClient: isTestingClient
+      });
+      
+      if (isTestingClient) {
+        console.log('🧪 TESTING MODE: Bypassing all usage limits');
+      } else {
         // Only check and update usage limits for live users
         const { data: userData, error: fetchError } = await supabase
           .from('usage')
