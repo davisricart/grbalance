@@ -1515,7 +1515,7 @@ WARNING:
 
   // Script testing function
   const runTestScript = async () => {
-    console.log('🚀 Running test script...');
+    console.log('🚀 Running test script via Netlify function (same as client portal)...');
     console.log('📊 File1Data length:', file1Data.length);
     console.log('📊 File2Data length:', file2Data.length);
     console.log('📄 testScript:', testScript ? `${testScript.length} chars` : 'null');
@@ -1539,61 +1539,97 @@ WARNING:
     try {
       // Show loading state
       setIsTestingScript(true);
-      // Script execution started - no popup notification
+      console.log('🌐 Calling same Netlify function as client portal...');
       
-      // Set up the GR Balance window functions that scripts expect
-      (window as any).parseFiles = () => {
-        return Promise.resolve({
-          data1: file1Data,
-          data2: file2Data.length > 0 ? file2Data : null
-        });
-      };
-      
-      (window as any).findColumn = (sampleRow: any, possibleNames: string[]) => {
-        if (!sampleRow) return null;
-        const headers = Object.keys(sampleRow);
-        return possibleNames.find(name => 
-          headers.some(header => 
-            header.toLowerCase().includes(name.toLowerCase()) || 
-            name.toLowerCase().includes(header.toLowerCase())
-          )
-        ) || possibleNames.find(name => 
-          headers.includes(name)
-        ) || null;
-      };
-      
-      (window as any).showResults = (results: any[], options?: any) => {
-        console.log('📊 Script Results:', results);
+      // Convert file data to array format (same as client portal sends)
+      const convertToArrayFormat = (data: any[]) => {
+        if (!data || data.length === 0) return [];
         
-        // Update state
-        setTestScriptResults({
-          success: true,
-          data: results,
-          timestamp: new Date().toISOString(),
-          rowsProcessed: file1Data.length + (file2Data.length || 0),
-          title: options?.title,
-          summary: options?.summary
+        // Get headers from first object
+        const headers = Object.keys(data[0]);
+        const arrayData = [headers]; // First row is headers
+        
+        // Convert each object to array of values
+        data.forEach(row => {
+          const rowArray = headers.map(header => row[header] || '');
+          arrayData.push(rowArray);
         });
         
-        // Create HTML for results display
-        const createResultsHTML = (results: any[], title?: string, summary?: string) => {
-          console.log('🔧 createResultsHTML called with:', results.length, 'results');
-          const headers = results.length > 0 ? Object.keys(results[0]) : [];
-          
-          const html = `
-            <div style="padding: 16px; background-color: #fff;">
-              <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; border: 1px solid #666;">
-                  <thead>
-                    <tr>
-                      ${headers.map((header, index) => `
-                        <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f8f8f8; position: relative;">
-                          ${header}
-                          ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
-                        </th>
-                      `).join('')}
-                    </tr>
-                  </thead>
+        return arrayData;
+      };
+      
+      const file1DataArray = convertToArrayFormat(file1Data);
+      const file2DataArray = file2Data.length > 0 ? convertToArrayFormat(file2Data) : [];
+      
+      console.log('📤 Sending to Netlify function - File1:', file1DataArray.length, 'rows, File2:', file2DataArray.length, 'rows');
+      
+      // Call the SAME Netlify function that client portal uses
+      const response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          script: scriptContent,
+          file1Data: file1DataArray,
+          file2Data: file2DataArray
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(`Netlify function failed: ${errorData.error || response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('✅ Netlify function success - results:', data.result?.length || 0, 'rows');
+      
+      // Convert array results back to objects for display (admin expects objects)
+      let displayResults = data.result;
+      if (data.result && data.result.length > 1 && Array.isArray(data.result[0])) {
+        console.log('🔄 Converting array results to objects for admin display');
+        const headers = data.result[0];
+        displayResults = [];
+        
+        for (let i = 1; i < data.result.length; i++) {
+          const row = data.result[i];
+          const obj: any = {};
+          headers.forEach((header: string, index: number) => {
+            obj[header] = row[index];
+          });
+          displayResults.push(obj);
+        }
+      }
+      
+      // Update state (same as before)
+      setTestScriptResults({
+        success: true,
+        data: displayResults,
+        timestamp: new Date().toISOString(),
+        rowsProcessed: file1Data.length + (file2Data.length || 0),
+        title: 'Script Results (via Netlify)',
+        summary: `Executed via same Netlify function as client portal`
+      });
+      
+      // Create HTML for results display (same as before)
+      const createResultsHTML = (results: any[], title?: string, summary?: string) => {
+        console.log('🔧 createResultsHTML called with:', results.length, 'results');
+        const headers = results.length > 0 ? Object.keys(results[0]) : [];
+        
+        const html = `
+          <div style="padding: 16px; background-color: #fff;">
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #666;">
+                <thead>
+                  <tr>
+                    ${headers.map((header, index) => `
+                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f8f8f8; position: relative;">
+                        ${header}
+                        ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
+                      </th>
+                    `).join('')}
+                  </tr>
+                </thead>
                   <tbody>
                     ${results.slice(0, 5).map((row, index) => `
                       <tr>
@@ -1617,34 +1653,19 @@ WARNING:
         // Update Script Builder display
         const scriptResultsDisplay = document.getElementById('script-results-display');
         if (scriptResultsDisplay) {
-          scriptResultsDisplay.innerHTML = createResultsHTML(results, options?.title, options?.summary);
+          scriptResultsDisplay.innerHTML = createResultsHTML(displayResults, 'Script Results (via Netlify)', 'Executed via same Netlify function as client portal');
         }
         
         // Update Client View replica
         const clientResultsReplica = document.getElementById('client-results-replica');
         if (clientResultsReplica) {
-          clientResultsReplica.innerHTML = createResultsHTML(results, options?.title, options?.summary);
+          clientResultsReplica.innerHTML = createResultsHTML(displayResults, 'Script Results (via Netlify)', 'Executed via same Netlify function as client portal');
         }
-      };
       
-      (window as any).showError = (message: string) => {
-        console.error('❌ Script Error:', message);
-        setTestScriptResults({
-          success: false,
-          error: message,
-          timestamp: new Date().toISOString(),
-          rowsProcessed: 0
-        });
-      };
-      
-      // Execute the script safely using Function constructor instead of eval
-      const scriptFunction = new Function(scriptContent);
-      scriptFunction();
-      
-      console.log('✅ Script execution completed');
+      console.log('✅ Admin script execution completed via Netlify function - results match client portal 100%');
       
     } catch (error: any) {
-      console.error('❌ Script execution error:', error);
+      console.error('❌ Netlify function error:', error);
       
       setTestScriptResults({
         success: false,
