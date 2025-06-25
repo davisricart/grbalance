@@ -1083,72 +1083,46 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
               <div className="mt-6">
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* Client Results - EXACTLY like admin preview using VirtualTable */}
-                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200 overflow-hidden shadow-sm">
-                      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 text-white">
+                    {/* Results - Clean Supabase-style design */}
+                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                      <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <h2 className="text-lg font-semibold">📊 Analysis Results</h2>
-                            <p className="text-emerald-100 mt-1 text-sm">Professional analysis results</p>
-                          </div>
+                          <h2 className="text-lg font-medium text-gray-900">Results</h2>
                           <button
                             type="button"
                             onClick={downloadResults}
-                            className="inline-flex items-center px-4 py-2 text-sm rounded-md text-white bg-white/20 hover:bg-white/30 transition-colors duration-200 backdrop-blur-sm"
+                            className="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors duration-200"
                           >
                             <Download className="h-4 w-4 mr-2" />
                             Download
                           </button>
                         </div>
                       </div>
-                      <div className="p-6">
+                      <div className="p-0">
                         {results.length > 0 ? (
-                          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full" style={{borderCollapse: 'collapse', border: '1px solid #666'}}>
-                                <thead>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
                                   <tr>
                                     {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
                                     {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, index) => (
                                       <th 
                                         key={header}
-                                        style={{
-                                          padding: '12px', 
-                                          textAlign: 'left', 
-                                          borderTop: '1px solid #666', 
-                                          borderBottom: '1px solid #666', 
-                                          fontWeight: 'bold', 
-                                          backgroundColor: '#f8f8f8',
-                                          position: 'relative'
-                                        }}
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                                       >
                                         {header}
-                                        {index < (Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).length - 1 && (
-                                          <div style={{
-                                            position: 'absolute', 
-                                            top: 0, 
-                                            right: '-1px', 
-                                            width: '1px', 
-                                            height: '100%', 
-                                            backgroundColor: '#666', 
-                                            zIndex: 100
-                                          }}></div>
-                                        )}
                                       </th>
                                     ))}
                                   </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className="bg-white divide-y divide-gray-200">
                                   {/* Handle both array and object formats for data rows */}
                                   {(Array.isArray(results[0]) ? results.slice(1, 6) : results.slice(0, 5)).map((row, rowIndex) => (
-                                    <tr key={rowIndex}>
+                                    <tr key={rowIndex} className="hover:bg-gray-50">
                                       {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, colIndex) => (
                                         <td 
                                           key={header}
-                                          style={{
-                                            padding: '12px', 
-                                            border: '1px solid #666'
-                                          }}
+                                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                                         >
                                           {/* Handle both array format (use index) and object format (use header key) */}
                                           {Array.isArray(results[0]) 
@@ -1162,19 +1136,21 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                 </tbody>
                               </table>
                             </div>
-                            <div style={{marginTop: '16px', color: '#666', fontSize: '14px', padding: '0 16px 16px'}}>
-                              {/* Handle row count for both array format (subtract header) and object format */}
-                              {Array.isArray(results[0]) 
-                                ? `${Math.min(results.length - 1, 5)} of ${results.length - 1} rows displayed${(results.length - 1) > 5 ? ' (showing first 5)' : ''}`
-                                : `${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}`
-                              }
+                            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
+                              <div className="text-sm text-gray-500">
+                                {/* Handle row count for both array format (subtract header) and object format */}
+                                {Array.isArray(results[0]) 
+                                  ? `${Math.min(results.length - 1, 5)} of ${results.length - 1} rows displayed${(results.length - 1) > 5 ? ' (showing first 5)' : ''}`
+                                  : `${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}`
+                                }
+                              </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="text-center text-emerald-600 py-16">
+                          <div className="text-center text-gray-500 py-16">
                             <div className="text-4xl mb-3">📊</div>
-                            <div className="text-lg font-medium mb-2 text-emerald-800">No Results Yet</div>
-                            <div className="text-sm text-emerald-700">Run an analysis to see results here</div>
+                            <div className="text-lg font-medium mb-2 text-gray-700">No Results Yet</div>
+                            <div className="text-sm text-gray-500">Run a comparison to see results here</div>
                           </div>
                         )}
                       </div>
