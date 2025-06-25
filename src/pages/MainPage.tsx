@@ -1102,28 +1102,50 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                         {results.length > 0 ? (
                           <div>
                             <div className="overflow-x-auto">
-                              <table className="min-w-full divide-y divide-gray-200">
-                                <thead className="bg-gray-50">
+                              <table className="min-w-full" style={{borderCollapse: 'collapse', border: '1px solid #666'}}>
+                                <thead>
                                   <tr>
                                     {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
                                     {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, index) => (
                                       <th 
                                         key={header}
-                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                        style={{
+                                          padding: '12px', 
+                                          textAlign: 'left', 
+                                          borderTop: '1px solid #666', 
+                                          borderBottom: '1px solid #666', 
+                                          fontWeight: 'bold', 
+                                          backgroundColor: '#f8f8f8',
+                                          position: 'relative'
+                                        }}
                                       >
                                         {header}
+                                        {index < (Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).length - 1 && (
+                                          <div style={{
+                                            position: 'absolute', 
+                                            top: 0, 
+                                            right: '-1px', 
+                                            width: '1px', 
+                                            height: '100%', 
+                                            backgroundColor: '#666', 
+                                            zIndex: 100
+                                          }}></div>
+                                        )}
                                       </th>
                                     ))}
                                   </tr>
                                 </thead>
-                                <tbody className="bg-white divide-y divide-gray-200">
+                                <tbody>
                                   {/* Handle both array and object formats for data rows */}
                                   {(Array.isArray(results[0]) ? results.slice(1, 6) : results.slice(0, 5)).map((row, rowIndex) => (
-                                    <tr key={rowIndex} className="hover:bg-gray-50">
+                                    <tr key={rowIndex}>
                                       {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, colIndex) => (
                                         <td 
                                           key={header}
-                                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                          style={{
+                                            padding: '12px', 
+                                            border: '1px solid #666'
+                                          }}
                                         >
                                           {/* Handle both array format (use index) and object format (use header key) */}
                                           {Array.isArray(results[0]) 
