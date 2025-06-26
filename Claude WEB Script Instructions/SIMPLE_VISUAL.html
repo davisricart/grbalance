@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GR Balance Client Portal - Simple Visual</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f8f9fa; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .upload-section { background: white; padding: 30px; border-radius: 10px; margin-bottom: 20px; }
+        .upload-row { display: flex; gap: 30px; margin-bottom: 20px; }
+        .upload-box { flex: 1; border: 2px dashed #ccc; padding: 30px; text-align: center; border-radius: 8px; }
+        .upload-box.uploaded { background: #f0fdf4; border-color: #22c55e; }
+        .btn { background: #059669; color: white; border: none; padding: 15px 30px; border-radius: 8px; font-size: 16px; }
+        .results-section { background: white; padding: 30px; border-radius: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { background: #f0fdf4; border: 1px solid #666; padding: 12px; font-weight: bold; }
+        td { border: 1px solid #666; padding: 12px; }
+        .note { background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 20px; color: #856404; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 GR Balance Client Portal</h1>
+        
+        <!-- Upload Section -->
+        <div class="upload-section">
+            <div class="upload-row">
+                <div class="upload-box uploaded">
+                    <h3>📁 Primary Dataset</h3>
+                    <p>✅ transactions.xlsx</p>
+                </div>
+                <div class="upload-box uploaded">
+                    <h3>📁 Secondary Dataset</h3>
+                    <p>✅ daily_totals.xlsx</p>
+                </div>
+            </div>
+            <div style="text-align: center;">
+                <button class="btn">🔄 Run Comparison</button>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div class="results-section">
+            <h2>📊 Results</h2>
+            <table>
+                <tr>
+                    <th>Card Brand</th>
+                    <th>Transaction Count</th>
+                    <th>Total Amount</th>
+                    <th>Percentage</th>
+                </tr>
+                <tr>
+                    <td>Visa</td>
+                    <td>125</td>
+                    <td>$15,750.50</td>
+                    <td>45.5%</td>
+                </tr>
+                <tr>
+                    <td>Mastercard</td>
+                    <td>89</td>
+                    <td>$11,200.25</td>
+                    <td>32.4%</td>
+                </tr>
+                <tr>
+                    <td>American Express</td>
+                    <td>45</td>
+                    <td>$8,950.75</td>
+                    <td>16.4%</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div class="note">
+            <strong>For Claude Web:</strong> This is the exact interface where your script results appear. 
+            Upload areas → Run button → Results table. That's it!
+        </div>
+    </div>
+</body>
+</html>
