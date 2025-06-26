@@ -90,6 +90,11 @@ export default function ReadyForTestingTab({
       }
       await onUpdateTestingUser(userId, updates);
       setTestingNotes(prev => ({ ...prev, [userId]: '' }));
+      console.log('✅ QA status updated successfully:', status);
+    } catch (error) {
+      console.error('❌ Failed to update QA status:', error);
+      // Don't clear processing state on error so user can see the button didn't work
+      throw error;
     } finally {
       setProcessingUser(null);
     }

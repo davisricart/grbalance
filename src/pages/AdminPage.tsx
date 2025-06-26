@@ -2708,12 +2708,26 @@ WARNING:
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
+              // Convert camelCase field names to snake_case database column names
+              const dbUpdates: any = {};
+              
+              if (updates.qaStatus !== undefined) dbUpdates.qastatus = updates.qaStatus;
+              if (updates.qaTestedAt !== undefined) dbUpdates.qatestedat = updates.qaTestedAt;
+              if (updates.qaTestingNotes !== undefined) dbUpdates.qatestnotes = updates.qaTestingNotes;
+              if (updates.websiteProvisioned !== undefined) dbUpdates.websiteprovisioned = updates.websiteProvisioned;
+              if (updates.websiteProvisionedAt !== undefined) dbUpdates.websiteprovisionedat = updates.websiteProvisionedAt;
+              if (updates.scriptDeployed !== undefined) dbUpdates.scriptdeployed = updates.scriptDeployed;
+              if (updates.scriptDeployedAt !== undefined) dbUpdates.scriptdeployedat = updates.scriptDeployedAt;
+              if (updates.siteUrl !== undefined) dbUpdates.siteurl = updates.siteUrl;
+              if (updates.siteId !== undefined) dbUpdates.siteid = updates.siteId;
+              if (updates.siteName !== undefined) dbUpdates.sitename = updates.siteName;
+              
               // Update ready-for-testing user data
               const { error } = await supabase
                 .from('ready-for-testing')
                 .update({
-                  ...updates,
-                  updatedAt: new Date().toISOString()
+                  ...dbUpdates,
+                  updatedat: new Date().toISOString()
                 })
                 .eq('id', userId);
               
