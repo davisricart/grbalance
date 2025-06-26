@@ -2712,7 +2712,8 @@ WARNING:
               const dbUpdates: any = {};
               
               if (updates.qaStatus !== undefined) dbUpdates.qastatus = updates.qaStatus;
-              if (updates.qaTestedAt !== undefined) dbUpdates.qatestedat = updates.qaTestedAt;
+              // Note: Skipping qaTestedAt for now - column may not exist in database
+              // if (updates.qaTestedAt !== undefined) dbUpdates.qatestedat = updates.qaTestedAt;
               if (updates.qaTestingNotes !== undefined) dbUpdates.qatestnotes = updates.qaTestingNotes;
               if (updates.websiteProvisioned !== undefined) dbUpdates.websiteprovisioned = updates.websiteProvisioned;
               if (updates.websiteProvisionedAt !== undefined) dbUpdates.websiteprovisionedat = updates.websiteProvisionedAt;
@@ -2721,6 +2722,8 @@ WARNING:
               if (updates.siteUrl !== undefined) dbUpdates.siteurl = updates.siteUrl;
               if (updates.siteId !== undefined) dbUpdates.siteid = updates.siteId;
               if (updates.siteName !== undefined) dbUpdates.sitename = updates.siteName;
+              
+              console.log('📝 Updating database with:', dbUpdates);
               
               // Update ready-for-testing user data
               const { error } = await supabase
@@ -2731,7 +2734,12 @@ WARNING:
                 })
                 .eq('id', userId);
               
-              if (error) throw error;
+              if (error) {
+                console.error('❌ Database update failed:', error);
+                throw error;
+              }
+              
+              console.log('✅ Database update successful');
               
               // Refresh data
               await fetchReadyForTestingUsers();
