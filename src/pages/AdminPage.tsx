@@ -2616,23 +2616,18 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
-                // Use MINIMAL fields - only what definitely exists based on error patterns
+                // ULTRA MINIMAL - only absolute essentials that must exist
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessName: readyUser.businessName,
-                  businessType: readyUser.businessType,
-                  subscriptionTier: readyUser.subscriptionTier,
-                  billingCycle: readyUser.billingCycle,
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved',
-                  createdAt: readyUser.createdAt
-                  // REMOVED: approvedAt, updatedAt, createdBy - these columns don't exist
-                  // REMOVED: siteUrl, clientPath, websiteCreated, etc. - testing minimal first
+                  status: 'approved'
+                  // REMOVED: billingCycle, businessName, businessType, subscriptionTier, createdAt - don't exist
+                  // Testing with only the most basic fields that usage tracking requires
                 };
                 
-                console.log('🔥 CACHE BUST v5.0 - MINIMAL FIELDS ONLY:', dbApprovedUserData);
+                console.log('🔥 CACHE BUST v6.0 - ULTRA MINIMAL FIELDS:', dbApprovedUserData);
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
