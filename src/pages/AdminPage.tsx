@@ -2616,18 +2616,18 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
-                // ULTRA MINIMAL - only absolute essentials that must exist
+                // Include REQUIRED fields based on database constraint errors
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
+                  subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
                   status: 'approved'
-                  // REMOVED: billingCycle, businessName, businessType, subscriptionTier, createdAt - don't exist
-                  // Testing with only the most basic fields that usage tracking requires
+                  // Now we know subscriptionTier IS required - let's see what other constraints exist
                 };
                 
-                console.log('🔥 CACHE BUST v6.0 - ULTRA MINIMAL FIELDS:', dbApprovedUserData);
+                console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
