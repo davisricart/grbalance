@@ -2616,28 +2616,31 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
-                // Convert camelCase field names to snake_case for database
+                // Use exact proven working pattern from successful database operations
                 const dbApprovedUserData = {
-                  id: approvedUserData.id,
-                  email: approvedUserData.email,
-                  businessname: approvedUserData.businessName,
-                  businesstype: approvedUserData.businessType,
-                  subscriptiontier: approvedUserData.subscriptionTier,
-                  billingcycle: approvedUserData.billingCycle,
-                  createdat: approvedUserData.createdAt,
-                  siteurl: approvedUserData.siteUrl,
-                  sitename: approvedUserData.siteName,
-                  consultationcompleted: approvedUserData.consultationCompleted,
-                  scriptready: approvedUserData.scriptReady,
-                  consultationnotes: approvedUserData.consultationNotes,
-                  qapassedat: approvedUserData.qaPassedAt,
-                  approvedat: approvedUserData.approvedAt,
-                  status: approvedUserData.status,
-                  comparisonslimit: approvedUserData.comparisonsLimit || 100,
-                  comparisonsused: approvedUserData.comparisonsUsed || 0
+                  id: userId,
+                  email: readyUser.email,
+                  businessName: readyUser.businessName,
+                  businessType: readyUser.businessType,
+                  subscriptionTier: readyUser.subscriptionTier,
+                  billingCycle: readyUser.billingCycle,
+                  comparisonsUsed: 0,
+                  comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
+                  status: 'approved',
+                  createdAt: readyUser.createdAt,
+                  approvedAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  createdBy: 'admin',
+                  // Additional fields from working schema
+                  siteUrl: readyUser.siteUrl || null,
+                  clientPath: readyUser.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client',
+                  websiteCreated: true,
+                  consultationCompleted: true,
+                  scriptReady: true,
+                  consultationNotes: readyUser.consultationNotes || ''
                 };
                 
-                console.log('📝 Converting to database format:', dbApprovedUserData);
+                console.log('🔥 CACHE BUST v4.0 - NEW CODE EXECUTING:', dbApprovedUserData);
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');

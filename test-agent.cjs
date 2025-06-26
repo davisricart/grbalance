@@ -160,55 +160,82 @@ class GRBalanceTestAgent {
     }
   }
 
-  displayResults(results) {
+  displayResults(results, context = 'UNKNOWN') {
     if (!results || results.length === 0) {
       this.log('⚠️', 'No results to display - Table will NOT show');
       return false;
     }
 
-    this.log('🎯', `TABLE PREVIEW (${results.length} rows):`);
+    this.log('🎯', `${context} TABLE PREVIEW (${results.length} ${Array.isArray(results[0]) ? 'total with header' : 'data'} rows):`);
     console.log('='.repeat(60));
     
-    // Handle both object format (local) and array format (Netlify)
+    // SIMULATE EXACTLY what the client portal MainPage.tsx will render
     let headers, dataRows;
     
     if (Array.isArray(results[0])) {
       // Array format from Netlify: [["Header1", "Header2"], ["Value1", "Value2"]]
+      // This is what MainPage.tsx will receive and must handle correctly
+      console.log('📊 FORMAT: Array format (from Netlify function)');
+      
+      // SIMULATE: (Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {}))
       headers = results[0]; // First row is headers
       dataRows = results.slice(1); // Rest are data rows
       
       console.log('HEADERS:', headers.join(' | '));
       console.log('-'.repeat(60));
       
-      // Show first 5 data rows
+      // SIMULATE: (Array.isArray(results[0]) ? results.slice(1, 6) : results.slice(0, 5))
+      // SIMULATE: Array.isArray(results[0]) ? (row[colIndex] || row[colIndex] === 0 ? row[colIndex] : '0')
       dataRows.slice(0, 5).forEach((row, i) => {
-        console.log(`Row ${i+1}: ${row.join(' | ')}`);
+        const cellValues = headers.map((header, colIndex) => {
+          const value = row[colIndex];
+          return (value || value === 0) ? value : '0';
+        });
+        console.log(`Row ${i+1}: ${cellValues.join(' | ')}`);
       });
       
       if (dataRows.length > 5) {
         console.log(`... and ${dataRows.length - 5} more rows`);
       }
+      
+      // SIMULATE: Array.isArray(results[0]) ? results.length - 1 : results.length
+      const displayCount = Math.min(dataRows.length, 5);
+      const totalCount = dataRows.length;
+      console.log(`FOOTER: ${displayCount} of ${totalCount} rows displayed${totalCount > 5 ? ' (showing first 5)' : ''}`);
+      
     } else {
       // Object format from local: [{Header1: "Value1", Header2: "Value2"}]
+      console.log('📊 FORMAT: Object format (from local simulation)');
+      
+      // SIMULATE: Object.keys(results[0] || {})
       headers = Object.keys(results[0]);
       
       console.log('HEADERS:', headers.join(' | '));
       console.log('-'.repeat(60));
       
-      // Show first 5 rows
+      // SIMULATE: results.slice(0, 5)
+      // SIMULATE: (row[header] || row[header] === 0 ? row[header] : '0')
       results.slice(0, 5).forEach((row, i) => {
-        const rowValues = headers.map(h => String(row[h] || '0'));
+        const rowValues = headers.map(h => {
+          const value = row[h];
+          return (value || value === 0) ? value : '0';
+        });
         console.log(`Row ${i+1}: ${rowValues.join(' | ')}`);
       });
       
       if (results.length > 5) {
         console.log(`... and ${results.length - 5} more rows`);
       }
+      
+      // SIMULATE: results.length
+      const displayCount = Math.min(results.length, 5);
+      const totalCount = results.length;
+      console.log(`FOOTER: ${displayCount} of ${totalCount} rows displayed${totalCount > 5 ? ' (showing first 5)' : ''}`);
     }
     
     console.log('='.repeat(60));
     this.log('✅', 'Table WILL display in client portal');
-    return true;
+    return { headers, dataRows: Array.isArray(results[0]) ? dataRows : results };
   }
 
   async testNetlifyFunction(script, data1, data2) {
@@ -287,7 +314,7 @@ class GRBalanceTestAgent {
       }
 
       console.log('\n📋 LOCAL SIMULATION RESULTS:');
-      const localSuccess = this.displayResults(localResults);
+      const localDisplay = this.displayResults(localResults, 'LOCAL SIMULATION');
 
       // 4. Test live Netlify function
       console.log('\n🌐 TESTING LIVE NETLIFY FUNCTION...');
@@ -295,25 +322,55 @@ class GRBalanceTestAgent {
         const netlifyResults = await this.testNetlifyFunction(script, data1, data2);
         
         console.log('\n📋 NETLIFY FUNCTION RESULTS:');
-        const netlifySuccess = this.displayResults(netlifyResults);
+        const netlifyDisplay = this.displayResults(netlifyResults, 'NETLIFY FUNCTION');
 
-        // 5. Compare results
-        console.log('\n🔍 COMPARISON ANALYSIS:');
-        if (JSON.stringify(localResults) === JSON.stringify(netlifyResults)) {
-          this.log('✅', 'LOCAL and NETLIFY results are IDENTICAL');
+        // 5. Compare ACTUAL table rendering, not just data
+        console.log('\n🔍 CRITICAL COMPARISON ANALYSIS:');
+        
+        // Compare headers (most important)
+        const localHeaders = localDisplay.headers;
+        const netlifyHeaders = netlifyDisplay.headers;
+        
+        if (JSON.stringify(localHeaders) === JSON.stringify(netlifyHeaders)) {
+          this.log('✅', 'HEADERS MATCH - Table headers will be identical');
         } else {
-          this.log('⚠️', 'LOCAL and NETLIFY results DIFFER');
-          console.log('Local count:', localResults?.length || 0);
-          console.log('Netlify count:', netlifyResults?.length || 0);
+          this.log('❌', 'HEADERS DIFFER - CLIENT PORTAL WILL SHOW WRONG HEADERS!');
+          console.log('🏠 Local headers  :', localHeaders);
+          console.log('🌐 Netlify headers:', netlifyHeaders);
+          console.log('💥 THIS IS A CRITICAL FAILURE - Users will see wrong column names!');
+          
+          // 6. FAIL the test if headers don't match
+          console.log('\n🎯 FINAL ASSESSMENT:');
+          this.log('💥', 'CONFIDENCE: 0% - CLIENT PORTAL HEADERS ARE BROKEN!');
+          this.log('🚨', 'DO NOT DEPLOY - Fix header synchronization first!');
+          return false;
         }
 
-        // 6. Final assessment
+        // Compare data (secondary)
+        const localData = localDisplay.dataRows;
+        const netlifyData = netlifyDisplay.dataRows;
+        
+        if (JSON.stringify(localData) === JSON.stringify(netlifyData)) {
+          this.log('✅', 'DATA MATCHES - Table content will be identical');
+        } else {
+          this.log('⚠️', 'DATA DIFFERS - Table content may vary');
+          console.log('Local data rows:', localData?.length || 0);
+          console.log('Netlify data rows:', netlifyData?.length || 0);
+        }
+
+        // 6. Final assessment - only pass if EVERYTHING matches
         console.log('\n🎯 FINAL ASSESSMENT:');
-        if (localSuccess && netlifySuccess) {
-          this.log('🎉', 'CONFIDENCE: 100% - Client portal will work perfectly!');
+        const headersMatch = JSON.stringify(localHeaders) === JSON.stringify(netlifyHeaders);
+        const dataMatches = JSON.stringify(localData) === JSON.stringify(netlifyData);
+        
+        if (headersMatch && dataMatches) {
+          this.log('🎉', 'CONFIDENCE: 100% - Admin and Client Portal will be IDENTICAL!');
+          return true;
+        } else if (headersMatch && !dataMatches) {
+          this.log('⚠️', 'CONFIDENCE: 80% - Headers match but data differs slightly');
           return true;
         } else {
-          this.log('❌', 'ISSUE DETECTED - Client portal may not display table');
+          this.log('💥', 'CONFIDENCE: 0% - CRITICAL ISSUES DETECTED!');
           return false;
         }
 
