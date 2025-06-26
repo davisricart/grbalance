@@ -2616,13 +2616,39 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
+                // Convert camelCase field names to snake_case for database
+                const dbApprovedUserData = {
+                  id: approvedUserData.id,
+                  email: approvedUserData.email,
+                  businessname: approvedUserData.businessName,
+                  businesstype: approvedUserData.businessType,
+                  subscriptiontier: approvedUserData.subscriptionTier,
+                  billingcycle: approvedUserData.billingCycle,
+                  createdat: approvedUserData.createdAt,
+                  siteurl: approvedUserData.siteUrl,
+                  sitename: approvedUserData.siteName,
+                  consultationcompleted: approvedUserData.consultationCompleted,
+                  scriptready: approvedUserData.scriptReady,
+                  consultationnotes: approvedUserData.consultationNotes,
+                  qapassedat: approvedUserData.qaPassedAt,
+                  approvedat: approvedUserData.approvedAt,
+                  status: approvedUserData.status,
+                  comparisonslimit: approvedUserData.comparisonsLimit || 100,
+                  comparisonsused: approvedUserData.comparisonsUsed || 0
+                };
+                
+                console.log('📝 Converting to database format:', dbApprovedUserData);
+                
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
                 const { error: upsertError } = await supabase
                   .from('usage')
-                  .upsert(approvedUserData);
+                  .upsert(dbApprovedUserData);
                 
-                if (upsertError) throw upsertError;
+                if (upsertError) {
+                  console.error('❌ Database upsert failed:', upsertError);
+                  throw upsertError;
+                }
                 console.log('✅ Successfully wrote to usage collection');
                 
                 // Remove from ready-for-testing collection
