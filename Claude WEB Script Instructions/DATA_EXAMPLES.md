@@ -1,5 +1,12 @@
 # 📊 Real Data Examples
 
+## 📁 ACTUAL FILES TO REFERENCE
+
+**Location**: `../sample-data/` folder contains real examples:
+- **Payments Hub Transaction.xlsx** - Real transaction data (use as file1 example)
+- **Sales Totals.xlsx** - Real summary data (use as file2 example)  
+- **test1.js** - Working script that processes these exact files
+
 ## What Excel Data Looks Like After Upload
 
 ### Example: Payment Transactions File

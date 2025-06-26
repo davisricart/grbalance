@@ -20,8 +20,9 @@ Everything you need to build perfect scripts for the GR Balance client portal.
 2. **Visual**: Open `SIMPLE_VISUAL.html` to see the interface  
 3. **API**: Check `API_REFERENCE.md` for function details
 4. **Examples**: Look at `DATA_EXAMPLES.md` for real data patterns
-5. **Avoid**: Read `DONT_DO_THIS.md` to prevent common errors
-6. **Template**: Copy `03_WORKING_SCRIPT_EXAMPLE.js` as starting point
+5. **Real Files**: Check `../sample-data/` folder for actual Excel files and working script
+6. **Avoid**: Read `DONT_DO_THIS.md` to prevent common errors
+7. **Template**: Copy `03_WORKING_SCRIPT_EXAMPLE.js` as starting point
 
 ## 🎯 SUCCESS FORMULA:
 
