@@ -117,26 +117,8 @@ export default function ReadyForTestingTab({
         createdAt: user.createdAt
       };
 
-      // LIVE GO LIVE: Call both functions for complete approval
-      const [approvalResponse, liveResponse] = await Promise.all([
-        // Original approval flow
-        onFinalApprove(user.id, userData),
-        
-        // New live approval with database updates
-        fetch('/.netlify/functions/approve-client-live', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            clientId: user.id,
-            userData: userData
-          })
-        })
-      ]);
-
-      if (liveResponse.ok) {
-        const result = await liveResponse.json();
-        console.log('🎯 Client LIVE approved in database:', result);
-      }
+      // Final approval flow - handles all approval logic
+      await onFinalApprove(user.id, userData);
       
       console.log('✅ Client fully approved and LIVE:', user.id);
       
