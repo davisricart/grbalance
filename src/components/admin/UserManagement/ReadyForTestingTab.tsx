@@ -903,14 +903,14 @@ export default function ReadyForTestingTab({
                           {isProcessing ? (
                             <>
                               <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              <span>Approving...</span>
+                              <span>Moving to Approved...</span>
                             </>
                           ) : (
                             <>
                               <CheckCircle2 className="h-3 w-3" />
                               <span>
                                 {canApprove 
-                                  ? 'Go Live' 
+                                  ? 'Move to Approved' 
                                   : !isQAPassed 
                                   ? 'QA Required' 
                                   : 'Script Completion Required'
