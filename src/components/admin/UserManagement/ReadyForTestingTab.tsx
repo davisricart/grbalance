@@ -445,8 +445,8 @@ export default function ReadyForTestingTab({
           uploaded_at: new Date().toISOString()
         };
 
-        // Get current scripts first, then append new one
-        const currentResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}&select=deployed_scripts`, {
+        // Get current scripts first, then append new one (use client_path to match portal loading)
+        const currentResponse = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=deployed_scripts`, {
           method: 'GET',
           headers: {
             'apikey': supabaseKey,
@@ -476,8 +476,8 @@ export default function ReadyForTestingTab({
           finalScripts: updatedScripts.map(s => s.name)
         });
 
-        // Update client record with updated scripts array
-        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+        // Update client record with updated scripts array (use client_path to match portal loading)
+        const updateResponse = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
           method: 'PATCH',
           headers: {
             'apikey': supabaseKey,
