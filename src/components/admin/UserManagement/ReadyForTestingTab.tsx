@@ -348,7 +348,7 @@ export default function ReadyForTestingTab({
       console.log('📡 Making direct Supabase API call to:', `${supabaseUrl}/rest/v1/clients`);
       console.log('📦 Client data payload:', clientData);
       
-      // First, check if client already exists
+      // First, check if client already exists by ID
       const checkResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
         method: 'GET',
         headers: {
@@ -361,7 +361,28 @@ export default function ReadyForTestingTab({
       const existingClients = await checkResponse.json();
       const clientExists = existingClients && existingClients.length > 0;
       
+      // Also check if client_path already exists (to avoid unique constraint violation)
+      const pathCheckResponse = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const pathExists = await pathCheckResponse.json();
+      const pathTaken = pathExists && pathExists.length > 0 && pathExists[0].id !== userId;
+      
+      // If path is taken by another client, generate a unique one
+      if (pathTaken) {
+        const timestamp = Date.now().toString().slice(-4);
+        clientData.client_path = `${clientPath}${timestamp}`;
+        console.log(`🔄 Path "${clientPath}" taken, using "${clientData.client_path}" instead`);
+      }
+      
       console.log('🔍 Client exists check:', clientExists ? 'YES - will UPDATE' : 'NO - will CREATE');
+      console.log('🔍 Path collision check:', pathTaken ? 'COLLISION AVOIDED' : 'PATH AVAILABLE');
       
       let createResponse;
       if (clientExists) {
