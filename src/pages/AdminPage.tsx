@@ -711,20 +711,28 @@ const AdminPage: React.FC = () => {
       console.log('✅ DELETE SUCCESSFUL - Rows affected:', deleteResponse.data?.length);
       console.log('🗑️ Deleted user data:', deleteResponse.data);
       
-      // STEP 5: DELETE AUTH USER COMPLETELY
-      console.log('🔄 Attempting to delete authentication user...');
+      // STEP 5: COMPLETE USER DELETION VIA NETLIFY FUNCTION
+      console.log('🔄 Calling server-side deletion function...');
       try {
-        const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+        const deleteResponse = await fetch('/.netlify/functions/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ userId })
+        });
+
+        const deleteResult = await deleteResponse.json();
         
-        if (authError) {
-          console.warn('⚠️ Auth user deletion failed:', authError.message);
-          console.log('💡 User deleted from database but auth user remains');
-        } else {
-          console.log('✅ Auth user deleted successfully');
+        if (!deleteResponse.ok) {
+          console.error('❌ Server-side deletion failed:', deleteResult);
+          throw new Error(deleteResult.error || 'Deletion failed');
         }
-      } catch (authDeleteError) {
-        console.warn('⚠️ Auth deletion error:', authDeleteError);
-        console.log('💡 User deleted from database but auth user remains');
+        
+        console.log('✅ Complete user deletion successful:', deleteResult.message);
+      } catch (serverDeleteError) {
+        console.error('❌ Server deletion error:', serverDeleteError);
+        throw new Error(`Complete deletion failed: ${serverDeleteError.message}`);
       }
       
       // STEP 6: Refresh data and verify user is gone from UI
