@@ -640,19 +640,40 @@ const AdminPage: React.FC = () => {
   // Delete user (hard delete)
   const deleteUser = async (userId: string) => {
     try {
+      console.log('🗑️ Attempting to delete user with ID:', userId);
+      
       // Hard delete from Supabase database
-      const { error } = await supabase
+      const { error, data } = await supabase
         .from('usage')
         .delete()
         .eq('id', userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase delete error:', error);
+        throw error;
+      }
 
+      console.log('✅ User deleted successfully from database');
+      
       // Refresh data
       await fetchApprovedUsers();
       
+      // Show success notification
+      setNotification({
+        id: Date.now().toString(),
+        type: 'success',
+        title: 'User Deleted',
+        message: 'User has been permanently removed from the database'
+      });
+      
     } catch (error) {
       console.error('🚨 Error deleting user:', error);
+      setNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Delete Failed',
+        message: 'Could not delete user from database'
+      });
     }
   };
 
