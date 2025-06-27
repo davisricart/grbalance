@@ -11,7 +11,7 @@ interface ReadyForTestingTabProps {
 }
 
 // Component to show and manage deployed scripts for a client
-function DeployedScriptsSection({ userId, clientPath, businessName }: { userId: string; clientPath: string; businessName: string }) {
+function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigger }: { userId: string; clientPath: string; businessName: string; refreshTrigger?: number }) {
   const [scripts, setScripts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -94,10 +94,10 @@ function DeployedScriptsSection({ userId, clientPath, businessName }: { userId: 
     }
   };
 
-  // Load scripts when component mounts
+  // Load scripts when component mounts or refresh trigger changes
   useEffect(() => {
     loadScripts();
-  }, [clientPath]);
+  }, [clientPath, refreshTrigger]);
 
   return (
          <div className="mt-3 ml-0">
@@ -170,6 +170,7 @@ export default function ReadyForTestingTab({
   const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
   const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
+  const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
 
   // Check Supabase for existing websites when component loads - PERSISTENT STATUS
   useEffect(() => {
@@ -445,7 +446,9 @@ export default function ReadyForTestingTab({
         console.log('✅ Script uploaded to Supabase successfully:', scriptData);
         
         setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
-                  console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + database!`);
+        // Trigger refresh of deployed scripts section
+        setScriptRefreshTrigger(prev => ({ ...prev, [userId]: Date.now() }));
+        console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + database!`);
         
       } catch (error) {
         console.error('❌ Error uploading script:', error);
@@ -918,6 +921,7 @@ export default function ReadyForTestingTab({
                       userId={user.id}
                       clientPath={clientPath}
                       businessName={user.businessName || 'Unknown Business'}
+                      refreshTrigger={scriptRefreshTrigger[user.id] || 0}
                     />
                   )}
 
