@@ -138,7 +138,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=*`, {
+      // First try to find client by client_path
+      let response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=*`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
@@ -147,16 +148,47 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
         }
       });
       
-      if (!response.ok) {
-        console.log('❌ Client not found in Supabase, using empty script list');
-        setAvailableScripts([]);
-        setScript('');
-        return;
+      let clients = [];
+      if (response.ok) {
+        clients = await response.json();
       }
       
-      const clients = await response.json();
+      // If not found by client_path, try to find by ID (fallback for admin-created clients)
       if (!clients || clients.length === 0) {
-        console.log('❌ No client data found in Supabase, using empty script list');
+        console.log('🔍 Client not found by client_path, trying to find by ID...');
+        response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${clientPath}&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          clients = await response.json();
+        }
+      }
+      
+      // If still not found, try a broader search by partial business name match
+      if (!clients || clients.length === 0) {
+        console.log('🔍 Client not found by ID, trying broader search...');
+        response = await fetch(`${supabaseUrl}/rest/v1/clients?business_name=ilike.*${clientPath}*&select=*`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          clients = await response.json();
+        }
+      }
+      
+      if (!clients || clients.length === 0) {
+        console.log('❌ No client data found in Supabase after all lookup attempts, using empty script list');
         setAvailableScripts([]);
         setScript('');
         return;
@@ -164,6 +196,14 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       
       const clientData = clients[0];
       console.log('✅ Found client in Supabase:', clientData.business_name);
+      console.log('📊 Client lookup details:', {
+        foundBy: clientData.client_path === clientPath ? 'client_path' : 
+                 clientData.id === clientPath ? 'id' : 'business_name_search',
+        clientId: clientData.id,
+        clientPath: clientData.client_path,
+        businessName: clientData.business_name,
+        searchTerm: clientPath
+      });
       
       // Get deployed scripts for this client
       const deployedScripts = clientData.deployed_scripts || [];
@@ -329,6 +369,58 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setScript(e.target.value);
     setStatus('');
   }, []);
+
+  const handleDeleteScript = useCallback(async (scriptName: string) => {
+    try {
+      console.log('🗑️ Deleting script from client portal:', scriptName);
+      
+      // Get current client ID from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      let clientId = urlParams.get('client');
+      
+      if (!clientId) {
+        const path = window.location.pathname;
+        const pathSegments = path.split('/').filter(segment => segment.length > 0);
+        if (pathSegments.length === 1) {
+          clientId = pathSegments[0];
+        }
+      }
+      
+      if (!clientId) {
+        throw new Error('Could not determine client ID');
+      }
+      
+      const response = await fetch('/.netlify/functions/delete-script', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          clientPath: clientId,
+          scriptName: scriptName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete script: ${response.statusText}`);
+      }
+      
+      // Refresh the scripts list
+      await loadClientScriptsFromSupabase(clientId);
+      
+      // Clear the selected script if it was the one deleted
+      if (script === scriptName) {
+        setScript('');
+      }
+      
+      console.log('✅ Script deleted successfully from client portal');
+      
+    } catch (error) {
+      console.error('❌ Error deleting script:', error);
+      setStatus(`Error deleting script: ${(error as Error).message}`);
+    }
+  }, [script, loadClientScriptsFromSupabase]);
+
   const handleOverviewTab = useCallback(() => setActiveTab('overview'), []);
   const handleInsightsTab = useCallback(() => setActiveTab('insights'), []);
 
@@ -1021,8 +1113,32 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           <div className="mt-4 sm:mt-6 max-w-full sm:max-w-xs">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-600">Codes</label>
-
             </div>
+            
+            {/* Script Management Section */}
+            {availableScripts.length > 0 && (
+              <div className="mb-3 space-y-2">
+                {availableScripts.map(scriptName => (
+                  <div key={scriptName} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-700">{scriptName}</span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteScript(scriptName);
+                      }}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors"
+                      title="Delete this script"
+                    >
+                      <span>✕</span>
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <select 
               value={script}
               onChange={handleScriptChange}
