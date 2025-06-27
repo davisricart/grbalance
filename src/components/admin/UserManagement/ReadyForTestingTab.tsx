@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle, FileText, Trash2, RefreshCw } from 'lucide-react';
 import { ReadyForTestingUser } from '../../../types/admin';
 
 interface ReadyForTestingTabProps {
@@ -8,6 +8,153 @@ interface ReadyForTestingTabProps {
   onSendBackToPending: (userId: string, reason: string) => Promise<void>;
   onUpdateTestingUser: (userId: string, updates: Partial<ReadyForTestingUser>) => Promise<void>;
   isLoading: boolean;
+}
+
+// Component to show and manage deployed scripts for a client
+function DeployedScriptsSection({ userId, clientPath, businessName }: { userId: string; clientPath: string; businessName: string }) {
+  const [scripts, setScripts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const loadScripts = async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      console.log('🔍 Loading deployed scripts for:', clientPath);
+      
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=deployed_scripts`, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const clients = await response.json();
+        if (clients && clients.length > 0) {
+          const deployedScripts = clients[0].deployed_scripts || [];
+          setScripts(deployedScripts);
+          console.log('✅ Found scripts:', deployedScripts.map((s: any) => s.name));
+        } else {
+          setScripts([]);
+          console.log('ℹ️ No client found or no scripts deployed');
+        }
+      } else {
+        throw new Error(`Failed to load scripts: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Error loading scripts:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteScript = async (scriptName: string) => {
+    if (!confirm(`Delete script "${scriptName}"? This will remove it from the client portal.`)) {
+      return;
+    }
+
+    try {
+      console.log('🗑️ Deleting script:', scriptName);
+      
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      
+      // Remove the script from the deployed_scripts array
+      const updatedScripts = scripts.filter(script => script.name !== scriptName);
+      
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
+        method: 'PATCH',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          deployed_scripts: updatedScripts
+        })
+      });
+      
+      if (response.ok) {
+        setScripts(updatedScripts);
+        console.log('✅ Script deleted successfully');
+      } else {
+        throw new Error(`Failed to delete script: ${response.status}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Error deleting script:', error);
+      alert(`Failed to delete script: ${error.message}`);
+    }
+  };
+
+  // Load scripts when component mounts
+  useEffect(() => {
+    loadScripts();
+  }, [clientPath]);
+
+  return (
+    <div className="mt-3 ml-0">
+      <div className="flex items-center justify-between mb-2">
+        <label className="block text-xs text-gray-600">Scripts Available on Client Portal:</label>
+        <button
+          onClick={loadScripts}
+          disabled={loading}
+          className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
+          title="Refresh scripts list"
+        >
+          {loading ? (
+            <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <RefreshCw className="h-3 w-3" />
+          )}
+          Refresh
+        </button>
+      </div>
+      
+      {error && (
+        <div className="text-xs text-red-600 mb-2">Error: {error}</div>
+      )}
+      
+      {scripts.length > 0 ? (
+        <div className="space-y-1">
+          {scripts.map((script, index) => (
+            <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
+              <div className="flex items-center gap-2">
+                <FileText className="h-3 w-3 text-gray-500" />
+                <span className="text-xs font-medium text-gray-700">{script.name}</span>
+                <span className="text-xs text-gray-500">
+                  ({script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'})
+                </span>
+              </div>
+              <button
+                onClick={() => deleteScript(script.name)}
+                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-md transition-colors"
+                title="Delete this script"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-xs text-gray-500 italic bg-gray-50 px-3 py-2 rounded-md">
+          {loading ? 'Loading scripts...' : 'No scripts deployed to client portal'}
+        </div>
+      )}
+      
+      <div className="mt-1 text-xs text-gray-400">
+        Client portal: <span className="font-mono">grbalance.netlify.app/{clientPath}</span>
+      </div>
+    </div>
+  );
 }
 
 export default function ReadyForTestingTab({
@@ -736,6 +883,15 @@ export default function ReadyForTestingTab({
                       </button>
                     </div>
                   </div>
+
+                  {/* Deployed Scripts Section - Only show if website is created */}
+                  {websiteStatus[user.id] === 'created' && (
+                    <DeployedScriptsSection
+                      userId={user.id}
+                      clientPath={clientPath}
+                      businessName={user.businessName || 'Unknown Business'}
+                    />
+                  )}
 
                   {/* QA Notes */}
                   <div className="mt-3 ml-0">
