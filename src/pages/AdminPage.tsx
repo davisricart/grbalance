@@ -637,23 +637,17 @@ const AdminPage: React.FC = () => {
     }
   }, [user]);
 
-  // Delete user (soft delete)
+  // Delete user (hard delete)
   const deleteUser = async (userId: string) => {
     try {
-      
-      // Update status in usage collection to "deleted"
+      // Hard delete from Supabase database
       const { error } = await supabase
         .from('usage')
-        .update({
-          status: 'deleted',
-          deletedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        })
+        .delete()
         .eq('id', userId);
       
       if (error) throw error;
 
-      
       // Refresh data
       await fetchApprovedUsers();
       
@@ -1152,18 +1146,18 @@ Result:
   const handleDeleteUser = (userId: string, userEmail: string) => {
     showConfirmation(
       'Delete User Account',
-      `Are you sure you want to delete the account for ${userEmail}?
+      `Are you sure you want to PERMANENTLY delete the account for ${userEmail}?
 
 This will:
-• Move user to "Deleted" tab
-• Preserve all data for recovery
+• Completely remove user from database
+• Delete all user data permanently  
 • Remove access to platform
 • Keep Netlify site intact
 
-Important:
-• This is a soft delete - user can be restored later
-• Use "Delete Website" first if you want to remove their site
-• User data is preserved for compliance`,
+⚠️ WARNING:
+• This is a PERMANENT deletion - cannot be undone
+• All user data will be lost forever
+• Consider deactivating instead if you may need to restore later`,
       'Delete User',
       'bg-red-600 hover:bg-red-700',
       () => deleteUser(userId)
