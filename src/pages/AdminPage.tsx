@@ -187,6 +187,7 @@ const AdminPage: React.FC = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [readyForTestingUsers, setReadyForTestingUsers] = useState<ReadyForTestingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
+  const [isProductionMode, setIsProductionMode] = useState(false);
   const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -440,8 +441,8 @@ const AdminPage: React.FC = () => {
       
       switch (sortBy) {
         case 'email':
-          aValue = a.email;
-          bValue = b.email;
+          aValue = a.email || '';
+          bValue = b.email || '';
           break;
         case 'businessName':
           aValue = a.businessName || '';
@@ -453,8 +454,8 @@ const AdminPage: React.FC = () => {
           break;
         case 'approvedAt':
         default:
-          aValue = a.approvedAt;
-          bValue = b.approvedAt;
+          aValue = a.approvedAt || '';
+          bValue = b.approvedAt || '';
           break;
       }
       
@@ -3647,6 +3648,36 @@ WARNING:
 
         {activeTab === 'settings' && (
           <div className="space-y-6">
+            {/* Production Mode Toggle */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">System Mode</h3>
+                <p className="text-sm text-gray-500 mt-1">Control global platform settings</p>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">Production Mode</h4>
+                    <p className="text-sm text-gray-500">
+                      {isProductionMode ? 'Live platform with usage limits and billing' : 'Development mode - no limits apply'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setIsProductionMode(!isProductionMode)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
+                      isProductionMode ? 'bg-emerald-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                        isProductionMode ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+            
             {/* Account Settings */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">

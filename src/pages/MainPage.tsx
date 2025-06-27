@@ -46,8 +46,11 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   useEffect(() => {
     const isTestingClient = (
       user?.email === 'test@test.com' || 
+      user?.email?.includes('test') ||
       window.location.pathname === '/test' ||
-      window.location.pathname.includes('/test')
+      window.location.pathname.includes('/test') ||
+      window.location.hostname.includes('localhost') ||
+      window.location.hostname.includes('netlify.app') // Development sites
     );
     
     if (isTestingClient) {
@@ -330,25 +333,22 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   };
 
   const handleCompare = async () => {
-    // Check if this is a testing client first
-    const isTestingClient = (
-      user?.email === 'test@test.com' || 
-      window.location.pathname === '/test' ||
-      window.location.pathname.includes('/test')
-    );
+    // Check if system is in production mode (default: development mode)
+    const isProductionMode = false; // TODO: Get from admin settings
+    const isDevelopmentMode = !isProductionMode;
     
-    console.log('🧪 Testing mode check:', {
+    console.log('🧪 System mode check:', {
       userEmail: user?.email,
-      pathname: window.location.pathname,
-      isTestingClient: isTestingClient
+      isProductionMode: isProductionMode,
+      isDevelopmentMode: isDevelopmentMode
     });
 
-    // For testing clients, automatically load sample files if not already loaded
+    // For development mode, automatically load sample files if not already loaded
     let actualFile1 = file1;
     let actualFile2 = file2;
     
-    if (isTestingClient && (!file1 || !file2)) {
-      console.log('🧪 TESTING MODE: Auto-loading sample Excel files');
+    if (isDevelopmentMode && (!file1 || !file2)) {
+      console.log('🧪 DEVELOPMENT MODE: Auto-loading sample Excel files');
       
       try {
         // Load sample files from the public directory
@@ -385,8 +385,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setProcessingStep('Initializing...');
 
     try {
-      if (isTestingClient) {
-        console.log('🧪 TESTING MODE: Bypassing all usage limits');
+      if (isDevelopmentMode) {
+        console.log('🧪 DEVELOPMENT MODE: Bypassing all usage limits');
       } else {
         // Only check and update usage limits for live users
         const { data: userData, error: fetchError } = await supabase
