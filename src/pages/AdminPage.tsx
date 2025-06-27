@@ -3051,28 +3051,10 @@ WARNING:
                                 Visit Site
                               </a>
                             ) : (
-                              <button
-                                type="button"
-                                onClick={() => handleConfirmProvisionWebsite(user)}
-                                className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                                  provisioning[user.id] 
-                                    ? 'bg-yellow-500 text-white cursor-not-allowed animate-pulse' 
-                                    : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                                }`}
-                                disabled={provisioning[user.id]}
-                              >
-                                {provisioning[user.id] ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                    Creating...
-                                  </>
-                                ) : (
-                                  <>
-                                    <HiGlobeAlt className="w-4 h-4" />
-                                    Create Site
-                                  </>
-                                )}
-                              </button>
+                              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">
+                                <HiGlobeAlt className="w-4 h-4" />
+                                Site Auto-Created
+                              </span>
                             )}
 
                             {/* MANAGEMENT - Script & User */}
