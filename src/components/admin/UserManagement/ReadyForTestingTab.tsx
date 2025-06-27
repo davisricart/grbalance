@@ -26,7 +26,7 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}&select=deployed_scripts`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=deployed_scripts`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
@@ -66,7 +66,7 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
       // Remove the script from the deployed_scripts array
       const updatedScripts = scripts.filter(script => script.name !== scriptName);
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
         method: 'PATCH',
         headers: {
           'apikey': supabaseKey,
