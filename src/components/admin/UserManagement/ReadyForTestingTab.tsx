@@ -226,7 +226,13 @@ export default function ReadyForTestingTab({
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
       try {
-        const clientPaths = readyForTestingUsers.map(user => user.clientPath).filter(Boolean).join(',');
+        // Calculate client paths for all users using the same logic as handleScriptUpload
+        const clientPaths = readyForTestingUsers.map(user => {
+          const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          return clientPath;
+        }).join(',');
+        
         const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=in.(${clientPaths})&select=id,client_path,deployed_scripts`, {
           method: 'GET',
           headers: {
@@ -243,8 +249,12 @@ export default function ReadyForTestingTab({
           const newScriptStatus: {[key: string]: 'none' | 'ready' | 'completed'} = {};
           clients.forEach((client: any) => {
             if (client.deployed_scripts && Array.isArray(client.deployed_scripts) && client.deployed_scripts.length > 0) {
-              // Find the user that matches this client_path
-              const matchingUser = readyForTestingUsers.find(user => user.clientPath === client.client_path);
+              // Find the user that matches this client_path using the same calculation logic
+              const matchingUser = readyForTestingUsers.find(user => {
+                const calculatedClientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+                return calculatedClientPath === client.client_path;
+              });
               if (matchingUser) {
                 newScriptStatus[matchingUser.id] = 'ready';
                 console.log('✅ PERSISTENT: Scripts exist for', client.client_path, '→', client.deployed_scripts.length, 'scripts');
@@ -267,7 +277,7 @@ export default function ReadyForTestingTab({
     if (readyForTestingUsers.length > 0) {
       checkExistingScripts();
     }
-  }, [readyForTestingUsers]);
+  }, [readyForTestingUsers, customUrls]);
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
