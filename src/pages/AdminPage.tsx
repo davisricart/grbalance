@@ -3307,65 +3307,64 @@ WARNING:
                         </div>
                       )}
 
-                      {/* Actions - Organized Sequential Buttons */}
-                      <div className="flex flex-wrap gap-2">
+                      {/* Actions - Primary and Secondary Groups */}
+                      <div className="space-y-2">
                         {user.status === 'approved' ? (
                           <>
-                            {/* PRIMARY - Website Access */}
-                            {siteUrls[user.id] ? (
-                              <a
-                                href={siteUrls[user.id]}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
-                              >
-                                <HiGlobeAlt className="w-4 h-4" />
-                                Visit Site
-                              </a>
-                            ) : null}
+                            {/* PRIMARY Actions */}
+                            <div className="flex flex-wrap gap-2">
+                              {siteUrls[user.id] && (
+                                <a
+                                  href={siteUrls[user.id]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors flex-shrink-0"
+                                >
+                                  <HiGlobeAlt className="w-4 h-4" />
+                                  Visit Site
+                                </a>
+                              )}
 
-                            {/* MANAGEMENT - Script & User */}
-                            {siteUrls[user.id] && (
+                              {siteUrls[user.id] && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedUserForScript(user);
+                                    setShowDeployScript(true);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex-shrink-0"
+                                >
+                                  <Settings className="w-4 h-4" />
+                                  Deploy Script
+                                </button>
+                              )}
+                              
                               <button
-                                onClick={() => {
-                                  setSelectedUserForScript(user);
-                                  setShowDeployScript(true);
-                                }}
-                                className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                                onClick={() => handleEditUser(user)}
+                                className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex-shrink-0"
                               >
-                                <Settings className="w-4 h-4" />
-                                Deploy Script
+                                <User className="w-4 h-4" />
+                                Edit Details
                               </button>
-                            )}
-                            
-                            <button
-                              onClick={() => handleEditUser(user)}
-                              className="inline-flex items-center gap-1.5 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                            >
-                              <User className="w-4 h-4" />
-                              Edit Details
-                            </button>
-
-                            {/* MAINTENANCE - Single-site architecture: no redeploy needed */}
+                            </div>
 
                             {/* DANGER ZONE */}
-                            <button
-                              onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
-                              className="inline-flex items-center gap-1.5 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors"
-                            >
-                              <HiLockClosed className="w-4 h-4" />
-                              Deactivate
-                            </button>
-                            
-                            {/* Delete Site removed - single-site architecture has no separate sites */}
-                            
-                            <button
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete User
-                            </button>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => handleDeactivateApprovedUser(user.id, user.email)}
+                                className="inline-flex items-center gap-1.5 bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors flex-shrink-0"
+                              >
+                                <HiLockClosed className="w-4 h-4" />
+                                Deactivate
+                              </button>
+                              
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                className="inline-flex items-center gap-1.5 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex-shrink-0"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                                Delete User
+                              </button>
+                            </div>
                           </>
                         ) : (
                           // Deactivated users - simplified

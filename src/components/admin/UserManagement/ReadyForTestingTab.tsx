@@ -220,6 +220,53 @@ export default function ReadyForTestingTab({
     }
   }, [readyForTestingUsers]);
 
+  // Check Supabase for existing scripts when component loads - PERSISTENT SCRIPT STATUS
+  useEffect(() => {
+    const checkExistingScripts = async () => {
+      console.log('🔄 CHECKING PERSISTENT SCRIPT STATUS - Loading from Supabase...');
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      
+      try {
+        const userIds = readyForTestingUsers.map(user => user.id).join(',');
+        const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=in.(${userIds})&select=id,deployed_scripts`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const clients = await response.json();
+          console.log('📊 Script persistence check:', clients.length, 'clients checked for scripts');
+          
+          const newScriptStatus: {[key: string]: 'none' | 'ready' | 'completed'} = {};
+          clients.forEach((client: any) => {
+            if (client.deployed_scripts && Array.isArray(client.deployed_scripts) && client.deployed_scripts.length > 0) {
+              newScriptStatus[client.id] = 'ready';
+              console.log('✅ PERSISTENT: Scripts exist for', client.id, '→', client.deployed_scripts.length, 'scripts');
+            }
+          });
+          
+          if (Object.keys(newScriptStatus).length > 0) {
+            setScriptStatus(prev => ({ ...prev, ...newScriptStatus }));
+            console.log('🎯 PERSISTENT SCRIPT STATUS RESTORED:', Object.keys(newScriptStatus).length, 'users with scripts');
+          }
+        } else {
+          console.warn('⚠️ Failed to load persistent script status');
+        }
+      } catch (error) {
+        console.error('❌ Error checking persistent script status:', error);
+      }
+    };
+
+    if (readyForTestingUsers.length > 0) {
+      checkExistingScripts();
+    }
+  }, [readyForTestingUsers]);
+
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
     try {
