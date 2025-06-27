@@ -465,10 +465,13 @@ export default function ReadyForTestingTab({
         const filteredScripts = currentScripts.filter(script => script.name !== scriptData.name);
         const updatedScripts = [...filteredScripts, scriptData];
 
-        console.log('📝 Updating scripts:', { 
-          existing: currentScripts.length, 
-          removing: scriptData.name, 
-          total: updatedScripts.length 
+        console.log('📝 Script upload details:', { 
+          fileName: file.name,
+          scriptName: scriptData.name,
+          existingScripts: currentScripts.map(s => s.name),
+          removingScript: scriptData.name,
+          finalScriptCount: updatedScripts.length,
+          finalScripts: updatedScripts.map(s => s.name)
         });
 
         // Update client record with updated scripts array
