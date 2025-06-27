@@ -100,50 +100,50 @@ function DeployedScriptsSection({ userId, clientPath, businessName }: { userId: 
   }, [clientPath]);
 
   return (
-    <div className="mt-3 ml-0">
-      <div className="flex items-center justify-between mb-2">
-        <label className="block text-xs text-gray-600">Scripts Available on Client Portal:</label>
-        <button
-          onClick={loadScripts}
-          disabled={loading}
-          className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50"
-          title="Refresh scripts list"
-        >
-          {loading ? (
-            <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <RefreshCw className="h-3 w-3" />
-          )}
-          Refresh
-        </button>
-      </div>
+         <div className="mt-3 ml-0">
+       <div className="flex items-center gap-2 mb-2">
+         <label className="block text-xs text-gray-600 flex-1">Scripts Available on Client Portal:</label>
+         <button
+           onClick={loadScripts}
+           disabled={loading}
+           className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+           title="Refresh scripts list"
+         >
+           {loading ? (
+             <div className="w-3 h-3 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+           ) : (
+             <RefreshCw className="h-3 w-3" />
+           )}
+           <span className="hidden sm:inline">Refresh</span>
+         </button>
+       </div>
       
       {error && (
         <div className="text-xs text-red-600 mb-2">Error: {error}</div>
       )}
       
-      {scripts.length > 0 ? (
-        <div className="space-y-1">
-          {scripts.map((script, index) => (
-            <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md">
-              <div className="flex items-center gap-2">
-                <FileText className="h-3 w-3 text-gray-500" />
-                <span className="text-xs font-medium text-gray-700">{script.name}</span>
-                <span className="text-xs text-gray-500">
-                  ({script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'})
-                </span>
-              </div>
-              <button
-                onClick={() => deleteScript(script.name)}
-                className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded-md transition-colors"
-                title="Delete this script"
-              >
-                <Trash2 className="h-3 w-3" />
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
+             {scripts.length > 0 ? (
+         <div className="space-y-1">
+           {scripts.map((script, index) => (
+             <div key={index} className="flex items-center gap-3 bg-gray-50 px-2 py-1.5 rounded-md">
+               <FileText className="h-3 w-3 text-gray-500 flex-shrink-0" />
+               <div className="flex-1 min-w-0">
+                 <span className="text-xs font-medium text-gray-700 block truncate">{script.name}</span>
+                 <span className="text-xs text-gray-500">
+                   {script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'}
+                 </span>
+               </div>
+               <button
+                 onClick={() => deleteScript(script.name)}
+                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors flex-shrink-0"
+                 title="Delete this script"
+               >
+                 <Trash2 className="h-3 w-3" />
+                 <span className="hidden sm:inline">Delete</span>
+               </button>
+             </div>
+           ))}
+         </div>
       ) : (
         <div className="text-xs text-gray-500 italic bg-gray-50 px-3 py-2 rounded-md">
           {loading ? 'Loading scripts...' : 'No scripts deployed to client portal'}
@@ -397,7 +397,35 @@ export default function ReadyForTestingTab({
           uploaded_at: new Date().toISOString()
         };
 
-        // Update client record with new script
+        // Get current scripts first, then append new one
+        const currentResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}&select=deployed_scripts`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        let currentScripts: any[] = [];
+        if (currentResponse.ok) {
+          const clients = await currentResponse.json();
+          if (clients && clients.length > 0) {
+            currentScripts = clients[0].deployed_scripts || [];
+          }
+        }
+
+        // Remove any existing script with the same name, then add the new one
+        const filteredScripts = currentScripts.filter(script => script.name !== scriptData.name);
+        const updatedScripts = [...filteredScripts, scriptData];
+
+        console.log('📝 Updating scripts:', { 
+          existing: currentScripts.length, 
+          removing: scriptData.name, 
+          total: updatedScripts.length 
+        });
+
+        // Update client record with updated scripts array
         const updateResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
           method: 'PATCH',
           headers: {
@@ -406,7 +434,7 @@ export default function ReadyForTestingTab({
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            deployed_scripts: [scriptData]
+            deployed_scripts: updatedScripts
           })
         });
 
