@@ -640,40 +640,118 @@ const AdminPage: React.FC = () => {
       console.log('🗑️ Attempting to delete user:', {
         id: userId,
         email: userToDelete?.email,
-        businessName: userToDelete?.businessName
+        businessName: userToDelete?.businessName,
+        currentStatus: userToDelete?.status
       });
-      
-      // Hard delete from Supabase database
-      const { error, data } = await supabase
+
+      // STEP 1: Verify user exists before deletion
+      const { data: existingUser, error: selectError } = await supabase
         .from('usage')
-        .delete()
-        .eq('id', userId);
-      
-      if (error) {
-        console.error('❌ Supabase delete error:', error);
-        throw error;
+        .select('id, email, status')
+        .eq('id', userId)
+        .single();
+
+      if (selectError) {
+        console.error('❌ Error checking user existence:', selectError);
+        throw new Error(`User verification failed: ${selectError.message}`);
       }
 
-      console.log('✅ User deleted successfully from database');
+      if (!existingUser) {
+        console.error('❌ User not found in database:', userId);
+        throw new Error('User not found in database');
+      }
+
+      console.log('✅ User exists in database:', existingUser);
       
-      // Refresh data
+      // STEP 2: Perform delete with enhanced response logging
+      console.log('🔄 Executing delete operation...');
+      const deleteResponse = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId)
+        .select(); // Request the deleted data back for verification
+
+      console.log('📋 FULL DELETE RESPONSE:', {
+        error: deleteResponse.error,
+        data: deleteResponse.data,
+        status: deleteResponse.status,
+        statusText: deleteResponse.statusText,
+        count: deleteResponse.count
+      });
+
+      // STEP 3: Check for errors
+      if (deleteResponse.error) {
+        console.error('❌ Supabase delete error:', deleteResponse.error);
+        throw new Error(`Delete failed: ${deleteResponse.error.message}`);
+      }
+
+      // STEP 4: Verify deletion actually occurred
+      if (!deleteResponse.data || deleteResponse.data.length === 0) {
+        console.error('❌ DELETE FAILED - No rows were deleted!');
+        console.error('🔍 This could indicate:');
+        console.error('   • Row Level Security (RLS) is blocking the delete');
+        console.error('   • User ID format mismatch');
+        console.error('   • Database constraints preventing deletion');
+        console.error('   • User was already deleted by another process');
+        
+        // Try to re-check if user still exists
+        const { data: stillExists } = await supabase
+          .from('usage')
+          .select('id')
+          .eq('id', userId)
+          .single();
+          
+        if (stillExists) {
+          throw new Error('Delete operation failed - user still exists in database. This may be a permissions issue.');
+        } else {
+          console.log('🤔 User no longer exists - may have been deleted by another process');
+        }
+      }
+
+      console.log('✅ DELETE SUCCESSFUL - Rows affected:', deleteResponse.data?.length);
+      console.log('🗑️ Deleted user data:', deleteResponse.data);
+      
+      // STEP 5: Refresh data and verify user is gone from UI
+      console.log('🔄 Refreshing user data...');
       await fetchApprovedUsers();
+      
+      // STEP 6: Final verification - check if user is still in local state
+      setTimeout(() => {
+        const stillInUI = approvedUsers.find(u => u.id === userId);
+        if (stillInUI) {
+          console.error('⚠️ WARNING: User still appears in UI after refresh!');
+          console.error('🔍 This suggests the delete may not have persisted');
+        } else {
+          console.log('✅ CONFIRMED: User removed from UI successfully');
+        }
+      }, 1000);
       
       // Show success notification
       setNotification({
         id: Date.now().toString(),
         type: 'success',
         title: 'User Deleted',
-        message: 'User has been permanently removed from the database'
+        message: `User ${userToDelete?.email} has been permanently removed from the database`,
+        timestamp: new Date(),
+        read: false
       });
       
-    } catch (error) {
-      console.error('🚨 Error deleting user:', error);
+    } catch (error: any) {
+      console.error('🚨 COMPREHENSIVE DELETE ERROR REPORT:');
+      console.error('🚨 Error message:', error.message);
+      console.error('🚨 Error type:', typeof error);
+      console.error('🚨 Full error object:', error);
+      console.error('🚨 Stack trace:', error.stack);
+      console.error('🚨 User ID attempted:', userId);
+      console.error('🚨 User ID type:', typeof userId);
+      
       setNotification({
         id: Date.now().toString(),
         type: 'error',
         title: 'Delete Failed',
-        message: 'Could not delete user from database'
+        message: `Could not delete user: ${error.message}`,
+        timestamp: new Date(),
+        read: false
       });
     }
   };
@@ -725,16 +803,51 @@ const AdminPage: React.FC = () => {
         return;
       }
 
-      // Step 1: Single-site approach - no separate sites to delete
-      // Client access is just a URL path, no separate site deletion needed
+      console.log('🗑️ Permanently deleting user:', {
+        id: userId,
+        email: userToDelete?.email,
+        status: userToDelete?.status
+      });
 
-      // Step 2: Delete from database completely
-      const { error } = await supabase
+      // Step 1: Verify user exists in database
+      const { data: existingUser, error: selectError } = await supabase
+        .from('usage')
+        .select('id, email, status')
+        .eq('id', userId)
+        .single();
+
+      if (selectError) {
+        console.error('❌ Error checking user existence:', selectError);
+        throw new Error(`User verification failed: ${selectError.message}`);
+      }
+
+      console.log('✅ User confirmed in database:', existingUser);
+
+      // Step 2: Delete from database completely with response logging
+      console.log('🔄 Executing permanent delete...');
+      const deleteResponse = await supabase
         .from('usage')
         .delete()
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
+
+      console.log('📋 PERMANENT DELETE RESPONSE:', {
+        error: deleteResponse.error,
+        data: deleteResponse.data,
+        count: deleteResponse.count
+      });
       
-      if (error) throw error;
+      if (deleteResponse.error) {
+        throw new Error(`Permanent delete failed: ${deleteResponse.error.message}`);
+      }
+
+      // Verify deletion occurred
+      if (!deleteResponse.data || deleteResponse.data.length === 0) {
+        console.error('❌ PERMANENT DELETE FAILED - No rows were deleted!');
+        throw new Error('Permanent delete operation failed - no rows affected');
+      }
+
+      console.log('✅ PERMANENT DELETE SUCCESSFUL:', deleteResponse.data);
 
       // Step 3: Clean up local state
       setSiteUrls((prev) => {
@@ -742,14 +855,32 @@ const AdminPage: React.FC = () => {
         delete copy[userId];
         return copy;
       });
-      // setSiteIds cleanup removed - using single-site architecture
-
       
       // Refresh data
       await fetchApprovedUsers();
+
+      setNotification({
+        id: Date.now().toString(),
+        type: 'success',
+        title: 'User Permanently Deleted',
+        message: `User ${userToDelete?.email} has been permanently removed`,
+        timestamp: new Date(),
+        read: false
+      });
       
-    } catch (error) {
-      console.error('🚨 Error permanently deleting user:', error);
+    } catch (error: any) {
+      console.error('🚨 PERMANENT DELETE ERROR REPORT:');
+      console.error('🚨 Error message:', error.message);
+      console.error('🚨 Full error:', error);
+      
+      setNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Permanent Delete Failed',
+        message: `Could not permanently delete user: ${error.message}`,
+        timestamp: new Date(),
+        read: false
+      });
     }
   };
 
@@ -804,6 +935,83 @@ const AdminPage: React.FC = () => {
       });
     });
   }, [user, authLoading]);
+
+  // Database debugging utility function
+  const debugSupabaseSetup = async () => {
+    console.log('🔍 SUPABASE DEBUG REPORT:');
+    console.log('============================');
+    
+    try {
+      // Test 1: Check connection
+      console.log('🔗 Testing Supabase connection...');
+      const { data: connectionTest, error: connectionError } = await supabase
+        .from('usage')
+        .select('count', { count: 'exact', head: true });
+      
+      if (connectionError) {
+        console.error('❌ Connection failed:', connectionError);
+      } else {
+        console.log('✅ Connection successful, total records:', connectionTest);
+      }
+
+      // Test 2: Check authentication
+      console.log('🔐 Checking authentication...');
+      const { data: { user: currentUser }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error('❌ Auth error:', authError);
+      } else {
+        console.log('✅ Authenticated user:', currentUser?.email || 'Anonymous');
+      }
+
+      // Test 3: Test simple select
+      console.log('📋 Testing simple select...');
+      const { data: selectTest, error: selectError } = await supabase
+        .from('usage')
+        .select('id, email, status')
+        .limit(3);
+        
+      if (selectError) {
+        console.error('❌ Select failed:', selectError);
+      } else {
+        console.log('✅ Select successful, sample records:', selectTest);
+      }
+
+      // Test 4: Check table schema
+      console.log('🏗️ Checking table schema...');
+      const { data: schemaTest, error: schemaError } = await supabase
+        .from('usage')
+        .select('*')
+        .limit(1);
+        
+      if (!schemaError && schemaTest?.[0]) {
+        console.log('✅ Table columns:', Object.keys(schemaTest[0]));
+      }
+
+      // Test 5: Test permissions with a safe update
+      console.log('🔒 Testing update permissions...');
+      const testUserId = selectTest?.[0]?.id;
+      if (testUserId) {
+        const { error: updateError } = await supabase
+          .from('usage')
+          .update({ updatedAt: new Date().toISOString() })
+          .eq('id', testUserId)
+          .select();
+          
+        if (updateError) {
+          console.error('❌ Update permission denied:', updateError);
+          console.error('🔍 This suggests RLS (Row Level Security) may be blocking operations');
+        } else {
+          console.log('✅ Update permissions OK');
+        }
+      }
+
+    } catch (error) {
+      console.error('🚨 Debug test failed:', error);
+    }
+    
+    console.log('============================');
+    console.log('🔍 SUPABASE DEBUG COMPLETE');
+  };
 
   // Initialize test environment when Script Testing tab is accessed
   useEffect(() => {
@@ -2294,6 +2502,13 @@ WARNING:
             <p className="text-gray-600 mt-2">Manage clients and user approvals</p>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={debugSupabaseSetup}
+              className="px-3 py-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-md transition-colors"
+              title="Run Supabase Debug Report (check console)"
+            >
+              🔍 Debug DB
+            </button>
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
               onClick={() => supabase.auth.signOut()}
