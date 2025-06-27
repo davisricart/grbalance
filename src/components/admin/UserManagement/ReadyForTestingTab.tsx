@@ -125,17 +125,19 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
              {scripts.length > 0 ? (
          <div className="space-y-1">
            {scripts.map((script, index) => (
-             <div key={index} className="flex items-center gap-3 bg-gray-50 px-2 py-1.5 rounded-md">
-               <FileText className="h-3 w-3 text-gray-500 flex-shrink-0" />
-               <div className="flex-1 min-w-0">
-                 <span className="text-xs font-medium text-gray-700 block truncate">{script.name}</span>
-                 <span className="text-xs text-gray-500">
-                   {script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'}
-                 </span>
+             <div key={index} className="flex items-center gap-2 bg-gray-50 px-3 py-2 rounded-md justify-between">
+               <div className="flex items-center gap-2">
+                 <FileText className="h-3 w-3 text-gray-500 flex-shrink-0" />
+                 <div className="flex flex-col">
+                   <span className="text-xs font-medium text-gray-700">{script.name}</span>
+                   <span className="text-xs text-gray-500">
+                     {script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'}
+                   </span>
+                 </div>
                </div>
                <button
                  onClick={() => deleteScript(script.name)}
-                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors flex-shrink-0"
+                 className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded transition-colors flex-shrink-0"
                  title="Delete this script"
                >
                  <Trash2 className="h-3 w-3" />
