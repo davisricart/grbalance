@@ -97,12 +97,12 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
 
   return (
          <div className="mt-3 ml-0">
-       <div className="flex items-center gap-2 mb-2">
-         <label className="block text-xs text-gray-600 flex-1">Scripts Available on Client Portal:</label>
+       <div className="flex items-center justify-between mb-2">
+         <label className="block text-xs text-gray-600">Scripts Available on Client Portal:</label>
          <button
            onClick={loadScripts}
            disabled={loading}
-           className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors disabled:opacity-50 flex-shrink-0"
+           className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded transition-colors disabled:opacity-50"
            title="Refresh scripts list"
          >
            {loading ? (
@@ -230,8 +230,8 @@ export default function ReadyForTestingTab({
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
       try {
-        const userIds = readyForTestingUsers.map(user => user.id).join(',');
-        const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=in.(${userIds})&select=id,deployed_scripts`, {
+        const clientPaths = readyForTestingUsers.map(user => user.clientPath).filter(Boolean).join(',');
+        const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=in.(${clientPaths})&select=id,client_path,deployed_scripts`, {
           method: 'GET',
           headers: {
             'apikey': supabaseKey,
@@ -247,8 +247,12 @@ export default function ReadyForTestingTab({
           const newScriptStatus: {[key: string]: 'none' | 'ready' | 'completed'} = {};
           clients.forEach((client: any) => {
             if (client.deployed_scripts && Array.isArray(client.deployed_scripts) && client.deployed_scripts.length > 0) {
-              newScriptStatus[client.id] = 'ready';
-              console.log('✅ PERSISTENT: Scripts exist for', client.id, '→', client.deployed_scripts.length, 'scripts');
+              // Find the user that matches this client_path
+              const matchingUser = readyForTestingUsers.find(user => user.clientPath === client.client_path);
+              if (matchingUser) {
+                newScriptStatus[matchingUser.id] = 'ready';
+                console.log('✅ PERSISTENT: Scripts exist for', client.client_path, '→', client.deployed_scripts.length, 'scripts');
+              }
             }
           });
           
