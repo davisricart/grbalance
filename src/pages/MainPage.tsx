@@ -138,7 +138,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=*`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
@@ -1021,31 +1021,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           <div className="mt-4 sm:mt-6 max-w-full sm:max-w-xs">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-600">Codes</label>
-              <button
-                onClick={() => {
-                  const urlParams = new URLSearchParams(window.location.search);
-                  let clientId = urlParams.get('client');
-                  
-                  if (!clientId) {
-                    const path = window.location.pathname;
-                    const pathSegments = path.split('/').filter(segment => segment.length > 0);
-                    
-                    if (pathSegments.length === 1 && 
-                        !['app', 'admin', 'login', 'register', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'billing', 'mockup-billing'].includes(pathSegments[0])) {
-                      clientId = pathSegments[0];
-                    }
-                  }
-                  
-                  if (clientId) {
-                    console.log('🔄 Manual refresh of scripts...');
-                    loadClientScriptsFromSupabase(clientId);
-                  }
-                }}
-                className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-                title="Refresh scripts list"
-              >
-                🔄 Refresh
-              </button>
+
             </div>
             <select 
               value={script}
