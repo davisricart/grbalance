@@ -439,6 +439,67 @@ const clientPaths = readyForTestingUsers.map(user => {
 
 **Result**: Upload Script button now correctly indicates script upload status with proper color coding. Enhanced user experience in QA testing workflow.
 
+### **Automatic Insights Tab Removal** (January 8, 2025)
+
+#### **Problem Identified:**
+- **Automatic insights generation** for every client portal regardless of need
+- **Forced features** - Every script got insights tab automatically  
+- **Client choice removed** - No control over which scripts have insights
+
+#### **Root Cause Analysis:**
+- **Hardcoded in MainPage.tsx** - Insights tab automatically added to all client portals
+- **Not from Claude instructions** - Sample scripts were clean, problem was in React component
+- **Poor design flexibility** - No way to build custom tabs per client
+
+#### **Technical Fix Applied:**
+**File**: `src/pages/MainPage.tsx`
+- **Removed**: Entire insights tab rendering logic (~234 lines deleted)
+- **Cleaned**: Unused imports (EnhancedInsights, PaymentTrendDay, Lightbulb)
+- **Preserved**: Core reconciliation functionality and Overview tab
+
+**Code Changes:**
+```typescript
+// REMOVED: Insights tab button and content
+{activeTab === 'insights' && (
+  <div className="space-y-6">
+    {/* ~200 lines of insights rendering logic */}
+  </div>
+)}
+
+// CLEANED: Import statements
+- EnhancedInsights, PaymentTrendDay  
+- Lightbulb icon (used for insights tab)
+```
+
+#### **Workflow Philosophy Restored:**
+- ✅ **Clean client portals** - Single Overview tab by default
+- ✅ **Script-specific features** - Add tabs only when clients want them
+- ✅ **Claude Web control** - Generate only what's requested
+- ✅ **Custom development** - Build per-script tabs individually
+
+#### **Development Approach:**
+**Before**: Every script automatically got insights → Forced features
+**After**: Build custom tabs per script → Client choice
+
+**Example Custom Implementation:**
+```javascript
+// Future custom tab in specific script
+if (clientWantsServiceAnalysis) {
+  return { 
+    overview: mainResults,
+    serviceAnalysis: customAnalysisData  
+  };
+}
+```
+
+#### **Commit Details:**
+- **Commit**: `8d3dfd7` - Remove automatic insights functionality - clean client portals
+- **Files Changed**: 1 file (MainPage.tsx)  
+- **Lines Removed**: 235 deletions, 1 insertion
+- **Preservation**: 100% core functionality maintained
+
+**Result**: Client portals now display clean Overview tabs only. Custom tabs can be built per script when clients specifically request additional features. Claude Web will only generate what's explicitly asked for.
+
 ---
 
 *This documentation serves as a complete record of all changes made during sessions for future reference and maintenance.*
