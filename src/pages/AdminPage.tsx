@@ -3066,12 +3066,7 @@ WARNING:
                                 <HiGlobeAlt className="w-4 h-4" />
                                 Visit Site
                               </a>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-600">
-                                <HiGlobeAlt className="w-4 h-4" />
-                                Site Auto-Created
-                              </span>
-                            )}
+                            ) : null}
 
                             {/* MANAGEMENT - Script & User */}
                             {siteUrls[user.id] && (
