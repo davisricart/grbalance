@@ -640,7 +640,13 @@ const AdminPage: React.FC = () => {
   // Delete user (hard delete)
   const deleteUser = async (userId: string) => {
     try {
-      console.log('🗑️ Attempting to delete user with ID:', userId);
+      // Find user details before deletion for logging
+      const userToDelete = approvedUsers.find(u => u.id === userId);
+      console.log('🗑️ Attempting to delete user:', {
+        id: userId,
+        email: userToDelete?.email,
+        businessName: userToDelete?.businessName
+      });
       
       // Hard delete from Supabase database
       const { error, data } = await supabase
