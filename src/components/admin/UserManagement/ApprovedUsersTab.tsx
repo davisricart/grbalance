@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2 } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 
 interface ApprovedUsersTabProps {
@@ -11,25 +11,99 @@ const ApprovedUsersTab = React.memo(({
   users,
   isLoading
 }: ApprovedUsersTabProps) => {
-  const [activatingBilling, setActivatingBilling] = useState<string | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [userStates, setUserStates] = useState<{[key: string]: {
+    billingSetup: boolean;
+    trialStarted: boolean;
+    welcomePackageSent: boolean;
+    goLive: boolean;
+  }}>({});
 
-  const handleActivateBilling = async (userId: string, tier: string) => {
-    setActivatingBilling(userId);
-    // TODO: Implement Stripe billing activation when ready
-    console.log(`Would activate ${tier} billing for user ${userId}`);
+  // Sequential workflow handlers
+  const handleSetupBilling = async (userId: string, tier: string) => {
+    setProcessing(userId);
+    console.log(`Setting up ${tier} billing for user ${userId}`);
     
-    // Simulate API call
+    // Simulate billing setup
     setTimeout(() => {
-      setActivatingBilling(null);
-      alert('Billing activation ready! (Stripe integration pending)');
+      setUserStates(prev => ({
+        ...prev,
+        [userId]: { 
+          billingSetup: true,
+          trialStarted: prev[userId]?.trialStarted || false,
+          welcomePackageSent: prev[userId]?.welcomePackageSent || false,
+          goLive: prev[userId]?.goLive || false
+        }
+      }));
+      setProcessing(null);
+      console.log('✅ Billing setup completed');
     }, 2000);
   };
 
-  const getBillingStatus = (user: ApprovedUser) => {
-    // Mock billing status for preview
-    if (user.email?.includes('demo')) return 'trial';
-    if (user.comparisonsUsed > 50) return 'active';
-    return 'pending';
+  const handleStartTrial = async (userId: string) => {
+    setProcessing(userId);
+    console.log(`Starting 14-day trial for user ${userId}`);
+    
+    setTimeout(() => {
+      setUserStates(prev => ({
+        ...prev,
+        [userId]: { ...prev[userId], trialStarted: true }
+      }));
+      setProcessing(null);
+      console.log('✅ 14-day trial started');
+    }, 1500);
+  };
+
+  const handleSendWelcomePackage = async (userId: string) => {
+    setProcessing(userId);
+    console.log(`Sending welcome package to user ${userId}`);
+    
+    setTimeout(() => {
+      setUserStates(prev => ({
+        ...prev,
+        [userId]: { ...prev[userId], welcomePackageSent: true }
+      }));
+      setProcessing(null);
+      console.log('✅ Welcome package sent');
+    }, 1500);
+  };
+
+  const handleGoLive = async (userId: string) => {
+    setProcessing(userId);
+    console.log(`Making client portal LIVE for user ${userId}`);
+    
+    setTimeout(() => {
+      setUserStates(prev => ({
+        ...prev,
+        [userId]: { ...prev[userId], goLive: true }
+      }));
+      setProcessing(null);
+      console.log('🚀 Client portal is now LIVE!');
+    }, 2000);
+  };
+
+  // Administrative actions
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+      console.log(`Deleting user ${userId}`);
+      // TODO: Implement delete functionality
+    }
+  };
+
+  const handleDeactivateUser = async (userId: string) => {
+    if (confirm('Are you sure you want to deactivate this user?')) {
+      console.log(`Deactivating user ${userId}`);
+      // TODO: Implement deactivate functionality
+    }
+  };
+
+  const getUserState = (userId: string) => {
+    return userStates[userId] || {
+      billingSetup: false,
+      trialStarted: false,
+      welcomePackageSent: false,
+      goLive: false
+    };
   };
 
   if (users.length === 0) {
@@ -126,7 +200,7 @@ const ApprovedUsersTab = React.memo(({
                           {user.email}
                         </span>
                         <span>•</span>
-                        <span>Approved {new Date(user.approvedAt).toLocaleDateString()}</span>
+                        <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
                       </div>
                     </div>
 
