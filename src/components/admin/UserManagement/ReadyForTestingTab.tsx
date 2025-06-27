@@ -121,16 +121,12 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
              {scripts.length > 0 ? (
          <div className="space-y-1">
            {scripts.map((script, index) => (
-                           <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-md gap-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className="h-3 w-3 text-gray-500 flex-shrink-0" />
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 min-w-0">
-                    <span className="text-xs font-medium text-gray-700 truncate">{script.name}</span>
-                    <span className="text-xs text-gray-500 flex-shrink-0">
-                      ({script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'})
-                    </span>
-                  </div>
-                </div>
+                           <div key={index} className="flex items-center bg-gray-50 px-3 py-2 rounded-md">
+                <FileText className="h-3 w-3 text-gray-500 flex-shrink-0 mr-2" />
+                <span className="text-xs font-medium text-gray-700 mr-2">{script.name}</span>
+                <span className="text-xs text-gray-500 mr-3">
+                  ({script.uploaded_at ? new Date(script.uploaded_at).toLocaleDateString() : 'Unknown date'})
+                </span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
