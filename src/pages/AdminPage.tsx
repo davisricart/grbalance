@@ -584,16 +584,15 @@ const AdminPage: React.FC = () => {
   const fetchApprovedUsers = useCallback(async () => {
     try {
       
-      // Fetch approved, deactivated, AND deleted users for full lifecycle management
+      // Fetch approved and deactivated users (deleted users are hard-deleted from database)
       const { data: snapshot, error } = await supabase
         .from('usage')
         .select('*')
-        .in('status', ['approved', 'deactivated', 'deleted']);
+        .in('status', ['approved', 'deactivated']);
       
       if (error) throw error;
       
       const approvedUsersData: ApprovedUser[] = [];
-      const deletedUsersData: ApprovedUser[] = [];
       const urlsData: {[userId: string]: string} = {};
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
@@ -601,12 +600,8 @@ const AdminPage: React.FC = () => {
       (snapshot || []).forEach((userData) => {
         const userDataWithId = { ...userData } as ApprovedUser;
           
-        // Separate approved/deactivated from deleted users
-        if (userData.status === 'deleted') {
-          deletedUsersData.push(userData);
-        } else {
-          approvedUsersData.push(userData);
-        }
+        // Add all users (approved/deactivated only since deleted are hard-deleted)
+        approvedUsersData.push(userData);
         
         // Load site info if it exists (for all users)
         if (userData.siteUrl) {
@@ -622,7 +617,7 @@ const AdminPage: React.FC = () => {
       
       
       setApprovedUsers(approvedUsersData);
-      setDeletedUsers(deletedUsersData);
+      setDeletedUsers([]); // No deleted users since they're hard-deleted
       setSiteUrls(urlsData);
       // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
