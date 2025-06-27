@@ -711,14 +711,21 @@ const AdminPage: React.FC = () => {
       console.log('✅ DELETE SUCCESSFUL - Rows affected:', deleteResponse.data?.length);
       console.log('🗑️ Deleted user data:', deleteResponse.data);
       
-      // STEP 5: DELETE AUTH USER COMPLETELY (Alternative approach)
+      // STEP 5: DELETE AUTH USER COMPLETELY
       console.log('🔄 Attempting to delete authentication user...');
-      console.log('⚠️ Note: Auth admin operations require service role key');
-      console.log('💡 For now, database record is deleted. Auth user cleanup is manual.');
-      console.log('📋 Manual cleanup needed:');
-      console.log(`   • Go to Supabase Dashboard → Authentication → Users`);
-      console.log(`   • Find and delete: ${existingUser.email}`);
-      console.log('🔄 Future: We can implement auth deletion via backend API with service role key');
+      try {
+        const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+        
+        if (authError) {
+          console.warn('⚠️ Auth user deletion failed:', authError.message);
+          console.log('💡 User deleted from database but auth user remains');
+        } else {
+          console.log('✅ Auth user deleted successfully');
+        }
+      } catch (authDeleteError) {
+        console.warn('⚠️ Auth deletion error:', authDeleteError);
+        console.log('💡 User deleted from database but auth user remains');
+      }
       
       // STEP 6: Refresh data and verify user is gone from UI
       console.log('🔄 Refreshing user data...');
