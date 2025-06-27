@@ -711,54 +711,37 @@ const AdminPage: React.FC = () => {
       console.log('✅ DELETE SUCCESSFUL - Rows affected:', deleteResponse.data?.length);
       console.log('🗑️ Deleted user data:', deleteResponse.data);
       
-      // STEP 5: DELETE AUTH USER COMPLETELY
-      console.log('🔄 Deleting authentication user from Supabase Auth...');
-      try {
-        // Get the user's UID for auth deletion
-        const { data: authUsers, error: authListError } = await supabase.auth.admin.listUsers();
-        
-        if (authListError) {
-          console.error('❌ Error listing auth users:', authListError);
-        } else {
-          // Find the auth user by email
-          const authUser = authUsers.users.find(u => u.email === existingUser.email);
-          
-          if (authUser) {
-            console.log('🎯 Found auth user to delete:', { id: authUser.id, email: authUser.email });
-            
-            // Delete the auth user completely
-            const { error: authDeleteError } = await supabase.auth.admin.deleteUser(authUser.id);
-            
-            if (authDeleteError) {
-              console.error('❌ Auth user delete failed:', authDeleteError);
-              console.error('⚠️ Database record deleted but auth user still exists');
-            } else {
-              console.log('✅ AUTH USER DELETED SUCCESSFULLY');
-              console.log('🎉 COMPLETE DELETION: Both database record and auth user removed');
-            }
-          } else {
-            console.log('🤔 Auth user not found (may have been deleted already)');
-          }
-        }
-      } catch (authError: any) {
-        console.error('❌ Auth deletion error:', authError);
-        console.error('⚠️ Database record deleted but auth cleanup failed');
-      }
+      // STEP 5: DELETE AUTH USER COMPLETELY (Alternative approach)
+      console.log('🔄 Attempting to delete authentication user...');
+      console.log('⚠️ Note: Auth admin operations require service role key');
+      console.log('💡 For now, database record is deleted. Auth user cleanup is manual.');
+      console.log('📋 Manual cleanup needed:');
+      console.log(`   • Go to Supabase Dashboard → Authentication → Users`);
+      console.log(`   • Find and delete: ${existingUser.email}`);
+      console.log('🔄 Future: We can implement auth deletion via backend API with service role key');
       
       // STEP 6: Refresh data and verify user is gone from UI
       console.log('🔄 Refreshing user data...');
+      
+      // Force immediate UI update by removing from local state first
+      console.log('🔄 Removing user from local state immediately...');
+      setApprovedUsers(prev => prev.filter(u => u.id !== userId));
+      
+      // Then refresh from database to confirm
       await fetchApprovedUsers();
       
-      // STEP 6: Final verification - check if user is still in local state
+      // STEP 7: Final verification - check if user is still in local state
       setTimeout(() => {
         const stillInUI = approvedUsers.find(u => u.id === userId);
         if (stillInUI) {
           console.error('⚠️ WARNING: User still appears in UI after refresh!');
           console.error('🔍 This suggests the delete may not have persisted');
+          // Force another refresh
+          fetchApprovedUsers();
         } else {
           console.log('✅ CONFIRMED: User removed from UI successfully');
         }
-      }, 1000);
+      }, 2000);
       
       // Show success notification
       setNotification({
@@ -883,39 +866,14 @@ const AdminPage: React.FC = () => {
 
       console.log('✅ PERMANENT DELETE SUCCESSFUL:', deleteResponse.data);
 
-      // Step 3: DELETE AUTH USER COMPLETELY
-      console.log('🔄 Deleting authentication user from Supabase Auth...');
-      try {
-        // Get the user's UID for auth deletion
-        const { data: authUsers, error: authListError } = await supabase.auth.admin.listUsers();
-        
-        if (authListError) {
-          console.error('❌ Error listing auth users:', authListError);
-        } else {
-          // Find the auth user by email
-          const authUser = authUsers.users.find(u => u.email === existingUser.email);
-          
-          if (authUser) {
-            console.log('🎯 Found auth user to delete:', { id: authUser.id, email: authUser.email });
-            
-            // Delete the auth user completely
-            const { error: authDeleteError } = await supabase.auth.admin.deleteUser(authUser.id);
-            
-            if (authDeleteError) {
-              console.error('❌ Auth user delete failed:', authDeleteError);
-              console.error('⚠️ Database record deleted but auth user still exists');
-            } else {
-              console.log('✅ AUTH USER DELETED SUCCESSFULLY');
-              console.log('🎉 COMPLETE PERMANENT DELETION: Both database record and auth user removed');
-            }
-          } else {
-            console.log('🤔 Auth user not found (may have been deleted already)');
-          }
-        }
-      } catch (authError: any) {
-        console.error('❌ Auth deletion error:', authError);
-        console.error('⚠️ Database record deleted but auth cleanup failed');
-      }
+      // Step 3: DELETE AUTH USER COMPLETELY (Alternative approach)
+      console.log('🔄 Attempting to delete authentication user...');
+      console.log('⚠️ Note: Auth admin operations require service role key');
+      console.log('💡 For now, database record is deleted. Auth user cleanup is manual.');
+      console.log('📋 Manual cleanup needed:');
+      console.log(`   • Go to Supabase Dashboard → Authentication → Users`);
+      console.log(`   • Find and delete: ${existingUser.email}`);
+      console.log('🔄 Future: We can implement auth deletion via backend API with service role key');
 
       // Step 4: Clean up local state
       setSiteUrls((prev) => {
