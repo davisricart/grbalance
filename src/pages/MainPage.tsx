@@ -101,6 +101,28 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       // Load client-specific scripts from database
       console.log(`Loading scripts for client: ${clientId}`);
       loadClientScriptsFromSupabase(clientId);
+      
+      // Set up periodic refresh to catch newly uploaded scripts
+      const refreshInterval = setInterval(() => {
+        console.log('🔄 Refreshing scripts list...');
+        loadClientScriptsFromSupabase(clientId);
+      }, 30000); // Refresh every 30 seconds
+      
+      // Also refresh when page becomes visible (user switches back to tab)
+      const handleVisibilityChange = () => {
+        if (!document.hidden) {
+          console.log('🔄 Page visible - refreshing scripts...');
+          loadClientScriptsFromSupabase(clientId);
+        }
+      };
+      
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      
+      // Cleanup intervals and listeners
+      return () => {
+        clearInterval(refreshInterval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     } else {
       // For local development, start with no scripts
       console.log('Local development mode - no default scripts');
@@ -997,7 +1019,34 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
             </div>
           </div>
           <div className="mt-4 sm:mt-6 max-w-full sm:max-w-xs">
-            <label className="block text-sm font-medium text-gray-600 mb-2">Codes</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-600">Codes</label>
+              <button
+                onClick={() => {
+                  const urlParams = new URLSearchParams(window.location.search);
+                  let clientId = urlParams.get('client');
+                  
+                  if (!clientId) {
+                    const path = window.location.pathname;
+                    const pathSegments = path.split('/').filter(segment => segment.length > 0);
+                    
+                    if (pathSegments.length === 1 && 
+                        !['app', 'admin', 'login', 'register', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'billing', 'mockup-billing'].includes(pathSegments[0])) {
+                      clientId = pathSegments[0];
+                    }
+                  }
+                  
+                  if (clientId) {
+                    console.log('🔄 Manual refresh of scripts...');
+                    loadClientScriptsFromSupabase(clientId);
+                  }
+                }}
+                className="inline-flex items-center px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                title="Refresh scripts list"
+              >
+                🔄 Refresh
+              </button>
+            </div>
             <select 
               value={script}
               onChange={handleScriptChange}
