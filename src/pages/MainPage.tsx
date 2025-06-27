@@ -33,7 +33,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const [file1Error, setFile1Error] = useState<string>('');
   const [file2Error, setFile2Error] = useState<string>('');
   const [results, setResults] = useState<ReconciliationResult[]>([]);
-  const [activeTab, setActiveTab] = useState<'overview' | 'insights'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview'>('overview');
   const [rawFileData, setRawFileData] = useState<RawFileData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -372,7 +372,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
 
   const handleOverviewTab = useCallback(() => setActiveTab('overview'), []);
-  const handleInsightsTab = useCallback(() => setActiveTab('insights'), []);
+
 
   // Helper function to parse Excel file to array of arrays format for execute-script
   const parseFileToJSON = async (file: File): Promise<any[][]> => {
@@ -1132,17 +1132,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                   </button>
 
 
-                  <button
-                    onClick={handleInsightsTab}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'insights'
-                        ? 'border-emerald-500 text-emerald-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <Lightbulb className="h-4 w-4 inline mr-2" />
-                    Insights
-                  </button>
+
                 </nav>
               </div>
 
