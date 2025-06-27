@@ -390,6 +390,55 @@ To improve script development quality and reduce errors, created comprehensive d
 
 **Status**: 🟢 **PRODUCTION READY** - Approved for immediate deployment with Claude Web
 
+## 🎯 UI/UX IMPROVEMENTS ADDENDUM
+
+### **Upload Script Button Color Logic Fix** (January 8, 2025)
+
+#### **Problem Identified:**
+- **Upload Script button staying blue** even when scripts were already uploaded
+- **Should be green** when scripts exist to indicate "ready to accept more files"
+- **User experience confusion** - unclear script upload status
+
+#### **Root Cause Analysis:**
+- `checkExistingScripts` function used different client path calculation than `handleScriptUpload`
+- Script status detection failed due to client path mismatch
+- Existing scripts weren't being properly detected during initialization
+
+#### **Technical Fix Applied:**
+**File**: `src/components/admin/UserManagement/ReadyForTestingTab.tsx`
+- **Updated**: `checkExistingScripts` to use identical client path calculation logic
+- **Fixed**: User matching logic to use same calculation as upload function
+- **Added**: Proper dependency tracking for useEffect
+
+**Before:**
+```typescript
+// Used user.clientPath directly (often undefined)
+const clientPaths = readyForTestingUsers.map(user => user.clientPath).filter(Boolean)
+```
+
+**After:**
+```typescript
+// Uses same calculation as handleScriptUpload
+const clientPaths = readyForTestingUsers.map(user => {
+  const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                    user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+  return clientPath;
+});
+```
+
+#### **User Experience Improvement:**
+- ✅ **Blue button** → "Upload Script" (no scripts exist)
+- ✅ **Green button** → "Add More Scripts" (scripts already uploaded)
+- ✅ **Persistent status** → Button color maintained across page refreshes
+- ✅ **Visual consistency** → Matches existing green/blue button patterns
+
+#### **Commit Details:**
+- **Commit**: `91c12a9` - Fix Upload Script button color logic
+- **Files Changed**: 1 file (ReadyForTestingTab.tsx)
+- **Lines Modified**: 14 insertions, 4 deletions
+
+**Result**: Upload Script button now correctly indicates script upload status with proper color coding. Enhanced user experience in QA testing workflow.
+
 ---
 
-*This documentation serves as a complete record of all changes made during both sessions for future reference and maintenance.*
+*This documentation serves as a complete record of all changes made during sessions for future reference and maintenance.*
