@@ -21,12 +21,12 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
     setError('');
     
     try {
-      console.log('🔍 Loading deployed scripts for:', clientPath);
+      console.log('🔍 Loading deployed scripts for userId:', userId);
       
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=deployed_scripts`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}&select=deployed_scripts`, {
         method: 'GET',
         headers: {
           'apikey': supabaseKey,
@@ -70,7 +70,7 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
       // Remove the script from the deployed_scripts array
       const updatedScripts = scripts.filter(script => script.name !== scriptName);
       
-      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
         method: 'PATCH',
         headers: {
           'apikey': supabaseKey,
@@ -97,7 +97,7 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
   // Load scripts when component mounts or refresh trigger changes
   useEffect(() => {
     loadScripts();
-  }, [clientPath, refreshTrigger]);
+  }, [userId, refreshTrigger]);
 
   return (
          <div className="mt-3 ml-0">
@@ -150,9 +150,7 @@ function DeployedScriptsSection({ userId, clientPath, businessName, refreshTrigg
         </div>
       )}
       
-      <div className="mt-1 text-xs text-gray-400">
-        Client portal: <span className="font-mono">grbalance.netlify.app/{clientPath}</span>
-      </div>
+
     </div>
   );
 }
