@@ -188,7 +188,7 @@ const AdminPage: React.FC = () => {
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [readyForTestingUsers, setReadyForTestingUsers] = useState<ReadyForTestingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
-  const [isProductionMode, setIsProductionMode] = useState(false);
+
   const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddClient, setShowAddClient] = useState(false);
@@ -2132,6 +2132,89 @@ WARNING:
     }
   };
 
+  // Usage Management Functions
+  const resetUserUsage = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('usage')
+        .update({ 
+          comparisonsUsed: 0,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Update local state
+      setApprovedUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, comparisonsUsed: 0 } : user
+      ));
+
+      showInlineNotification(userId, 'success', 'Usage reset to 0');
+      console.log(`✅ Reset usage for user ${userId}`);
+    } catch (error) {
+      console.error('Error resetting usage:', error);
+      showInlineNotification(userId, 'error', 'Failed to reset usage');
+    }
+  };
+
+  const addUserUsage = async (userId: string, amount: number) => {
+    try {
+      const user = approvedUsers.find(u => u.id === userId);
+      if (!user) throw new Error('User not found');
+
+      const newUsage = Math.max(0, user.comparisonsUsed - amount); // Subtract amount (give back usage)
+
+      const { error } = await supabase
+        .from('usage')
+        .update({ 
+          comparisonsUsed: newUsage,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Update local state
+      setApprovedUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, comparisonsUsed: newUsage } : u
+      ));
+
+      showInlineNotification(userId, 'success', `Added ${amount} comparisons back`);
+      console.log(`✅ Added ${amount} usage back for user ${userId}`);
+    } catch (error) {
+      console.error('Error adding usage:', error);
+      showInlineNotification(userId, 'error', 'Failed to add usage');
+    }
+  };
+
+  const updateUserLimit = async (userId: string, newLimit: number) => {
+    try {
+      if (newLimit < 1) throw new Error('Limit must be at least 1');
+
+      const { error } = await supabase
+        .from('usage')
+        .update({ 
+          comparisonsLimit: newLimit,
+          updatedAt: new Date().toISOString()
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Update local state
+      setApprovedUsers(prev => prev.map(user => 
+        user.id === userId ? { ...user, comparisonsLimit: newLimit } : user
+      ));
+
+      showInlineNotification(userId, 'success', `Monthly limit updated to ${newLimit}`);
+      console.log(`✅ Updated limit to ${newLimit} for user ${userId}`);
+    } catch (error) {
+      console.error('Error updating limit:', error);
+      showInlineNotification(userId, 'error', 'Failed to update limit');
+    }
+  };
+
   const handleDeleteScript = async (userId: string, scriptName: string) => {
     console.log('🗑️ Deleting script:', scriptName, 'for user:', userId);
     // Add script deletion logic here
@@ -3042,6 +3125,10 @@ WARNING:
           <ApprovedUsersTab
             users={filteredUsers}
             isLoading={loading}
+            onResetUsage={resetUserUsage}
+            onAddUsage={addUserUsage}
+            onUpdateLimit={updateUserLimit}
+            inlineNotifications={inlineNotifications}
           />
         )}
 
@@ -3907,29 +3994,17 @@ WARNING:
             {/* Production Mode Toggle */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-medium text-gray-900">System Mode</h3>
-                <p className="text-sm text-gray-500 mt-1">Control global platform settings</p>
+                <h3 className="text-lg font-medium text-gray-900">System Status</h3>
+                <p className="text-sm text-gray-500 mt-1">Automatic usage limit detection</p>
               </div>
               <div className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900">Production Mode</h4>
-                    <p className="text-sm text-gray-500">
-                      {isProductionMode ? 'Live platform with usage limits and billing' : 'Development mode - no limits apply'}
-                    </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+                  <h4 className="text-sm font-medium text-blue-900 mb-2">🤖 Auto-Detection Active</h4>
+                  <div className="text-sm text-blue-700 space-y-1">
+                    <p>• <strong>Localhost:</strong> Unlimited usage (development environment)</p>
+                    <p>• <strong>Test users:</strong> Unlimited usage (emails containing 'test' or 'demo')</p>
+                    <p>• <strong>Live users:</strong> Normal subscription limits apply</p>
                   </div>
-                  <button
-                    onClick={() => setIsProductionMode(!isProductionMode)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                      isProductionMode ? 'bg-emerald-600' : 'bg-gray-200'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                        isProductionMode ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
                 </div>
               </div>
             </div>

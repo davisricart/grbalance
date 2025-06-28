@@ -395,14 +395,14 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   };
 
   const handleCompare = async () => {
-    // Check if system is in production mode (default: development mode)
-    const isProductionMode = false; // TODO: Get from admin settings
-    const isDevelopmentMode = !isProductionMode;
+    // Automatically determine if limits should apply based on user status
+    const isLocalhost = window.location.hostname === 'localhost';
+    const isTestUser = user?.email ? (user.email.includes('test') || user.email.includes('demo')) : false;
     
-    console.log('🧪 System mode check:', {
+    console.log('🧪 Auto mode detection:', {
       userEmail: user?.email,
-      isProductionMode: isProductionMode,
-      isDevelopmentMode: isDevelopmentMode
+      isLocalhost: isLocalhost,
+      isTestUser: isTestUser
     });
 
     // SMART FILE VALIDATION: Only require files the script actually uses
@@ -441,10 +441,15 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     setProcessingStep('Initializing...');
 
     try {
-      if (isDevelopmentMode) {
-        console.log('🧪 DEVELOPMENT MODE: Bypassing all usage limits');
+      // Auto-detect when to enforce limits
+      const shouldEnforceLimits = !isLocalhost && !isTestUser;
+      
+      if (!shouldEnforceLimits) {
+        console.log('🧪 UNLIMITED MODE: Bypassing usage limits (localhost or test user)');
       } else {
-        // Only check and update usage limits for live users
+        // Only check and update usage limits for real users on live site
+        console.log('📊 PRODUCTION MODE: Checking usage limits for real user');
+        
         const { data: userData, error: fetchError } = await supabase
           .from('usage')
           .select('*')

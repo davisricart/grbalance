@@ -1,15 +1,32 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
+
+interface NotificationItem {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
   isLoading: boolean;
+  onResetUsage: (userId: string) => Promise<void>;
+  onAddUsage: (userId: string, amount: number) => Promise<void>;
+  onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
+  inlineNotifications: NotificationItem[];
 }
 
 const ApprovedUsersTab = React.memo(({
   users,
-  isLoading
+  isLoading,
+  onResetUsage,
+  onAddUsage,
+  onUpdateLimit,
+  inlineNotifications
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [userStates, setUserStates] = useState<{[key: string]: {
@@ -18,6 +35,8 @@ const ApprovedUsersTab = React.memo(({
     welcomePackageSent: boolean;
     goLive: boolean;
   }}>({});
+  const [expandedUsage, setExpandedUsage] = useState<{[key: string]: boolean}>({});
+  const [usageInputs, setUsageInputs] = useState<{[key: string]: string}>({});
 
   // Sequential workflow handlers
   const handleSetupBilling = async (userId: string, tier: string) => {
@@ -121,6 +140,57 @@ const ApprovedUsersTab = React.memo(({
     };
   };
 
+  // Usage Management Functions
+  const toggleUsageExpanded = (userId: string) => {
+    setExpandedUsage(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
+  };
+
+  const handleUsageInputChange = (userId: string, value: string) => {
+    setUsageInputs(prev => ({
+      ...prev,
+      [userId]: value
+    }));
+  };
+
+  const handleResetUsage = async (userId: string) => {
+    await onResetUsage(userId);
+  };
+
+  const handleAddUsage = async (userId: string, amount: number) => {
+    await onAddUsage(userId, amount);
+  };
+
+  const handleCustomUsageAdd = async (userId: string) => {
+    const inputValue = usageInputs[userId];
+    if (!inputValue) return;
+    
+    const customAmount = parseInt(inputValue);
+    if (customAmount > 0) {
+      await onAddUsage(userId, customAmount);
+      handleUsageInputChange(userId, ''); // Clear input
+    }
+  };
+
+  const handleUpdateLimit = async (userId: string) => {
+    const inputValue = usageInputs[userId];
+    if (!inputValue) return;
+    
+    const newLimit = parseInt(inputValue);
+    if (newLimit > 0) {
+      await onUpdateLimit(userId, newLimit);
+      handleUsageInputChange(userId, ''); // Clear input
+    }
+  };
+
+  const getUserNotification = (userId: string) => {
+    return inlineNotifications.find(notification => 
+      notification.id === userId && !notification.read
+    );
+  };
+
   if (users.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
@@ -209,19 +279,133 @@ const ApprovedUsersTab = React.memo(({
               </div>
 
               {/* User Details */}
-              <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  {user.email}
-                </span>
-                <span>•</span>
-                <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {user.comparisonsUsed} / {user.comparisonsLimit} comparisons
-                </span>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {user.email}
+                  </span>
+                  <span>•</span>
+                  <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" />
+                    {user.comparisonsUsed} / {user.comparisonsLimit} comparisons
+                    {usagePercentage >= 80 && (
+                      <span className="ml-1 px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
+                        {Math.round(usagePercentage)}% used
+                      </span>
+                    )}
+                  </span>
+                </div>
+                
+                {/* Usage Management Toggle */}
+                <button
+                  onClick={() => toggleUsageExpanded(user.id)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md text-sm font-medium transition-all"
+                >
+                  <Settings className="h-4 w-4" />
+                  Usage Management
+                </button>
               </div>
+
+              {/* Usage Management Panel */}
+              {expandedUsage[user.id] && (
+                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h5 className="text-sm font-semibold text-blue-900">Usage Controls</h5>
+                    {getUserNotification(user.id) && (
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        getUserNotification(user.id)?.type === 'success' 
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {getUserNotification(user.id)?.message}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Quick Actions */}
+                    <div className="space-y-2">
+                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Quick Actions</h6>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => handleResetUsage(user.id)}
+                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                          Reset to 0
+                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleAddUsage(user.id, 5)}
+                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
+                          >
+                            +5
+                          </button>
+                          <button
+                            onClick={() => handleAddUsage(user.id, 10)}
+                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
+                          >
+                            +10
+                          </button>
+                          <button
+                            onClick={() => handleAddUsage(user.id, 20)}
+                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
+                          >
+                            +20
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Custom Add Usage */}
+                    <div className="space-y-2">
+                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Add Usage</h6>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          placeholder="Amount"
+                          value={usageInputs[user.id] || ''}
+                          onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
+                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                          onClick={() => handleCustomUsageAdd(user.id)}
+                          disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
+                          className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Plus className="h-3 w-3" />
+                          Add
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Update Limit */}
+                    <div className="space-y-2">
+                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Monthly Limit</h6>
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          placeholder={`Current: ${user.comparisonsLimit}`}
+                          value={usageInputs[user.id] || ''}
+                          onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
+                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button
+                          onClick={() => handleUpdateLimit(user.id)}
+                          disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
+                          className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <Settings className="h-3 w-3" />
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Sequential Workflow Section */}
               <div className="flex items-center justify-between">
