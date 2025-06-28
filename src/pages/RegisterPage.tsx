@@ -85,6 +85,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
@@ -95,12 +96,14 @@ export default function RegisterPage() {
   const [isHuman, setIsHuman] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{
     email: string;
+    confirmEmail: string;
     password: string;
     businessName: string;
     businessType: string;
     isHuman: string;
   }>({
     email: '',
+    confirmEmail: '',
     password: '',
     businessName: '',
     businessType: '',
@@ -121,9 +124,17 @@ export default function RegisterPage() {
     }
   }, [searchParams]);
 
+  // Clear confirm email when email changes to keep them in sync
+  useEffect(() => {
+    if (confirmEmail && email !== confirmEmail.slice(0, email.length)) {
+      setConfirmEmail('');
+    }
+  }, [email]);
+
   const validateForm = () => {
     const errors = {
       email: '',
+      confirmEmail: '',
       password: '',
       businessName: '',
       businessType: '',
@@ -134,6 +145,13 @@ export default function RegisterPage() {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       errors.email = emailValidation.error || 'Invalid email address';
+    }
+
+    // Email confirmation validation
+    if (!confirmEmail.trim()) {
+      errors.confirmEmail = 'Please confirm your email address';
+    } else if (email !== confirmEmail) {
+      errors.confirmEmail = 'Email addresses do not match';
     }
 
     // Password validation
@@ -399,7 +417,30 @@ export default function RegisterPage() {
                       {fieldErrors.email}
                     </p>
                   )}
-        </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm Email
+                  </label>
+                  <input
+                    type="email"
+                    value={confirmEmail}
+                    onChange={(e) => setConfirmEmail(e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-colors duration-200 ${
+                      fieldErrors.confirmEmail ? 'border-red-500 bg-red-50' : 'border-gray-300'
+                    }`}
+                    placeholder="Confirm your email address"
+                    required
+                    data-field="confirmEmail"
+                  />
+                  {fieldErrors.confirmEmail && (
+                    <p className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                      <AlertCircle className="w-4 h-4" />
+                      {fieldErrors.confirmEmail}
+                    </p>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
