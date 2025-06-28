@@ -405,10 +405,31 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       isDevelopmentMode: isDevelopmentMode
     });
 
-    // STRICT FILE VALIDATION: Always require actual user uploads (development and production)
+    // SMART FILE VALIDATION: Only require files the script actually uses
+    const scriptMap = (window as any).clientScriptMap;
+    const scriptContent = scriptMap ? scriptMap.get(script) : null;
+    
+    if (!scriptContent) {
+      setStatus(`Script content not found for: ${script}`);
+      return;
+    }
+    
+    // Analyze script to determine file requirements
+    const needsFile1 = scriptContent.includes('files.data1') || scriptContent.includes('file1Data') || 
+                      scriptContent.includes('actualFile1') || scriptContent.includes('parseFiles()');
+    const needsFile2 = scriptContent.includes('files.data2') || scriptContent.includes('file2Data') || 
+                      scriptContent.includes('actualFile2');
+    
+    console.log('📋 Script file requirements:', { needsFile1, needsFile2, scriptName: script });
+    
     const validationErrors: string[] = [];
-    if (!file1) validationErrors.push("Please select the first file");
-    if (!file2) validationErrors.push("Please select the second file");
+    if (needsFile1 && !file1) validationErrors.push("Please select the first file");
+    if (needsFile2 && !file2) validationErrors.push("Please select the second file");
+    
+    // If script doesn't use either file, that's probably an error
+    if (!needsFile1 && !needsFile2) {
+      validationErrors.push("This script doesn't appear to use any uploaded files");
+    }
 
     if (validationErrors.length > 0) {
       setStatus(validationErrors.join(", "));
