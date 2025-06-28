@@ -2,22 +2,13 @@ import React, { useState } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 
-interface NotificationItem {
-  id: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-}
-
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
   isLoading: boolean;
   onResetUsage: (userId: string) => Promise<void>;
   onAddUsage: (userId: string, amount: number) => Promise<void>;
   onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
-  inlineNotifications: NotificationItem[];
+  inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
 }
 
 const ApprovedUsersTab = React.memo(({
@@ -186,9 +177,7 @@ const ApprovedUsersTab = React.memo(({
   };
 
   const getUserNotification = (userId: string) => {
-    return inlineNotifications.find(notification => 
-      notification.id === userId && !notification.read
-    );
+    return inlineNotifications[userId];
   };
 
   if (users.length === 0) {
