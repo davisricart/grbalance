@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle } from 'lucide-react';
+import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle, Mail, Users, Play, ArrowRight, Target, TrendingUp } from 'lucide-react';
 
 import ROICalculator from '../components/ROICalculator';
 
@@ -136,6 +136,219 @@ export default function LandingPage() {
               <Calendar className="mr-1 h-4 w-4" />
               Or book consultation first
             </Link>
+          </div>
+        </div>
+
+        {/* Process Visualization Section */}
+        <div className="mt-16 sm:mt-20 lg:mt-24 px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
+              Get Started in 3 Simple Steps
+            </h2>
+            <p className="text-lg text-gray-600 mb-8 sm:mb-12">
+              From signup to catching your first discrepancy in under 48 hours
+            </p>
+            
+            {/* Process Steps */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
+              {/* Step 1 */}
+              <div className="relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <Mail className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Email Signup</h3>
+                    <p className="text-gray-600 text-sm">
+                      Just your email and business info. No credit card, no commitment, no risk.
+                    </p>
+                  </div>
+                </div>
+                {/* Arrow for desktop */}
+                <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
+                  <ArrowRight className="h-6 w-6" />
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <Users className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">2. Custom Consultation</h3>
+                    <p className="text-gray-600 text-sm">
+                      We build reconciliation logic specifically for your salon's POS and payment setup.
+                    </p>
+                  </div>
+                </div>
+                {/* Arrow for desktop */}
+                <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
+                  <ArrowRight className="h-6 w-6" />
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="relative">
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                    <Play className="h-8 w-8 text-emerald-600" />
+                  </div>
+                  <div className="text-center">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">3. Start 14-Day Trial</h3>
+                    <p className="text-gray-600 text-sm">
+                      Begin catching discrepancies immediately. Pay only if you love the results.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Timeline */}
+            <div className="mt-8 sm:mt-12 bg-gray-50 rounded-lg p-6">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-semibold text-emerald-600">Day 1:</span> Sign up and consultation
+                </p>
+                <p className="text-sm text-gray-600 mb-2">
+                  <span className="font-semibold text-emerald-600">Day 2:</span> Custom script ready for testing
+                </p>
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold text-emerald-600">Day 3-16:</span> 14-day trial period to catch real discrepancies
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Product Demonstration Section */}
+        <div className="mt-16 sm:mt-20 lg:mt-24 px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
+                See Salon Reconciliation in Action
+              </h2>
+              <p className="text-lg text-gray-600 mb-6">
+                Watch how we automatically match your DaySmart transactions with Square payments
+              </p>
+            </div>
+
+            {/* Before/After Comparison */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+              
+              {/* BEFORE - Manual Process */}
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 text-red-700 mb-2">
+                    <Clock className="h-5 w-5" />
+                    <span className="font-semibold">BEFORE: Manual Process</span>
+                  </div>
+                  <p className="text-red-600 text-sm">3+ hours every week</p>
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="bg-white rounded-lg p-3 border border-red-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 1: Export DaySmart Data</p>
+                    <p className="text-gray-600">Download transaction reports, clean up formatting</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-red-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 2: Export Square Data</p>
+                    <p className="text-gray-600">Download payment processor reports, multiple files</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-red-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 3: Manual Matching</p>
+                    <p className="text-gray-600">Cross-reference transactions, find discrepancies by hand</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-red-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 4: Create Reports</p>
+                    <p className="text-gray-600">Build spreadsheets, calculate differences, investigate issues</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-red-700 font-semibold">Result: 3-4 hours of work, errors missed</p>
+                </div>
+              </div>
+
+              {/* AFTER - Automated Process */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
+                <div className="text-center mb-4">
+                  <div className="inline-flex items-center gap-2 text-emerald-700 mb-2">
+                    <Target className="h-5 w-5" />
+                    <span className="font-semibold">AFTER: GR Balance Automation</span>
+                  </div>
+                  <p className="text-emerald-600 text-sm">5 minutes every week</p>
+                </div>
+                
+                <div className="space-y-3 text-sm">
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 1: Upload Files</p>
+                    <p className="text-gray-600">Drag & drop your DaySmart and Square exports</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 2: Automatic Processing</p>
+                    <p className="text-gray-600">AI matches transactions using salon-specific logic</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 3: Instant Results</p>
+                    <p className="text-gray-600">Discrepancies highlighted, ready-to-use reports generated</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
+                    <p className="font-medium text-gray-900 mb-1">Step 4: Download & Review</p>
+                    <p className="text-gray-600">Export detailed reconciliation reports for your records</p>
+                  </div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <p className="text-emerald-700 font-semibold">Result: 5 minutes of work, 99.9% accuracy</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Sample Results */}
+            <div className="bg-gray-50 rounded-xl p-6 sm:p-8">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+                Typical Monthly Findings for Salons
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <TrendingUp className="h-6 w-6 text-red-600" />
+                  </div>
+                  <p className="font-semibold text-2xl text-red-600 mb-1">$300-900</p>
+                  <p className="text-sm text-gray-600">Processing fee overcharges discovered</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Target className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <p className="font-semibold text-2xl text-yellow-600 mb-1">15-30</p>
+                  <p className="text-sm text-gray-600">Missing transactions identified</p>
+                </div>
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Clock className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <p className="font-semibold text-2xl text-emerald-600 mb-1">12+ hrs</p>
+                  <p className="text-sm text-gray-600">Time saved monthly</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Call to Action */}
+            <div className="text-center mt-8">
+              <Link
+                to="/interactive-demo"
+                className="inline-flex items-center justify-center px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-lg font-medium shadow-lg"
+              >
+                <FileSpreadsheet className="mr-2 h-5 w-5" />
+                Try Interactive Demo with Sample Salon Data
+              </Link>
+              <p className="text-sm text-gray-600 mt-2">
+                See exactly how it works with realistic salon transaction data
+              </p>
+            </div>
           </div>
         </div>
 
