@@ -79,10 +79,10 @@ export default function LandingPage() {
               <h2 className="text-lg sm:text-xl font-bold">Launch Special - Limited Time</h2>
             </div>
             <p className="text-base sm:text-lg font-medium mb-2">
-              Setup fee waived + 14-day free trial for salon owners who sign up before August 1st, 2025
+              Setup fee waived + 14-day free trial • No credit card required
             </p>
             <p className="text-emerald-100 text-xs sm:text-sm">
-              Save $497 on custom script development • Risk-free trial • Offer expires August 1st
+              Save $497 on custom script development • Just email signup • Offer expires August 1st, 2025
             </p>
           </div>
         </div>
@@ -95,21 +95,31 @@ export default function LandingPage() {
             <span className="block mt-2 sm:mt-4 text-xl sm:text-2xl lg:text-3xl xl:text-4xl">Custom automation turns your 3-hour data matching process into 5 minutes</span>
           </h1>
           <div className="mb-8 sm:mb-12 max-w-2xl mx-auto text-center px-4">
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-8 sm:mb-12 leading-relaxed">
+            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
               Stop the Reconciliation Struggle: Automated Matching Between Your POS and Payment Processor. Turn hours of manual work into 5-minute automated processes with reconciliation logic built specifically for your salon's unique setup.
             </p>
+            {/* No Credit Card Required Banner */}
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6 sm:mb-8">
+              <div className="flex items-center justify-center gap-2 text-emerald-700">
+                <Shield className="h-5 w-5 flex-shrink-0" />
+                <span className="text-lg font-semibold">14-Day Free Trial • No Credit Card Required • Cancel Anytime</span>
+              </div>
+              <p className="text-emerald-600 text-sm mt-1">
+                Just email signup → Start trial → Pay only if you love it
+              </p>
+            </div>
           </div>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
             <Link
               to="/register"
-              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation shadow-lg"
+              className="inline-flex items-center justify-center min-w-[280px] min-h-[50px] px-6 sm:px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-base sm:text-lg font-semibold touch-manipulation shadow-lg"
             >
               <Zap className="mr-2 h-5 w-5 flex-shrink-0" />
-              Get Started
+              Start Free Trial (No Card)
             </Link>
             <Link
               to="/interactive-demo"
-              className="inline-flex items-center justify-center min-w-[260px] min-h-[44px] px-6 sm:px-8 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation"
+              className="inline-flex items-center justify-center min-w-[280px] min-h-[50px] px-6 sm:px-8 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200 text-base sm:text-lg font-medium touch-manipulation"
             >
               <FileSpreadsheet className="mr-2 h-5 w-5 flex-shrink-0" />
               Try Interactive Demo
@@ -117,7 +127,7 @@ export default function LandingPage() {
           </div>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-600 mb-2">
-              Sign up → Consultation → Custom script → 14-day trial
+              Simple process: Email signup → Custom consultation → Start 14-day trial
             </p>
             <Link
               to="/book"

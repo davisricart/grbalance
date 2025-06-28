@@ -645,7 +645,7 @@ export default function RegisterPage() {
                     Creating Account...
                   </div>
                 ) : (
-                  'Create Account'
+                  'Start Free Trial (No Card)'
               )}
             </button>
           </form>
