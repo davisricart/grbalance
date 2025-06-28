@@ -159,124 +159,194 @@ const ApprovedUsersTab = React.memo(({
           const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
           const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-          const billingStatus = getBillingStatus(user);
-          const isActivating = activatingBilling === user.id;
+          const userState = getUserState(user.id);
+          const isProcessingUser = processing === user.id;
           
           return (
-            <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4">
-                    {/* User Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-medium text-gray-900">{user.businessName || 'Business Name Not Set'}</h4>
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          user.subscriptionTier === 'business' 
-                            ? 'bg-purple-100 text-purple-800'
-                            : user.subscriptionTier === 'professional'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {user.subscriptionTier}
-                        </span>
-                        {/* Billing Status Badge */}
-                        <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${
-                          billingStatus === 'active' 
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : billingStatus === 'trial'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {billingStatus === 'active' && <CheckCircle2 className="h-3 w-3" />}
-                          {billingStatus === 'trial' && <Clock className="h-3 w-3" />}
-                          {billingStatus === 'pending' && <CreditCard className="h-3 w-3" />}
-                          {billingStatus === 'active' ? 'Billing Active' : billingStatus === 'trial' ? '14-Day Trial' : 'Billing Pending'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {user.email}
-                        </span>
-                        <span>•</span>
-                        <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-
-                    {/* Usage Stats */}
-                    <div className="flex items-center gap-6">
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-gray-400" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {user.comparisonsUsed} / {user.comparisonsLimit}
-                          </span>
-                        </div>
-                        <div className="w-24 bg-gray-200 rounded-full h-2 mt-1">
-                          <div
-                            className={`h-2 rounded-full ${
-                              usagePercentage > 80 
-                                ? 'bg-red-500' 
-                                : usagePercentage > 60 
-                                ? 'bg-yellow-500' 
-                                : 'bg-green-500'
-                            }`}
-                            style={{ width: `${Math.min(usagePercentage, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Client URL */}
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Client Access</div>
-                        <a
-                          href={`https://grbalance.netlify.app/${clientPath}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
-                        >
-                          <span>/</span>
-                          <span className="font-mono">{clientPath}</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      </div>
-
-                      {/* Billing Action */}
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500 mb-1">Billing</div>
-                        {billingStatus === 'pending' ? (
-                          <button
-                            onClick={() => handleActivateBilling(user.id, user.subscriptionTier)}
-                            disabled={isActivating}
-                            className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 text-white rounded-md text-sm font-medium hover:bg-emerald-700 transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-                          >
-                            {isActivating ? (
-                              <>
-                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                <span>Starting...</span>
-                              </>
-                            ) : (
-                              <>
-                                <CreditCard className="h-3 w-3" />
-                                <span>Start Trial</span>
-                              </>
-                            )}
-                          </button>
-                        ) : billingStatus === 'trial' ? (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-md text-sm font-medium">
-                            <Clock className="h-3 w-3" />
-                            <span>Day 7 of 14</span>
-                          </div>
-                        ) : (
-                          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-md text-sm font-medium">
-                            <CheckCircle2 className="h-3 w-3" />
-                            <span>${user.subscriptionTier === 'business' ? '49' : user.subscriptionTier === 'professional' ? '29' : '19'}/mo</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+            <div key={user.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
+              {/* User Header Info */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-gray-900">{user.businessName || 'Business Name Not Set'}</h4>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      user.subscriptionTier === 'business' 
+                        ? 'bg-purple-100 text-purple-800'
+                        : user.subscriptionTier === 'professional'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}>
+                      {user.subscriptionTier}
+                    </span>
                   </div>
+                </div>
+                
+                {/* Client Access */}
+                <a
+                  href={`https://grbalance.netlify.app/${clientPath}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
+                >
+                  <span className="font-mono">{clientPath}</span>
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+
+              {/* User Details */}
+              <div className="flex items-center gap-4 mb-4 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {user.email}
+                </span>
+                <span>•</span>
+                <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {user.comparisonsUsed} / {user.comparisonsLimit} comparisons
+                </span>
+              </div>
+
+              {/* Sequential Workflow Section */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  
+                  {/* Step 1: Setup Billing */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleSetupBilling(user.id, user.subscriptionTier)}
+                      disabled={isProcessingUser || userState.billingSetup}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        userState.billingSetup
+                          ? 'bg-green-100 text-green-700 border border-green-200'
+                          : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:scale-105 disabled:opacity-50'
+                      }`}
+                    >
+                      {isProcessingUser && !userState.billingSetup ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : userState.billingSetup ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <CreditCard className="h-4 w-4" />
+                      )}
+                      {userState.billingSetup ? 'Billing Setup' : 'Setup Billing'}
+                    </button>
+                    <span className="text-xs text-gray-500 mt-1">Step 1</span>
+                  </div>
+
+                  {/* Step 2: Start 14-Day Trial */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleStartTrial(user.id)}
+                      disabled={!userState.billingSetup || isProcessingUser || userState.trialStarted}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        userState.trialStarted
+                          ? 'bg-green-100 text-green-700 border border-green-200'
+                          : userState.billingSetup
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:scale-105'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isProcessingUser && userState.billingSetup && !userState.trialStarted ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : userState.trialStarted ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Clock className="h-4 w-4" />
+                      )}
+                      {userState.trialStarted ? '14-Day Trial' : 'Start Trial'}
+                    </button>
+                    <span className="text-xs text-gray-500 mt-1">Step 2</span>
+                  </div>
+
+                  {/* Step 3: Send Welcome Package */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleSendWelcomePackage(user.id)}
+                      disabled={!userState.trialStarted || isProcessingUser || userState.welcomePackageSent}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        userState.welcomePackageSent
+                          ? 'bg-green-100 text-green-700 border border-green-200'
+                          : userState.trialStarted
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:scale-105'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isProcessingUser && userState.trialStarted && !userState.welcomePackageSent ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : userState.welcomePackageSent ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Mail className="h-4 w-4" />
+                      )}
+                      {userState.welcomePackageSent ? 'Package Sent' : 'Send Welcome'}
+                    </button>
+                    <span className="text-xs text-gray-500 mt-1">Step 3</span>
+                  </div>
+
+                  {/* Step 4: Go Live */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleGoLive(user.id)}
+                      disabled={!userState.welcomePackageSent || isProcessingUser || userState.goLive}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        userState.goLive
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : userState.welcomePackageSent
+                          ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:scale-105'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isProcessingUser && userState.welcomePackageSent && !userState.goLive ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : userState.goLive ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <Rocket className="h-4 w-4" />
+                      )}
+                      {userState.goLive ? 'Live' : 'Go Live'}
+                    </button>
+                    <span className="text-xs text-gray-500 mt-1">Step 4</span>
+                  </div>
+
+                </div>
+
+                {/* Administrative Actions (Far Right) */}
+                <div className="flex items-center gap-2 ml-8 border-l border-gray-200 pl-6">
+                  <button
+                    onClick={() => handleDeactivateUser(user.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-md text-sm font-medium transition-all hover:scale-105"
+                  >
+                    <UserX className="h-4 w-4" />
+                    <span>Deactivate</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDeleteUser(user.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium transition-all hover:scale-105"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span>Delete</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Progress Indicator */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Onboarding Progress</span>
+                  <span className="text-sm text-gray-500">
+                    {Object.values(userState).filter(Boolean).length} of 4 completed
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${(Object.values(userState).filter(Boolean).length / 4) * 100}%` 
+                    }}
+                  />
                 </div>
               </div>
             </div>
