@@ -22,7 +22,7 @@ const ApprovedUsersTab = React.memo(({
   // Sequential workflow handlers
   const handleSetupBilling = async (userId: string, tier: string) => {
     setProcessing(userId);
-    console.log(`Setting up ${tier} billing for user ${userId}`);
+    console.log(`💳 Converting trial to paid ${tier} subscription for user ${userId}`);
     
     // Simulate billing setup
     setTimeout(() => {
@@ -36,21 +36,26 @@ const ApprovedUsersTab = React.memo(({
         }
       }));
       setProcessing(null);
-      console.log('✅ Billing setup completed');
+      console.log('✅ Trial converted to paid subscription - billing active!');
     }, 2000);
   };
 
   const handleStartTrial = async (userId: string) => {
     setProcessing(userId);
-    console.log(`Starting 14-day trial for user ${userId}`);
+    console.log(`🚀 Starting 14-day FREE trial for user ${userId} (NO CREDIT CARD REQUIRED)`);
     
     setTimeout(() => {
       setUserStates(prev => ({
         ...prev,
-        [userId]: { ...prev[userId], trialStarted: true }
+        [userId]: { 
+          billingSetup: prev[userId]?.billingSetup || false,
+          trialStarted: true,
+          welcomePackageSent: prev[userId]?.welcomePackageSent || false,
+          goLive: prev[userId]?.goLive || false
+        }
       }));
       setProcessing(null);
-      console.log('✅ 14-day trial started');
+      console.log('✅ 14-day FREE trial started - client has immediate access!');
     }, 1500);
   };
 
@@ -61,7 +66,12 @@ const ApprovedUsersTab = React.memo(({
     setTimeout(() => {
       setUserStates(prev => ({
         ...prev,
-        [userId]: { ...prev[userId], welcomePackageSent: true }
+        [userId]: { 
+          billingSetup: prev[userId]?.billingSetup || false,
+          trialStarted: prev[userId]?.trialStarted || false,
+          welcomePackageSent: true,
+          goLive: prev[userId]?.goLive || false
+        }
       }));
       setProcessing(null);
       console.log('✅ Welcome package sent');
@@ -75,7 +85,12 @@ const ApprovedUsersTab = React.memo(({
     setTimeout(() => {
       setUserStates(prev => ({
         ...prev,
-        [userId]: { ...prev[userId], goLive: true }
+        [userId]: { 
+          billingSetup: prev[userId]?.billingSetup || false,
+          trialStarted: prev[userId]?.trialStarted || false,
+          welcomePackageSent: prev[userId]?.welcomePackageSent || false,
+          goLive: true
+        }
       }));
       setProcessing(null);
       console.log('🚀 Client portal is now LIVE!');
@@ -212,43 +227,18 @@ const ApprovedUsersTab = React.memo(({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   
-                  {/* Step 1: Setup Billing */}
+                  {/* Step 1: Start 14-Day Trial (NO CREDIT CARD) */}
                   <div className="flex flex-col items-center">
                     <button
-                      onClick={() => handleSetupBilling(user.id, user.subscriptionTier)}
-                      disabled={isProcessingUser || userState.billingSetup}
+                      onClick={() => handleStartTrial(user.id)}
+                      disabled={isProcessingUser || userState.trialStarted}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        userState.billingSetup
+                        userState.trialStarted
                           ? 'bg-green-100 text-green-700 border border-green-200'
                           : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:scale-105 disabled:opacity-50'
                       }`}
                     >
-                      {isProcessingUser && !userState.billingSetup ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      ) : userState.billingSetup ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <CreditCard className="h-4 w-4" />
-                      )}
-                      {userState.billingSetup ? 'Billing Setup' : 'Setup Billing'}
-                    </button>
-                    <span className="text-xs text-gray-500 mt-1">Step 1</span>
-                  </div>
-
-                  {/* Step 2: Start 14-Day Trial */}
-                  <div className="flex flex-col items-center">
-                    <button
-                      onClick={() => handleStartTrial(user.id)}
-                      disabled={!userState.billingSetup || isProcessingUser || userState.trialStarted}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        userState.trialStarted
-                          ? 'bg-green-100 text-green-700 border border-green-200'
-                          : userState.billingSetup
-                          ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:scale-105'
-                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      }`}
-                    >
-                      {isProcessingUser && userState.billingSetup && !userState.trialStarted ? (
+                      {isProcessingUser && !userState.trialStarted ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                       ) : userState.trialStarted ? (
                         <CheckCircle2 className="h-4 w-4" />
@@ -257,10 +247,10 @@ const ApprovedUsersTab = React.memo(({
                       )}
                       {userState.trialStarted ? '14-Day Trial' : 'Start Trial'}
                     </button>
-                    <span className="text-xs text-gray-500 mt-1">Step 2</span>
+                    <span className="text-xs text-gray-500 mt-1">Step 1</span>
                   </div>
 
-                  {/* Step 3: Send Welcome Package */}
+                  {/* Step 2: Send Welcome Package */}
                   <div className="flex flex-col items-center">
                     <button
                       onClick={() => handleSendWelcomePackage(user.id)}
@@ -282,17 +272,17 @@ const ApprovedUsersTab = React.memo(({
                       )}
                       {userState.welcomePackageSent ? 'Package Sent' : 'Send Welcome'}
                     </button>
-                    <span className="text-xs text-gray-500 mt-1">Step 3</span>
+                    <span className="text-xs text-gray-500 mt-1">Step 2</span>
                   </div>
 
-                  {/* Step 4: Go Live */}
+                  {/* Step 3: Go Live */}
                   <div className="flex flex-col items-center">
                     <button
                       onClick={() => handleGoLive(user.id)}
                       disabled={!userState.welcomePackageSent || isProcessingUser || userState.goLive}
                       className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                         userState.goLive
-                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          ? 'bg-green-100 text-green-700 border border-green-200'
                           : userState.welcomePackageSent
                           ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm hover:scale-105'
                           : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -306,6 +296,31 @@ const ApprovedUsersTab = React.memo(({
                         <Rocket className="h-4 w-4" />
                       )}
                       {userState.goLive ? 'Live' : 'Go Live'}
+                    </button>
+                    <span className="text-xs text-gray-500 mt-1">Step 3</span>
+                  </div>
+
+                  {/* Step 4: Setup Billing (At Trial End) */}
+                  <div className="flex flex-col items-center">
+                    <button
+                      onClick={() => handleSetupBilling(user.id, user.subscriptionTier || 'starter')}
+                      disabled={!userState.goLive || isProcessingUser || userState.billingSetup}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        userState.billingSetup
+                          ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                          : userState.goLive
+                          ? 'bg-amber-600 text-white hover:bg-amber-700 shadow-sm hover:scale-105'
+                          : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {isProcessingUser && userState.goLive && !userState.billingSetup ? (
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      ) : userState.billingSetup ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <CreditCard className="h-4 w-4" />
+                      )}
+                      {userState.billingSetup ? 'Billing Active' : 'Setup Billing'}
                     </button>
                     <span className="text-xs text-gray-500 mt-1">Step 4</span>
                   </div>
