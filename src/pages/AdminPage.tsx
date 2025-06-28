@@ -22,6 +22,7 @@ import {
 import { ReadyForTestingUser } from '../types/admin';
 import PendingUsersTab from '../components/admin/UserManagement/PendingUsersTab';
 import ReadyForTestingTab from '../components/admin/UserManagement/ReadyForTestingTab';
+import ApprovedUsersTab from '../components/admin/UserManagement/ApprovedUsersTab';
 
 // Add this at the top of the file, after imports
 declare global {
@@ -3038,6 +3039,13 @@ WARNING:
         )}
 
         {activeTab === 'approved' && (
+          <ApprovedUsersTab
+            users={filteredUsers}
+            isLoading={loading}
+          />
+        )}
+
+        {false && activeTab === 'approved-old' && (
           <div className="space-y-6">
             {/* Search and Filter Controls */}
             <div className="bg-white rounded-lg shadow p-4">
