@@ -230,8 +230,15 @@ export default function LandingPage() {
                 See Salon Reconciliation in Action
               </h2>
               <p className="text-lg text-gray-600 mb-6">
-                Watch how we automatically match your DaySmart transactions with Square payments
+                Watch how we automatically match your DaySmart transactions with 3rd party payment processors
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 max-w-3xl mx-auto">
+                <p className="text-sm text-blue-800">
+                  <strong>The Challenge:</strong> Many salons use external merchant services (separate from DaySmart's integrated processing) 
+                  for better rates or fee-passing to independent contractors. This creates a reconciliation nightmare when transaction 
+                  data doesn't automatically sync between your salon software and payment processor.
+                </p>
+              </div>
             </div>
 
             {/* Before/After Comparison */}
@@ -253,8 +260,8 @@ export default function LandingPage() {
                     <p className="text-gray-600">Download transaction reports, clean up formatting</p>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-red-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 2: Export Square Data</p>
-                    <p className="text-gray-600">Download payment processor reports, multiple files</p>
+                    <p className="font-medium text-gray-900 mb-1">Step 2: Export Payment Processor Data</p>
+                    <p className="text-gray-600">Download reports from your 3rd party merchant services</p>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-red-200">
                     <p className="font-medium text-gray-900 mb-1">Step 3: Manual Matching</p>
@@ -284,7 +291,7 @@ export default function LandingPage() {
                 <div className="space-y-3 text-sm">
                   <div className="bg-white rounded-lg p-3 border border-emerald-200">
                     <p className="font-medium text-gray-900 mb-1">Step 1: Upload Files</p>
-                    <p className="text-gray-600">Drag & drop your DaySmart and Square exports</p>
+                    <p className="text-gray-600">Drag & drop your DaySmart and payment processor exports</p>
                   </div>
                   <div className="bg-white rounded-lg p-3 border border-emerald-200">
                     <p className="font-medium text-gray-900 mb-1">Step 2: Automatic Processing</p>
