@@ -232,8 +232,8 @@ export default function LandingPage() {
               <p className="text-lg text-gray-600 mb-6">
                 Watch how we automatically match your DaySmart transactions with 3rd party payment processors
               </p>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8 max-w-3xl mx-auto">
-                <p className="text-sm text-blue-800">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 max-w-3xl mx-auto">
+                <p className="text-sm text-gray-700">
                   <strong>The Challenge:</strong> Many salons use external merchant services (separate from DaySmart's integrated processing) 
                   for better rates or fee-passing to independent contractors. This creates a reconciliation nightmare when transaction 
                   data doesn't automatically sync between your salon software and payment processor.
@@ -242,103 +242,103 @@ export default function LandingPage() {
             </div>
 
             {/* Before/After Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
               
               {/* BEFORE - Manual Process */}
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-                <div className="text-center mb-4">
-                  <div className="inline-flex items-center gap-2 text-red-700 mb-2">
-                    <Clock className="h-5 w-5" />
-                    <span className="font-semibold">BEFORE: Manual Process</span>
+              <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Clock className="h-6 w-6 text-gray-600" />
                   </div>
-                  <p className="text-red-600 text-sm">3+ hours every week</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Manual Process</h3>
+                  <p className="text-gray-500 text-sm font-medium">3+ hours every week</p>
                 </div>
                 
-                <div className="space-y-3 text-sm">
-                  <div className="bg-white rounded-lg p-3 border border-red-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 1: Export DaySmart Data</p>
-                    <p className="text-gray-600">Download transaction reports, clean up formatting</p>
+                <div className="space-y-4">
+                  <div className="border-l-4 border-gray-300 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">1. Export DaySmart Data</p>
+                    <p className="text-gray-600 text-sm">Download transaction reports, clean up formatting</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-red-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 2: Export Payment Processor Data</p>
-                    <p className="text-gray-600">Download reports from your 3rd party merchant services</p>
+                  <div className="border-l-4 border-gray-300 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">2. Export Payment Processor Data</p>
+                    <p className="text-gray-600 text-sm">Download reports from your 3rd party merchant services</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-red-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 3: Manual Matching</p>
-                    <p className="text-gray-600">Cross-reference transactions, find discrepancies by hand</p>
+                  <div className="border-l-4 border-gray-300 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">3. Manual Matching</p>
+                    <p className="text-gray-600 text-sm">Cross-reference transactions, find discrepancies by hand</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-red-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 4: Create Reports</p>
-                    <p className="text-gray-600">Build spreadsheets, calculate differences, investigate issues</p>
+                  <div className="border-l-4 border-gray-300 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">4. Create Reports</p>
+                    <p className="text-gray-600 text-sm">Build spreadsheets, calculate differences, investigate issues</p>
                   </div>
                 </div>
 
-                <div className="mt-4 text-center">
-                  <p className="text-red-700 font-semibold">Result: 3-4 hours of work, errors missed</p>
+                <div className="mt-6 text-center py-3 bg-gray-50 rounded-lg">
+                  <p className="text-gray-700 font-medium">Result: 3-4 hours of work, errors missed</p>
                 </div>
               </div>
 
               {/* AFTER - Automated Process */}
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6">
-                <div className="text-center mb-4">
-                  <div className="inline-flex items-center gap-2 text-emerald-700 mb-2">
-                    <Target className="h-5 w-5" />
-                    <span className="font-semibold">AFTER: GR Balance Automation</span>
+              <div className="bg-white border-2 border-emerald-200 rounded-xl p-8 shadow-sm">
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Target className="h-6 w-6 text-emerald-600" />
                   </div>
-                  <p className="text-emerald-600 text-sm">5 minutes every week</p>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">GR Balance Automation</h3>
+                  <p className="text-emerald-600 text-sm font-medium">5 minutes every week</p>
                 </div>
                 
-                <div className="space-y-3 text-sm">
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 1: Upload Files</p>
-                    <p className="text-gray-600">Drag & drop your DaySmart and payment processor exports</p>
+                <div className="space-y-4">
+                  <div className="border-l-4 border-emerald-500 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">1. Upload Files</p>
+                    <p className="text-gray-600 text-sm">Drag & drop your DaySmart and payment processor exports</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 2: Automatic Processing</p>
-                    <p className="text-gray-600">AI matches transactions using salon-specific logic</p>
+                  <div className="border-l-4 border-emerald-500 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">2. Automatic Processing</p>
+                    <p className="text-gray-600 text-sm">AI matches transactions using salon-specific logic</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 3: Instant Results</p>
-                    <p className="text-gray-600">Discrepancies highlighted, ready-to-use reports generated</p>
+                  <div className="border-l-4 border-emerald-500 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">3. Instant Results</p>
+                    <p className="text-gray-600 text-sm">Discrepancies highlighted, ready-to-use reports generated</p>
                   </div>
-                  <div className="bg-white rounded-lg p-3 border border-emerald-200">
-                    <p className="font-medium text-gray-900 mb-1">Step 4: Download & Review</p>
-                    <p className="text-gray-600">Export detailed reconciliation reports for your records</p>
+                  <div className="border-l-4 border-emerald-500 pl-4 py-2">
+                    <p className="font-semibold text-gray-900 mb-1">4. Download & Review</p>
+                    <p className="text-gray-600 text-sm">Export detailed reconciliation reports for your records</p>
                   </div>
                 </div>
 
-                <div className="mt-4 text-center">
-                  <p className="text-emerald-700 font-semibold">Result: 5 minutes of work, 99.9% accuracy</p>
+                <div className="mt-6 text-center py-3 bg-emerald-50 rounded-lg">
+                  <p className="text-emerald-700 font-medium">Result: 5 minutes of work, 99.9% accuracy</p>
                 </div>
               </div>
             </div>
 
             {/* Sample Results */}
-            <div className="bg-gray-50 rounded-xl p-6 sm:p-8">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center">
+            <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+              <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">
                 Typical Monthly Findings for Salons
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <TrendingUp className="h-6 w-6 text-red-600" />
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <DollarSign className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <p className="font-semibold text-2xl text-red-600 mb-1">$300-900</p>
-                  <p className="text-sm text-gray-600">Processing fee overcharges discovered</p>
+                  <p className="font-bold text-3xl text-gray-900 mb-2">$300-900</p>
+                  <p className="text-gray-600 font-medium">Processing fee overcharges discovered</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Target className="h-6 w-6 text-yellow-600" />
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Target className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <p className="font-semibold text-2xl text-yellow-600 mb-1">15-30</p>
-                  <p className="text-sm text-gray-600">Missing transactions identified</p>
+                  <p className="font-bold text-3xl text-gray-900 mb-2">15-30</p>
+                  <p className="text-gray-600 font-medium">Missing transactions identified</p>
                 </div>
                 <div className="text-center">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Clock className="h-6 w-6 text-emerald-600" />
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="h-8 w-8 text-emerald-600" />
                   </div>
-                  <p className="font-semibold text-2xl text-emerald-600 mb-1">12+ hrs</p>
-                  <p className="text-sm text-gray-600">Time saved monthly</p>
+                  <p className="font-bold text-3xl text-gray-900 mb-2">12+ hrs</p>
+                  <p className="text-gray-600 font-medium">Time saved monthly</p>
                 </div>
               </div>
             </div>
