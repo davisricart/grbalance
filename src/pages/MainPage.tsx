@@ -40,7 +40,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
 
-  // Clear usage limit errors for testing clients
+  // Clear only usage limit errors for testing clients (not validation errors)
   useEffect(() => {
     const isTestingClient = (
       user?.email === 'test@test.com' || 
@@ -51,8 +51,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       window.location.hostname.includes('netlify.app') // Development sites
     );
     
-    if (isTestingClient) {
-      console.log('🧪 Testing client detected - clearing usage limit errors');
+    if (isTestingClient && status && (status.includes('limit') || status.includes('usage'))) {
+      console.log('🧪 Testing client detected - clearing usage limit errors only');
       setStatus('');
       setWarning('');
     }
