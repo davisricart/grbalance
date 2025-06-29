@@ -197,9 +197,22 @@ const ApprovedUsersTab = React.memo(({
     try {
       // Step 1: Send welcome email & start trial
       console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Step 2: Send welcome package
+      // Import welcome email service
+      const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
+      
+      // Send actual welcome email
+      const emailSent = await sendSimpleWelcomeEmail(
+        userEmail, 
+        userEmail.split('@')[0], // Use email prefix as business name fallback
+        tier
+      );
+      
+      if (!emailSent) {
+        throw new Error('Failed to send welcome email');
+      }
+      
+      // Step 2: Send welcome package (onboarding materials)
       console.log('📦 Step 2: Sending onboarding materials...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
@@ -228,10 +241,13 @@ const ApprovedUsersTab = React.memo(({
         [userId]: false
       }));
       
-      console.log('✅ CLIENT ACTIVATION COMPLETE! All systems automated and ready.');
+      console.log('✅ CLIENT ACTIVATION COMPLETE! Welcome email sent and all systems automated.');
       
     } catch (error) {
       console.error('❌ Client activation failed:', error);
+      // Show error to user
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to activate client: ${errorMessage}`);
     } finally {
       setProcessing(null);
     }
