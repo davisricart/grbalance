@@ -198,15 +198,15 @@ const ApprovedUsersTab = React.memo(({
       // Step 1: Send welcome email & start trial
       console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
       
-      // Import welcome email service
-      const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
+      // Import Microsoft Graph email service
+      const { sendWelcomeEmailOutlook } = await import('../../../services/microsoftEmailService');
       
-      // Send actual welcome email
-      const emailSent = await sendSimpleWelcomeEmail(
-        userEmail, 
-        userEmail.split('@')[0], // Use email prefix as business name fallback
-        tier
-      );
+              // Send actual welcome email via Microsoft Graph API (unlimited!)
+        const emailSent = await sendWelcomeEmailOutlook(
+          userEmail, 
+          userEmail.split('@')[0], // Use email prefix as business name fallback
+          tier
+        );
       
       if (!emailSent) {
         throw new Error('Failed to send welcome email');
@@ -594,7 +594,7 @@ const ApprovedUsersTab = React.memo(({
                     </button>
                     
                     <button
-                      onClick={() => handleActivateClient(user.id, user.email, user.subscriptionTier || 'starter')}
+                                                  onClick={() => handleActivateClient(user.id, user.email, (user.subscriptionTier || 'starter') as string)}
                       disabled={isProcessingUser}
                       className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-lg text-sm font-medium shadow-lg hover:from-blue-700 hover:to-emerald-700 transform hover:scale-105 transition-all disabled:opacity-50"
                     >
