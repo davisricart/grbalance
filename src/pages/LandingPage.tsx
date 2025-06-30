@@ -324,7 +324,7 @@ export default function LandingPage() {
                     <DollarSign className="h-8 w-8 text-emerald-600" />
                   </div>
                   <p className="font-bold text-3xl text-gray-900 mb-2">$300-900</p>
-                  <p className="text-gray-600 font-medium">Processing fee overcharges discovered</p>
+                  <p className="text-gray-600 font-medium">Transaction mismatches identified</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
