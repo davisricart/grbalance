@@ -195,18 +195,24 @@ const ApprovedUsersTab = React.memo(({
     console.log(`🚀 ACTIVATING CLIENT: ${userEmail} (${tier} plan)`);
     
     try {
+      // Validate email before proceeding
+      if (!userEmail) {
+        throw new Error('User email is required for activation');
+      }
+      
       // Step 1: Send welcome email & start trial
       console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
       
-      // Import Microsoft Graph email service
-      const { sendWelcomeEmailOutlook } = await import('../../../services/microsoftEmailService');
+      // Import EmailJS email service (original setup - 200 emails/month)
+      const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
       
-              // Send actual welcome email via Microsoft Graph API (unlimited!)
-        const emailSent = await sendWelcomeEmailOutlook(
-          userEmail, 
-          userEmail.split('@')[0], // Use email prefix as business name fallback
-          tier
-        );
+      // Send welcome email via EmailJS (200/month limit)
+      const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
+      const emailSent = await sendSimpleWelcomeEmail(
+        userEmail, 
+        businessName,
+        tier
+      );
       
       if (!emailSent) {
         throw new Error('Failed to send welcome email');
