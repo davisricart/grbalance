@@ -1,8 +1,10 @@
 // Welcome Email Service for GR Balance Client Activation
-import emailjs from '@emailjs/browser';
+import { Resend } from 'resend';
 
-// Initialize EmailJS (same configuration as ContactPage)
-emailjs.init("e-n1Rxb8CRaf_RfPm");
+// Initialize Resend with API key from environment variables
+const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY || (() => {
+  throw new Error('VITE_RESEND_API_KEY environment variable is required');
+})());
 
 export interface WelcomeEmailData {
   clientEmail: string;
@@ -28,25 +30,99 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
     
     const usageLimit = getUsageLimit(data.subscriptionTier);
     
-    // Email template parameters
-    const templateParams = {
-      to_email: data.clientEmail,
-      business_name: data.businessName || 'Your Business',
-      subscription_tier: data.subscriptionTier,
-      usage_limit: usageLimit,
-      portal_url: data.clientPortalUrl,
-      support_email: 'davis@grbalance.com',
-      from_name: 'GR Balance Team'
-    };
+    // Create beautiful HTML email template
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to GR Balance!</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .section { margin: 25px 0; }
+            .section h3 { color: #10b981; margin-bottom: 15px; }
+            .details { background: #f8fafc; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
+            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎉 Welcome to GR Balance!</h1>
+                <p>Your account is now ACTIVE and ready to use</p>
+            </div>
+            
+            <div class="content">
+                <p>Hi ${data.businessName ? `from <strong>${data.businessName}</strong>` : 'there'}!</p>
+                
+                <p>🚀 Great news! Your GR Balance account is now <strong>ACTIVE</strong> and ready to streamline your reconciliation process.</p>
+                
+                <div class="details">
+                    <h3>📋 Your Account Details</h3>
+                    <p><strong>📧 Email:</strong> ${data.clientEmail}</p>
+                    <p><strong>📊 Plan:</strong> ${data.subscriptionTier} Plan</p>
+                    <p><strong>🔢 Monthly Usage:</strong> ${usageLimit} reconciliations per month</p>
+                    <p><strong>🔗 Your Portal:</strong> <a href="${data.clientPortalUrl}">${data.clientPortalUrl}</a></p>
+                </div>
+                
+                <div class="section">
+                    <h3>🚀 What's Next</h3>
+                    <ol>
+                        <li>📁 Upload your first data files (Excel/CSV)</li>
+                        <li>⚡ Run reconciliation analysis</li>
+                        <li>📈 Get instant insights and reports</li>
+                        <li>💬 Contact us if you need help</li>
+                    </ol>
+                </div>
+                
+                <div class="section">
+                    <h3>🎁 14-Day FREE Trial</h3>
+                    <ul>
+                        <li>✅ No credit card required</li>
+                        <li>✅ Full access to all features</li>
+                        <li>✅ Cancel anytime during trial</li>
+                        <li>✅ Billing starts after trial ends</li>
+                    </ul>
+                </div>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${data.clientPortalUrl}" class="button">Access Your Portal</a>
+                </div>
+                
+                <div class="section">
+                    <h3>💬 Need Help?</h3>
+                    <p><strong>📧 Email:</strong> davis@grbalance.com</p>
+                    <p><strong>🌐 Documentation:</strong> <a href="${data.clientPortalUrl}/docs">View Guides</a></p>
+                    <p>We're here to help you succeed!</p>
+                </div>
+                
+                <p>Welcome to the GR Balance family! 🎉</p>
+                
+                <p>Best regards,<br><strong>The GR Balance Team</strong></p>
+            </div>
+            
+            <div class="footer">
+                <p>GR Balance - Automated Reconciliation Made Simple</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
     
-    // Send email using existing EmailJS service
-    const response = await emailjs.send(
-      'service_grbalance',
-      'template_welcome',  // We'll need to create this template
-      templateParams
-    );
+    // Send email using Resend API
+    const response = await resend.emails.send({
+      from: 'GR Balance Team <davis@grbalance.com>',
+      to: data.clientEmail,
+      subject: '🎉 Welcome to GR Balance - Your Account is Active!',
+      html: htmlContent,
+    });
     
-    console.log('✅ Welcome email sent successfully:', response.status);
+    console.log('✅ Welcome email sent successfully:', response);
     return true;
     
   } catch (error) {
@@ -55,87 +131,68 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
   }
 };
 
-// Generate the welcome email content (for template creation)
-export const getWelcomeEmailTemplate = (data: WelcomeEmailData) => {
-  const usageLimit = data.usageLimit;
-  
-  return `
-Subject: 🎉 Welcome to GR Balance - Your Account is Active!
-
-Hi ${data.businessName ? `from ${data.businessName}` : 'there'}!
-
-🚀 Great news! Your GR Balance account is now ACTIVE and ready to use.
-
-=== YOUR ACCOUNT DETAILS ===
-📧 Email: ${data.clientEmail}
-📊 Plan: ${data.subscriptionTier} Plan
-🔢 Monthly Usage: ${usageLimit} reconciliations per month
-🔗 Your Portal: ${data.clientPortalUrl}
-
-=== WHAT'S NEXT ===
-1. 📁 Upload your first data files (Excel/CSV)
-2. ⚡ Run reconciliation analysis
-3. 📈 Get instant insights and reports
-4. 💬 Contact us if you need help
-
-=== 14-DAY FREE TRIAL ===
-✅ No credit card required
-✅ Full access to all features
-✅ Cancel anytime during trial
-✅ Billing starts after trial ends
-
-=== NEED HELP? ===
-📧 Email: davis@grbalance.com
-🌐 Documentation: ${data.clientPortalUrl}/docs
-💬 We're here to help you succeed!
-
-Welcome to the GR Balance family! 🎉
-
-Best regards,
-The GR Balance Team
-
----
-GR Balance - Automated Reconciliation Made Simple
-`;
-};
-
-// Backup: Simple email sending function using basic template
+// Simplified welcome email function for quick activation
 export const sendSimpleWelcomeEmail = async (clientEmail: string, businessName: string, tier: string): Promise<boolean> => {
   try {
-    const templateParams = {
-      from_name: 'GR Balance Team',
-      from_email: 'davis@grbalance.com',
-      to_email: clientEmail,
+    console.log('📧 Sending simple welcome email to:', clientEmail);
+    
+    const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 500px; margin: 0 auto; padding: 20px; }
+            .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px; }
+            .content { background: #f8fafc; padding: 20px; border-radius: 8px; margin-top: 20px; }
+            .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h2>🎉 Welcome to GR Balance!</h2>
+            </div>
+            <div class="content">
+                <p>Hi <strong>${businessName}</strong>!</p>
+                
+                <p>Your GR Balance account is now <strong>ACTIVE</strong>! 🚀</p>
+                
+                <ul>
+                    <li>✅ Plan: <strong>${tier} Plan</strong></li>
+                    <li>✅ 14-day FREE trial started</li>
+                    <li>✅ Portal: <a href="https://grbalance.com/client-portal">Access Here</a></li>
+                </ul>
+                
+                <p><strong>Next steps:</strong></p>
+                <ol>
+                    <li>Upload your data files</li>
+                    <li>Run reconciliation</li>
+                    <li>Get instant insights</li>
+                </ol>
+                
+                <div style="text-align: center;">
+                    <a href="https://grbalance.com/client-portal" class="button">Get Started Now</a>
+                </div>
+                
+                <p>Need help? Email <strong>davis@grbalance.com</strong></p>
+                
+                <p>Welcome aboard!<br><strong>GR Balance Team</strong></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    `;
+    
+    const response = await resend.emails.send({
+      from: 'GR Balance Team <davis@grbalance.com>',
+      to: clientEmail,
       subject: '🎉 Welcome to GR Balance - Account Activated!',
-      message: `
-Hi ${businessName}!
-
-Your GR Balance account is now ACTIVE! 🚀
-
-✅ Plan: ${tier} Plan
-✅ 14-day FREE trial started
-✅ Portal: https://grbalance.com/client-portal
-
-Next steps:
-1. Upload your data files
-2. Run reconciliation
-3. Get instant insights
-
-Need help? Email davis@grbalance.com
-
-Welcome aboard!
-GR Balance Team
-      `
-    };
+      html: htmlContent,
+    });
     
-    // Use existing contact template as fallback
-    await emailjs.send(
-      'service_grbalance',
-      'template_rm62n5a',
-      templateParams
-    );
-    
-    console.log('✅ Simple welcome email sent to:', clientEmail);
+    console.log('✅ Simple welcome email sent successfully:', response);
     return true;
     
   } catch (error) {

@@ -2,8 +2,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, Send, AlertCircle, MessageSquare, Clock, Home, CheckSquare } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+import { Resend } from 'resend';
 import { Helmet } from 'react-helmet-async';
+
+// Initialize Resend with API key from environment variables
+const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY || (() => {
+  throw new Error('VITE_RESEND_API_KEY environment variable is required');
+})());
 
 export default function ContactPage() {
   const navigate = useNavigate();
@@ -15,10 +20,6 @@ export default function ContactPage() {
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isHuman, setIsHuman] = useState(false);
-
-  useEffect(() => {
-    emailjs.init("e-n1Rxb8CRaf_RfPm");
-  }, []);
 
   const subjectOptions = [
     { value: '', label: 'Select a subject...' },
@@ -50,19 +51,65 @@ export default function ContactPage() {
     setIsSubmitting(true);
 
     try {
-      const templateParams = {
-        from_name: name,
-        from_email: email,
-        subject: subjectOptions.find(opt => opt.value === subject)?.label || subject,
-        message: message
-      };
+      const selectedSubject = subjectOptions.find(opt => opt.value === subject)?.label || subject;
+      
+      // Create professional HTML email for support
+      const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <meta charset="utf-8">
+          <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+              .section { margin: 20px 0; }
+              .section h3 { color: #10b981; margin-bottom: 10px; }
+              .message-box { background: #f8fafc; padding: 20px; border-radius: 6px; border-left: 4px solid #10b981; }
+              .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="header">
+                  <h2>💬 New Contact Form Submission</h2>
+              </div>
+              
+              <div class="content">
+                  <div class="section">
+                      <h3>📋 Contact Details</h3>
+                      <p><strong>Name:</strong> ${name}</p>
+                      <p><strong>Email:</strong> ${email}</p>
+                      <p><strong>Subject:</strong> ${selectedSubject}</p>
+                  </div>
+                  
+                  <div class="section">
+                      <h3>💌 Message</h3>
+                      <div class="message-box">
+                          <p>${message.replace(/\n/g, '<br>')}</p>
+                      </div>
+                  </div>
+                  
+                  <div class="footer">
+                      <p>Sent from GR Balance Contact Form</p>
+                  </div>
+              </div>
+          </div>
+      </body>
+      </html>
+      `;
 
-      await emailjs.send(
-        'service_grbalance',
-        'template_rm62n5a',
-        templateParams
-      );
+      // Send email using Resend API
+      const response = await resend.emails.send({
+        from: 'GR Balance Contact <davis@grbalance.com>',
+        to: 'davis@grbalance.com',
+        subject: `[Contact Form] ${selectedSubject} - ${name}`,
+        html: htmlContent,
+        replyTo: email,
+      });
 
+      console.log('✅ Contact form email sent successfully:', response);
       setSubmitted(true);
       setName('');
       setEmail('');
@@ -71,7 +118,7 @@ export default function ContactPage() {
       setIsHuman(false);
     } catch (err) {
       setError('Failed to send message. Please try again later.');
-      console.error('EmailJS Error:', err);
+      console.error('Resend Error:', err);
     } finally {
       setIsSubmitting(false);
     }

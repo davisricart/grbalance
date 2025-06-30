@@ -349,26 +349,26 @@ const ApprovedUsersTab = React.memo(({
               {/* User Details */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {user.email}
-                  </span>
-                  <span>•</span>
-                  <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    {user.comparisonsUsed} / {user.comparisonsLimit} comparisons
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  {user.email}
+                </span>
+                <span>•</span>
+                <span>Approved {new Date(user.approvedAt || new Date()).toLocaleDateString()}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" />
+                  {user.comparisonsUsed} / {user.comparisonsLimit} comparisons
                     {usagePercentage >= 80 && (
                       <span className="ml-1 px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">
                         {Math.round(usagePercentage)}% used
                       </span>
                     )}
-                  </span>
-                </div>
-                
+                </span>
+              </div>
+
                 {/* Usage Management Toggle */}
-                <button
+                    <button
                   onClick={() => toggleUsageExpanded(user.id)}
                   className="flex items-center gap-1 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md text-sm font-medium transition-all"
                 >
@@ -392,7 +392,7 @@ const ApprovedUsersTab = React.memo(({
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Quick Actions */}
                     <div className="space-y-2">
@@ -418,15 +418,15 @@ const ApprovedUsersTab = React.memo(({
                           >
                             +10
                           </button>
-                          <button
+                    <button
                             onClick={() => handleAddUsage(user.id, 20)}
                             className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
                           >
                             +20
-                          </button>
+                    </button>
                         </div>
                       </div>
-                    </div>
+                  </div>
 
                     {/* Custom Add Usage */}
                     <div className="space-y-2">
@@ -439,16 +439,16 @@ const ApprovedUsersTab = React.memo(({
                           onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
                           className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <button
+                    <button
                           onClick={() => handleCustomUsageAdd(user.id)}
                           disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
                           className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Plus className="h-3 w-3" />
                           Add
-                        </button>
+                    </button>
                       </div>
-                    </div>
+                  </div>
 
                     {/* Update Limit */}
                     <div className="space-y-2">
@@ -461,14 +461,14 @@ const ApprovedUsersTab = React.memo(({
                           onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
                           className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
-                        <button
+                    <button
                           onClick={() => handleUpdateLimit(user.id)}
                           disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
                           className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Settings className="h-3 w-3" />
                           Update
-                        </button>
+                    </button>
                       </div>
                     </div>
                   </div>

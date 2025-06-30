@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import BookingCalendar from '../components/BookingCalendar';
-import { Clock, Calendar, VideoIcon, CheckCircle, Mail } from 'lucide-react';
-import emailjs from '@emailjs/browser';
+import { Clock, Calendar, VideoIcon, CheckCircle, Mail, Phone } from 'lucide-react';
+import { Resend } from 'resend';
+
+// Initialize Resend with API key from environment variables
+const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY || (() => {
+  throw new Error('VITE_RESEND_API_KEY environment variable is required');
+})());
 
 export default function BookingPage() {
   const [contactForm, setContactForm] = useState({
@@ -12,10 +17,6 @@ export default function BookingPage() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
-
-  useEffect(() => {
-    emailjs.init("e-n1Rxb8CRaf_RfPm");
-  }, []);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,24 +31,67 @@ export default function BookingPage() {
     setIsSubmitting(true);
     
     try {
-      const templateParams = {
-        from_name: contactForm.name,
-        from_email: contactForm.email,
-        subject: 'General Inquiry',
-        message: contactForm.message
-      };
+      // Create professional HTML email for booking inquiries
+      const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <meta charset="utf-8">
+          <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+              .section { margin: 20px 0; }
+              .section h3 { color: #10b981; margin-bottom: 10px; }
+              .message-box { background: #f8fafc; padding: 20px; border-radius: 6px; border-left: 4px solid #10b981; }
+              .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="header">
+                  <h2>📅 New Booking Inquiry</h2>
+              </div>
+              
+              <div class="content">
+                  <div class="section">
+                      <h3>📋 Contact Details</h3>
+                      <p><strong>Name:</strong> ${contactForm.name}</p>
+                      <p><strong>Email:</strong> ${contactForm.email}</p>
+                  </div>
+                  
+                  <div class="section">
+                      <h3>💬 Message</h3>
+                      <div class="message-box">
+                          <p>${contactForm.message.replace(/\n/g, '<br>')}</p>
+                      </div>
+                  </div>
+                  
+                  <div class="footer">
+                      <p>Sent from GR Balance Booking Page</p>
+                  </div>
+              </div>
+          </div>
+      </body>
+      </html>
+      `;
 
-      await emailjs.send(
-        'service_grbalance',
-        'template_rm62n5a',
-        templateParams
-      );
+      // Send email using Resend API
+      const response = await resend.emails.send({
+        from: 'GR Balance Booking <davis@grbalance.com>',
+        to: 'davis@grbalance.com',
+        subject: `[Booking Inquiry] ${contactForm.name}`,
+        html: htmlContent,
+        replyTo: contactForm.email,
+      });
 
+      console.log('✅ Booking inquiry email sent successfully:', response);
       setSubmitStatus('success');
       setContactForm({ name: '', email: '', message: '' });
     } catch (error) {
       setSubmitStatus('error');
-      console.error('EmailJS Error:', error);
+      console.error('Resend Error:', error);
     } finally {
       setIsSubmitting(false);
     }
