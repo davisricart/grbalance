@@ -83,7 +83,7 @@ exports.handler = async (event, context) => {
     `;
 
     const response = await resend.emails.send({
-      from: 'GR Balance <onboarding@resend.dev>',
+      from: 'GR Balance Contact <davis@grbalance.com>',
       to: 'davis@grbalance.com',
       subject: `[Contact Form] ${subject} - ${name}`,
       html: htmlContent,
