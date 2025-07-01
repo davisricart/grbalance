@@ -1,8 +1,10 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.VITE_RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 exports.handler = async (event, context) => {
+  console.log('Function triggered with API key:', process.env.RESEND_API_KEY ? 'Present' : 'Missing');
+
   // Only allow POST
   if (event.httpMethod !== 'POST') {
     return {
@@ -31,6 +33,7 @@ exports.handler = async (event, context) => {
 
   try {
     const { name, email, subject, message } = JSON.parse(event.body);
+    console.log('Attempting to send email with data:', { name, email, subject });
 
     // Create professional HTML email
     const htmlContent = `
@@ -86,6 +89,8 @@ exports.handler = async (event, context) => {
       html: htmlContent,
       reply_to: email
     });
+
+    console.log('Resend API Response:', response);
 
     return {
       statusCode: 200,
