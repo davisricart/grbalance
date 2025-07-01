@@ -1,9 +1,9 @@
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.VITE_RESEND_API_KEY);
 
 exports.handler = async (event, context) => {
-  console.log('Function triggered with API key:', process.env.RESEND_API_KEY ? 'Present' : 'Missing');
+  console.log('Function triggered with API key:', process.env.VITE_RESEND_API_KEY ? 'Present' : 'Missing');
 
   // Only allow POST
   if (event.httpMethod !== 'POST') {
