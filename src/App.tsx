@@ -100,13 +100,8 @@ const clientId = getClientFromURL();
 
 // Loading component for lazy-loaded routes
 const LoadingSpinner = () => (
-  <div className="min-h-screen flex flex-col bg-gray-50">
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent mb-4"></div>
-        <p className="text-gray-600">Loading...</p>
-      </div>
-    </div>
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-600 border-t-transparent"></div>
   </div>
 );
 
