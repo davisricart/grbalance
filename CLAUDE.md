@@ -21,3 +21,17 @@
 - AdminPage test script functionality is TOP PRIORITY
 - Any changes must preserve test script tabs and features
 - Test all reconciliation/parsing functionality after changes
+
+## Email System (Resend Integration) - COMPLETED ✅
+- **Contact Form**: Netlify function at `/.netlify/functions/send-email`
+- **Welcome Emails**: Service in `src/services/welcomeEmailService.ts`
+- **Environment**: VITE_RESEND_API_KEY configured in Netlify
+- **Deployment**: https://grbalance.netlify.app
+- **Status**: Fully functional and tested
+- **CRITICAL**: Styling configurations restored after initial implementation broke them
+
+## Configuration Files - CRITICAL
+- **tailwind.config.js**: Must maintain proper Tailwind configuration
+- **postcss.config.js**: Required for PostCSS/Tailwind processing
+- **src/App.tsx**: Route structure and Suspense boundaries are precise
+- **WARNING**: Any changes to build configs can break all page styling
