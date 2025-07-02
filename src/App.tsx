@@ -134,7 +134,6 @@ export default function App() {
               {/* All other routes - with layout */}
               <Route path="/*" element={
                 <Layout>
-                  <Suspense fallback={<LoadingSpinner />}>
                     <Routes>
                       <Route path="/" element={<LandingPage />} />
                       <Route path="/app" element={
@@ -172,7 +171,6 @@ export default function App() {
                       <Route path="/:clientname" element={<ClientPortalPage />} />
                       <Route path="*" element={<NotFoundPage />} />
                     </Routes>
-                  </Suspense>
                 </Layout>
               } />
             </Routes>
