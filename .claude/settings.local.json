@@ -93,7 +93,10 @@
       "Bash(git tag:*)",
       "Bash(netlify logs:*)",
       "Bash(git reset:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebFetch(domain:grbalance.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:grbalance.netlify.app)"
     ],
     "deny": []
   }

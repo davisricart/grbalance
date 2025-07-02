@@ -129,43 +129,43 @@ export default function App() {
               {/* All other routes - with layout */}
               <Route path="/*" element={
                 <Layout>
-                    <Routes>
-                      <Route path="/" element={<LandingPage />} />
-                      <Route path="/app" element={
-                        <ApprovedUserRoute>
-                          <ReconciliationApp />
-                        </ApprovedUserRoute>
-                      } />
-                      <Route path="/register" element={<RegisterPage />} />
-                      <Route path="/login" element={<LoginPage />} />
-                      <Route path="/pending-approval" element={
-                        <ProtectedRoute>
-                          <PendingApprovalPage />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/docs" element={<DocumentationPage />} />
-                      <Route path="/support" element={<SupportPage />} />
-                      <Route path="/contact" element={<ContactPage />} />
-                      <Route path="/terms" element={<TermsPage />} />
-                      <Route path="/privacy" element={<PrivacyPage />} />
-                      <Route path="/pricing" element={<PricingPage />} />
-                      <Route path="/book" element={<BookingPage />} />
-                      <Route path="/demo" element={<DemoPage />} />
-                      <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
-                      <Route path="/billing" element={
-                        <ProtectedRoute>
-                          <BillingPage />
-                        </ProtectedRoute>
-                      } />
-                      <Route path="/mockup-billing" element={
-                        <ProtectedRoute>
-                          <BillingWireframe />
-                        </ProtectedRoute>
-                      } />
-                      {/* Dynamic Client Portal Route */}
-                      <Route path="/:clientname" element={<ClientPortalPage />} />
-                      <Route path="*" element={<NotFoundPage />} />
-                    </Routes>
+                  <Routes>
+                    <Route path="/" element={<LandingPage />} />
+                    <Route path="/app" element={
+                      <ApprovedUserRoute>
+                        <ReconciliationApp />
+                      </ApprovedUserRoute>
+                    } />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/pending-approval" element={
+                      <ProtectedRoute>
+                        <PendingApprovalPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/docs" element={<DocumentationPage />} />
+                    <Route path="/support" element={<SupportPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                    <Route path="/terms" element={<TermsPage />} />
+                    <Route path="/privacy" element={<PrivacyPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/book" element={<BookingPage />} />
+                    <Route path="/demo" element={<DemoPage />} />
+                    <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
+                    <Route path="/billing" element={
+                      <ProtectedRoute>
+                        <BillingPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/mockup-billing" element={
+                      <ProtectedRoute>
+                        <BillingWireframe />
+                      </ProtectedRoute>
+                    } />
+                    {/* Dynamic Client Portal Route */}
+                    <Route path="/:clientname" element={<ClientPortalPage />} />
+                    <Route path="*" element={<NotFoundPage />} />
+                  </Routes>
                 </Layout>
               } />
             </Routes>
