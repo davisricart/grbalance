@@ -100,8 +100,13 @@ const clientId = getClientFromURL();
 
 // Loading component for lazy-loaded routes
 const LoadingSpinner = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-600 border-t-transparent"></div>
+  <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="flex-1 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent mb-4"></div>
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    </div>
   </div>
 );
 
@@ -129,43 +134,45 @@ export default function App() {
               {/* All other routes - with layout */}
               <Route path="/*" element={
                 <Layout>
-                  <Routes>
-                    <Route path="/" element={<LandingPage />} />
-                    <Route path="/app" element={
-                      <ApprovedUserRoute>
-                        <ReconciliationApp />
-                      </ApprovedUserRoute>
-                    } />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/pending-approval" element={
-                      <ProtectedRoute>
-                        <PendingApprovalPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/docs" element={<DocumentationPage />} />
-                    <Route path="/support" element={<SupportPage />} />
-                    <Route path="/contact" element={<ContactPage />} />
-                    <Route path="/terms" element={<TermsPage />} />
-                    <Route path="/privacy" element={<PrivacyPage />} />
-                    <Route path="/pricing" element={<PricingPage />} />
-                    <Route path="/book" element={<BookingPage />} />
-                    <Route path="/demo" element={<DemoPage />} />
-                    <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
-                    <Route path="/billing" element={
-                      <ProtectedRoute>
-                        <BillingPage />
-                      </ProtectedRoute>
-                    } />
-                    <Route path="/mockup-billing" element={
-                      <ProtectedRoute>
-                        <BillingWireframe />
-                      </ProtectedRoute>
-                    } />
-                    {/* Dynamic Client Portal Route */}
-                    <Route path="/:clientname" element={<ClientPortalPage />} />
-                    <Route path="*" element={<NotFoundPage />} />
-                  </Routes>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <Routes>
+                      <Route path="/" element={<LandingPage />} />
+                      <Route path="/app" element={
+                        <ApprovedUserRoute>
+                          <ReconciliationApp />
+                        </ApprovedUserRoute>
+                      } />
+                      <Route path="/register" element={<RegisterPage />} />
+                      <Route path="/login" element={<LoginPage />} />
+                      <Route path="/pending-approval" element={
+                        <ProtectedRoute>
+                          <PendingApprovalPage />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/docs" element={<DocumentationPage />} />
+                      <Route path="/support" element={<SupportPage />} />
+                      <Route path="/contact" element={<ContactPage />} />
+                      <Route path="/terms" element={<TermsPage />} />
+                      <Route path="/privacy" element={<PrivacyPage />} />
+                      <Route path="/pricing" element={<PricingPage />} />
+                      <Route path="/book" element={<BookingPage />} />
+                      <Route path="/demo" element={<DemoPage />} />
+                      <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
+                      <Route path="/billing" element={
+                        <ProtectedRoute>
+                          <BillingPage />
+                        </ProtectedRoute>
+                      } />
+                      <Route path="/mockup-billing" element={
+                        <ProtectedRoute>
+                          <BillingWireframe />
+                        </ProtectedRoute>
+                      } />
+                      {/* Dynamic Client Portal Route */}
+                      <Route path="/:clientname" element={<ClientPortalPage />} />
+                      <Route path="*" element={<NotFoundPage />} />
+                    </Routes>
+                  </Suspense>
                 </Layout>
               } />
             </Routes>

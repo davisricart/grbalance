@@ -1,4 +1,6 @@
 import React from 'react';
+import { AlertCircle, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 import { logger } from '../utils/errorHandling';
 import { ErrorInfo } from '../types';
@@ -44,8 +46,32 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   
   render() {
     if (this.state.hasError) {
-      const FallbackComponent = this.props.fallback || DefaultErrorFallback;
-      return <FallbackComponent error={this.state.error} retry={this.handleRetry} />;
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+          <div className="max-w-lg w-full text-center">
+            <AlertCircle className="h-12 w-12 text-emerald-600 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Something went wrong</h1>
+            <p className="text-gray-600 mb-6">
+              We're having trouble loading this page. Please try refreshing or contact support if the problem persists.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center justify-center px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200"
+              >
+                Refresh Page
+              </button>
+              <Link
+                to="/"
+                className="inline-flex items-center justify-center px-6 py-3 bg-white text-emerald-600 border-2 border-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors duration-200"
+              >
+                <Home className="h-5 w-5 mr-2" />
+                Return Home
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
     }
     
     return this.props.children;

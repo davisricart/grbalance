@@ -30,7 +30,7 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
     
     const usageLimit = getUsageLimit(data.subscriptionTier);
     
-    // Create beautiful HTML email template
+    // Create minimalistic HTML email template
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -39,75 +39,151 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Welcome to GR Balance!</title>
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            .section { margin: 25px 0; }
-            .section h3 { color: #10b981; margin-bottom: 15px; }
-            .details { background: #f8fafc; padding: 20px; border-radius: 6px; margin: 20px 0; }
-            .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+              line-height: 1.6; 
+              color: #374151; 
+              margin: 0;
+              padding: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              padding: 40px 20px; 
+            }
+            .header { 
+              border-left: 4px solid #10b981; 
+              padding-left: 15px;
+              margin-bottom: 30px;
+            }
+            .header h1 {
+              margin: 0;
+              color: #10b981;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 5px 0 0 0;
+              color: #6b7280;
+            }
+            .content {
+              background: #ffffff;
+              padding: 0 15px;
+            }
+            .welcome-message {
+              font-size: 16px;
+              color: #111827;
+              margin-bottom: 30px;
+            }
+            .details {
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              padding: 20px;
+              margin: 20px 0;
+            }
+            .details-row {
+              display: flex;
+              margin: 10px 0;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 10px;
+            }
+            .details-row:last-child {
+              border-bottom: none;
+              padding-bottom: 0;
+            }
+            .details-label {
+              flex: 1;
+              color: #6b7280;
+              font-weight: 500;
+            }
+            .details-value {
+              flex: 2;
+              color: #111827;
+            }
+            .section {
+              margin: 30px 0;
+            }
+            .section h2 {
+              color: #10b981;
+              font-size: 18px;
+              margin-bottom: 15px;
+              font-weight: 600;
+            }
+            .button {
+              display: inline-block;
+              background: #10b981;
+              color: white;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 6px;
+              font-weight: 500;
+              margin: 20px 0;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #6b7280;
+              font-size: 14px;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h1>🎉 Welcome to GR Balance!</h1>
-                <p>Your account is now ACTIVE and ready to use</p>
+                <h1>Welcome to GR Balance</h1>
+                <p>Your account is now active</p>
             </div>
             
             <div class="content">
-                <p>Hi ${data.businessName ? `from <strong>${data.businessName}</strong>` : 'there'}!</p>
-                
-                <p>🚀 Great news! Your GR Balance account is now <strong>ACTIVE</strong> and ready to streamline your reconciliation process.</p>
+                <div class="welcome-message">
+                    Great news! Your GR Balance account is now ready to streamline your reconciliation process.
+                </div>
                 
                 <div class="details">
-                    <h3>📋 Your Account Details</h3>
-                    <p><strong>📧 Email:</strong> ${data.clientEmail}</p>
-                    <p><strong>📊 Plan:</strong> ${data.subscriptionTier} Plan</p>
-                    <p><strong>🔢 Monthly Usage:</strong> ${usageLimit} reconciliations per month</p>
-                    <p><strong>🔗 Your Portal:</strong> <a href="${data.clientPortalUrl}">${data.clientPortalUrl}</a></p>
+                    <div class="details-row">
+                        <div class="details-label">Email</div>
+                        <div class="details-value">${data.clientEmail}</div>
+                    </div>
+                    <div class="details-row">
+                        <div class="details-label">Plan</div>
+                        <div class="details-value">${data.subscriptionTier} Plan</div>
+                    </div>
+                    <div class="details-row">
+                        <div class="details-label">Monthly Usage</div>
+                        <div class="details-value">${usageLimit} reconciliations</div>
+                    </div>
                 </div>
                 
                 <div class="section">
-                    <h3>🚀 What's Next</h3>
+                    <h2>Getting Started</h2>
                     <ol>
-                        <li>📁 Upload your first data files (Excel/CSV)</li>
-                        <li>⚡ Run reconciliation analysis</li>
-                        <li>📈 Get instant insights and reports</li>
-                        <li>💬 Contact us if you need help</li>
+                        <li>Upload your data files (Excel/CSV)</li>
+                        <li>Run reconciliation analysis</li>
+                        <li>Get instant insights and reports</li>
                     </ol>
-                </div>
-                
-                <div class="section">
-                    <h3>🎁 14-Day FREE Trial</h3>
-                    <ul>
-                        <li>✅ No credit card required</li>
-                        <li>✅ Full access to all features</li>
-                        <li>✅ Cancel anytime during trial</li>
-                        <li>✅ Billing starts after trial ends</li>
-                    </ul>
-                </div>
-                
-                <div style="text-align: center; margin: 30px 0;">
+                    
                     <a href="${data.clientPortalUrl}" class="button">Access Your Portal</a>
                 </div>
                 
                 <div class="section">
-                    <h3>💬 Need Help?</h3>
-                    <p><strong>📧 Email:</strong> davis@grbalance.com</p>
-                    <p><strong>🌐 Documentation:</strong> <a href="${data.clientPortalUrl}/docs">View Guides</a></p>
-                    <p>We're here to help you succeed!</p>
+                    <h2>Trial Benefits</h2>
+                    <ul>
+                        <li>14-day free trial with full access</li>
+                        <li>No credit card required</li>
+                        <li>Cancel anytime during trial</li>
+                    </ul>
                 </div>
                 
-                <p>Welcome to the GR Balance family! 🎉</p>
+                <div class="section">
+                    <h2>Need Help?</h2>
+                    <p>Email us at davis@grbalance.com or visit our <a href="${data.clientPortalUrl}/docs" style="color: #10b981; text-decoration: none;">documentation</a>.</p>
+                </div>
                 
-                <p>Best regards,<br><strong>The GR Balance Team</strong></p>
-            </div>
-            
-            <div class="footer">
-                <p>GR Balance - Automated Reconciliation Made Simple</p>
+                <div class="footer">
+                    GR Balance - Automated Reconciliation Made Simple
+                </div>
             </div>
         </div>
     </body>
@@ -118,7 +194,7 @@ export const sendWelcomeEmail = async (data: WelcomeEmailData): Promise<boolean>
     const response = await resend.emails.send({
       from: 'GR Balance Team <davis@grbalance.com>',
       to: data.clientEmail,
-      subject: '🎉 Welcome to GR Balance - Your Account is Active!',
+      subject: 'Welcome to GR Balance - Your Account is Active',
       html: htmlContent,
     });
     
@@ -142,43 +218,108 @@ export const sendSimpleWelcomeEmail = async (clientEmail: string, businessName: 
     <head>
         <meta charset="utf-8">
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 500px; margin: 0 auto; padding: 20px; }
-            .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px; }
-            .content { background: #f8fafc; padding: 20px; border-radius: 8px; margin-top: 20px; }
-            .button { display: inline-block; background: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 15px 0; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+              line-height: 1.6; 
+              color: #374151; 
+              margin: 0;
+              padding: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              padding: 40px 20px; 
+            }
+            .header { 
+              border-left: 4px solid #10b981; 
+              padding-left: 15px;
+              margin-bottom: 30px;
+            }
+            .header h2 {
+              margin: 0;
+              color: #10b981;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .content {
+              background: #ffffff;
+              padding: 0 15px;
+            }
+            .welcome-text {
+              margin: 20px 0;
+              font-size: 16px;
+            }
+            .features {
+              background: #f9fafb;
+              border: 1px solid #e5e7eb;
+              border-radius: 6px;
+              padding: 20px;
+              margin: 20px 0;
+            }
+            .features ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+            }
+            .features li {
+              margin: 10px 0;
+              padding-left: 24px;
+              position: relative;
+            }
+            .features li:before {
+              content: "✓";
+              color: #10b981;
+              position: absolute;
+              left: 0;
+            }
+            .button {
+              display: inline-block;
+              background: #10b981;
+              color: white;
+              padding: 12px 24px;
+              text-decoration: none;
+              border-radius: 6px;
+              font-weight: 500;
+              margin: 20px 0;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #6b7280;
+              font-size: 14px;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h2>🎉 Welcome to GR Balance!</h2>
+                <h2>Welcome to GR Balance</h2>
             </div>
+            
             <div class="content">
-                <p>Hi <strong>${businessName}</strong>!</p>
+                <div class="welcome-text">
+                    Hi ${businessName},<br>
+                    Your GR Balance account is now active and ready to use.
+                </div>
                 
-                <p>Your GR Balance account is now <strong>ACTIVE</strong>! 🚀</p>
-                
-                <ul>
-                    <li>✅ Plan: <strong>${tier} Plan</strong></li>
-                    <li>✅ 14-day FREE trial started</li>
-                    <li>✅ Portal: <a href="https://grbalance.com/client-portal">Access Here</a></li>
-                </ul>
-                
-                <p><strong>Next steps:</strong></p>
-                <ol>
-                    <li>Upload your data files</li>
-                    <li>Run reconciliation</li>
-                    <li>Get instant insights</li>
-                </ol>
+                <div class="features">
+                    <ul>
+                        <li>Plan: ${tier} Plan</li>
+                        <li>14-day free trial included</li>
+                        <li>Full access to all features</li>
+                    </ul>
+                </div>
                 
                 <div style="text-align: center;">
                     <a href="https://grbalance.com/client-portal" class="button">Get Started Now</a>
                 </div>
                 
-                <p>Need help? Email <strong>davis@grbalance.com</strong></p>
-                
-                <p>Welcome aboard!<br><strong>GR Balance Team</strong></p>
+                <p>Need help? Email us at davis@grbalance.com</p>
+            </div>
+            
+            <div class="footer">
+                GR Balance - Automated Reconciliation Made Simple
             </div>
         </div>
     </body>
@@ -188,7 +329,7 @@ export const sendSimpleWelcomeEmail = async (clientEmail: string, businessName: 
     const response = await resend.emails.send({
       from: 'GR Balance Team <davis@grbalance.com>',
       to: clientEmail,
-      subject: '🎉 Welcome to GR Balance - Account Activated!',
+      subject: 'Welcome to GR Balance - Account Activated',
       html: htmlContent,
     });
     

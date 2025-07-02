@@ -35,47 +35,93 @@ exports.handler = async (event, context) => {
     const { name, email, subject, message } = JSON.parse(event.body);
     console.log('Attempting to send email with data:', { name, email, subject });
 
-    // Create professional HTML email
+    // Create minimalistic HTML email
     const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #10b981; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-            .content { background: #ffffff; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-            .section { margin: 20px 0; }
-            .section h3 { color: #10b981; margin-bottom: 10px; }
-            .message-box { background: #f8fafc; padding: 20px; border-radius: 6px; border-left: 4px solid #10b981; }
-            .footer { text-align: center; margin-top: 30px; color: #6b7280; font-size: 14px; }
+            body { 
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+              line-height: 1.6; 
+              color: #374151; 
+              margin: 0;
+              padding: 0;
+            }
+            .container { 
+              max-width: 600px; 
+              margin: 0 auto; 
+              padding: 40px 20px; 
+            }
+            .header { 
+              border-left: 4px solid #10b981; 
+              padding-left: 15px;
+              margin-bottom: 30px;
+            }
+            .header h2 {
+              margin: 0;
+              color: #10b981;
+              font-size: 24px;
+              font-weight: 600;
+            }
+            .content {
+              background: #ffffff;
+              padding: 0 15px;
+            }
+            .field {
+              margin: 20px 0;
+              border-bottom: 1px solid #e5e7eb;
+              padding-bottom: 15px;
+            }
+            .field:last-child {
+              border-bottom: none;
+            }
+            .label {
+              font-weight: 500;
+              color: #6b7280;
+              font-size: 14px;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+            }
+            .value {
+              margin-top: 5px;
+              color: #111827;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              color: #6b7280;
+              font-size: 14px;
+            }
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-                <h2>💬 New Contact Form Submission</h2>
+                <h2>New Contact Message</h2>
             </div>
             
             <div class="content">
-                <div class="section">
-                    <h3>📋 Contact Details</h3>
-                    <p><strong>Name:</strong> ${name}</p>
-                    <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Subject:</strong> ${subject}</p>
+                <div class="field">
+                    <div class="label">From</div>
+                    <div class="value">${name} (${email})</div>
                 </div>
                 
-                <div class="section">
-                    <h3>💌 Message</h3>
-                    <div class="message-box">
-                        <p>${message.replace(/\n/g, '<br>')}</p>
-                    </div>
+                <div class="field">
+                    <div class="label">Subject</div>
+                    <div class="value">${subject}</div>
                 </div>
                 
-                <div class="footer">
-                    <p>Sent from GR Balance Contact Form</p>
+                <div class="field">
+                    <div class="label">Message</div>
+                    <div class="value">${message.replace(/\n/g, '<br>')}</div>
                 </div>
+            </div>
+            
+            <div class="footer">
+                Sent via GR Balance Contact Form
             </div>
         </div>
     </body>
