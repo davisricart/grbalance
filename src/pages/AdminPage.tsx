@@ -789,6 +789,61 @@ const AdminPage: React.FC = () => {
     }
   };
 
+  // Move approved user back to QA testing
+  const moveToQA = async (userId: string) => {
+    try {
+      console.log('🔄 Moving user back to QA testing:', userId);
+      
+      // Find the approved user
+      const approvedUser = approvedUsers.find(u => u.id === userId);
+      if (!approvedUser) {
+        throw new Error('Approved user not found');
+      }
+
+      // Create ready-for-testing entry
+      const readyForTestingData = {
+        id: approvedUser.id,
+        email: approvedUser.email,
+        businessName: approvedUser.businessName,
+        subscriptionTier: approvedUser.subscriptionTier,
+        status: 'pending-testing',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Insert into ready-for-testing table
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .insert(readyForTestingData);
+
+      if (insertError) {
+        console.error('❌ Error inserting to ready-for-testing:', insertError);
+        throw insertError;
+      }
+
+      // Remove from approved users (usage table)
+      const { error: deleteError } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+
+      if (deleteError) {
+        console.error('❌ Error removing from usage table:', deleteError);
+        throw deleteError;
+      }
+
+      // Update local state
+      setApprovedUsers(prev => prev.filter(u => u.id !== userId));
+      await fetchReadyForTestingUsers(); // Refresh QA list
+
+      console.log('✅ User moved to QA testing successfully');
+      
+    } catch (error) {
+      console.error('❌ Error moving user to QA:', error);
+      throw error;
+    }
+  };
+
   // Restore deleted user
   const restoreUser = async (userId: string) => {
     try {
@@ -3150,6 +3205,7 @@ WARNING:
             onAddUsage={addUserUsage}
             onUpdateLimit={updateUserLimit}
             onDeleteUser={deleteUser}
+            onMoveToQA={moveToQA}
             inlineNotifications={inlineNotifications}
           />
         )}

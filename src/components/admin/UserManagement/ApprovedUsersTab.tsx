@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 
 interface ApprovedUsersTabProps {
@@ -9,6 +9,7 @@ interface ApprovedUsersTabProps {
   onAddUsage: (userId: string, amount: number) => Promise<void>;
   onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
   onDeleteUser: (userId: string) => Promise<void>;
+  onMoveToQA: (userId: string) => Promise<void>;
   inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
 }
 
@@ -19,10 +20,12 @@ const ApprovedUsersTab = React.memo(({
   onAddUsage,
   onUpdateLimit,
   onDeleteUser,
+  onMoveToQA,
   inlineNotifications
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
+  const [moveToQAWarning, setMoveToQAWarning] = useState<string | null>(null);
   const [userStates, setUserStates] = useState<{[key: string]: {
     billingSetup: boolean;
     trialStarted: boolean;
@@ -131,6 +134,26 @@ const ApprovedUsersTab = React.memo(({
 
   const cancelDelete = () => {
     setDeleteWarning(null);
+  };
+
+  const handleMoveToQA = async (userId: string) => {
+    setMoveToQAWarning(userId);
+  };
+
+  const confirmMoveToQA = async (userId: string) => {
+    try {
+      setProcessing(userId);
+      await onMoveToQA(userId);
+    } catch (error) {
+      console.error('Failed to move user to QA:', error);
+    } finally {
+      setProcessing(null);
+      setMoveToQAWarning(null);
+    }
+  };
+
+  const cancelMoveToQA = () => {
+    setMoveToQAWarning(null);
   };
 
   const handleDeactivateUser = async (userId: string) => {
@@ -555,6 +578,15 @@ const ApprovedUsersTab = React.memo(({
                 {/* Administrative Actions (Far Right) */}
                 <div className="flex items-center gap-2 ml-8 border-l border-gray-200 pl-6">
                   <button
+                    onClick={() => handleMoveToQA(user.id)}
+                    disabled={moveToQAWarning === user.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Move to QA</span>
+                  </button>
+
+                  <button
                     onClick={() => handleDeactivateUser(user.id)}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-md text-sm font-medium transition-all hover:scale-105"
                   >
@@ -597,6 +629,36 @@ const ApprovedUsersTab = React.memo(({
                         className="px-3 py-1.5 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-all"
                       >
                         {processing === user.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Move to QA Warning Panel */}
+              {moveToQAWarning === user.id && (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ArrowLeft className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <h5 className="text-sm font-semibold text-blue-900">Move to QA Testing</h5>
+                        <p className="text-sm text-blue-700">This will move the client back to QA testing for further review.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelMoveToQA}
+                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => confirmMoveToQA(user.id)}
+                        disabled={processing === user.id}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-all"
+                      >
+                        {processing === user.id ? 'Moving...' : 'Move to QA'}
                       </button>
                     </div>
                   </div>
