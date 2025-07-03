@@ -305,20 +305,15 @@ const ApprovedUsersTab = React.memo(({
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
       <div className="px-6 py-5 border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <User className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Approved Users</h3>
-              <p className="text-sm text-gray-500">
-                {users.length} active client{users.length !== 1 ? 's' : ''} • Single-site architecture
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <User className="h-5 w-5 text-green-600" />
           </div>
-          <div className="text-sm text-gray-500">
-            All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Approved Users</h3>
+            <p className="text-sm text-gray-500">
+              {users.length} active client{users.length !== 1 ? 's' : ''}
+            </p>
           </div>
         </div>
       </div>
