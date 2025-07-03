@@ -8,6 +8,7 @@ interface ApprovedUsersTabProps {
   onResetUsage: (userId: string) => Promise<void>;
   onAddUsage: (userId: string, amount: number) => Promise<void>;
   onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
   inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
 }
 
@@ -17,9 +18,11 @@ const ApprovedUsersTab = React.memo(({
   onResetUsage,
   onAddUsage,
   onUpdateLimit,
+  onDeleteUser,
   inlineNotifications
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
+  const [deleteWarning, setDeleteWarning] = useState<string | null>(null);
   const [userStates, setUserStates] = useState<{[key: string]: {
     billingSetup: boolean;
     trialStarted: boolean;
@@ -111,10 +114,23 @@ const ApprovedUsersTab = React.memo(({
 
   // Administrative actions
   const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      console.log(`Deleting user ${userId}`);
-      // TODO: Implement delete functionality
+    setDeleteWarning(userId);
+  };
+
+  const confirmDelete = async (userId: string) => {
+    try {
+      setProcessing(userId);
+      await onDeleteUser(userId);
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+    } finally {
+      setProcessing(null);
+      setDeleteWarning(null);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteWarning(null);
   };
 
   const handleDeactivateUser = async (userId: string) => {
@@ -544,13 +560,44 @@ const ApprovedUsersTab = React.memo(({
                   
                   <button
                     onClick={() => handleDeleteUser(user.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium transition-all hover:scale-105"
+                    disabled={deleteWarning === user.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                     <span>Delete</span>
                   </button>
                 </div>
               </div>
+
+              {/* Delete Warning Panel */}
+              {deleteWarning === user.id && (
+                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Trash2 className="h-5 w-5 text-red-600" />
+                      <div>
+                        <h5 className="text-sm font-semibold text-red-900">Delete User</h5>
+                        <p className="text-sm text-red-700">This action cannot be undone.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelDelete}
+                        className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => confirmDelete(user.id)}
+                        disabled={processing === user.id}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 disabled:opacity-50 transition-all"
+                      >
+                        {processing === user.id ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Activation Confirmation Panel */}
               {expandedActivation[user.id] && (

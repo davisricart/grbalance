@@ -3123,11 +3123,12 @@ WARNING:
 
         {activeTab === 'approved' && (
           <ApprovedUsersTab
-            users={filteredUsers}
+            users={approvedUsers}
             isLoading={loading}
             onResetUsage={resetUserUsage}
             onAddUsage={addUserUsage}
             onUpdateLimit={updateUserLimit}
+            onDeleteUser={deleteUser}
             inlineNotifications={inlineNotifications}
           />
         )}
