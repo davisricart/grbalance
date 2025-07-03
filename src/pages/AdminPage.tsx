@@ -800,15 +800,20 @@ const AdminPage: React.FC = () => {
         throw new Error('Approved user not found');
       }
 
-      // Create ready-for-testing entry
+      // Create ready-for-testing entry (using correct snake_case column names)
       const readyForTestingData = {
         id: approvedUser.id,
         email: approvedUser.email,
-        businessName: approvedUser.businessName,
-        subscriptionTier: approvedUser.subscriptionTier,
-        status: 'pending-testing',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        businessname: approvedUser.businessName,
+        businesstype: approvedUser.businessType || 'Unknown',
+        subscriptiontier: approvedUser.subscriptionTier,
+        billingcycle: approvedUser.billingCycle || 'monthly',
+        createdat: approvedUser.createdAt || new Date().toISOString(),
+        readyfortestingat: new Date().toISOString(),
+        qastatus: 'pending',
+        websiteprovisioned: false,
+        scriptdeployed: false,
+        updatedat: new Date().toISOString()
       };
 
       // Insert into ready-for-testing table
