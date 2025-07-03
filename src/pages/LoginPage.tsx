@@ -70,6 +70,7 @@ export default function LoginPage() {
     // Mock client associations - in production, this would come from your database
     const clientAssociations: { [key: string]: string } = {
       'davisricart@gmail.com': 'demo',  // Added for owner testing
+      'test@test.com': 'demo',  // Test email for unlimited usage on live site
       'tony@pizzashop.com': 'tonys-pizza',
       'manager@salonspa.com': 'salon-pro',
       'admin@retailstore.com': 'retail-store',
