@@ -35,3 +35,11 @@
 - **postcss.config.js**: Required for PostCSS/Tailwind processing
 - **src/App.tsx**: Route structure and Suspense boundaries are precise
 - **WARNING**: Any changes to build configs can break all page styling
+
+## Recent Updates Log
+### 2025-01-03 - User Management UX Improvement
+- **COMPLETED**: Replaced ugly delete confirmation popup with clean inline warning
+- **Location**: `src/components/admin/UserManagement/ApprovedUsersTab.tsx`
+- **Change**: Removed browser popup, added inline red warning panel
+- **UX**: Shows "This action cannot be undone" with Cancel/Delete buttons
+- **Status**: Deployed via commit d439816

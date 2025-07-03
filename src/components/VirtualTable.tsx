@@ -71,15 +71,24 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
 
       {/* Virtual scrolled table */}
       <div className="overflow-x-auto rounded-lg shadow-sm">
-        <table className="min-w-full border border-gray-200 text-sm">
+        <table className="min-w-full text-sm" style={{borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #666', borderRadius: '8px', overflow: 'hidden'}}>
           <thead className="bg-gray-50 sticky top-0">
             <tr>
               {columns.map((col, index) => (
                 <th 
                   key={`${col}-${index}`}
-                  className="px-2 sm:px-4 py-2 sm:py-3 text-left text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap"
+                  className="text-left text-xs sm:text-sm font-medium text-gray-700"
+                  style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #666',
+                    borderLeft: index > 0 ? '1px solid #666' : 'none',
+                    backgroundColor: '#f0fdf4',
+                    whiteSpace: 'nowrap',
+                    minWidth: '120px',
+                    boxSizing: 'border-box'
+                  }}
                 >
-                  <div className="truncate max-w-[100px] sm:max-w-none" title={String(col)}>
+                  <div className="truncate" title={String(col)}>
                     {String(col)}
                   </div>
                 </th>
@@ -91,14 +100,24 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
               <tr 
                 key={`row-${currentPage}-${rowIndex}`}
                 className="hover:bg-gray-50 transition-colors duration-150"
+                style={{backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9'}}
               >
                 {columns.map((col, colIndex) => (
                   <td 
                     key={`cell-${rowIndex}-${colIndex}`}
-                    className="px-2 sm:px-4 py-2 sm:py-3 text-gray-600 text-xs sm:text-sm"
+                    className="text-gray-600 text-xs sm:text-sm"
                     title={String(row[col] || '')}
+                    style={{
+                      padding: '12px 16px',
+                      borderLeft: colIndex > 0 ? '1px solid #666' : 'none',
+                      borderBottom: rowIndex < visibleData.length - 1 ? '1px solid #e5e5e5' : 'none',
+                      whiteSpace: 'nowrap',
+                      minWidth: '120px',
+                      boxSizing: 'border-box',
+                      textAlign: 'left'
+                    }}
                   >
-                    <div className="truncate max-w-[80px] sm:max-w-xs">
+                    <div className="truncate">
                       {String(row[col] || '')}
                     </div>
                   </td>

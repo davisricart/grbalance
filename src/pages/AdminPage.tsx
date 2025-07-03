@@ -1886,36 +1886,57 @@ WARNING:
         const html = `
           <div style="padding: 16px; background-color: #fff;">
             <div style="overflow-x: auto;">
-              <table style="width: 100%; border-collapse: collapse; border: 1px solid #666;">
+              <table style="width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #666; border-radius: 8px; overflow: hidden;">
                 <thead>
                   <tr>
                     ${headers.map((header, index) => `
-                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f0fdf4; position: relative;">
+                      <th style="
+                        padding: 12px 16px; 
+                        text-align: left; 
+                        border-bottom: 1px solid #666; 
+                        ${index > 0 ? 'border-left: 1px solid #666;' : ''}
+                        font-weight: bold; 
+                        background-color: #f0fdf4;
+                        white-space: nowrap;
+                        min-width: 120px;
+                        box-sizing: border-box;
+                      ">
                         ${header}
-                        ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
                       </th>
                     `).join('')}
                   </tr>
                 </thead>
-                  <tbody>
-                    ${results.slice(0, 5).map((row, index) => `
-                      <tr>
-                        ${headers.map(header => `<td style="padding: 12px; border: 1px solid #666;">${row[header] || row[header] === 0 ? row[header] : '0'}</td>`).join('')}
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
-              
-              <div style="margin-top: 16px; color: #666; font-size: 14px;">
-                ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
-              </div>
+                <tbody>
+                  ${results.slice(0, 5).map((row, rowIndex) => `
+                    <tr style="background-color: ${rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9'};">
+                      ${headers.map((header, colIndex) => `
+                        <td style="
+                          padding: 12px 16px; 
+                          ${colIndex > 0 ? 'border-left: 1px solid #666;' : ''}
+                          ${rowIndex < 4 ? 'border-bottom: 1px solid #e5e5e5;' : ''}
+                          white-space: nowrap;
+                          min-width: 120px;
+                          box-sizing: border-box;
+                          text-align: left;
+                        ">
+                          ${row[header] || row[header] === 0 ? row[header] : '0'}
+                        </td>
+                      `).join('')}
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
-          `;
-          
-          console.log('🔧 Generated HTML:', html.substring(0, 200) + '...');
-          return html;
-        };
+            
+            <div style="margin-top: 16px; color: #666; font-size: 14px;">
+              ${Math.min(results.length, 5)} of ${results.length} rows displayed${results.length > 5 ? ' (showing first 5)' : ''}
+            </div>
+          </div>
+        `;
+        
+        console.log('🔧 Generated HTML:', html.substring(0, 200) + '...');
+        return html;
+      };
         
         // Update Script Builder display
         const scriptResultsDisplay = document.getElementById('script-results-display');

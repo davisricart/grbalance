@@ -1211,7 +1211,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                         {results.length > 0 ? (
                           <div>
                             <div className="overflow-x-auto">
-                              <table className="min-w-full" style={{borderCollapse: 'collapse', border: '1px solid #666'}}>
+                              <table className="min-w-full" style={{borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #666', borderRadius: '8px', overflow: 'hidden'}}>
                                 <thead>
                                   <tr>
                                     {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
@@ -1219,27 +1219,18 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                       <th 
                                         key={header}
                                         style={{
-                                          padding: '12px', 
+                                          padding: '12px 16px', 
                                           textAlign: 'left', 
-                                          borderTop: '1px solid #666', 
                                           borderBottom: '1px solid #666', 
+                                          borderLeft: index > 0 ? '1px solid #666' : 'none',
                                           fontWeight: 'bold', 
                                           backgroundColor: '#f0fdf4',
-                                          position: 'relative'
+                                          whiteSpace: 'nowrap',
+                                          minWidth: '120px',
+                                          boxSizing: 'border-box'
                                         }}
                                       >
                                         {header}
-                                        {index < (Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).length - 1 && (
-                                          <div style={{
-                                            position: 'absolute', 
-                                            top: 0, 
-                                            right: '-1px', 
-                                            width: '1px', 
-                                            height: '100%', 
-                                            backgroundColor: '#666', 
-                                            zIndex: 100
-                                          }}></div>
-                                        )}
                                       </th>
                                     ))}
                                   </tr>
@@ -1247,13 +1238,18 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                 <tbody>
                                   {/* Handle both array and object formats for data rows */}
                                   {(Array.isArray(results[0]) ? results.slice(1, 6) : results.slice(0, 5)).map((row, rowIndex) => (
-                                    <tr key={rowIndex}>
+                                    <tr key={rowIndex} style={{backgroundColor: rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9'}}>
                                       {(Array.isArray(results[0]) ? results[0] : Object.keys(results[0] || {})).map((header, colIndex) => (
                                         <td 
                                           key={header}
                                           style={{
-                                            padding: '12px', 
-                                            border: '1px solid #666'
+                                            padding: '12px 16px', 
+                                            borderLeft: colIndex > 0 ? '1px solid #666' : 'none',
+                                            borderBottom: rowIndex < 4 ? '1px solid #e5e5e5' : 'none',
+                                            whiteSpace: 'nowrap',
+                                            minWidth: '120px',
+                                            boxSizing: 'border-box',
+                                            textAlign: 'left'
                                           }}
                                         >
                                           {/* Handle both array format (use index) and object format (use header key) */}
