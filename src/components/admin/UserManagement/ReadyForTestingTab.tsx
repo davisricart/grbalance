@@ -230,8 +230,9 @@ export default function ReadyForTestingTab({
       try {
         // Calculate client paths for all users using the same logic as handleScriptUpload
         const clientPaths = readyForTestingUsers.map(user => {
-          const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const clientPath = customUrls[user.id] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
           return clientPath;
         }).join(',');
         
@@ -425,8 +426,9 @@ export default function ReadyForTestingTab({
     const user = readyForTestingUsers.find(u => u.id === userId);
     if (!user) return;
 
-    const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                       user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+    const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+    const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+    const clientPath = customUrls[userId] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
 
     // Create a file input element to select script
     const input = document.createElement('input');
@@ -555,8 +557,9 @@ export default function ReadyForTestingTab({
         throw new Error('User not found');
       }
 
-      const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                         user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+      const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+      const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+      const clientPath = customUrls[userId] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
 
       console.log('🏗️ Creating LIVE website for:', { userId, clientPath, businessName: user.businessName });
 
@@ -725,8 +728,9 @@ export default function ReadyForTestingTab({
                 {readyForTestingUsers
                   .filter(user => websiteStatus[user.id] === 'created')
                   .map(user => {
-                    const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                                     user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+                    const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+                    const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+                    const clientPath = customUrls[user.id] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
                     return (
                       <div key={user.id} className="flex items-center gap-2">
                         <span className="text-gray-600 text-xs">{user.businessName}:</span>
@@ -757,9 +761,9 @@ export default function ReadyForTestingTab({
           const isScriptCompleted = currentScriptStatus === 'completed';
           const canApprove = isQAPassed && isScriptCompleted;
           const isProcessing = processingUser === user.id;
-          const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-          const clientPath = customUrls[user.id] || defaultPath;
+          const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const clientPath = customUrls[user.id] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
 
           return (
             <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
