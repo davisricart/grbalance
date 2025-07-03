@@ -326,8 +326,9 @@ const ApprovedUsersTab = React.memo(({
       <div className="divide-y divide-gray-100">
         {users.map((user) => {
           const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
-          const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                            user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+          const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+          const clientPath = businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
           const userState = getUserState(user.id);
           const isProcessingUser = processing === user.id;
           
@@ -351,15 +352,23 @@ const ApprovedUsersTab = React.memo(({
                 </div>
                 
                 {/* Client Access */}
-                <a
-                  href={`https://grbalance.netlify.app/${clientPath}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
-                >
-                  <span className="font-mono">{clientPath}</span>
-                  <ExternalLink className="h-3 w-3" />
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://grbalance.netlify.app/${clientPath}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"
+                    title={`Business: "${user.businessName || 'Not Set'}" | Email: "${user.email}" | Path: "${clientPath}"`}
+                  >
+                    <span className="font-mono">{clientPath}</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {clientPath.startsWith('user') && (
+                    <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                      ⚠️ Generic path - Set business name
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* User Details */}
@@ -662,23 +671,15 @@ const ApprovedUsersTab = React.memo(({
                 </div>
               )}
 
-              {/* Progress Indicator */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Onboarding Progress</span>
-                  <span className="text-sm text-gray-500">
-                    {Object.values(userState).filter(Boolean).length} of 4 completed
-                  </span>
+              {/* Activation Status */}
+              {!userState.trialStarted || !userState.welcomePackageSent || !userState.goLive || !userState.billingSetup ? (
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-2 text-sm text-amber-600">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+                    <span>Client activation pending</span>
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${(Object.values(userState).filter(Boolean).length / 4) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
+              ) : null}
             </div>
           );
         })}
