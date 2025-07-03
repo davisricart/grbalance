@@ -110,70 +110,65 @@ export default function App() {
     <ErrorBoundary>
       <HelmetProvider>
         <AuthProvider>
-          <Router
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true
-            }}
-          >
+          <Router>
             <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              {/* Admin routes - no layout */}
-              <Route path="/admin" element={<AdminLoginPage />} />
-              <Route path="/admin/dashboard" element={
-                <ProtectedRoute>
-                  <AdminPage />
-                </ProtectedRoute>
-              } />
-              
-              {/* All other routes - with layout */}
-              <Route path="/" element={<Layout><LandingPage /></Layout>} />
-              <Route path="/app" element={
-                <Layout>
-                  <ApprovedUserRoute>
-                    <ReconciliationApp />
-                  </ApprovedUserRoute>
-                </Layout>
-              } />
-              <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
-              <Route path="/login" element={<Layout><LoginPage /></Layout>} />
-              <Route path="/pending-approval" element={
-                <Layout>
+              <Routes>
+                {/* Admin routes - no layout */}
+                <Route path="/admin" element={<AdminLoginPage />} />
+                <Route path="/admin/dashboard" element={
                   <ProtectedRoute>
-                    <PendingApprovalPage />
+                    <AdminPage />
                   </ProtectedRoute>
-                </Layout>
-              } />
-              <Route path="/docs" element={<Layout><DocumentationPage /></Layout>} />
-              <Route path="/support" element={<Layout><SupportPage /></Layout>} />
-              <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-              <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
-              <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
-              <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
-              <Route path="/book" element={<Layout><BookingPage /></Layout>} />
-              <Route path="/demo" element={<Layout><DemoPage /></Layout>} />
-              <Route path="/interactive-demo" element={<Layout><InteractiveDemoPage /></Layout>} />
-              <Route path="/billing" element={
-                <Layout>
-                  <ProtectedRoute>
-                    <BillingPage />
-                  </ProtectedRoute>
-                </Layout>
-              } />
-              <Route path="/mockup-billing" element={
-                <Layout>
-                  <ProtectedRoute>
-                    <BillingWireframe />
-                  </ProtectedRoute>
-                </Layout>
-              } />
-              {/* Dynamic Client Portal Route */}
-              <Route path="/:clientname" element={<Layout><ClientPortalPage /></Layout>} />
-              <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
-            </Routes>
-          </Suspense>
-        </Router>
-      </AuthProvider>
+                } />
+                
+                {/* All other routes - with layout */}
+                <Route path="/" element={<Layout><LandingPage /></Layout>} />
+                <Route path="/app" element={
+                  <Layout>
+                    <ApprovedUserRoute>
+                      <ReconciliationApp />
+                    </ApprovedUserRoute>
+                  </Layout>
+                } />
+                <Route path="/register" element={<Layout><RegisterPage /></Layout>} />
+                <Route path="/login" element={<Layout><LoginPage /></Layout>} />
+                <Route path="/pending-approval" element={
+                  <Layout>
+                    <ProtectedRoute>
+                      <PendingApprovalPage />
+                    </ProtectedRoute>
+                  </Layout>
+                } />
+                <Route path="/docs" element={<Layout><DocumentationPage /></Layout>} />
+                <Route path="/support" element={<Layout><SupportPage /></Layout>} />
+                <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+                <Route path="/terms" element={<Layout><TermsPage /></Layout>} />
+                <Route path="/privacy" element={<Layout><PrivacyPage /></Layout>} />
+                <Route path="/pricing" element={<Layout><PricingPage /></Layout>} />
+                <Route path="/book" element={<Layout><BookingPage /></Layout>} />
+                <Route path="/demo" element={<Layout><DemoPage /></Layout>} />
+                <Route path="/interactive-demo" element={<Layout><InteractiveDemoPage /></Layout>} />
+                <Route path="/billing" element={
+                  <Layout>
+                    <ProtectedRoute>
+                      <BillingPage />
+                    </ProtectedRoute>
+                  </Layout>
+                } />
+                <Route path="/mockup-billing" element={
+                  <Layout>
+                    <ProtectedRoute>
+                      <BillingWireframe />
+                    </ProtectedRoute>
+                  </Layout>
+                } />
+                {/* Dynamic Client Portal Route */}
+                <Route path="/:clientname" element={<Layout><ClientPortalPage /></Layout>} />
+                <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </AuthProvider>
       </HelmetProvider>
     </ErrorBoundary>
   );

@@ -162,13 +162,37 @@ export default function ReadyForTestingTab({
   onUpdateTestingUser,
   isLoading
 }: ReadyForTestingTabProps) {
+  console.log('🔄 ReadyForTestingTab mounting...');
+  
+  // Replace router hooks with window.location
+  const pathname = window.location.pathname;
+  console.log('📍 Location check:', { 
+    pathname,
+    href: window.location.href 
+  });
+
+  // Add mount tracking
+  useEffect(() => {
+    console.log('🎯 ReadyForTestingTab mounted');
+    return () => {
+      console.log('🔚 ReadyForTestingTab unmounting');
+    };
+  }, []);
+
   const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [testingNotes, setTestingNotes] = useState<{[key: string]: string}>({});
-  const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
-  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
-  const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
+  const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'creating' | 'created' | 'error'}>({});
+  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'uploading' | 'ready' | 'completed' | 'error'}>({});
+  const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
   const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
+
+  // Helper function to generate default path
+  const getDefaultPath = (user: ReadyForTestingUser) => {
+    const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+    const emailPath = user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
+    return businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
+  };
 
   // Check Supabase for existing websites when component loads - PERSISTENT STATUS
   useEffect(() => {
@@ -853,7 +877,7 @@ export default function ReadyForTestingTab({
                             <span className="text-sm text-gray-500">grbalance.netlify.app/</span>
                             <input
                               type="text"
-                              value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
+                              value={customUrls[user.id] !== undefined ? customUrls[user.id] : getDefaultPath(user)}
                               onChange={(e) => setCustomUrls(prev => ({ ...prev, [user.id]: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '') }))}
                               placeholder="Enter client portal name..."
                               className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-blue-500 focus:border-blue-500 placeholder-gray-400 max-w-xs"
