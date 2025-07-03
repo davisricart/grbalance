@@ -43,12 +43,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   // Clear only usage limit errors for testing clients (not validation errors)
   useEffect(() => {
     const isTestingClient = (
-      user?.email === 'test@test.com' || 
-      user?.email?.includes('test') ||
-      window.location.pathname === '/test' ||
-      window.location.pathname.includes('/test') ||
-      window.location.hostname.includes('localhost') ||
-      window.location.hostname.includes('netlify.app') // Development sites
+      window.location.hostname.includes('localhost') // Only allow unlimited mode for localhost development
     );
     
     if (isTestingClient && status && (status.includes('limit') || status.includes('usage'))) {
@@ -440,7 +435,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const handleCompare = async () => {
     // Automatically determine if limits should apply based on user status
     const isLocalhost = window.location.hostname === 'localhost';
-    const isTestUser = user?.email ? (user.email.includes('test') || user.email.includes('demo')) : false;
+    const isTestUser = false; // Remove hardcoded test user detection - all users should be treated as real users
     
     console.log('🧪 Auto mode detection:', {
       userEmail: user?.email,
