@@ -172,14 +172,22 @@ export default function ReadyForTestingTab({
 
   // Check Supabase for existing websites when component loads - PERSISTENT STATUS
   useEffect(() => {
+    let isMounted = true;
+    
     const checkExistingWebsites = async () => {
+      if (!isMounted) return;
+      
       console.log('🔄 CHECKING PERSISTENT WEBSITE STATUS - Loading from Supabase...');
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
       // Load all existing clients at once for better performance
       try {
+        if (!isMounted) return;
+        
         const userIds = readyForTestingUsers.map(user => user.id).join(',');
+        if (!userIds) return;
+        
         const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=in.(${userIds})&select=id,client_path,website_created`, {
           method: 'GET',
           headers: {
@@ -188,6 +196,8 @@ export default function ReadyForTestingTab({
             'Content-Type': 'application/json'
           }
         });
+        
+        if (!isMounted) return;
         
         if (response.ok) {
           const clients = await response.json();
@@ -202,8 +212,8 @@ export default function ReadyForTestingTab({
             }
           });
           
-          // Batch update the state
-          if (Object.keys(newWebsiteStatus).length > 0) {
+          // Batch update the state only if component is still mounted
+          if (isMounted && Object.keys(newWebsiteStatus).length > 0) {
             setWebsiteStatus(prev => ({ ...prev, ...newWebsiteStatus }));
             console.log('🎯 PERSISTENT STATUS RESTORED:', Object.keys(newWebsiteStatus).length, 'websites');
           }
@@ -211,23 +221,45 @@ export default function ReadyForTestingTab({
           console.warn('⚠️ Failed to load persistent website status');
         }
       } catch (error) {
-        console.error('❌ Error checking persistent website status:', error);
+        if (isMounted) {
+          console.error('❌ Error checking persistent website status:', error);
+        }
       }
     };
 
     if (readyForTestingUsers.length > 0) {
-      checkExistingWebsites();
+      // Add small delay to ensure router context is stable
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          checkExistingWebsites();
+        }
+      }, 100);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [readyForTestingUsers]);
 
   // Check Supabase for existing scripts when component loads - PERSISTENT SCRIPT STATUS
   useEffect(() => {
+    let isMounted = true;
+    
     const checkExistingScripts = async () => {
+      if (!isMounted) return;
+      
       console.log('🔄 CHECKING PERSISTENT SCRIPT STATUS - Loading from Supabase...');
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
       try {
+        if (!isMounted) return;
+        
         // Calculate client paths for all users using the same logic as handleScriptUpload
         const clientPaths = readyForTestingUsers.map(user => {
           const businessPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '').trim();
@@ -235,6 +267,8 @@ export default function ReadyForTestingTab({
           const clientPath = customUrls[user.id] || businessPath || emailPath || `user${user.id?.substring(0, 8) || 'unknown'}`;
           return clientPath;
         }).join(',');
+        
+        if (!clientPaths) return;
         
         const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=in.(${clientPaths})&select=id,client_path,deployed_scripts`, {
           method: 'GET',
@@ -244,6 +278,8 @@ export default function ReadyForTestingTab({
             'Content-Type': 'application/json'
           }
         });
+        
+        if (!isMounted) return;
         
         if (response.ok) {
           const clients = await response.json();
@@ -265,7 +301,7 @@ export default function ReadyForTestingTab({
             }
           });
           
-          if (Object.keys(newScriptStatus).length > 0) {
+          if (isMounted && Object.keys(newScriptStatus).length > 0) {
             setScriptStatus(prev => ({ ...prev, ...newScriptStatus }));
             console.log('🎯 PERSISTENT SCRIPT STATUS RESTORED:', Object.keys(newScriptStatus).length, 'users with scripts');
           }
@@ -273,13 +309,29 @@ export default function ReadyForTestingTab({
           console.warn('⚠️ Failed to load persistent script status');
         }
       } catch (error) {
-        console.error('❌ Error checking persistent script status:', error);
+        if (isMounted) {
+          console.error('❌ Error checking persistent script status:', error);
+        }
       }
     };
 
     if (readyForTestingUsers.length > 0) {
-      checkExistingScripts();
+      // Add small delay to ensure router context is stable
+      const timer = setTimeout(() => {
+        if (isMounted) {
+          checkExistingScripts();
+        }
+      }, 150);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timer);
+      };
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [readyForTestingUsers, customUrls]);
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
