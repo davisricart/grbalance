@@ -1207,8 +1207,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                       <div className="p-0">
                         {results.length > 0 ? (
                           <div>
-                            <div className="overflow-x-auto">
-                              <table className="min-w-full" style={{borderCollapse: 'separate', borderSpacing: 0, border: '1px solid #666', borderRadius: '8px', overflow: 'hidden'}}>
+                            <div style={{overflowX: 'auto'}}>
+                              <table className="min-w-full" style={{borderCollapse: 'separate', borderSpacing: 0}}>
                                 <thead>
                                   <tr>
                                     {/* Handle both array format [["Header1", "Header2"], ["Value1", "Value2"]] and object format [{Header1: "Value1"}] */}
@@ -1218,10 +1218,10 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                         style={{
                                           padding: '12px 16px', 
                                           textAlign: 'left', 
-                                          borderBottom: '1px solid #666', 
-                                          borderLeft: index > 0 ? '1px solid #666' : 'none',
+                                          borderBottom: '1px solid #e5e7eb', 
+                                          borderLeft: index > 0 ? '1px solid #e5e7eb' : 'none',
                                           fontWeight: 'bold', 
-                                          backgroundColor: '#f0fdf4',
+                                          backgroundColor: '#f9fafb',
                                           whiteSpace: 'nowrap',
                                           minWidth: '120px',
                                           boxSizing: 'border-box'
@@ -1241,8 +1241,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                           key={header}
                                           style={{
                                             padding: '12px 16px', 
-                                            borderLeft: colIndex > 0 ? '1px solid #666' : 'none',
-                                            borderBottom: rowIndex < 4 ? '1px solid #e5e5e5' : 'none',
+                                            borderLeft: colIndex > 0 ? '1px solid #e5e7eb' : 'none',
+                                            borderBottom: rowIndex < 4 ? '1px solid #e5e7eb' : 'none',
                                             whiteSpace: 'nowrap',
                                             minWidth: '120px',
                                             boxSizing: 'border-box',
