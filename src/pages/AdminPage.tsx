@@ -1307,7 +1307,7 @@ const AdminPage: React.FC = () => {
       
       // Remove from both collections
       const { error: pendingError } = await supabase
-        .from('pendingUsers')
+        .from('clients')
         .delete()
         .eq('id', userId);
       
