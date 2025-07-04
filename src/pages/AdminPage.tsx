@@ -532,6 +532,20 @@ const AdminPage: React.FC = () => {
         console.error('❌ Error fetching all clients:', allError);
       } else {
         console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
+        
+        // Let's see what status values exist
+        const statusCounts = allClients?.reduce((acc: any, client: any) => {
+          const status = client.status || 'null';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('📊 STATUS BREAKDOWN:', statusCounts);
+        
+        // Let's also see specific details of any potential pending users
+        const potentialPending = allClients?.filter((client: any) => 
+          !client.status || client.status === 'pending' || client.status === '' || client.status === null
+        );
+        console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
       }
       
       // Now fetch just pending ones
