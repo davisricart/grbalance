@@ -548,11 +548,12 @@ const AdminPage: React.FC = () => {
         console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
       }
       
-      // Now fetch just pending ones
+      // Now fetch pending ones (including users that might have been sent back but still have 'testing' status)
       const { data: users, error } = await supabase
         .from('clients')
         .select('*')
-        .eq('status', 'pending')
+        .in('status', ['pending', 'testing'])  // Include both pending and testing status
+        .neq('website_created', true)  // Exclude users who have active websites (they should be in QA)
         .order('id', { ascending: false });
       
       if (error) throw error;
