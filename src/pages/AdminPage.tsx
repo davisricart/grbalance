@@ -1320,19 +1320,13 @@ const AdminPage: React.FC = () => {
   const rejectPendingUser = async (userId: string) => {
     try {
       
-      // Remove from both collections
+      // Remove from pendingUsers table
       const { error: pendingError } = await supabase
-        .from('clients')
-        .delete()
-        .eq('id', userId);
-      
-      const { error: usageError } = await supabase
-        .from('usage')
+        .from('pendingUsers')
         .delete()
         .eq('id', userId);
       
       if (pendingError) throw pendingError;
-      if (usageError) throw usageError;
 
       
       // Refresh pending users list
