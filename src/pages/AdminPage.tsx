@@ -541,6 +541,19 @@ const AdminPage: React.FC = () => {
         }, {});
         console.log('📊 STATUS BREAKDOWN:', statusCounts);
         
+        // Show detailed info about each client to understand the discrepancy
+        console.log('🔍 DETAILED CLIENT INFO:');
+        allClients?.forEach((client: any, index: number) => {
+          console.log(`Client ${index + 1}:`, {
+            id: client.id,
+            email: client.email,
+            business_name: client.business_name,
+            status: client.status,
+            website_created: client.website_created,
+            client_path: client.client_path
+          });
+        });
+        
         // Let's also see specific details of any potential pending users
         const potentialPending = allClients?.filter((client: any) => 
           !client.status || client.status === 'pending' || client.status === '' || client.status === null
@@ -553,8 +566,10 @@ const AdminPage: React.FC = () => {
         .from('clients')
         .select('*')
         .in('status', ['pending', 'testing'])  // Include both pending and testing status
-        .neq('website_created', true)  // Exclude users who have active websites (they should be in QA)
+        .or('website_created.is.null,website_created.eq.false')  // Include users without websites or with false
         .order('id', { ascending: false });
+      
+      console.log('🔍 PENDING QUERY RESULT:', users?.length || 0, 'users found:', users);
       
       if (error) throw error;
       console.log('✅ fetchPendingUsers: Found', users?.length || 0, 'pending users:', users);
