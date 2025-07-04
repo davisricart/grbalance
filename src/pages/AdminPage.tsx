@@ -3036,13 +3036,11 @@ WARNING:
                   id: userId,
                   email: readyUser.email,
                   business_name: readyUser.businessname || readyUser.businessName || 'Business Name Not Set',
-                  business_type: readyUser.businesstype || readyUser.businessType || 'Unknown',
                   subscription_tier: readyUser.subscriptiontier || readyUser.subscriptionTier || 'starter',
-                  billing_cycle: readyUser.billingcycle || readyUser.billingCycle || 'monthly',
                   status: 'pending',
-                  created_at: readyUser.createdAt || new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                  sent_back_reason: reason || 'Sent back from QA testing'
+                  client_path: '', // Reset client path when sending back
+                  website_created: false, // Reset website status
+                  deployed_scripts: [] // Reset scripts
                 };
                 
                 console.log('💾 Preparing to save pendingUserData:', pendingUserData);
