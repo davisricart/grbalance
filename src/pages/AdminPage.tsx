@@ -522,6 +522,19 @@ const AdminPage: React.FC = () => {
   const fetchPendingUsers = useCallback(async () => {
     try {
       console.log('🔍 fetchPendingUsers: Starting to fetch pending users from clients table...');
+      
+      // First, let's see ALL clients in the table
+      const { data: allClients, error: allError } = await supabase
+        .from('clients')
+        .select('*');
+      
+      if (allError) {
+        console.error('❌ Error fetching all clients:', allError);
+      } else {
+        console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
+      }
+      
+      // Now fetch just pending ones
       const { data: users, error } = await supabase
         .from('clients')
         .select('*')
