@@ -522,9 +522,10 @@ const AdminPage: React.FC = () => {
   const fetchPendingUsers = useCallback(async () => {
     try {
       const { data: users, error } = await supabase
-        .from('pendingUsers')
+        .from('clients')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .eq('status', 'pending')
+        .order('id', { ascending: false });
       
       if (error) throw error;
       setPendingUsers(users || []);
