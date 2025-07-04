@@ -495,11 +495,6 @@ const AdminPage: React.FC = () => {
   // Fetch clients
   const fetchClients = useCallback(async () => {
     try {
-      // TEMPORARILY DISABLED - TABLE DOESN'T EXIST
-      console.log('⚠️ fetchClients: Temporarily disabled (table missing)');
-      setClients([]);
-      return;
-      
       const { data: clientsData, error } = await supabase
         .from('clients')
         .select('*')
@@ -1247,6 +1242,25 @@ const AdminPage: React.FC = () => {
       
       if (updateError) throw updateError;
 
+      // CRITICAL FIX: Insert approved user into clients table
+      // This is what makes users appear in the admin dashboard
+      const clientData = {
+        id: userId,
+        name: pendingUser.businessName,
+        email: pendingUser.email,
+        subdomain: pendingUser.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                  pendingUser.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client',
+        scripts: [],
+        createdAt: new Date().toISOString(),
+        status: 'active'
+      };
+
+      const { error: clientInsertError } = await supabase
+        .from('clients')
+        .insert(clientData);
+      
+      if (clientInsertError) throw clientInsertError;
+
       // IMPORTANT: Remove from pendingUsers collection
       const { error: deleteError } = await supabase
         .from('pendingUsers')
@@ -1260,6 +1274,7 @@ const AdminPage: React.FC = () => {
       setSelectedUserForEdit(null);
       await fetchApprovedUsers();
       await fetchPendingUsers(); // Refresh pending users to update badge count
+      await fetchClients(); // Refresh clients to update admin dashboard counts
       
     } catch (error: any) {
       console.error('Error updating user:', error);
