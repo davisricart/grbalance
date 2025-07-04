@@ -521,6 +521,7 @@ const AdminPage: React.FC = () => {
   // Fetch pending users
   const fetchPendingUsers = useCallback(async () => {
     try {
+      console.log('🔍 fetchPendingUsers: Starting to fetch pending users from clients table...');
       const { data: users, error } = await supabase
         .from('clients')
         .select('*')
@@ -528,6 +529,7 @@ const AdminPage: React.FC = () => {
         .order('id', { ascending: false });
       
       if (error) throw error;
+      console.log('✅ fetchPendingUsers: Found', users?.length || 0, 'pending users:', users);
       setPendingUsers(users || []);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
@@ -3049,12 +3051,12 @@ WARNING:
                 try {
                   // Update in database (use clients table, not pendingUsers)
                   console.log('📝 Writing to clients table with pending status...');
-                  const { error: insertError } = await supabase
+                  const { data: insertData, error: insertError } = await supabase
                     .from('clients')
-                    .upsert(pendingUserData);
+                    .upsert(pendingUserData, { onConflict: 'id' });
                   
                   if (insertError) throw insertError;
-                  console.log('✅ Successfully wrote to clients table');
+                  console.log('✅ Successfully wrote to clients table, result:', insertData);
                   
                   // Remove from ready-for-testing collection
                   console.log('🗑️ Removing from ready-for-testing collection...');
