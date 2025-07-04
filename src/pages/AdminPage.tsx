@@ -3031,29 +3031,31 @@ WARNING:
               console.log('📋 Found readyUser:', readyUser);
               
               if (readyUser) {
-                // Add back to pending users
+                // Add back to pending users (using clients table with pending status)
                 const pendingUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessName: readyUser.businessname || readyUser.businessName,
-                  businessType: readyUser.businesstype || readyUser.businessType,
-                  subscriptionTier: readyUser.subscriptiontier || readyUser.subscriptionTier,
-                  billingCycle: readyUser.billingcycle || readyUser.billingCycle,
-                  createdAt: readyUser.createdAt,
-                  updatedAt: new Date().toISOString()
+                  business_name: readyUser.businessname || readyUser.businessName || 'Business Name Not Set',
+                  business_type: readyUser.businesstype || readyUser.businessType || 'Unknown',
+                  subscription_tier: readyUser.subscriptiontier || readyUser.subscriptionTier || 'starter',
+                  billing_cycle: readyUser.billingcycle || readyUser.billingCycle || 'monthly',
+                  status: 'pending',
+                  created_at: readyUser.createdAt || new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  sent_back_reason: reason || 'Sent back from QA testing'
                 };
                 
                 console.log('💾 Preparing to save pendingUserData:', pendingUserData);
                 
                 try {
-                  // Update in database
-                  console.log('📝 Writing to pendingUsers collection...');
+                  // Update in database (use clients table, not pendingUsers)
+                  console.log('📝 Writing to clients table with pending status...');
                   const { error: insertError } = await supabase
-                    .from('pendingUsers')
+                    .from('clients')
                     .upsert(pendingUserData);
                   
                   if (insertError) throw insertError;
-                  console.log('✅ Successfully wrote to pendingUsers');
+                  console.log('✅ Successfully wrote to clients table');
                   
                   // Remove from ready-for-testing collection
                   console.log('🗑️ Removing from ready-for-testing collection...');
@@ -3075,9 +3077,11 @@ WARNING:
                   
                 } catch (error) {
                   console.error('❌ Error in sendBackToPending:', error);
+                  throw error; // Re-throw so the UI can handle it
                 }
               } else {
                 console.error('❌ Ready user not found for userId:', userId);
+                throw new Error('User not found in ready-for-testing list');
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
