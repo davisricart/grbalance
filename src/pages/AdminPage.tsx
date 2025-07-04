@@ -561,12 +561,11 @@ const AdminPage: React.FC = () => {
         console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
       }
       
-      // Now fetch pending ones (TEMPORARILY include ALL testing users to find sent back user)
+      // Now fetch pending ones (include testing users without websites for sent back users)
       const { data: users, error } = await supabase
         .from('clients')
         .select('*')
-        .in('status', ['pending', 'testing'])  // Include both pending and testing status
-        // Temporarily removing website filter to show sent back users
+        .or('status.eq.pending,and(status.eq.testing,website_created.eq.false)')  // Pending OR testing without website
         .order('id', { ascending: false });
       
       console.log('🔍 PENDING QUERY RESULT:', users?.length || 0, 'users found:', users);
@@ -583,6 +582,78 @@ const AdminPage: React.FC = () => {
       setPendingUsers([]);
     }
   }, [user]);
+
+  // Cleanup duplicate test entries
+  const cleanupDuplicateTestEntries = async () => {
+    try {
+      if (!confirm('This will delete duplicate test entries and keep only the most recent test@test.com entry. Continue?')) {
+        return;
+      }
+
+      console.log('🧹 Starting cleanup of duplicate test entries...');
+      
+      // Get all test entries
+      const { data: allClients, error: fetchError } = await supabase
+        .from('clients')
+        .select('*')
+        .in('email', ['test@test.com', 'test2@test.com']);
+      
+      if (fetchError) throw fetchError;
+      
+      console.log('Found', allClients?.length || 0, 'test entries');
+      
+      if (allClients && allClients.length > 1) {
+        // Sort by ID to get the most recent (assuming newer IDs are more recent)
+        const sortedEntries = allClients.sort((a, b) => b.id.localeCompare(a.id));
+        const keepEntry = sortedEntries[0]; // Keep the first (most recent)
+        const deleteEntries = sortedEntries.slice(1); // Delete the rest
+        
+        console.log('Keeping entry:', keepEntry.id, keepEntry.business_name);
+        console.log('Deleting', deleteEntries.length, 'duplicate entries');
+        
+        // Delete duplicate entries
+        for (const entry of deleteEntries) {
+          const { error: deleteError } = await supabase
+            .from('clients')
+            .delete()
+            .eq('id', entry.id);
+          
+          if (deleteError) {
+            console.error('Error deleting entry:', entry.id, deleteError);
+          } else {
+            console.log('✅ Deleted duplicate:', entry.id, entry.business_name);
+          }
+        }
+        
+        // Reset the kept entry to proper pending status
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({
+            status: 'pending',
+            website_created: false,
+            client_path: '',
+            deployed_scripts: []
+          })
+          .eq('id', keepEntry.id);
+        
+        if (updateError) {
+          console.error('Error updating kept entry:', updateError);
+        } else {
+          console.log('✅ Reset kept entry to pending status');
+        }
+        
+        // Refresh data
+        await fetchPendingUsers();
+        await fetchReadyForTestingUsers();
+        
+        console.log('🎉 Cleanup completed successfully!');
+      }
+      
+    } catch (error) {
+      console.error('❌ Cleanup failed:', error);
+      alert('Cleanup failed: ' + (error as Error).message);
+    }
+  };
 
   // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = useCallback(async () => {
@@ -2673,6 +2744,13 @@ WARNING:
             <p className="text-gray-600 mt-2">Manage clients and user approvals</p>
           </div>
           <div className="flex items-center gap-4">
+            <button
+              onClick={cleanupDuplicateTestEntries}
+              className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+              title="Clean up duplicate test entries"
+            >
+              🧹 Clean Up Duplicates
+            </button>
             <button
               onClick={debugSupabaseSetup}
               className="px-3 py-1 text-xs bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-md transition-colors"
