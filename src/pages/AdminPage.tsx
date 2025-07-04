@@ -520,7 +520,7 @@ const AdminPage: React.FC = () => {
       
       // First, let's see ALL clients in the table
       const { data: allClients, error: allError } = await supabase
-        .from('clients')
+        .from('pendingUsers')
         .select('*');
       
       if (allError) {
@@ -556,11 +556,11 @@ const AdminPage: React.FC = () => {
         console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
       }
       
-      // Now fetch pending ones (include testing users without websites for sent back users)
+      // Now fetch pending ones
       const { data: users, error } = await supabase
-        .from('clients')
+        .from('pendingUsers')
         .select('*')
-        .or('status.eq.pending,and(status.eq.testing,website_created.eq.false)')  // Pending OR testing without website
+        .eq('status', 'pending')
         .order('id', { ascending: false });
       
       console.log('🔍 PENDING QUERY RESULT:', users?.length || 0, 'users found:', users);
