@@ -427,7 +427,7 @@ export default function InteractiveDemoPage() {
               </h3>
               <div className="bg-white rounded-lg overflow-hidden shadow-sm">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-gray-800">
+                  <thead className="bg-gray-600">
                     <tr>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Date</th>
                       <th className="px-3 py-2 text-left font-semibold text-gray-700">Reference</th>
