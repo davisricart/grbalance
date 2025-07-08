@@ -3110,32 +3110,33 @@ WARNING:
               console.log('📋 Found readyUser:', readyUser);
               
               if (readyUser) {
-                // Add back to pending users (using clients table with pending status)
+                // Add back to pending users (using pendingUsers table with pending status)
                 const pendingUserData = {
                   id: userId,
                   email: readyUser.email,
-                  business_name: readyUser.businessname || readyUser.businessName || 'Business Name Not Set',
-                  subscription_tier: readyUser.subscriptiontier || readyUser.subscriptionTier || 'starter',
-                  status: 'pending',
-                  client_path: '', // Reset client path when sending back
-                  website_created: false, // Reset website status
-                  deployed_scripts: [] // Reset scripts
+                  businessName: readyUser.businessName || 'Business Name Not Set',
+                  businessType: readyUser.businessType || 'Other',
+                  subscriptionTier: readyUser.subscriptionTier || 'starter',
+                  billingCycle: readyUser.billingCycle || 'monthly',
+                  createdAt: readyUser.createdAt || new Date().toISOString(),
+                  status: 'pending'
+                  // Note: consultation tracking fields are not stored in database table
                 };
                 
                 console.log('💾 Preparing to save pendingUserData:', pendingUserData);
                 
                 try {
                   // Check for existing email to prevent duplicates
-                  await validateEmailUniqueness(readyUser.email, userId, 'clients');
+                  await validateEmailUniqueness(readyUser.email, userId, 'pendingUsers');
                   
-                  // Update in database (use clients table, not pendingUsers)
-                  console.log('📝 Writing to clients table with pending status...');
+                  // Update in database (use pendingUsers table, not clients)
+                  console.log('📝 Writing to pendingUsers table with pending status...');
                   const { data: insertData, error: insertError } = await supabase
-                    .from('clients')
+                    .from('pendingUsers')
                     .upsert(pendingUserData, { onConflict: 'id' });
                   
                   if (insertError) throw insertError;
-                  console.log('✅ Successfully wrote to clients table, result:', insertData);
+                  console.log('✅ Successfully wrote to pendingUsers table, result:', insertData);
                   
                   // Remove from ready-for-testing collection
                   console.log('🗑️ Removing from ready-for-testing collection...');
