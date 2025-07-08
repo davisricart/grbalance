@@ -265,8 +265,17 @@ export default function ReadyForTestingTab({
           });
           
           if (Object.keys(newScriptStatus).length > 0) {
-            setScriptStatus(prev => ({ ...prev, ...newScriptStatus }));
-            console.log('🎯 PERSISTENT SCRIPT STATUS RESTORED:', Object.keys(newScriptStatus).length, 'users with scripts');
+            setScriptStatus(prev => {
+              const updated = { ...prev };
+              // Only update status if it's not already 'completed' - preserve completed status
+              Object.keys(newScriptStatus).forEach(userId => {
+                if (prev[userId] !== 'completed') {
+                  updated[userId] = newScriptStatus[userId];
+                }
+              });
+              return updated;
+            });
+            console.log('🎯 PERSISTENT SCRIPT STATUS RESTORED (preserving completed):', Object.keys(newScriptStatus).length, 'users with scripts');
           }
         } else {
           console.warn('⚠️ Failed to load persistent script status');
