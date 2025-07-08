@@ -59,7 +59,7 @@ const ClientTable = React.memo(({
       
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-400">
+          <thead className="bg-gray-500">
             <tr>
               <th className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 <span className="hidden sm:inline">Client Information</span>

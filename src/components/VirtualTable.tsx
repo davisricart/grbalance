@@ -72,7 +72,7 @@ const VirtualTable: React.FC<VirtualTableProps> = React.memo(({
       {/* Virtual scrolled table */}
       <div className="overflow-x-auto rounded-lg shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
-          <thead className="bg-gray-400 sticky top-0">
+          <thead className="bg-gray-500 sticky top-0">
             <tr>
               {columns.map((col, index) => (
                 <th 
