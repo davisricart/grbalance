@@ -95,8 +95,8 @@ export const VisualStepBuilder: React.FC<VisualStepBuilderProps> = ({
 
     return (
       <div className="mt-2 overflow-x-auto">
-        <table className="min-w-full text-xs">
-          <thead className="bg-gray-50">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-100">
             <tr>
               {columns.slice(0, 4).map(col => ( // Show first 4 columns
                 <th key={col} className="px-2 py-1 text-left font-medium text-gray-700">
