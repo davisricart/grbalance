@@ -1966,7 +1966,7 @@ WARNING:
                 <thead>
                   <tr>
                     ${headers.map((header, index) => `
-                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f0fdf4; position: relative;">
+                      <th style="padding: 12px; text-align: left; border-top: 1px solid #666; border-bottom: 1px solid #666; font-weight: bold; background-color: #f9fafb; position: relative;">
                         ${header}
                         ${index < headers.length - 1 ? '<div style="position: absolute; top: 0; right: -1px; width: 1px; height: 100%; background-color: #666; z-index: 100;"></div>' : ''}
                       </th>
