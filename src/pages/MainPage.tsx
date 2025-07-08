@@ -1224,7 +1224,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                           borderTop: '1px solid #666', 
                                           borderBottom: '1px solid #666', 
                                           fontWeight: 'bold', 
-                                          backgroundColor: '#f0fdf4',
+                                          backgroundColor: '#f9fafb',
                                           position: 'relative'
                                         }}
                                       >
