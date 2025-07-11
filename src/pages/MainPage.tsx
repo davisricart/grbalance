@@ -1224,7 +1224,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                                           borderTop: '1px solid #666', 
                                           borderBottom: '1px solid #666', 
                                           fontWeight: 'bold', 
-                                          backgroundColor: '#9ca3af',
+                                          backgroundColor: '#f9fafb',  // Changed to lighter gray to match admin dashboard
                                           position: 'relative'
                                         }}
                                       >
