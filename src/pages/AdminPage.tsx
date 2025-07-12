@@ -2330,18 +2330,14 @@ WARNING:
       const readyForTestingData = {
         id: userId,
         email: approvedUser.email,
-        businessName: approvedUser.businessName,
-        businessType: approvedUser.businessType,
-        subscriptionTier: approvedUser.subscriptionTier,
-        billingCycle: approvedUser.billingCycle,
-        createdAt: approvedUser.createdAt,
-        readyForTestingAt: new Date().toISOString(),
-        siteUrl: `https://grbalance.netlify.app/${approvedUser.client_path}`,
-        siteName: approvedUser.client_path,
-        qaStatus: 'pending' as const,
-        qaTestingNotes: 'Sent back from approved status for re-testing',
-        websiteProvisioned: true,
-        websiteProvisionedAt: new Date().toISOString()
+        businessname: approvedUser.businessName,
+        businesstype: approvedUser.businessType,
+        subscriptiontier: approvedUser.subscriptionTier,
+        billingcycle: approvedUser.billingCycle,
+        createdat: approvedUser.createdAt,
+        readyfortestingat: new Date().toISOString(),
+        qastatus: 'pending',
+        qatestnotes: 'Sent back from approved status for re-testing'
       };
 
       // Add to ready-for-testing table
