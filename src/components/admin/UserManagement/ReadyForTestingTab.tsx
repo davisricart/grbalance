@@ -657,9 +657,10 @@ export default function ReadyForTestingTab({
       });
       
       // If UPDATE didn't find any rows, try INSERT
+      let result;
       if (createResponse.ok) {
-        const result = await createResponse.json();
-        if (!result || result.length === 0) {
+        const updateResult = await createResponse.json();
+        if (!updateResult || updateResult.length === 0) {
           // No rows updated, try INSERT
           createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
             method: 'POST',
@@ -671,17 +672,19 @@ export default function ReadyForTestingTab({
             },
             body: JSON.stringify(clientData)
           });
+          
+          if (!createResponse.ok) {
+            const errorText = await createResponse.text();
+            console.error('❌ Supabase direct error:', createResponse.status, errorText);
+            throw new Error(`Supabase API error: ${createResponse.status} ${errorText}`);
+          }
+          
+          result = await createResponse.json();
+        } else {
+          result = updateResult;
         }
       }
       console.log('📨 UPSERT response status:', createResponse.status);
-
-      if (!createResponse.ok) {
-        const errorText = await createResponse.text();
-        console.error('❌ Supabase direct error:', createResponse.status, errorText);
-        throw new Error(`Supabase API error: ${createResponse.status} ${errorText}`);
-      }
-
-      const result = await createResponse.json();
       console.log('✅ LIVE Website processed directly in Supabase:', result);
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
