@@ -652,11 +652,11 @@ const AdminPage: React.FC = () => {
   const fetchApprovedUsers = useCallback(async () => {
     try {
       
-      // Fetch approved and deactivated users (deleted users are hard-deleted from database)
+      // Fetch approved, deactivated, and deleted users
       const { data: snapshot, error } = await supabase
         .from('usage')
         .select('*')
-        .in('status', ['approved', 'deactivated']);
+        .in('status', ['approved', 'deactivated', 'deleted']);
       
       if (error) throw error;
       
@@ -676,14 +676,21 @@ const AdminPage: React.FC = () => {
         clientPathMap[client.id] = client.client_path;
       });
 
+      const deletedUsersData: ApprovedUser[] = [];
+
       (snapshot || []).forEach((userData) => {
         const userDataWithId = { 
           ...userData, 
           client_path: clientPathMap[userData.id] // Add client_path from lookup
         } as ApprovedUser;
           
-        // Add all users (approved/deactivated only since deleted are hard-deleted)
-        approvedUsersData.push(userDataWithId);
+        // Separate users by status
+        if (userData.status === 'deleted') {
+          deletedUsersData.push(userDataWithId);
+        } else {
+          // Add approved/deactivated users
+          approvedUsersData.push(userDataWithId);
+        }
         
         // Load site info if it exists (for all users)
         if (userData.siteUrl) {
@@ -699,7 +706,7 @@ const AdminPage: React.FC = () => {
       
       
       setApprovedUsers(approvedUsersData);
-      setDeletedUsers([]); // No deleted users since they're hard-deleted
+      setDeletedUsers(deletedUsersData);
       setSiteUrls(urlsData);
       // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
@@ -2380,36 +2387,22 @@ WARNING:
     }
   };
 
-  // Delete approved user permanently
+  // Delete approved user (move to deleted status)
   const deleteApprovedUser = async (userId: string) => {
     try {
-      // Delete from usage table
-      const { error: usageError } = await supabase
+      // Update status to 'deleted' instead of hard deleting
+      const { error: updateError } = await supabase
         .from('usage')
-        .delete()
+        .update({
+          status: 'deleted',
+          deletedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
         .eq('id', userId);
 
-      if (usageError) throw usageError;
+      if (updateError) throw updateError;
 
-      // Also delete from auth using secure Netlify function
-      try {
-        const response = await fetch('/.netlify/functions/delete-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userId })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('Error deleting from auth:', errorData);
-        }
-      } catch (authError) {
-        console.error('Error calling delete-user function:', authError);
-      }
-
-      // Refresh approved users list
+      // Refresh approved users list to remove from approved tab
       await fetchApprovedUsers();
 
     } catch (error) {
