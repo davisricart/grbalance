@@ -644,17 +644,35 @@ export default function ReadyForTestingTab({
       console.log('🔍 Client exists check:', clientExists ? 'YES - will UPDATE' : 'NO - will CREATE');
       console.log('🔍 Path collision check:', pathTaken ? 'COLLISION AVOIDED' : 'PATH AVAILABLE');
       
-      // Use UPSERT to handle both create and update cases safely
-      createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
-        method: 'POST',
+      // Try UPDATE first (by email), then INSERT if no rows affected
+      let createResponse = await fetch(`${supabaseUrl}/rest/v1/clients?email=eq.${encodeURIComponent(user.email)}`, {
+        method: 'PATCH',
         headers: {
           'apikey': supabaseKey,
           'Authorization': `Bearer ${supabaseKey}`,
           'Content-Type': 'application/json',
-          'Prefer': 'return=representation,resolution=merge-duplicates'
+          'Prefer': 'return=representation'
         },
         body: JSON.stringify(clientData)
       });
+      
+      // If UPDATE didn't find any rows, try INSERT
+      if (createResponse.ok) {
+        const result = await createResponse.json();
+        if (!result || result.length === 0) {
+          // No rows updated, try INSERT
+          createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
+            method: 'POST',
+            headers: {
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(clientData)
+          });
+        }
+      }
       console.log('📨 UPSERT response status:', createResponse.status);
 
       if (!createResponse.ok) {
