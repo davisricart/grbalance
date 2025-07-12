@@ -2316,13 +2316,11 @@ WARNING:
 
   // Send approved user back to QA testing
   const sendBackToQA = async (userId: string) => {
-    console.log('🚀 sendBackToQA function called with userId:', userId);
     try {
       // Get the approved user data
       const approvedUser = approvedUsers.find(user => user.id === userId);
-      console.log('👤 Found approved user:', approvedUser);
       if (!approvedUser) {
-        console.error('❌ Approved user not found');
+        console.error('Approved user not found');
         return;
       }
 
@@ -2340,16 +2338,11 @@ WARNING:
       };
 
       // Add to ready-for-testing table
-      console.log('📝 Inserting readyForTestingData:', readyForTestingData);
       const { error: insertError } = await supabase
         .from('ready-for-testing')
         .insert(readyForTestingData);
 
-      if (insertError) {
-        console.error('❌ Insert error:', insertError);
-        throw insertError;
-      }
-      console.log('✅ Successfully inserted to ready-for-testing table');
+      if (insertError) throw insertError;
 
       // Remove from usage table
       const { error: deleteError } = await supabase

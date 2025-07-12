@@ -120,20 +120,13 @@ const ApprovedUsersTab = React.memo(({
 
   // Administrative actions with inline confirmations
   const handleSendBackToQA = async (userId: string) => {
-    console.log('🔄 handleSendBackToQA called with userId:', userId);
     if (onSendBackToQA) {
-      console.log('✅ onSendBackToQA function is available, calling it...');
       setSendingBackToQA(userId);
       try {
         await onSendBackToQA(userId);
-        console.log('✅ onSendBackToQA completed successfully');
-      } catch (error) {
-        console.error('❌ onSendBackToQA failed:', error);
       } finally {
         setSendingBackToQA(null);
       }
-    } else {
-      console.error('❌ onSendBackToQA function not provided!');
     }
   };
 
@@ -352,16 +345,9 @@ const ApprovedUsersTab = React.memo(({
       <div className="divide-y divide-gray-100">
         {users.map((user) => {
           const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
-          console.log('📊 User object for portal URL:', { 
-            id: user.id, 
-            email: user.email,
-            client_path: user.client_path,
-            businessName: user.businessName 
-          });
           const clientPath = user.client_path || 
                             user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-          console.log('🔗 Generated clientPath:', clientPath);
           const userState = getUserState(user.id);
           const isProcessingUser = processing === user.id;
           
