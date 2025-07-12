@@ -1328,11 +1328,22 @@ const AdminPage: React.FC = () => {
       
       if (pendingError) throw pendingError;
 
-      // Delete from Supabase Auth (requires service role key)
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (authError) {
-        console.error('Error deleting from auth:', authError);
+      // Delete from Supabase Auth using secure Netlify function
+      try {
+        const response = await fetch('/.netlify/functions/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ userId })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error deleting from auth:', errorData);
+        }
+      } catch (authError) {
+        console.error('Error calling delete-user function:', authError);
         // Continue anyway since pendingUsers was already deleted
       }
       
