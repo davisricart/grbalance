@@ -8,6 +8,13 @@ interface ReadyForTestingTabProps {
   onSendBackToPending: (userId: string, reason: string) => Promise<void>;
   onUpdateTestingUser: (userId: string, updates: Partial<ReadyForTestingUser>) => Promise<void>;
   isLoading: boolean;
+  // Persistent state props
+  scriptStatus: {[key: string]: 'none' | 'ready' | 'completed'};
+  setScriptStatus: React.Dispatch<React.SetStateAction<{[key: string]: 'none' | 'ready' | 'completed'}>>;
+  websiteStatus: {[key: string]: 'none' | 'created'};
+  setWebsiteStatus: React.Dispatch<React.SetStateAction<{[key: string]: 'none' | 'created'}>>;
+  customUrls: {[key: string]: string};
+  setCustomUrls: React.Dispatch<React.SetStateAction<{[key: string]: string}>>;
 }
 
 // Component to show and manage deployed scripts for a client
@@ -160,13 +167,16 @@ export default function ReadyForTestingTab({
   onFinalApprove,
   onSendBackToPending,
   onUpdateTestingUser,
-  isLoading
+  isLoading,
+  scriptStatus,
+  setScriptStatus,
+  websiteStatus,
+  setWebsiteStatus,
+  customUrls,
+  setCustomUrls
 }: ReadyForTestingTabProps) {
   const [processingUser, setProcessingUser] = useState<string | null>(null);
   const [testingNotes, setTestingNotes] = useState<{[key: string]: string}>({});
-  const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
-  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
-  const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
   const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
 

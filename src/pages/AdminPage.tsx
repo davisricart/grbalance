@@ -191,6 +191,11 @@ const AdminPage: React.FC = () => {
 
   const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Persistent state for ReadyForTestingTab
+  const [scriptStatus, setScriptStatus] = useState<{[key: string]: 'none' | 'ready' | 'completed'}>({});
+  const [websiteStatus, setWebsiteStatus] = useState<{[key: string]: 'none' | 'created'}>({});
+  const [customUrls, setCustomUrls] = useState<{[key: string]: string}>({});
   const [showAddClient, setShowAddClient] = useState(false);
   const [showUploadScript, setShowUploadScript] = useState(false);
   const [selectedClientForScript, setSelectedClientForScript] = useState<string>('');
@@ -3112,6 +3117,12 @@ WARNING:
         {activeTab === 'ready-for-testing' && (
           <ReadyForTestingTab
             readyForTestingUsers={readyForTestingUsers}
+            scriptStatus={scriptStatus}
+            setScriptStatus={setScriptStatus}
+            websiteStatus={websiteStatus}
+            setWebsiteStatus={setWebsiteStatus}
+            customUrls={customUrls}
+            setCustomUrls={setCustomUrls}
             onFinalApprove={async (userId: string, userData: Partial<ApprovedUser>) => {
               console.log('🚀 onFinalApprove called with userId:', userId, 'userData:', userData);
               
