@@ -302,7 +302,13 @@ const ApprovedUsersTab = React.memo(({
             </div>
           </div>
           <div className="text-sm text-gray-500">
-            All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">grbalance.netlify.app/clientname</code>
+            All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">
+              grbalance.netlify.app/{users.length > 0 
+                ? (users[0].businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                   users[0].email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client')
+                : '[client-name]'
+              }
+            </code>
           </div>
         </div>
       </div>
