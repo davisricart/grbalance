@@ -304,7 +304,8 @@ const ApprovedUsersTab = React.memo(({
           <div className="text-sm text-gray-500">
             All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">
               grbalance.netlify.app/{users.length > 0 
-                ? (users[0].businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                ? (users[0].client_path || 
+                   users[0].businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                    users[0].email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client')
                 : '[client-name]'
               }
@@ -316,7 +317,8 @@ const ApprovedUsersTab = React.memo(({
       <div className="divide-y divide-gray-100">
         {users.map((user) => {
           const usagePercentage = (user.comparisonsUsed / user.comparisonsLimit) * 100;
-          const clientPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+          const clientPath = user.client_path || 
+                            user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
           const userState = getUserState(user.id);
           const isProcessingUser = processing === user.id;

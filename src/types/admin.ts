@@ -70,6 +70,9 @@ export interface ApprovedUser {
   qaPassedAt?: string;
   billingLinkSent?: boolean;
   billingLinkSentAt?: string;
+  
+  // Website name from QA testing phase
+  client_path?: string;
 }
 
 export interface ScriptData {

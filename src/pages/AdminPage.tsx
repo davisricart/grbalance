@@ -3067,6 +3067,23 @@ WARNING:
                 
                 console.log('🎯 Final approval - transferring data:', approvedUserData);
                 
+                // Fetch client_path from clients table to preserve website name
+                let clientPath = null;
+                try {
+                  const { data: clientData, error: clientError } = await supabase
+                    .from('clients')
+                    .select('client_path')
+                    .eq('id', userId)
+                    .single();
+                  
+                  if (!clientError && clientData) {
+                    clientPath = clientData.client_path;
+                    console.log('✅ Found client_path:', clientPath);
+                  }
+                } catch (error) {
+                  console.log('ℹ️ No client record found, will use fallback');
+                }
+                
                 // Include REQUIRED fields based on database constraint errors
                 const dbApprovedUserData = {
                   id: userId,
@@ -3074,8 +3091,8 @@ WARNING:
                   subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved'
-                  // Now we know subscriptionTier IS required - let's see what other constraints exist
+                  status: 'approved',
+                  client_path: clientPath // Preserve the actual website name from QA testing
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
