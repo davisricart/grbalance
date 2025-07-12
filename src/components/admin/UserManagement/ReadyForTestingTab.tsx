@@ -685,6 +685,7 @@ export default function ReadyForTestingTab({
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
       console.log('🔍 Current clientPath after creation:', clientPath);
       console.log('🔍 CustomUrls state:', customUrls[userId]);
+      console.log('🔍 Website status after creation:', { [userId]: 'created' });
       
     } catch (error) {
       console.error('❌ Error creating website:', error);
@@ -779,6 +780,12 @@ export default function ReadyForTestingTab({
           const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
           const clientPath = customUrls[user.id] || defaultPath;
+          const currentWebsiteStatus = websiteStatus[user.id] || 'none';
+          
+          console.log(`🔍 Render status for ${user.email}:`, {
+            websiteStatus: currentWebsiteStatus,
+            clientPath
+          });
 
           return (
             <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
@@ -809,7 +816,7 @@ export default function ReadyForTestingTab({
                       </div>
                       
                       {/* Client Portal URL Input */}
-                      {websiteStatus[user.id] !== 'created' && (
+                      {currentWebsiteStatus !== 'created' && (
                         <div className="mt-2">
                           <label className="block text-xs text-gray-600 mb-1">Client Portal URL:</label>
                           <div className="flex items-center gap-2">
@@ -835,7 +842,7 @@ export default function ReadyForTestingTab({
                     {/* QA Status & Actions */}
                     <div className="flex items-center gap-3">
                       {/* Create/Preview Website */}
-                      {websiteStatus[user.id] === 'created' ? (
+                      {currentWebsiteStatus === 'created' ? (
                         <a
                           href={`https://grbalance.netlify.app/${clientPath}`}
                           target="_blank"
@@ -998,7 +1005,7 @@ export default function ReadyForTestingTab({
                   </div>
 
                   {/* Deployed Scripts Section - Only show if website is created */}
-                  {websiteStatus[user.id] === 'created' && (
+                  {currentWebsiteStatus === 'created' && (
                     <DeployedScriptsSection
                       userId={user.id}
                       clientPath={clientPath}
