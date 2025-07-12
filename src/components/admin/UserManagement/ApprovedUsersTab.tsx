@@ -760,23 +760,6 @@ const ApprovedUsersTab = React.memo(({
                 </div>
               )}
 
-              {/* Progress Indicator */}
-              <div className="mt-4 pt-3 border-t border-gray-100">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Onboarding Progress</span>
-                  <span className="text-sm text-gray-500">
-                    {Object.values(userState).filter(Boolean).length} of 4 completed
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                    style={{ 
-                      width: `${(Object.values(userState).filter(Boolean).length / 4) * 100}%` 
-                    }}
-                  />
-                </div>
-              </div>
             </div>
           );
         })}
