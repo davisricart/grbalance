@@ -1328,6 +1328,13 @@ const AdminPage: React.FC = () => {
       
       if (pendingError) throw pendingError;
 
+      // Delete from Supabase Auth (requires service role key)
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authError) {
+        console.error('Error deleting from auth:', authError);
+        // Continue anyway since pendingUsers was already deleted
+      }
       
       // Refresh pending users list
       await fetchPendingUsers();
