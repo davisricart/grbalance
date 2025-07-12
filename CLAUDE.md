@@ -30,6 +30,39 @@
 - **Status**: Fully functional and tested
 - **CRITICAL**: Styling configurations restored after initial implementation broke them
 
+## Admin User Management - COMPLETED ✅
+- **Pending User Deletion**: Fixed to properly delete from both pendingUsers table AND Supabase Auth
+- **Implementation**: Uses secure Netlify function `/.netlify/functions/delete-user` with service role key
+- **File**: `/src/pages/AdminPage.tsx` - `rejectPendingUser` function (line ~1320)
+- **Status**: Verified working - no more orphaned auth records
+- **Security**: Frontend calls backend function, service role key stays server-side
+
+## Admin Workflow Improvements - COMPLETED ✅
+- **Website Name Preservation**: QA testing website names now carry over to approved users
+- **File**: `/src/pages/AdminPage.tsx` - `onFinalApprove` function fetches client_path from clients table
+- **ApprovedUsersTab**: Updated to display actual website names instead of generated ones
+- **Status**: Website URLs now consistent between QA testing and approved phases
+
+## Admin Tab Enhancements - COMPLETED ✅
+- **Send Back to QA**: Added button in approved users tab to move users back to QA testing
+- **Inline Confirmations**: Replaced popup alerts with elegant inline warning messages
+- **Delete/Deactivate**: Updated with proper inline confirmations matching other tabs
+- **Files**: `ApprovedUsersTab.tsx`, `AdminPage.tsx`
+- **Status**: All administrative actions now have consistent UX
+
+## QA Testing State Persistence - COMPLETED ✅
+- **Problem**: Script upload status and website creation status lost on navigation
+- **Solution**: Moved state management from component-level to AdminPage parent component
+- **Files**: `ReadyForTestingTab.tsx`, `AdminPage.tsx`
+- **Status**: Script uploads and website status now persist when navigating away and back
+- **Note**: State persists across tab navigation within admin dashboard
+
+## Move to Approved Fix - COMPLETED ✅
+- **Problem**: Button not working due to client_path column error in usage table
+- **Solution**: Removed client_path from usage table insert, added lookup from clients table
+- **Files**: `AdminPage.tsx` - `onFinalApprove` and `fetchApprovedUsers` functions
+- **Status**: Move to Approved button now works properly, website names preserved
+
 ## Configuration Files - CRITICAL
 - **tailwind.config.js**: Must maintain proper Tailwind configuration
 - **postcss.config.js**: Required for PostCSS/Tailwind processing
