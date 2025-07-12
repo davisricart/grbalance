@@ -644,34 +644,18 @@ export default function ReadyForTestingTab({
       console.log('🔍 Client exists check:', clientExists ? 'YES - will UPDATE' : 'NO - will CREATE');
       console.log('🔍 Path collision check:', pathTaken ? 'COLLISION AVOIDED' : 'PATH AVAILABLE');
       
-      let createResponse;
-      if (clientExists) {
-        // UPDATE existing client
-        createResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
-          method: 'PATCH',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(clientData)
-        });
-        console.log('📨 UPDATE response status:', createResponse.status);
-      } else {
-        // CREATE new client
-        createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
-          method: 'POST',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          },
-          body: JSON.stringify(clientData)
-        });
-        console.log('📨 CREATE response status:', createResponse.status);
-      }
+      // Use UPSERT to handle both create and update cases safely
+      createResponse = await fetch(`${supabaseUrl}/rest/v1/clients`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation,resolution=merge-duplicates'
+        },
+        body: JSON.stringify(clientData)
+      });
+      console.log('📨 UPSERT response status:', createResponse.status);
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text();
@@ -683,9 +667,6 @@ export default function ReadyForTestingTab({
       console.log('✅ LIVE Website processed directly in Supabase:', result);
 
       setWebsiteStatus(prev => ({ ...prev, [userId]: 'created' }));
-      console.log('🔍 Current clientPath after creation:', clientPath);
-      console.log('🔍 CustomUrls state:', customUrls[userId]);
-      console.log('🔍 Website status after creation:', { [userId]: 'created' });
       
     } catch (error) {
       console.error('❌ Error creating website:', error);
@@ -781,11 +762,6 @@ export default function ReadyForTestingTab({
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
           const clientPath = customUrls[user.id] || defaultPath;
           const currentWebsiteStatus = websiteStatus[user.id] || 'none';
-          
-          console.log(`🔍 Render status for ${user.email}:`, {
-            websiteStatus: currentWebsiteStatus,
-            clientPath
-          });
 
           return (
             <div key={user.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
