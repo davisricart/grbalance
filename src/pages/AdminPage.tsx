@@ -2330,14 +2330,13 @@ WARNING:
       const readyForTestingData = {
         id: userId,
         email: approvedUser.email,
-        businessname: approvedUser.businessName,
-        businesstype: approvedUser.businessType,
+        businessname: approvedUser.businessName || 'Unknown Business',
+        businesstype: approvedUser.businessType || 'Other',
         subscriptiontier: approvedUser.subscriptionTier,
-        billingcycle: approvedUser.billingCycle,
-        createdat: approvedUser.createdAt,
+        billingcycle: approvedUser.billingCycle || 'monthly',
+        createdat: approvedUser.createdAt || new Date().toISOString(),
         readyfortestingat: new Date().toISOString(),
-        qastatus: 'pending',
-        qatestnotes: 'Sent back from approved status for re-testing'
+        qastatus: 'pending'
       };
 
       // Add to ready-for-testing table
