@@ -665,11 +665,25 @@ const AdminPage: React.FC = () => {
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
+      // Also fetch client_path from clients table for each user
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, client_path')
+        .in('id', (snapshot || []).map(u => u.id));
+
+      const clientPathMap: {[userId: string]: string} = {};
+      (clientsData || []).forEach((client) => {
+        clientPathMap[client.id] = client.client_path;
+      });
+
       (snapshot || []).forEach((userData) => {
-        const userDataWithId = { ...userData } as ApprovedUser;
+        const userDataWithId = { 
+          ...userData, 
+          client_path: clientPathMap[userData.id] // Add client_path from lookup
+        } as ApprovedUser;
           
         // Add all users (approved/deactivated only since deleted are hard-deleted)
-        approvedUsersData.push(userData);
+        approvedUsersData.push(userDataWithId);
         
         // Load site info if it exists (for all users)
         if (userData.siteUrl) {
@@ -3186,8 +3200,8 @@ WARNING:
                   subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved',
-                  client_path: clientPath // Preserve the actual website name from QA testing
+                  status: 'approved'
+                  // Note: client_path is not stored in usage table, it's stored in clients table
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);

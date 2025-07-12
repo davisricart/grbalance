@@ -775,17 +775,6 @@ export default function ReadyForTestingTab({
           const currentScriptStatus = scriptStatus[user.id] || 'none';
           const isScriptCompleted = currentScriptStatus === 'completed';
           const canApprove = isQAPassed && isScriptCompleted;
-          
-          // Debug approval status
-          if (user.id) {
-            console.log(`🔍 User ${user.email} approval status:`, {
-              qaStatus,
-              isQAPassed,
-              currentScriptStatus,
-              isScriptCompleted,
-              canApprove
-            });
-          }
           const isProcessing = processingUser === user.id;
           const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
