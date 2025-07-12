@@ -2335,20 +2335,26 @@ WARNING:
         subscriptionTier: approvedUser.subscriptionTier,
         billingCycle: approvedUser.billingCycle,
         createdAt: approvedUser.createdAt,
-        client_path: approvedUser.client_path,
-        consultationCompleted: true,
-        scriptReady: true,
-        consultationNotes: 'Sent back from approved status for re-testing',
+        readyForTestingAt: new Date().toISOString(),
+        siteUrl: `https://grbalance.netlify.app/${approvedUser.client_path}`,
+        siteName: approvedUser.client_path,
+        qaStatus: 'pending' as const,
+        qaTestingNotes: 'Sent back from approved status for re-testing',
         websiteProvisioned: true,
         websiteProvisionedAt: new Date().toISOString()
       };
 
       // Add to ready-for-testing table
+      console.log('📝 Inserting readyForTestingData:', readyForTestingData);
       const { error: insertError } = await supabase
         .from('ready-for-testing')
         .insert(readyForTestingData);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('❌ Insert error:', insertError);
+        throw insertError;
+      }
+      console.log('✅ Successfully inserted to ready-for-testing table');
 
       // Remove from usage table
       const { error: deleteError } = await supabase
