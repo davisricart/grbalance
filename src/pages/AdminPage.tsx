@@ -2316,11 +2316,13 @@ WARNING:
 
   // Send approved user back to QA testing
   const sendBackToQA = async (userId: string) => {
+    console.log('🚀 sendBackToQA function called with userId:', userId);
     try {
       // Get the approved user data
       const approvedUser = approvedUsers.find(user => user.id === userId);
+      console.log('👤 Found approved user:', approvedUser);
       if (!approvedUser) {
-        console.error('Approved user not found');
+        console.error('❌ Approved user not found');
         return;
       }
 

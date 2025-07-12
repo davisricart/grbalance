@@ -120,13 +120,20 @@ const ApprovedUsersTab = React.memo(({
 
   // Administrative actions with inline confirmations
   const handleSendBackToQA = async (userId: string) => {
+    console.log('🔄 handleSendBackToQA called with userId:', userId);
     if (onSendBackToQA) {
+      console.log('✅ onSendBackToQA function is available, calling it...');
       setSendingBackToQA(userId);
       try {
         await onSendBackToQA(userId);
+        console.log('✅ onSendBackToQA completed successfully');
+      } catch (error) {
+        console.error('❌ onSendBackToQA failed:', error);
       } finally {
         setSendingBackToQA(null);
       }
+    } else {
+      console.error('❌ onSendBackToQA function not provided!');
     }
   };
 
