@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings, ArrowLeft, X } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 
 interface ApprovedUsersTabProps {
@@ -8,6 +8,9 @@ interface ApprovedUsersTabProps {
   onResetUsage: (userId: string) => Promise<void>;
   onAddUsage: (userId: string, amount: number) => Promise<void>;
   onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
+  onSendBackToQA?: (userId: string) => Promise<void>;
+  onDeactivateUser?: (userId: string) => Promise<void>;
+  onDeleteUser?: (userId: string) => Promise<void>;
   inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
 }
 
@@ -17,6 +20,9 @@ const ApprovedUsersTab = React.memo(({
   onResetUsage,
   onAddUsage,
   onUpdateLimit,
+  onSendBackToQA,
+  onDeactivateUser,
+  onDeleteUser,
   inlineNotifications
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
@@ -30,6 +36,9 @@ const ApprovedUsersTab = React.memo(({
   const [usageInputs, setUsageInputs] = useState<{[key: string]: string}>({});
   const [expandedActivation, setExpandedActivation] = useState<{[key: string]: boolean}>({});
   const [confirmActivation, setConfirmActivation] = useState<{[key: string]: boolean}>({});
+  const [sendingBackToQA, setSendingBackToQA] = useState<string | null>(null);
+  const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
   // Sequential workflow handlers
   const handleSetupBilling = async (userId: string, tier: string) => {
@@ -109,18 +118,37 @@ const ApprovedUsersTab = React.memo(({
     }, 2000);
   };
 
-  // Administrative actions
-  const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      console.log(`Deleting user ${userId}`);
-      // TODO: Implement delete functionality
+  // Administrative actions with inline confirmations
+  const handleSendBackToQA = async (userId: string) => {
+    if (onSendBackToQA) {
+      setSendingBackToQA(userId);
+      try {
+        await onSendBackToQA(userId);
+      } finally {
+        setSendingBackToQA(null);
+      }
     }
   };
 
-  const handleDeactivateUser = async (userId: string) => {
-    if (confirm('Are you sure you want to deactivate this user?')) {
-      console.log(`Deactivating user ${userId}`);
-      // TODO: Implement deactivate functionality
+  const handleDeleteUserClick = async (userId: string) => {
+    if (onDeleteUser) {
+      setDeletingUser(userId);
+      try {
+        await onDeleteUser(userId);
+      } finally {
+        setDeletingUser(null);
+      }
+    }
+  };
+
+  const handleDeactivateUserClick = async (userId: string) => {
+    if (onDeactivateUser) {
+      setDeactivatingUser(userId);
+      try {
+        await onDeactivateUser(userId);
+      } finally {
+        setDeactivatingUser(null);
+      }
     }
   };
 
@@ -542,17 +570,30 @@ const ApprovedUsersTab = React.memo(({
 
                 {/* Administrative Actions (Far Right) */}
                 <div className="flex items-center gap-2 ml-8 border-l border-gray-200 pl-6">
+                  {onSendBackToQA && (
+                    <button
+                      onClick={() => setSendingBackToQA(user.id)}
+                      disabled={sendingBackToQA === user.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Send to QA</span>
+                    </button>
+                  )}
+                  
                   <button
-                    onClick={() => handleDeactivateUser(user.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-md text-sm font-medium transition-all hover:scale-105"
+                    onClick={() => setDeactivatingUser(user.id)}
+                    disabled={deactivatingUser === user.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
                   >
                     <UserX className="h-4 w-4" />
                     <span>Deactivate</span>
                   </button>
                   
                   <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium transition-all hover:scale-105"
+                    onClick={() => setDeletingUser(user.id)}
+                    disabled={deletingUser === user.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
                   >
                     <Trash2 className="h-4 w-4" />
                     <span>Delete</span>
@@ -618,6 +659,102 @@ const ApprovedUsersTab = React.memo(({
                         <Rocket className="h-4 w-4" />
                       )}
                       <span>{isProcessingUser ? 'Activating...' : '🚀 Yes, Activate Client'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Send Back to QA Confirmation */}
+              {sendingBackToQA === user.id && (
+                <div className="mt-4 mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                        <ArrowLeft className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-blue-800 font-medium">Send Back to QA Testing</h4>
+                        <p className="text-blue-600 text-sm">This will move the user back to the QA testing phase. They can be re-approved later.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setSendingBackToQA(null)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSendBackToQA(user.id)}
+                      className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                      <span>Yes, Send to QA</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Deactivate User Confirmation */}
+              {deactivatingUser === user.id && (
+                <div className="mt-4 mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
+                        <UserX className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-amber-800 font-medium">Deactivate User</h4>
+                        <p className="text-amber-600 text-sm">This will deactivate the user's account. They can be reactivated later.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setDeactivatingUser(null)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleDeactivateUserClick(user.id)}
+                      className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-all"
+                    >
+                      <UserX className="h-4 w-4" />
+                      <span>Yes, Deactivate</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete User Confirmation */}
+              {deletingUser === user.id && (
+                <div className="mt-4 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </div>
+                      <div>
+                        <h4 className="text-red-800 font-medium">Delete User</h4>
+                        <p className="text-red-600 text-sm">This will permanently delete the user. This action cannot be undone.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setDeletingUser(null)}
+                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleDeleteUserClick(user.id)}
+                      className="flex items-center gap-2 px-6 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-all"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span>Yes, Delete</span>
                     </button>
                   </div>
                 </div>

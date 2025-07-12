@@ -2314,6 +2314,94 @@ WARNING:
     // Add script deletion logic here
   };
 
+  // Send approved user back to QA testing
+  const sendBackToQA = async (userId: string) => {
+    try {
+      // Get the approved user data
+      const approvedUser = approvedUsers.find(user => user.id === userId);
+      if (!approvedUser) {
+        console.error('Approved user not found');
+        return;
+      }
+
+      // Move user from usage table to ready-for-testing table
+      const readyForTestingData = {
+        id: userId,
+        email: approvedUser.email,
+        businessName: approvedUser.businessName,
+        businessType: approvedUser.businessType,
+        subscriptionTier: approvedUser.subscriptionTier,
+        billingCycle: approvedUser.billingCycle,
+        createdAt: approvedUser.createdAt,
+        client_path: approvedUser.client_path,
+        consultationCompleted: true,
+        scriptReady: true,
+        consultationNotes: 'Sent back from approved status for re-testing',
+        websiteProvisioned: true,
+        websiteProvisionedAt: new Date().toISOString()
+      };
+
+      // Add to ready-for-testing table
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .insert(readyForTestingData);
+
+      if (insertError) throw insertError;
+
+      // Remove from usage table
+      const { error: deleteError } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+
+      if (deleteError) throw deleteError;
+
+      // Refresh both lists
+      await fetchApprovedUsers();
+      await fetchReadyForTestingUsers();
+
+    } catch (error) {
+      console.error('Error sending user back to QA:', error);
+    }
+  };
+
+  // Delete approved user permanently
+  const deleteApprovedUser = async (userId: string) => {
+    try {
+      // Delete from usage table
+      const { error: usageError } = await supabase
+        .from('usage')
+        .delete()
+        .eq('id', userId);
+
+      if (usageError) throw usageError;
+
+      // Also delete from auth using secure Netlify function
+      try {
+        const response = await fetch('/.netlify/functions/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ userId })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Error deleting from auth:', errorData);
+        }
+      } catch (authError) {
+        console.error('Error calling delete-user function:', authError);
+      }
+
+      // Refresh approved users list
+      await fetchApprovedUsers();
+
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
   const handleConfirmProvisionWebsite = (user: ApprovedUser) => {
     return handleProvisionWebsite(user);
   };
@@ -3248,6 +3336,9 @@ WARNING:
             onResetUsage={resetUserUsage}
             onAddUsage={addUserUsage}
             onUpdateLimit={updateUserLimit}
+            onSendBackToQA={sendBackToQA}
+            onDeactivateUser={deactivateApprovedUser}
+            onDeleteUser={deleteApprovedUser}
             inlineNotifications={inlineNotifications}
           />
         )}
