@@ -896,9 +896,7 @@ const AdminPage: React.FC = () => {
         .from('usage')
         .update({
           status: 'approved',
-          comparisonsLimit: comparisonLimit,
-          restoredAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          comparisonsLimit: comparisonLimit
         })
         .eq('id', userId);
       
