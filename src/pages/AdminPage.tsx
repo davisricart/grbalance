@@ -2395,9 +2395,7 @@ WARNING:
       const { error: updateError } = await supabase
         .from('usage')
         .update({
-          status: 'deleted',
-          deletedAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          status: 'deleted'
         })
         .eq('id', userId);
 
