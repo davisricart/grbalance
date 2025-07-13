@@ -180,6 +180,21 @@ export default function ReadyForTestingTab({
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
   const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
 
+  // Initialize customUrls from sitename field when users are loaded
+  useEffect(() => {
+    const newCustomUrls: {[key: string]: string} = {};
+    readyForTestingUsers.forEach(user => {
+      if (user.siteName && !customUrls[user.id]) {
+        newCustomUrls[user.id] = user.siteName;
+      }
+    });
+    
+    if (Object.keys(newCustomUrls).length > 0) {
+      setCustomUrls(prev => ({ ...prev, ...newCustomUrls }));
+      console.log('🔗 Restored custom URLs from sitename:', newCustomUrls);
+    }
+  }, [readyForTestingUsers]);
+
   // Check Supabase for existing websites when component loads - PERSISTENT STATUS
   useEffect(() => {
     const checkExistingWebsites = async () => {

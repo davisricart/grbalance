@@ -2360,7 +2360,10 @@ WARNING:
         billingcycle: approvedUser.billingCycle || 'monthly',
         createdat: approvedUser.createdAt || new Date().toISOString(),
         readyfortestingat: new Date().toISOString(),
-        qastatus: 'pending'
+        qastatus: 'pending',
+        // Preserve the website name from approved status
+        sitename: approvedUser.client_path,
+        siteurl: approvedUser.client_path ? `https://grbalance.netlify.app/${approvedUser.client_path}` : null
       };
 
       // Add to ready-for-testing table
