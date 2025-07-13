@@ -41,12 +41,35 @@ const ApprovedUsersTab = React.memo(({
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
   // Sequential workflow handlers
-  const handleSetupBilling = async (userId: string, tier: string) => {
+  const handleSetupBilling = async (userId: string, tier: string, userEmail: string, businessName?: string) => {
     setProcessing(userId);
     console.log(`💳 Converting trial to paid ${tier} subscription for user ${userId}`);
     
-    // Simulate billing setup
-    setTimeout(() => {
+    try {
+      // Import Stripe service
+      const { createCheckoutSession } = await import('../../../services/stripeService');
+      const { getPlanConfig } = await import('../../../config/stripe');
+      
+      // Get plan configuration
+      const planConfig = getPlanConfig(tier, 'monthly'); // Default to monthly, can be made configurable
+      
+      // Create checkout session for subscription
+      const session = await createCheckoutSession({
+        userId: userId,
+        email: userEmail,
+        tier: tier as 'starter' | 'professional' | 'business',
+        cycle: 'monthly',
+        businessName: businessName,
+        successUrl: `${window.location.origin}/admin?billing_success=true&user_id=${userId}`,
+        cancelUrl: `${window.location.origin}/admin?billing_cancelled=true&user_id=${userId}`
+      });
+      
+      console.log('✅ Checkout session created, redirecting to Stripe...');
+      
+      // Redirect to Stripe Checkout
+      window.open(session.url, '_blank');
+      
+      // Update local state to show billing setup initiated
       setUserStates(prev => ({
         ...prev,
         [userId]: { 
@@ -56,16 +79,44 @@ const ApprovedUsersTab = React.memo(({
           goLive: prev[userId]?.goLive || false
         }
       }));
+      
+      console.log('💳 User redirected to Stripe checkout - billing setup initiated!');
+      
+    } catch (error) {
+      console.error('❌ Error setting up billing:', error);
+      alert('Failed to setup billing. Please try again.');
+    } finally {
       setProcessing(null);
-      console.log('✅ Trial converted to paid subscription - billing active!');
-    }, 2000);
+    }
   };
 
   const handleStartTrial = async (userId: string) => {
     setProcessing(userId);
     console.log(`🚀 Starting 14-day FREE trial for user ${userId} (NO CREDIT CARD REQUIRED)`);
     
-    setTimeout(() => {
+    try {
+      // Store trial start date in database
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://qkrptazfydtaoyhhczyr.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
+      );
+      
+      const trialStartDate = new Date();
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'trial',
+          trialStartedAt: trialStartDate.toISOString(),
+          trialEndsAt: trialEndDate.toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state
       setUserStates(prev => ({
         ...prev,
         [userId]: { 
@@ -75,9 +126,15 @@ const ApprovedUsersTab = React.memo(({
           goLive: prev[userId]?.goLive || false
         }
       }));
+      
+      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleDateString()}`);
+      
+    } catch (error) {
+      console.error('❌ Error starting trial:', error);
+      alert('Failed to start trial. Please try again.');
+    } finally {
       setProcessing(null);
-      console.log('✅ 14-day FREE trial started - client has immediate access!');
-    }, 1500);
+    }
   };
 
   const handleSendWelcomePackage = async (userId: string) => {
@@ -254,18 +311,43 @@ const ApprovedUsersTab = React.memo(({
       console.log('🌐 Step 3: Activating live site...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Step 4: Schedule billing automation
-      console.log('💳 Step 4: Setting up billing automation...');
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Step 4: Start 14-day free trial with database tracking
+      console.log('⏰ Step 4: Starting 14-day free trial with expiration tracking...');
       
-      // Update all states to completed
+      // Store trial start date in database
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://qkrptazfydtaoyhhczyr.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
+      );
+      
+      const trialStartDate = new Date();
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      
+      const { error } = await supabase
+        .from('usage')
+        .update({
+          status: 'trial',
+          trialStartedAt: trialStartDate.toISOString(),
+          trialEndsAt: trialEndDate.toISOString(),
+          subscriptionTier: tier,
+          billingCycle: 'monthly' // Default to monthly
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleDateString()}`);
+      console.log('💡 User will be prompted for payment when trial expires');
+      
+      // Update all states to completed (billing will happen when trial expires)
       setUserStates(prev => ({
         ...prev,
         [userId]: { 
           trialStarted: true,
           welcomePackageSent: true,
           goLive: true,
-          billingSetup: true
+          billingSetup: false // Will be set to true after payment
         }
       }));
       
