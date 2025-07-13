@@ -180,19 +180,46 @@ export default function ReadyForTestingTab({
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
   const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
 
-  // Initialize customUrls from sitename field when users are loaded
+  // Initialize customUrls from clients table when users are loaded
   useEffect(() => {
-    const newCustomUrls: {[key: string]: string} = {};
-    readyForTestingUsers.forEach(user => {
-      if (user.siteName && !customUrls[user.id]) {
-        newCustomUrls[user.id] = user.siteName;
+    const loadCustomUrls = async () => {
+      if (readyForTestingUsers.length === 0) return;
+      
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      
+      try {
+        const userIds = readyForTestingUsers.map(user => user.id).join(',');
+        const response = await fetch(`${supabaseUrl}/rest/v1/clients?id=in.(${userIds})&select=id,client_path`, {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const clients = await response.json();
+          const newCustomUrls: {[key: string]: string} = {};
+          
+          clients.forEach((client: any) => {
+            if (client.client_path && !customUrls[client.id]) {
+              newCustomUrls[client.id] = client.client_path;
+            }
+          });
+          
+          if (Object.keys(newCustomUrls).length > 0) {
+            setCustomUrls(prev => ({ ...prev, ...newCustomUrls }));
+            console.log('🔗 Restored custom URLs from clients table:', newCustomUrls);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading custom URLs:', error);
       }
-    });
+    };
     
-    if (Object.keys(newCustomUrls).length > 0) {
-      setCustomUrls(prev => ({ ...prev, ...newCustomUrls }));
-      console.log('🔗 Restored custom URLs from sitename:', newCustomUrls);
-    }
+    loadCustomUrls();
   }, [readyForTestingUsers]);
 
   // Check Supabase for existing websites when component loads - PERSISTENT STATUS
