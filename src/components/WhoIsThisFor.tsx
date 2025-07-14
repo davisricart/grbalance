@@ -27,7 +27,7 @@ const WhoIsThisFor: React.FC = () => (
           
           <div className="space-y-6">
             {[
-              "Export data from current systems",
+              "Export data (Excel, CSV) from your systems",
               "Automate time-consuming reconciliation",
               "Need custom matching rules",
               "Spend hours on manual work monthly",
