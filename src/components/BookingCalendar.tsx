@@ -51,7 +51,7 @@ export default function BookingCalendar() {
           <div className="bg-white rounded-lg p-4 border border-emerald-100">
             <VideoIcon className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
             <div className="text-sm font-medium text-gray-900">Video Call</div>
-            <div className="text-xs text-gray-600">Google Meet/Zoom</div>
+            <div className="text-xs text-gray-600">Zoom</div>
           </div>
           <div className="bg-white rounded-lg p-4 border border-emerald-100">
             <Calendar className="h-6 w-6 text-emerald-600 mx-auto mb-2" />
