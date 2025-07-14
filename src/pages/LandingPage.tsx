@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle, Mail, Users, Play, ArrowRight, Target, TrendingUp } from 'lucide-react';
 
 import ROICalculator from '../components/ROICalculator';
+import WhoIsThisFor from '../components/WhoIsThisFor';
 
 export default function LandingPage() {
   return (
@@ -109,7 +110,10 @@ export default function LandingPage() {
               </p>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
+          {/* Insert WhoIsThisFor section here for maximum visibility */}
+          <WhoIsThisFor />
+          {/* Main CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link
               to="/register"
               className="inline-flex items-center justify-center min-w-[280px] min-h-[50px] px-6 sm:px-8 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-base sm:text-lg font-semibold touch-manipulation shadow-lg"
