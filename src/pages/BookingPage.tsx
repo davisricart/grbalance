@@ -226,7 +226,7 @@ export default function BookingPage() {
                   <VideoIcon className="h-5 w-5 text-emerald-600 mt-1 flex-shrink-0" />
                   <div>
                     <h3 className="font-medium text-gray-900">Video Call</h3>
-                    <p className="text-sm text-gray-600">Via Google Meet or Zoom</p>
+                    <p className="text-sm text-gray-600">Via Zoom</p>
                   </div>
                 </li>
                 <li className="flex items-start gap-3">
