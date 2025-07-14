@@ -29,7 +29,7 @@ const WhoIsThisFor: React.FC = () => (
             {[
               "Export data (Excel, CSV) from your systems",
               "Automate time-consuming reconciliation",
-              "Need custom matching rules",
+              "Need custom matching rules", 
               "Spend hours on manual work monthly",
               "Use DaySmart or similar POS with external processors"
             ].map((item, index) => (
