@@ -31,7 +31,7 @@ const WhoIsThisFor: React.FC = () => (
               "Automate time-consuming reconciliation",
               "Need custom matching rules",
               "Spend hours on manual work monthly",
-              "Use DaySmart with external processors"
+              "Use DaySmart or similar POS with external payments"
             ].map((item, index) => (
               <div key={index} className="flex items-start gap-4 group">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full mt-3 group-hover:scale-125 transition-transform"></div>
