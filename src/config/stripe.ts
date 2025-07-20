@@ -1,5 +1,5 @@
 // Stripe Configuration for GR Balance
-// Test environment setup for subscription billing
+// Supports both test and production environments
 
 export const stripeConfig = {
   // Publishable key from environment variables only
@@ -7,8 +7,8 @@ export const stripeConfig = {
     throw new Error('VITE_STRIPE_PUBLISHABLE_KEY environment variable is required');
   })(),
   
-  // Test mode flag
-  isTestMode: true,
+  // Environment detection - automatically switches based on key prefix
+  isTestMode: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_') ?? true,
   
   // Subscription plans configuration - Price IDs from environment variables
   plans: {
@@ -83,6 +83,15 @@ export const getPlanConfig = (tier: string, cycle: 'monthly' | 'annual') => {
 // Helper function to format price for display
 export const formatPrice = (amountInCents: number): string => {
   return `$${(amountInCents / 100).toFixed(2)}`;
+};
+
+// Helper function to get environment info
+export const getStripeEnvironment = () => {
+  return {
+    isTestMode: stripeConfig.isTestMode,
+    environment: stripeConfig.isTestMode ? 'Test' : 'Production',
+    keyPrefix: stripeConfig.publishableKey.substring(0, 7)
+  };
 };
 
 export default stripeConfig; 
