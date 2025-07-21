@@ -91,24 +91,20 @@ export default function LandingPage() {
         {/* Hero Section */}
         <div className="text-center">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-6 sm:mb-8 leading-tight px-4">
-            Stop Spending Hours Every Month Reconciling DaySmart with Your Payment Processor
+            Custom Reconciliation Solutions Built for Your Business—Done For You
             <br className="hidden sm:block mb-2" />
-            <span className="block mt-2 sm:mt-4 text-xl sm:text-2xl lg:text-3xl xl:text-4xl">Custom automation turns your 3-hour data matching process into 5 minutes</span>
+            <span className="block mt-2 sm:mt-4 text-xl sm:text-2xl lg:text-3xl xl:text-4xl">Stop forcing your data into generic software. Get reconciliation that works exactly how your business works—no technical skills required.</span>
           </h1>
           <div className="mb-8 sm:mb-12 max-w-2xl mx-auto text-center px-4">
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
-              Stop the Reconciliation Struggle: Automated Matching Between Your POS and Payment Processor. Turn hours of manual work into 5-minute automated processes with reconciliation logic built specifically for your salon's unique setup.
+              Book a Strategy Call and let us build a custom solution for your business. We handle everything—consultation, development, and ongoing support. You just upload your files and get results.
             </p>
-            {/* No Credit Card Required Banner */}
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-6 sm:mb-8">
-              <div className="flex items-center justify-center gap-2 text-emerald-700">
-                <Shield className="h-5 w-5 flex-shrink-0" />
-                <span className="text-lg font-semibold">14-Day Free Trial • No Credit Card Required • Cancel Anytime</span>
-              </div>
-              <p className="text-emerald-600 text-sm mt-1">
-                Just email signup → Start trial → Pay only if you love it
-              </p>
-            </div>
+            <Link
+              to="/contact"
+              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 text-lg sm:text-xl"
+            >
+              Book a Strategy Call
+            </Link>
           </div>
           {/* Insert WhoIsThisFor section here for maximum visibility */}
           <WhoIsThisFor />
@@ -144,85 +140,95 @@ export default function LandingPage() {
         </div>
 
         {/* Process Visualization Section */}
-        <div className="mt-16 sm:mt-20 lg:mt-24 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
-              Get Started in 3 Simple Steps
-            </h2>
-            <p className="text-lg text-gray-600 mb-8 sm:mb-12">
-              From signup to catching your first discrepancy in under 48 hours
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
+            How It Works: Custom Solution, Done For You
+          </h2>
+          <p className="text-lg text-gray-600 mb-8 sm:mb-12">
+            We handle everything—from understanding your business to building and maintaining your custom reconciliation solution. You just upload files and get results.
+          </p>
+          {/* Process Steps */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 sm:gap-12">
+            {/* Step 1 */}
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                  <Mail className="h-8 w-8 text-emerald-600" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Book a Strategy Call</h3>
+                  <p className="text-gray-600 text-sm">
+                    We learn your business in a 30-minute consultation—no technical prep required.
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
+                <ArrowRight className="h-6 w-6" />
+              </div>
+            </div>
+            {/* Step 2 */}
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="h-8 w-8 text-emerald-600" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">2. We Build Your Solution</h3>
+                  <p className="text-gray-600 text-sm">
+                    Our team develops a custom reconciliation script tailored to your exact needs.
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
+                <ArrowRight className="h-6 w-6" />
+              </div>
+            </div>
+            {/* Step 3 */}
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                  <Play className="h-8 w-8 text-emerald-600" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">3. You Upload Files</h3>
+                  <p className="text-gray-600 text-sm">
+                    Just upload your files—no technical work required. Get instant, accurate results.
+                  </p>
+                </div>
+              </div>
+              <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
+                <ArrowRight className="h-6 w-6" />
+              </div>
+            </div>
+            {/* Step 4 */}
+            <div className="relative">
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                  <TrendingUp className="h-8 w-8 text-emerald-600" />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">4. Ongoing Optimization</h3>
+                  <p className="text-gray-600 text-sm">
+                    We keep improving your solution as your business evolves—support included.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline */}
+        <div className="mt-8 sm:mt-12 bg-gray-50 rounded-lg p-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              <span className="font-semibold text-emerald-600">Day 1:</span> Sign up and consultation
             </p>
-            
-            {/* Process Steps */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
-              {/* Step 1 */}
-              <div className="relative">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                    <Mail className="h-8 w-8 text-emerald-600" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">1. Email Signup</h3>
-                    <p className="text-gray-600 text-sm">
-                      Just your email and business info. No credit card, no commitment, no risk.
-                    </p>
-                  </div>
-                </div>
-                {/* Arrow for desktop */}
-                <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
-                  <ArrowRight className="h-6 w-6" />
-                </div>
-              </div>
-
-              {/* Step 2 */}
-              <div className="relative">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                    <Users className="h-8 w-8 text-emerald-600" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">2. Custom Consultation</h3>
-                    <p className="text-gray-600 text-sm">
-                      We build reconciliation logic specifically for your salon's POS and payment setup.
-                    </p>
-                  </div>
-                </div>
-                {/* Arrow for desktop */}
-                <div className="hidden md:block absolute top-8 -right-6 text-emerald-300">
-                  <ArrowRight className="h-6 w-6" />
-                </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="relative">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
-                    <Play className="h-8 w-8 text-emerald-600" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">3. Start 14-Day Trial</h3>
-                    <p className="text-gray-600 text-sm">
-                      Begin catching discrepancies immediately. Pay only if you love the results.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="mt-8 sm:mt-12 bg-gray-50 rounded-lg p-6">
-              <div className="text-center">
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-semibold text-emerald-600">Day 1:</span> Sign up and consultation
-                </p>
-                <p className="text-sm text-gray-600 mb-2">
-                  <span className="font-semibold text-emerald-600">Day 2:</span> Custom script ready for testing
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold text-emerald-600">Day 3-16:</span> 14-day trial period to catch real discrepancies
-                </p>
-              </div>
-            </div>
+            <p className="text-sm text-gray-600 mb-2">
+              <span className="font-semibold text-emerald-600">Day 2:</span> Custom script ready for testing
+            </p>
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold text-emerald-600">Day 3-16:</span> 14-day trial period to catch real discrepancies
+            </p>
           </div>
         </div>
 
@@ -372,7 +378,6 @@ export default function LandingPage() {
               Reduce manual reconciliation work by 85% with our custom-built matching logic designed specifically for your salon. Process thousands of transactions in minutes.
             </p>
           </div>
-          
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
             <DollarSign className="h-10 w-10 sm:h-12 sm:w-12 text-emerald-600 mb-3 sm:mb-4" />
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Catch $8,400+ Yearly</h3>
@@ -380,7 +385,6 @@ export default function LandingPage() {
               Our clients identify an average of $700 monthly in processing fee discrepancies and accounting errors.
             </p>
           </div>
-          
           <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-100">
             <Shield className="h-10 w-10 sm:h-12 sm:w-12 text-emerald-600 mb-3 sm:mb-4" />
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">99.9% Accuracy</h3>
@@ -388,6 +392,33 @@ export default function LandingPage() {
               Reduce reconciliation errors by 99.9% with our custom matching logic built for your specific data formats and automated verification.
             </p>
           </div>
+        </div>
+
+        {/* Testimonials Section */}
+        <div className="mt-12 max-w-4xl mx-auto text-center px-4">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">What Our Clients Say</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <p className="text-lg text-gray-700 italic mb-4">“I used to spend hours every week in Excel. Now I just upload my files and get my reports in minutes—no tech skills needed.”</p>
+              <div className="text-emerald-700 font-semibold">Sarah, Salon Owner</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <p className="text-lg text-gray-700 italic mb-4">“He understood our business immediately and built exactly what we needed. Zero learning curve, perfect accuracy.”</p>
+              <div className="text-emerald-700 font-semibold">Mike, Franchise Manager</div>
+            </div>
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <p className="text-lg text-gray-700 italic mb-4">“Works with our exact files—no reformatting required. I finally have peace of mind about our books.”</p>
+              <div className="text-emerald-700 font-semibold">Lisa, Bookkeeper</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Authority Section */}
+        <div className="mt-10 max-w-4xl mx-auto text-center px-4">
+          <h4 className="text-xl font-semibold text-emerald-700 mb-2">Trusted by Businesses Like Yours</h4>
+          <p className="text-gray-700 text-base mb-1">Over 50 businesses helped—from single-location salons to multi-site franchises.</p>
+          <p className="text-gray-700 text-base mb-1">100+ reconciliation challenges solved, from simple matching to complex multi-source workflows.</p>
+          <p className="text-gray-700 text-base">Personal attention to every solution—direct access to your reconciliation specialist.</p>
         </div>
 
         {/* How It Works Section */}

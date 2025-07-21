@@ -121,10 +121,13 @@ export default function PricingPage() {
 
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-            Stop Losing Money on Payment Processing Errors
+            Custom Solution Pricing
           </h1>
           <p className="mt-6 text-lg leading-8 text-gray-600">
-            Custom reconciliation solutions built for your salon's specific setup
+            Our pricing covers everything: consultation, custom script development, secure hosting, and ongoing support. You pay for results, not just access.
+          </p>
+          <p className="mt-2 text-base text-gray-500">
+            Custom reconciliation, without the custom software price tag. Save hours every month and avoid costly errors—at a fraction of what you’d pay for outside help.
           </p>
         </div>
 
@@ -203,8 +206,8 @@ export default function PricingPage() {
                 </span>
               </div>
               
-              <p className={`mt-4 text-sm leading-6 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
-                {plan.description}
+              <p className={`mt-4 text-sm leading-6 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}> 
+                {plan.name} Solution – Includes consultation, custom development, hosting, and ongoing support
               </p>
               
               <div className="flex items-baseline gap-x-2 mt-4">
@@ -220,6 +223,9 @@ export default function PricingPage() {
                 <span className="text-gray-400 line-through">+ $497 one-time custom setup</span>
                 <span className="text-emerald-700 font-semibold ml-2">FREE until August 1st</span>
               </div>
+              <p className="mt-2 text-xs text-gray-500">
+                We’ll work with you through unlimited revisions during the first 30 days to ensure your solution handles all your edge cases perfectly.
+              </p>
               {isAnnual && (
                 <p className={`text-sm mt-1 ${plan.popular ? 'text-gray-300' : 'text-gray-500'}`}>
                   Year 1: ${(plan.annualPrice * 12).toFixed(0)} (setup fee waived)

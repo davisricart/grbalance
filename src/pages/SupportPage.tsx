@@ -10,31 +10,39 @@ export default function SupportPage() {
   const faqs = [
     {
       question: "How do I start comparing files?",
-      answer: "First, we'll analyze your salon software and payment processor formats during setup. Once we've built your custom reconciliation script, you simply upload your reports and run your personalized comparison."
+      answer: "First, we'll learn about your business in a free consultation. Then we build your custom reconciliation script. You simply upload your reports and get results—no technical skills required."
     },
     {
       question: "How does the setup process work?",
-      answer: "We start with a consultation to understand your salon software, payment processors, and reconciliation needs. Then we build custom matching logic specifically for your data formats. Once your script is ready, you can upload files and get results instantly."
+      answer: "We start with a 30-minute strategy call to understand your needs. Our team builds your solution, tests it, and delivers a ready-to-use portal. Most solutions are live within 1-2 weeks."
     },
     {
       question: "What file formats are supported?",
-      answer: "We support Excel files (.xlsx, .xls) and CSV files (.csv). Files should have clear column headers and consistent data formats."
+      answer: "We support Excel files (.xlsx, .xls) and CSV files (.csv). If your files are unique, we'll adapt your solution to fit—no reformatting required."
     },
     {
-      question: "How are my monthly comparisons counted?",
-      answer: "Each successful comparison counts toward your monthly limit. Failed comparisons or errors don't count. Your limit resets on the first day of each month."
+      question: "What if my needs change?",
+      answer: "We adapt your solution as your business evolves. Unlimited revisions during the first 30 days, and ongoing support included."
     },
     {
-      question: "How can I upgrade my plan?",
-      answer: "Contact our support team to discuss adding more custom scripts or increasing your monthly comparison limits."
+      question: "How long does setup take?",
+      answer: "Most solutions are live within 1-2 weeks after your consultation."
     },
     {
-      question: "What if my data format changes?",
-      answer: "No problem! If your salon software or payment processor changes their report format, we'll update your custom script at no additional charge. Your reconciliation will continue working seamlessly."
+      question: "What if you're unavailable?",
+      answer: "Your solution runs independently. We provide backup support and ensure your reconciliation keeps working."
     },
     {
       question: "Is my data secure?",
-      answer: "Your uploaded files are processed securely and never stored permanently. We only access your data during the initial setup consultation to build your custom scripts."
+      answer: "Your uploaded files are processed securely and never stored permanently. We only access your data during setup to build your custom scripts."
+    },
+    {
+      question: "How many businesses have you helped?",
+      answer: "Over 50 businesses have trusted us to automate their reconciliation—ranging from single-location salons to multi-site franchises."
+    },
+    {
+      question: "What makes your service different?",
+      answer: "We deliver custom, done-for-you solutions—no generic software, no learning curve. You get results tailored to your exact workflow, with expert support every step of the way."
     }
   ];
 
