@@ -103,7 +103,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (TESTING)
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase
         .from('usage')
@@ -289,24 +289,35 @@ const ApprovedUsersTab = React.memo(({
       // Step 1: Send welcome email & start trial
       console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
       
-      // Import EmailJS email service (original setup - 200 emails/month)
-      const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
-      
-      // Send welcome email via EmailJS (200/month limit) - TEMPORARILY DISABLED DUE TO CORS
+      // Send welcome email via Netlify function (server-side)
       const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
-      console.log('📧 Email temporarily disabled due to CORS issue - will be fixed with server-side function');
-      const emailSent = true; // Skip email for now
+      console.log('📧 Sending welcome email via Netlify function...');
       
-      // const emailSent = await sendSimpleWelcomeEmail(
-      //   userEmail, 
-      //   businessName,
-      //   tier
-      // );
-      
-      // if (!emailSent) {
-      //   console.warn('⚠️ Welcome email failed but continuing activation...');
-      //   // Don't throw error - continue with activation even if email fails
-      // }
+      try {
+        const emailResponse = await fetch('/.netlify/functions/send-welcome-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            clientEmail: userEmail,
+            businessName: businessName,
+            tier: tier
+          })
+        });
+
+        const emailResult = await emailResponse.json();
+        
+        if (emailResult.success) {
+          console.log('✅ Welcome email sent successfully');
+        } else {
+          console.warn('⚠️ Welcome email failed:', emailResult.error);
+          // Don't throw error - continue with activation even if email fails
+        }
+      } catch (emailError) {
+        console.warn('⚠️ Welcome email service error:', emailError);
+        // Don't throw error - continue with activation even if email fails
+      }
       
       // Step 2: Send welcome package (onboarding materials)
       console.log('📦 Step 2: Sending onboarding materials...');
@@ -327,7 +338,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (TESTING)
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase
         .from('usage')
@@ -610,7 +621,7 @@ const ApprovedUsersTab = React.memo(({
                           </h5>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          {userState.billingSetup ? 'All Systems Live' : '1-Hour Trial Active'}
+                          {userState.billingSetup ? 'All Systems Live' : '14-Day Trial Active'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -620,7 +631,7 @@ const ApprovedUsersTab = React.memo(({
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Clock className="h-3 w-3" />
-                          <span>1-hour trial active</span>
+                          <span>14-day trial active</span>
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Rocket className="h-3 w-3" />
