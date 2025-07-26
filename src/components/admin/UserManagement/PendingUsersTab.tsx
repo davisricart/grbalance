@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Eye, Clock, AlertTriangle, User, Building2, Calendar, CheckCircle2, Settings, Zap } from 'lucide-react';
+import { Check, X, Eye, Clock, AlertTriangle, User, Building2, Calendar, CheckCircle2, Settings, Zap, Mail } from 'lucide-react';
 import { PendingUser, ReadyForTestingUser, TIER_LIMITS, TIER_PRICING } from '../../../types/admin';
 
 interface PendingUsersTabProps {
@@ -22,6 +22,28 @@ export default function PendingUsersTab({
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [approvingUser, setApprovingUser] = useState<string | null>(null);
   const [optimisticUpdates, setOptimisticUpdates] = useState<Record<string, Partial<PendingUser>>>({});
+
+  // Helper function to get reminder status
+  const getReminderStatus = (user: PendingUser) => {
+    const daysSinceSignup = Math.floor((new Date().getTime() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+    const reminderCount = user.reminder_count || 0;
+    const lastReminder = user.reminder_sent_at ? new Date(user.reminder_sent_at) : null;
+    
+    if (reminderCount === 0 && daysSinceSignup >= 2) {
+      return { status: 'due', message: 'Reminder due', color: 'amber' };
+    } else if (reminderCount > 0 && lastReminder) {
+      const daysSinceReminder = Math.floor((new Date().getTime() - lastReminder.getTime()) / (1000 * 60 * 60 * 24));
+      return { 
+        status: 'sent', 
+        message: `Sent ${daysSinceReminder}d ago`, 
+        color: 'blue',
+        count: reminderCount 
+      };
+    } else if (daysSinceSignup < 2) {
+      return { status: 'waiting', message: 'Too recent', color: 'gray' };
+    }
+    return { status: 'none', message: 'No reminder', color: 'gray' };
+  };
 
   const handleMoveToTesting = async (user: PendingUser) => {
     setProcessingUser(user.id);
@@ -173,6 +195,28 @@ export default function PendingUsersTab({
                           <Calendar className="h-3 w-3 text-gray-400" />
                           <span>{new Date(user.createdAt).toLocaleDateString()}</span>
                         </div>
+                        
+                        {/* Reminder Status */}
+                        {(() => {
+                          const reminderStatus = getReminderStatus(user);
+                          return (
+                            <div className={`flex items-center gap-1 flex-shrink-0 px-2 py-0.5 rounded-full text-xs font-medium ${
+                              reminderStatus.color === 'amber' 
+                                ? 'bg-amber-100 text-amber-700'
+                                : reminderStatus.color === 'blue'
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              <Mail className="h-3 w-3" />
+                              <span>{reminderStatus.message}</span>
+                              {reminderStatus.count && reminderStatus.count > 0 && (
+                                <span className="ml-1 bg-white rounded-full px-1 text-xs">
+                                  {reminderStatus.count}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <div className="flex items-center gap-1 flex-shrink-0">
                           <span className="font-medium text-green-600">
                             ${user.billingCycle === 'annual' 

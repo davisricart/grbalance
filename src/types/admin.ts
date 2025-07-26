@@ -21,6 +21,11 @@ export interface PendingUser {
   consultationCompleted?: boolean;
   scriptReady?: boolean;
   consultationNotes?: string;
+  
+  // Reminder tracking fields
+  reminder_sent_at?: string;          // ISO timestamp of last reminder
+  reminder_count?: number;            // Number of reminders sent (default 0)
+  last_reminder_type?: string;        // Type of last reminder sent
 }
 
 export interface ReadyForTestingUser {
