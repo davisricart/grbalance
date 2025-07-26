@@ -3201,12 +3201,11 @@ WARNING:
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessName: readyUser.businessName, // Include business name for admin dashboard display
                   subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
                   status: 'approved'
-                  // Note: client_path is not stored in usage table, it's stored in clients table
+                  // Note: businessName and client_path are not stored in usage table, they're stored in clients table
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);

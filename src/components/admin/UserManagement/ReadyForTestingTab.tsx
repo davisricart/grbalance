@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle, FileText, Trash2, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Clock, Eye, AlertCircle, ExternalLink, User, MessageSquare, Upload, Code, Play, CheckCircle, FileText, Trash2, RefreshCw, XCircle } from 'lucide-react';
 import { ReadyForTestingUser } from '../../../types/admin';
 
 interface ReadyForTestingTabProps {
@@ -916,13 +916,15 @@ export default function ReadyForTestingTab({
                       {/* QA Status Buttons */}
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => updateQAStatus(user.id, qaStatus === 'testing' ? 'passed' : 'testing')}
+                          onClick={() => updateQAStatus(user.id, qaStatus === 'testing' ? 'passed' : qaStatus === 'failed' ? 'testing' : 'testing')}
                           disabled={isProcessing}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
                             qaStatus === 'passed' 
                               ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
                               : qaStatus === 'testing'
                               ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                              : qaStatus === 'failed'
+                              ? 'bg-red-100 text-red-700 border border-red-200'
                               : 'bg-amber-100 text-amber-700 border border-amber-200'
                           }`}
                         >
@@ -936,6 +938,11 @@ export default function ReadyForTestingTab({
                               <Eye className="h-3 w-3" />
                               <span>Testing</span>
                             </>
+                          ) : qaStatus === 'failed' ? (
+                            <>
+                              <XCircle className="h-3 w-3" />
+                              <span>QA Failed</span>
+                            </>
                           ) : (
                             <>
                               <Clock className="h-3 w-3" />
@@ -944,11 +951,15 @@ export default function ReadyForTestingTab({
                           )}
                         </button>
 
-                        {qaStatus !== 'pending' && (
+                        {qaStatus !== 'pending' && qaStatus !== 'failed' && (
                           <button
                             onClick={() => updateQAStatus(user.id, 'failed')}
                             disabled={isProcessing}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-red-100 text-red-700 border border-red-200 hover:bg-red-200 transition-all hover:scale-105 disabled:opacity-50"
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                              qaStatus === 'passed' 
+                                ? 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                                : 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
+                            }`}
                           >
                             <AlertCircle className="h-3 w-3" />
                             <span>Fail</span>
