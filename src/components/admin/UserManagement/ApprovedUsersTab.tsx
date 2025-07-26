@@ -278,6 +278,7 @@ const ApprovedUsersTab = React.memo(({
   const handleActivateClient = async (userId: string, userEmail: string, tier: string) => {
     setProcessing(userId);
     console.log(`🚀 ACTIVATING CLIENT: ${userEmail} (${tier} plan)`);
+    console.log('📊 Current processing state:', processing);
     
     try {
       // Validate email before proceeding
@@ -597,16 +598,18 @@ const ApprovedUsersTab = React.memo(({
               {/* Client Activation Section */}
               <div className="flex items-center justify-between">
                 {/* Client Activation Status */}
-                {userState.trialStarted && userState.welcomePackageSent && userState.goLive && userState.billingSetup ? (
+                {userState.trialStarted && userState.welcomePackageSent && userState.goLive ? (
                   <div className="flex-1">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
                           <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <h5 className="text-sm font-semibold text-green-900">Client Activated</h5>
+                          <h5 className="text-sm font-semibold text-green-900">
+                            {userState.billingSetup ? 'Client Activated' : 'Trial Active'}
+                          </h5>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          All Systems Live
+                          {userState.billingSetup ? 'All Systems Live' : '1-Hour Trial Active'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -616,7 +619,7 @@ const ApprovedUsersTab = React.memo(({
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Clock className="h-3 w-3" />
-                          <span>14-day trial active</span>
+                          <span>1-hour trial active</span>
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Rocket className="h-3 w-3" />
