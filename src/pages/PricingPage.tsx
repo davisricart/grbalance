@@ -94,13 +94,13 @@ export default function PricingPage() {
         <meta name="description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
         <meta property="og:title" content="Stop Losing Money on Payment Processing Errors" />
         <meta property="og:description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
-        <meta property="og:url" content="https://grbalance.netlify.app/pricing" />
+        <meta property="og:url" content="https://grbalance.com/pricing" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="https://grbalance.netlify.app/your-social-image.png" />
+        <meta property="og:image" content="https://grbalance.com/your-social-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Stop Losing Money on Payment Processing Errors" />
         <meta name="twitter:description" content="Automated reconciliation for DaySmart, Square, Stripe & salon software. Catch hidden payment processing errors and save thousands annually." />
-        <meta name="twitter:image" content="https://grbalance.netlify.app/your-social-image.png" />
+        <meta name="twitter:image" content="https://grbalance.com/your-social-image.png" />
       </Helmet>
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         {/* Launch Special Banner */}

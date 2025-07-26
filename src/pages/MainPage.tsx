@@ -590,7 +590,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
         
-        response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
+        response = await fetch(`https://grbalance.com/.netlify/functions/execute-script`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

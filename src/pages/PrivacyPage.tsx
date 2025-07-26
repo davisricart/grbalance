@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <meta name="description" content="Privacy Policy for GR Balance salon reconciliation software. Learn how we protect your salon's financial data, payment information, and maintain GDPR compliance." />
         <meta name="keywords" content="privacy policy, data protection, salon data security, financial data privacy, GDPR compliance, payment data protection, salon information security" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/privacy" />
+        <link rel="canonical" href="https://grbalance.com/privacy" />
       </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">

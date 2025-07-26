@@ -220,17 +220,17 @@ export default function InteractiveDemoPage() {
           <meta property="og:type" content="website" />
           <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
           <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
-          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
-          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          <meta property="og:url" content="https://grbalance.com/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.com/images/demo-results-preview.png" />
           
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
           <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
-          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          <meta name="twitter:image" content="https://grbalance.com/images/demo-twitter-preview.png" />
           
           <meta name="robots" content="index, follow" />
-          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          <link rel="canonical" href="https://grbalance.com/interactive-demo" />
           
           {/* FAQ Schema for Demo Page */}
           <script type="application/ld+json">
@@ -321,17 +321,17 @@ export default function InteractiveDemoPage() {
           <meta property="og:type" content="website" />
           <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
           <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
-          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
-          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          <meta property="og:url" content="https://grbalance.com/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.com/images/demo-results-preview.png" />
           
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
           <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
-          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          <meta name="twitter:image" content="https://grbalance.com/images/demo-twitter-preview.png" />
           
           <meta name="robots" content="index, follow" />
-          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          <link rel="canonical" href="https://grbalance.com/interactive-demo" />
           
           {/* FAQ Schema for Demo Page */}
           <script type="application/ld+json">
@@ -507,17 +507,17 @@ export default function InteractiveDemoPage() {
           <meta property="og:type" content="website" />
           <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
           <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
-          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
-          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          <meta property="og:url" content="https://grbalance.com/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.com/images/demo-results-preview.png" />
           
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
           <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
-          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          <meta name="twitter:image" content="https://grbalance.com/images/demo-twitter-preview.png" />
           
           <meta name="robots" content="index, follow" />
-          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          <link rel="canonical" href="https://grbalance.com/interactive-demo" />
           
           {/* FAQ Schema for Demo Page */}
           <script type="application/ld+json">
@@ -580,17 +580,17 @@ export default function InteractiveDemoPage() {
           <meta property="og:type" content="website" />
           <meta property="og:title" content="Interactive Demo - See How We Catch $2,890+ in Salon Payment Errors" />
           <meta property="og:description" content="Free interactive demo shows real salon reconciliation results. Test with sample data from small, medium, and large salons." />
-          <meta property="og:url" content="https://grbalance.netlify.app/interactive-demo" />
-          <meta property="og:image" content="https://grbalance.netlify.app/images/demo-results-preview.png" />
+          <meta property="og:url" content="https://grbalance.com/interactive-demo" />
+          <meta property="og:image" content="https://grbalance.com/images/demo-results-preview.png" />
           
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Interactive Demo - Salon Payment Reconciliation Results" />
           <meta name="twitter:description" content="Free demo shows how we catch thousands in salon payment processing errors. Try with real sample data." />
-          <meta name="twitter:image" content="https://grbalance.netlify.app/images/demo-twitter-preview.png" />
+          <meta name="twitter:image" content="https://grbalance.com/images/demo-twitter-preview.png" />
           
           <meta name="robots" content="index, follow" />
-          <link rel="canonical" href="https://grbalance.netlify.app/interactive-demo" />
+          <link rel="canonical" href="https://grbalance.com/interactive-demo" />
           
           {/* FAQ Schema for Demo Page */}
           <script type="application/ld+json">

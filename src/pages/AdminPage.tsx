@@ -1852,7 +1852,7 @@ WARNING:
         // Single-site approach - just generate the client URL
         const clientPath = businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                           user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-        const siteUrl = `https://grbalance.netlify.app/${clientPath}`;
+        const siteUrl = `https://grbalance.com/${clientPath}`;
         
         // Update local state
         setSiteUrls((prev) => ({ ...prev, [user.id]: siteUrl }));
@@ -1949,7 +1949,7 @@ WARNING:
       console.log('📤 Sending to Netlify function - File1:', file1DataArray.length, 'rows, File2:', file2DataArray.length, 'rows');
       
       // Call the SAME Netlify function that client portal uses
-      const response = await fetch(`https://grbalance.netlify.app/.netlify/functions/execute-script`, {
+      const response = await fetch(`https://grbalance.com/.netlify/functions/execute-script`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

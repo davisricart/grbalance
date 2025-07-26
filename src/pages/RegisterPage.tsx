@@ -210,7 +210,7 @@ export default function RegisterPage() {
         email: email.trim().toLowerCase(),
         password: password,
         options: {
-          emailRedirectTo: 'https://grbalance.netlify.app/dashboard',
+          emailRedirectTo: 'https://grbalance.com/dashboard',
           data: {
             business_name: businessName,
             business_type: businessType
@@ -325,17 +325,17 @@ export default function RegisterPage() {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Start Free Trial | Salon Reconciliation Software" />
         <meta property="og:description" content="14-day free trial of automated salon payment reconciliation. No setup fees until July 2025. Sign up risk-free." />
-        <meta property="og:url" content="https://grbalance.netlify.app/register" />
-        <meta property="og:image" content="https://grbalance.netlify.app/images/free-trial-signup.png" />
+        <meta property="og:url" content="https://grbalance.com/register" />
+        <meta property="og:image" content="https://grbalance.com/images/free-trial-signup.png" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Start Free Trial | Salon Reconciliation Software" />
         <meta name="twitter:description" content="14-day free trial of automated salon payment reconciliation. Sign up risk-free today." />
-        <meta name="twitter:image" content="https://grbalance.netlify.app/images/trial-twitter.png" />
+        <meta name="twitter:image" content="https://grbalance.com/images/trial-twitter.png" />
         
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/register" />
+        <link rel="canonical" href="https://grbalance.com/register" />
         
         {/* Offer Schema */}
         <script type="application/ld+json">

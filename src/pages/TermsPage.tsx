@@ -13,7 +13,7 @@ export default function TermsPage() {
         <meta name="description" content="Terms of Service for GR Balance salon reconciliation software. Legal terms, user agreements, and service conditions for beauty salon payment processing software." />
         <meta name="keywords" content="terms of service, legal terms, user agreement, salon software terms, payment processing terms, service conditions, user rights, data usage" />
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/terms" />
+        <link rel="canonical" href="https://grbalance.com/terms" />
       </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">

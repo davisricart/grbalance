@@ -638,7 +638,7 @@ export default function ReadyForTestingTab({
         website_created: true,
         website_created_at: new Date().toISOString(),
         status: 'testing',
-        site_url: `https://grbalance.netlify.app/${clientPath}`,
+        site_url: `https://grbalance.com/${clientPath}`,
         deployed_scripts: [],
         usage: {
           comparisons_used: 0,
@@ -795,12 +795,12 @@ export default function ReadyForTestingTab({
                       <div key={user.id} className="flex items-center gap-2">
                         <span className="text-gray-600 text-xs">{user.businessName}:</span>
                         <a
-                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          href={`https://grbalance.com/${clientPath}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-green-600 hover:text-green-800 underline font-medium text-xs"
                         >
-                          grbalance.netlify.app/{clientPath}
+                          grbalance.com/{clientPath}
                         </a>
                       </div>
                     );
@@ -859,7 +859,7 @@ export default function ReadyForTestingTab({
                         <div className="mt-2">
                           <label className="block text-xs text-gray-600 mb-1">Client Portal URL:</label>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">grbalance.netlify.app/</span>
+                            <span className="text-sm text-gray-500">grbalance.com/</span>
                             <input
                               type="text"
                               value={customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath}
@@ -883,7 +883,7 @@ export default function ReadyForTestingTab({
                       {/* Create/Preview Website */}
                       {currentWebsiteStatus === 'created' ? (
                         <a
-                          href={`https://grbalance.netlify.app/${clientPath}`}
+                          href={`https://grbalance.com/${clientPath}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-md text-sm font-medium hover:bg-green-200 transition-colors border border-green-200"

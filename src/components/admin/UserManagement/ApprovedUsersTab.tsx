@@ -434,7 +434,7 @@ const ApprovedUsersTab = React.memo(({
           </div>
           <div className="text-sm text-gray-500">
             All clients access: <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-              grbalance.netlify.app/{users.length > 0 
+              grbalance.com/{users.length > 0 
                 ? (users[0].client_path || 
                    users[0].businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                    users[0].email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client')
@@ -475,7 +475,7 @@ const ApprovedUsersTab = React.memo(({
                 
                 {/* Client Access */}
                 <a
-                  href={`https://grbalance.netlify.app/${clientPath}`}
+                  href={`https://grbalance.com/${clientPath}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 transition-colors"

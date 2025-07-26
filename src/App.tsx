@@ -78,7 +78,7 @@ const getClientFromURL = () => {
   // Subdomain support: salon1.grbalance.com
   const subdomain = window.location.hostname.split('.')[0];
   
-  // Check direct path first (grbalance.netlify.app/salon1)
+  // Check direct path first (grbalance.com/salon1)
   if (directClientMatch && directClientMatch[1] !== 'app' && !['register', 'login', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'admin', 'billing', 'mockup-billing'].includes(directClientMatch[1])) {
     return directClientMatch[1];
   }

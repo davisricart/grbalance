@@ -122,7 +122,7 @@ export default function LoginPage() {
         <meta name="description" content="Login to your GR Balance salon reconciliation account. Access your dashboard, view reconciliation reports, and manage your salon's payment processing data securely." />
         <meta name="keywords" content="salon account login, reconciliation dashboard, GR Balance login, salon software access, payment reconciliation account, secure salon login" />
         <meta name="robots" content="noindex, nofollow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/login" />
+        <link rel="canonical" href="https://grbalance.com/login" />
       </Helmet>
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center justify-between">

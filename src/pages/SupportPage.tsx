@@ -57,17 +57,17 @@ export default function SupportPage() {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Salon Reconciliation Help & FAQ | Expert Support Available" />
         <meta property="og:description" content="Complete help center for salon payment reconciliation. Setup guides, FAQ, and troubleshooting for DaySmart, Square, Stripe users." />
-        <meta property="og:url" content="https://grbalance.netlify.app/support" />
-        <meta property="og:image" content="https://grbalance.netlify.app/images/support-faq.png" />
+        <meta property="og:url" content="https://grbalance.com/support" />
+        <meta property="og:image" content="https://grbalance.com/images/support-faq.png" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Salon Reconciliation Help & FAQ" />
         <meta name="twitter:description" content="Complete help center for salon payment reconciliation. Setup guides and troubleshooting for salon owners." />
-        <meta name="twitter:image" content="https://grbalance.netlify.app/images/support-twitter.png" />
+        <meta name="twitter:image" content="https://grbalance.com/images/support-twitter.png" />
         
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/support" />
+        <link rel="canonical" href="https://grbalance.com/support" />
         
         {/* FAQ Schema */}
         <script type="application/ld+json">

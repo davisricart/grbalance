@@ -19,22 +19,22 @@ export default function LandingPage() {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Salon Payment Reconciliation Software | Catch $8,400+ Yearly in Processing Errors" />
         <meta property="og:description" content="Automated reconciliation for DaySmart, Square, Stripe salon payments. Save 12+ hours monthly, catch hidden fees. 99.9% accuracy guaranteed." />
-        <meta property="og:url" content="https://grbalance.netlify.app/" />
-        <meta property="og:image" content="https://grbalance.netlify.app/images/salon-reconciliation-og.png" />
+        <meta property="og:url" content="https://grbalance.com/" />
+        <meta property="og:image" content="https://grbalance.com/images/salon-reconciliation-og.png" />
         <meta property="og:site_name" content="GR Balance" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Salon Payment Reconciliation Software | Catch $8,400+ Yearly" />
         <meta name="twitter:description" content="Automated reconciliation for DaySmart, Square, Stripe salon payments. Save 12+ hours monthly, catch hidden fees." />
-        <meta name="twitter:image" content="https://grbalance.netlify.app/images/salon-reconciliation-twitter.png" />
+        <meta name="twitter:image" content="https://grbalance.com/images/salon-reconciliation-twitter.png" />
         
         {/* Additional SEO tags */}
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow" />
         <meta name="author" content="GR Balance" />
         <meta name="copyright" content="GR Balance 2025" />
-        <link rel="canonical" href="https://grbalance.netlify.app/" />
+        <link rel="canonical" href="https://grbalance.com/" />
         
         {/* Local Business Schema */}
         <script type="application/ld+json">

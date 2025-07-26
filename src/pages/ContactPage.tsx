@@ -120,17 +120,17 @@ export default function ContactPage() {
         <meta property="og:type" content="website" />
         <meta property="og:title" content="Contact Salon Reconciliation Support | Expert Help Available" />
         <meta property="og:description" content="Get expert support for salon payment reconciliation. Contact us for DaySmart, Square, Stripe help. Fast response times." />
-        <meta property="og:url" content="https://grbalance.netlify.app/contact" />
-        <meta property="og:image" content="https://grbalance.netlify.app/images/contact-support.png" />
+        <meta property="og:url" content="https://grbalance.com/contact" />
+        <meta property="og:image" content="https://grbalance.com/images/contact-support.png" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Contact Salon Reconciliation Support" />
         <meta name="twitter:description" content="Expert support for salon payment reconciliation issues. Fast response times for DaySmart, Square, Stripe problems." />
-        <meta name="twitter:image" content="https://grbalance.netlify.app/images/contact-twitter.png" />
+        <meta name="twitter:image" content="https://grbalance.com/images/contact-twitter.png" />
         
         <meta name="robots" content="index, follow" />
-        <link rel="canonical" href="https://grbalance.netlify.app/contact" />
+        <link rel="canonical" href="https://grbalance.com/contact" />
         
         {/* Organization Schema */}
         <script type="application/ld+json">
@@ -140,7 +140,7 @@ export default function ContactPage() {
               "@type": "Organization",
               "name": "GR Balance",
               "description": "Automated payment reconciliation software for beauty salons",
-              "url": "https://grbalance.netlify.app",
+              "url": "https://grbalance.com",
               "contactPoint": {
                 "@type": "ContactPoint",
                 "contactType": "customer support",
