@@ -3187,6 +3187,7 @@ WARNING:
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
+                  businessName: readyUser.businessName, // Include business name for admin dashboard display
                   subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
