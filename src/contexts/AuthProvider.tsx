@@ -167,6 +167,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsPending(false);
           setUser(null);
           setUserStatus(null);
+          setIsLoading(false); // Set loading false for unauthenticated users
         }
       }
     } catch (error: any) {
