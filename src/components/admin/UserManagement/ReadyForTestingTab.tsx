@@ -276,16 +276,29 @@ export default function ReadyForTestingTab({
   useEffect(() => {
     const checkExistingScripts = async () => {
       console.log('🔄 CHECKING PERSISTENT SCRIPT STATUS - Loading from Supabase...');
+      console.log('🔍 DEBUG: Current scriptStatus before check:', scriptStatus);
+      console.log('🔍 DEBUG: Current customUrls:', customUrls);
+      console.log('🔍 DEBUG: Users to check:', readyForTestingUsers.map(u => ({ id: u.id, businessName: u.businessName, email: u.email })));
+      
       const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
       try {
         // Calculate client paths for all users using the same logic as handleScriptUpload
-        const clientPaths = readyForTestingUsers.map(user => {
+        const clientPathsData = readyForTestingUsers.map(user => {
           const clientPath = customUrls[user.id] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-          return clientPath;
-        }).join(',');
+          return { userId: user.id, clientPath, businessName: user.businessName };
+        });
+        
+        console.log('🔍 DEBUG: Calculated client paths:', clientPathsData);
+        
+        const clientPaths = clientPathsData.map(item => item.clientPath).join(',');
+        
+        if (!clientPaths) {
+          console.log('🔍 DEBUG: No client paths to check, skipping script status check');
+          return;
+        }
         
         const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=in.(${clientPaths})&select=id,client_path,deployed_scripts`, {
           method: 'GET',
@@ -299,9 +312,16 @@ export default function ReadyForTestingTab({
         if (response.ok) {
           const clients = await response.json();
           console.log('📊 Script persistence check:', clients.length, 'clients checked for scripts');
+          console.log('🔍 DEBUG: Found clients:', clients.map((c: any) => ({ 
+            client_path: c.client_path, 
+            deployed_scripts: c.deployed_scripts,
+            scriptsCount: c.deployed_scripts?.length || 0
+          })));
           
           const newScriptStatus: {[key: string]: 'none' | 'ready' | 'completed'} = {};
           clients.forEach((client: any) => {
+            console.log('🔍 DEBUG: Checking client:', client.client_path, 'deployed_scripts:', client.deployed_scripts);
+            
             if (client.deployed_scripts && Array.isArray(client.deployed_scripts) && client.deployed_scripts.length > 0) {
               // Find the user that matches this client_path using the same calculation logic
               const matchingUser = readyForTestingUsers.find(user => {
@@ -311,10 +331,16 @@ export default function ReadyForTestingTab({
               });
               if (matchingUser) {
                 newScriptStatus[matchingUser.id] = 'ready';
-                console.log('✅ PERSISTENT: Scripts exist for', client.client_path, '→', client.deployed_scripts.length, 'scripts');
+                console.log('✅ PERSISTENT: Scripts exist for', client.client_path, '→', client.deployed_scripts.length, 'scripts', 'User:', matchingUser.businessName);
+              } else {
+                console.log('⚠️ DEBUG: No matching user found for client_path:', client.client_path);
               }
+            } else {
+              console.log('🔍 DEBUG: No scripts found for client:', client.client_path);
             }
           });
+          
+          console.log('🔍 DEBUG: Final newScriptStatus:', newScriptStatus);
           
           if (Object.keys(newScriptStatus).length > 0) {
             setScriptStatus(prev => {
@@ -323,14 +349,20 @@ export default function ReadyForTestingTab({
               Object.keys(newScriptStatus).forEach(userId => {
                 if (prev[userId] !== 'completed') {
                   updated[userId] = newScriptStatus[userId];
+                  console.log('🔄 DEBUG: Setting script status for user', userId, 'to', newScriptStatus[userId]);
+                } else {
+                  console.log('🔒 DEBUG: Preserving completed status for user', userId);
                 }
               });
+              console.log('🔍 DEBUG: Updated script status:', updated);
               return updated;
             });
             console.log('🎯 PERSISTENT SCRIPT STATUS RESTORED (preserving completed):', Object.keys(newScriptStatus).length, 'users with scripts');
+          } else {
+            console.log('🔍 DEBUG: No script status updates needed - no users with scripts found');
           }
         } else {
-          console.warn('⚠️ Failed to load persistent script status');
+          console.warn('⚠️ Failed to load persistent script status', response.status, response.statusText);
         }
       } catch (error) {
         console.error('❌ Error checking persistent script status:', error);
@@ -483,20 +515,31 @@ export default function ReadyForTestingTab({
   };
 
   const handleScriptUpload = async (userId: string) => {
+    console.log('🔍 DEBUG: handleScriptUpload called for userId:', userId);
     const user = readyForTestingUsers.find(u => u.id === userId);
-    if (!user) return;
+    if (!user) {
+      console.error('❌ DEBUG: User not found for userId:', userId);
+      return;
+    }
 
     const clientPath = customUrls[userId] || user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                        user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
+
+    console.log('🔍 DEBUG: Using clientPath:', clientPath, 'for user:', user.businessName);
 
     // Create a file input element to select script
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.js,.ts';
     input.onchange = async (e) => {
+      console.log('🔍 DEBUG: File input onchange triggered');
       const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+      if (!file) {
+        console.log('🔍 DEBUG: No file selected');
+        return;
+      }
 
+      console.log('🔍 DEBUG: File selected:', file.name, 'size:', file.size);
       setProcessingUser(userId);
       try {
         const scriptContent = await file.text();
@@ -504,7 +547,8 @@ export default function ReadyForTestingTab({
         console.log('📤 Uploading script to GitHub + database:', {
           filename: file.name,
           clientPath: clientPath,
-          size: file.size
+          size: file.size,
+          contentLength: scriptContent.length
         });
 
         // DIRECT SUPABASE: Save script to client record
@@ -563,12 +607,20 @@ export default function ReadyForTestingTab({
         });
 
         if (!updateResponse.ok) {
-          throw new Error(`Script upload failed: ${updateResponse.statusText}`);
+          const errorText = await updateResponse.text();
+          console.error('❌ DEBUG: Script upload failed:', updateResponse.status, updateResponse.statusText, errorText);
+          throw new Error(`Script upload failed: ${updateResponse.statusText} - ${errorText}`);
         }
 
+        const updateResult = await updateResponse.json();
         console.log('✅ Script uploaded to Supabase successfully:', scriptData);
+        console.log('🔍 DEBUG: Update response:', updateResult);
         
-        setScriptStatus(prev => ({ ...prev, [userId]: 'ready' }));
+        setScriptStatus(prev => {
+          const updated = { ...prev, [userId]: 'ready' };
+          console.log('🔍 DEBUG: Setting script status to ready for userId:', userId, 'prev:', prev, 'updated:', updated);
+          return updated;
+        });
         // Trigger refresh of deployed scripts section
         setScriptRefreshTrigger(prev => ({ ...prev, [userId]: Date.now() }));
         console.log(`✅ Script "${file.name}" uploaded and saved to GitHub + database!`);
@@ -576,34 +628,46 @@ export default function ReadyForTestingTab({
         
       } catch (error) {
         console.error('❌ Error uploading script:', error);
+        console.error('🔍 DEBUG: Full error details:', error);
         // No popup - just log the error
       } finally {
         setProcessingUser(null);
+        console.log('🔍 DEBUG: Script upload process finished for userId:', userId);
       }
     };
     
+    console.log('🔍 DEBUG: About to trigger file input click for userId:', userId);
     input.click();
+    console.log('🔍 DEBUG: File input click triggered');
   };
 
   const handleScriptTest = async (userId: string) => {
+    console.log('🔍 DEBUG: handleScriptTest called for userId:', userId);
     setProcessingUser(userId);
     
     try {
       // TODO: Implement actual script testing functionality
       // This would open script testing interface or run automated tests
       console.log('🧪 Testing script for user:', userId);
+      console.log('🔍 DEBUG: Current script status before test:', scriptStatus[userId]);
       
       // Simulate testing process
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      setScriptStatus(prev => ({ ...prev, [userId]: 'completed' }));
+      setScriptStatus(prev => {
+        const updated = { ...prev, [userId]: 'completed' };
+        console.log('🔍 DEBUG: Setting script status to completed for userId:', userId, 'prev:', prev, 'updated:', updated);
+        return updated;
+      });
       console.log('✅ Script testing completed for user:', userId);
       
     } catch (error) {
       console.error('❌ Error testing script:', error);
+      console.error('🔍 DEBUG: Script test error details:', error);
       // No popup - just log the error
     } finally {
       setProcessingUser(null);
+      console.log('🔍 DEBUG: Script test process finished for userId:', userId);
     }
   };
 
@@ -1002,7 +1066,12 @@ export default function ReadyForTestingTab({
 
                   {/* Script Workflow */}
                   <div className="mt-3 ml-0">
-                    <label className="block text-xs text-gray-600 mb-2">Reconciliation Script Workflow:</label>
+                    <label className="block text-xs text-gray-600 mb-2">
+                      Reconciliation Script Workflow: 
+                      <span className="ml-2 px-2 py-1 bg-gray-100 rounded text-xs font-mono">
+                        DEBUG: status={scriptStatus[user.id] || 'undefined'}
+                      </span>
+                    </label>
                     <div className="flex items-center gap-2">
                                               <button
                           onClick={() => handleScriptUpload(user.id)}
