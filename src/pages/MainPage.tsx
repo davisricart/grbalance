@@ -6,6 +6,7 @@ import { supabase } from '../config/supabase';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
 import VirtualTable from '../components/VirtualTable';
+import { canPerformReconciliation, incrementUsage } from '../services/usageService';
 import {
   ReconciliationResult,
   RawFileData,
@@ -37,6 +38,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingStep, setProcessingStep] = useState('');
   const [transactionCount, setTransactionCount] = useState(0);
+  const [usageRefreshTrigger, setUsageRefreshTrigger] = useState(0);
   const file1Ref = useRef<HTMLInputElement>(null);
   const file2Ref = useRef<HTMLInputElement>(null);
 
@@ -438,6 +440,19 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
   };
 
   const handleCompare = async () => {
+    // First, check if user can perform reconciliation (usage limits, account status)
+    if (user?.id) {
+      const { canProceed, reason, usage } = await canPerformReconciliation(user.id);
+      
+      if (!canProceed) {
+        setStatus(reason || 'Cannot perform reconciliation');
+        setWarning('');
+        return;
+      }
+      
+      console.log('✅ Usage check passed:', usage);
+    }
+
     // Automatically determine if limits should apply based on user status
     const isLocalhost = window.location.hostname === 'localhost';
     const isTestUser = user?.email ? (user.email.includes('test') || user.email.includes('demo')) : false;
@@ -628,6 +643,17 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       setResults(data.result);
       setProcessingProgress(100);
       setProcessingStep('Complete!');
+      
+      // Increment usage count since reconciliation was successful
+      if (user?.id) {
+        const usageIncremented = await incrementUsage(user.id);
+        console.log(usageIncremented ? '✅ Usage incremented' : '⚠️ Failed to increment usage');
+        
+        // Trigger usage counter refresh
+        if (usageIncremented) {
+          setUsageRefreshTrigger(prev => prev + 1);
+        }
+      }
       
       // Show completion for a moment, then hide processing
       setTimeout(() => {
@@ -989,7 +1015,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
               <div className="flex flex-col min-w-0 flex-1">
                 <span className="text-gray-700 text-sm sm:text-base truncate">{user.email}</span>
                 <div className="hidden sm:block">
-                  <UsageCounter />
+                  <UsageCounter refreshTrigger={usageRefreshTrigger} />
                 </div>
               </div>
             </div>
@@ -1005,7 +1031,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           {/* Mobile Usage Counter */}
           {user && (
             <div className="sm:hidden mt-2 pt-2 border-t border-gray-100">
-              <UsageCounter />
+              <UsageCounter refreshTrigger={usageRefreshTrigger} />
             </div>
           )}
         </div>

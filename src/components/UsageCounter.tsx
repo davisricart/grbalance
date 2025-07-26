@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../config/supabase';
+import { getUserUsage, UsageData as ServiceUsageData, TIER_LIMITS } from '../services/usageService';
 
 interface UsageData {
   comparisonsUsed: number;
@@ -8,57 +9,65 @@ interface UsageData {
   email?: string;
 }
 
-const TIER_LIMITS = {
-  starter: 50,
-  professional: 75,
-  business: 150
-};
+// TIER_LIMITS imported from usageService
 
-export default function UsageCounter() {
+interface UsageCounterProps {
+  refreshTrigger?: number; // When this changes, refresh the data
+}
+
+export default function UsageCounter({ refreshTrigger }: UsageCounterProps) {
   const [usage, setUsage] = useState<UsageData | null>(null);
 
   useEffect(() => {
-    // Only show default values without API call to improve performance
-    // During development/migration phase, use default values
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    
-    if (isLocalhost) {
-      // For localhost testing, show default values immediately
-      const defaultUsage: UsageData = {
-        comparisonsUsed: 0,
-        comparisonsLimit: TIER_LIMITS.starter,
-        subscriptionTier: 'starter',
-        email: 'demo@example.com'
-      };
-      setUsage(defaultUsage);
-      return;
-    }
-
-    // For production, only fetch if needed (lazy load this API call)
     const fetchUsageData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          console.log('UsageCounter: No authenticated user');
+          return;
+        }
 
-        // For now, set default values during Supabase migration
-        // TODO: Implement proper usage tracking in Supabase
+        console.log('UsageCounter: Fetching usage data for user:', user.id);
+
+        // Use the usage service
+        const usageData = await getUserUsage(user.id);
+
+        if (usageData) {
+          console.log('UsageCounter: Retrieved usage data:', usageData);
+          const usage: UsageData = {
+            comparisonsUsed: usageData.comparisonsUsed,
+            comparisonsLimit: usageData.comparisonsLimit,
+            subscriptionTier: usageData.subscriptionTier,
+            email: user.email || ''
+          };
+          setUsage(usage);
+        } else {
+          console.log('UsageCounter: No usage data found, using defaults');
+          // User not found in usage table, use defaults
+          const defaultUsage: UsageData = {
+            comparisonsUsed: 0,
+            comparisonsLimit: TIER_LIMITS.starter,
+            subscriptionTier: 'starter',
+            email: user.email || ''
+          };
+          setUsage(defaultUsage);
+        }
+      } catch (error) {
+        console.error('UsageCounter: Error in fetchUsageData:', error);
+        // Fallback to defaults on any error
+        const { data: { user } } = await supabase.auth.getUser();
         const defaultUsage: UsageData = {
           comparisonsUsed: 0,
           comparisonsLimit: TIER_LIMITS.starter,
           subscriptionTier: 'starter',
-          email: user.email || ''
+          email: user?.email || ''
         };
-
         setUsage(defaultUsage);
-      } catch (error) {
-        console.error('Error fetching usage:', error);
       }
     };
 
-    // Delay the API call to not block initial page load
-    const timeoutId = setTimeout(fetchUsageData, 1000);
-    return () => clearTimeout(timeoutId);
-  }, []);
+    fetchUsageData();
+  }, [refreshTrigger]);
 
   if (!usage) {
     return null;
