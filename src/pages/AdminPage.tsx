@@ -2438,11 +2438,63 @@ WARNING:
 
       if (updateError) throw updateError;
 
+      // Delete from Supabase Auth using secure Netlify function (like other delete functions)
+      try {
+        console.log('🔥 Deleting user from Supabase Auth:', userId);
+        const response = await fetch('/.netlify/functions/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ userId })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+          console.error('❌ Error deleting from auth:', result);
+        } else {
+          console.log('✅ Successfully deleted from Supabase Auth');
+        }
+      } catch (authError) {
+        console.error('❌ Error calling delete-user function:', authError);
+        // Continue anyway since usage table was already updated
+      }
+
       // Refresh approved users list to remove from approved tab
       await fetchApprovedUsers();
 
     } catch (error) {
       console.error('Error deleting user:', error);
+    }
+  };
+
+  // Clean up orphaned auth user (for fixing stuck registrations)
+  const cleanupOrphanedAuthUser = async (email: string) => {
+    try {
+      console.log('🧹 Cleaning up orphaned auth user:', email);
+      
+      // Try to get user ID from auth by email
+      const response = await fetch('/.netlify/functions/delete-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: email })
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        console.error('❌ Cleanup failed:', result);
+        alert(`Cleanup failed: ${result.error || 'Unknown error'}`);
+      } else {
+        console.log('✅ Successfully cleaned up orphaned auth user');
+        alert('✅ Orphaned auth user cleaned up successfully! You can now register again.');
+      }
+    } catch (error) {
+      console.error('❌ Error cleaning up orphaned auth user:', error);
+      alert(`❌ Cleanup error: ${error.message}`);
     }
   };
 
@@ -2859,6 +2911,18 @@ WARNING:
               title="Run Supabase Debug Report (check console)"
             >
               🔍 Debug DB
+            </button>
+            <button
+              onClick={() => {
+                const email = prompt('Enter email to cleanup from auth (e.g., grbalancetesting@gmail.com):');
+                if (email) {
+                  cleanupOrphanedAuthUser(email);
+                }
+              }}
+              className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+              title="Clean up orphaned auth users causing registration errors"
+            >
+              🧹 Cleanup Auth
             </button>
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
