@@ -2476,8 +2476,8 @@ WARNING:
     try {
       console.log('🧹 Cleaning up orphaned auth user:', email);
       
-      // Try to get user ID from auth by email
-      const response = await fetch('/.netlify/functions/delete-user', {
+      // Use the specialized cleanup function for orphaned auth users
+      const response = await fetch('/.netlify/functions/cleanup-orphaned-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
