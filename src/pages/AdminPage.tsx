@@ -656,7 +656,7 @@ const AdminPage: React.FC = () => {
       const { data: snapshot, error } = await supabase
         .from('usage')
         .select('*')
-        .in('status', ['approved', 'deactivated', 'deleted']);
+        .in('status', ['approved', 'trial', 'deactivated', 'deleted']);
       
       if (error) throw error;
       
