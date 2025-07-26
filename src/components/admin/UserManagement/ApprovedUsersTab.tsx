@@ -94,7 +94,7 @@ const ApprovedUsersTab = React.memo(({
 
   const handleStartTrial = async (userId: string) => {
     setProcessing(userId);
-    console.log(`🚀 Starting 14-day FREE trial for user ${userId} (NO CREDIT CARD REQUIRED)`);
+    console.log(`🚀 Starting 1-hour FREE trial for user ${userId} (NO CREDIT CARD REQUIRED - FOR TESTING)`);
     
     try {
       // Store trial start date in database
@@ -105,7 +105,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (for testing)
       
       const { error } = await supabase
         .from('usage')
@@ -341,7 +341,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (for testing)
       
       const { error } = await supabase
         .from('usage')
