@@ -134,16 +134,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
+            setIsLoading(false); // Set loading false after status is determined
           } else if (userProfile?.status === 'approved' || userProfile?.status === 'trial') {
             console.log('🔐 AuthProvider: User approved/trial active');
             setUserStatus(userProfile.status);
             setIsApproved(true);
             setIsPending(false);
+            setIsLoading(false); // Set loading false after status is determined
           } else {
             console.log('🔐 AuthProvider: User pending approval');
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
+            setIsLoading(false); // Set loading false after status is determined
           }
         } catch (profileError: any) {
           console.warn('🔐 AuthProvider: Error checking user status:', profileError.message);
@@ -152,6 +155,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
+            setIsLoading(false); // Set loading false after status is determined
           }
         }
       } else {
@@ -167,7 +171,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     } catch (error: any) {
       console.warn('🔐 AuthProvider: Error in handleAuthChange:', error.message);
-    } finally {
       if (mounted.current) {
         setIsLoading(false);
       }
