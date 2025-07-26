@@ -441,7 +441,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const handleCompare = async () => {
     // First, check if user can perform reconciliation (usage limits, account status)
-    if (user?.id) {
+    // Skip authorization check for client portal users (QA testing, etc.)
+    if (user?.id && !user?.isClientPortal) {
       const { canProceed, reason, usage } = await canPerformReconciliation(user.id);
       
       if (!canProceed) {
@@ -451,6 +452,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       }
       
       console.log('✅ Usage check passed:', usage);
+    } else if (user?.isClientPortal) {
+      console.log('🏪 Client portal user - bypassing authorization check');
     }
 
     // Automatically determine if limits should apply based on user status
