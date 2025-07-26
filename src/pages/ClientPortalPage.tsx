@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileText } from 'lucide-react';
+import { supabase } from '../config/supabase';
 import ReconciliationApp from './ReconciliationApp';
 
 interface ClientData {
@@ -63,10 +64,31 @@ export default function ClientPortalPage() {
             setClientData(clients[0]);
             console.log('✅ Client portal loaded:', clients[0]);
             
-            // For testing clients, automatically authenticate
-            if (clients[0].status === 'testing') {
-              console.log('🧪 Testing client detected - auto-authenticating');
-              setIsAuthenticated(true);
+            // Check if user is already authenticated with Supabase
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (user) {
+              console.log('🔐 User already authenticated:', user.email);
+              
+              // Check if this user has access to this client portal
+              const { data: userProfile, error: profileError } = await supabase
+                .from('usage')
+                .select('status')
+                .eq('id', user.id)
+                .single();
+                
+              if (!profileError && (userProfile?.status === 'approved' || userProfile?.status === 'trial')) {
+                console.log('✅ User has approved/trial status - auto-authenticating');
+                setIsAuthenticated(true);
+              } else {
+                console.log('❌ User not approved for portal access');
+              }
+            } else {
+              // For testing clients without authentication, still allow auto-auth
+              if (clients[0].status === 'testing') {
+                console.log('🧪 Testing client detected - auto-authenticating');
+                setIsAuthenticated(true);
+              }
             }
           } else {
             console.log('❌ No clients found with client_path:', clientname);

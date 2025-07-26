@@ -37,25 +37,58 @@ export default function LoginPage() {
       if (authError) throw authError;
 
       if (data.user) {
-        // Check if user is associated with a specific client
-        const clientId = detectClientFromEmail(email);
+        console.log('🔐 LoginPage: User authenticated, checking status before redirect...');
         
-        if (clientId) {
-          // Redirect to client-specific portal
-          navigate(`/app?client=${clientId}`);
-        } else {
-          // Check if there's already a client parameter in the URL
-          const urlParams = new URLSearchParams(location.search);
-          const existingClient = urlParams.get('client');
-          
-          if (existingClient) {
-            // Preserve the client parameter from the URL
-            navigate(`/app?client=${existingClient}`);
-          } else {
-            // Default redirect to main app
-            navigate('/app');
+        // Wait a moment for AuthProvider to update user status
+        setTimeout(async () => {
+          try {
+            // Check user's actual status in the database
+            const { data: userProfile, error } = await supabase
+              .from('usage')
+              .select('status')
+              .eq('id', data.user.id)
+              .single();
+
+            console.log('🔐 LoginPage: User status check result:', { userProfile, error });
+
+            if (error && error.code !== 'PGRST116') {
+              console.warn('🔐 LoginPage: Error checking user status, redirecting to pending');
+              navigate('/pending-approval');
+              return;
+            }
+
+            const userStatus = userProfile?.status;
+            console.log('🔐 LoginPage: User status:', userStatus);
+
+            if (userStatus === 'approved' || userStatus === 'trial') {
+              // User is approved/trial, check for client-specific routing
+              const clientId = detectClientFromEmail(email);
+              
+              if (clientId) {
+                console.log('🔐 LoginPage: Redirecting to client-specific portal:', clientId);
+                navigate(`/app?client=${clientId}`);
+              } else {
+                // Check if there's already a client parameter in the URL
+                const urlParams = new URLSearchParams(location.search);
+                const existingClient = urlParams.get('client');
+                
+                if (existingClient) {
+                  console.log('🔐 LoginPage: Preserving existing client parameter:', existingClient);
+                  navigate(`/app?client=${existingClient}`);
+                } else {
+                  console.log('🔐 LoginPage: Redirecting to main app');
+                  navigate('/app');
+                }
+              }
+            } else {
+              console.log('🔐 LoginPage: User pending approval, redirecting to pending page');
+              navigate('/pending-approval');
+            }
+          } catch (statusError) {
+            console.error('🔐 LoginPage: Error checking user status:', statusError);
+            navigate('/pending-approval');
           }
-        }
+        }, 500); // Give AuthProvider time to update
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -71,6 +104,7 @@ export default function LoginPage() {
     const clientAssociations: { [key: string]: string } = {
       'davisricart@gmail.com': 'demo',  // Added for owner testing
       'test@test.com': 'demo',  // Added for testing
+      'grbalancetesting@gmail.com': 'grsalon', // Test client with specific portal
       'tony@pizzashop.com': 'tonys-pizza',
       'manager@salonspa.com': 'salon-pro',
       'admin@retailstore.com': 'retail-store',
