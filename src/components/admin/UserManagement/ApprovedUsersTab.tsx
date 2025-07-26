@@ -12,6 +12,7 @@ interface ApprovedUsersTabProps {
   onDeactivateUser?: (userId: string) => Promise<void>;
   onDeleteUser?: (userId: string) => Promise<void>;
   inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
+  onRefreshUsers?: () => Promise<void>;
 }
 
 const ApprovedUsersTab = React.memo(({
@@ -23,7 +24,8 @@ const ApprovedUsersTab = React.memo(({
   onSendBackToQA,
   onDeactivateUser,
   onDeleteUser,
-  inlineNotifications
+  inlineNotifications,
+  onRefreshUsers
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
   const [userStates, setUserStates] = useState<{[key: string]: {
@@ -373,6 +375,11 @@ const ApprovedUsersTab = React.memo(({
       
       console.log('✅ CLIENT ACTIVATION COMPLETE! Welcome email sent and all systems automated.');
       
+      // Refresh the parent users list to show updated status
+      if (onRefreshUsers) {
+        await onRefreshUsers();
+      }
+      
     } catch (error) {
       console.error('❌ Client activation failed:', error);
       // Show error to user
@@ -610,7 +617,7 @@ const ApprovedUsersTab = React.memo(({
               {/* Client Activation Section */}
               <div className="flex items-center justify-between">
                 {/* Client Activation Status */}
-                {userState.trialStarted && userState.welcomePackageSent && userState.goLive ? (
+                {user.status === 'trial' || (userState.trialStarted && userState.welcomePackageSent && userState.goLive) ? (
                   <div className="flex-1">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center gap-3 mb-2">

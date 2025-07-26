@@ -3351,6 +3351,7 @@ WARNING:
             onDeactivateUser={deactivateApprovedUser}
             onDeleteUser={deleteApprovedUser}
             inlineNotifications={inlineNotifications}
+            onRefreshUsers={fetchApprovedUsers}
           />
         )}
 
