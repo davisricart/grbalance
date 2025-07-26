@@ -269,6 +269,15 @@ export default function RegisterPage() {
 
       console.log('Pending user insert result:', { data: pendingUserData, error: pendingUserError });
       console.log('🔍 REGISTRATION DEBUG - What actually got stored:', pendingUserData);
+      
+      if (pendingUserError) {
+        console.error('🚨 DETAILED PENDING USER ERROR:', {
+          code: pendingUserError.code,
+          message: pendingUserError.message,
+          details: pendingUserError.details,
+          hint: pendingUserError.hint
+        });
+      }
 
       if (pendingUserError) {
         console.error('Pending user insert failed:', pendingUserError);
