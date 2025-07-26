@@ -61,7 +61,7 @@ export const stripeConfig = {
     priceId: import.meta.env.VITE_STRIPE_SETUP_FEE_PRICE_ID || 'setup_fee_placeholder',
     amount: 49700, // $497.00 in cents
     isWaived: true, // Currently waived for launch special
-    waivedUntil: '2025-08-01'
+    waivedUntil: '2025-09-01'
   }
 };
 
