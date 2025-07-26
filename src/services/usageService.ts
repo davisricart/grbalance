@@ -21,7 +21,7 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
   try {
     const { data, error } = await supabase
       .from('usage')
-      .select('comparisonsUsed, comparisonsLimit, subscriptionTier, status')
+      .select('*')
       .eq('id', userId)
       .single();
 
@@ -31,9 +31,9 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
     }
 
     return {
-      comparisonsUsed: data.comparisonsUsed || 0,
-      comparisonsLimit: data.comparisonsLimit || TIER_LIMITS.starter,
-      subscriptionTier: data.subscriptionTier || 'starter',
+      comparisonsUsed: data.comparisonsUsed || data.comparisons_used || 0,
+      comparisonsLimit: data.comparisonsLimit || data.comparisons_limit || TIER_LIMITS.starter,
+      subscriptionTier: data.subscriptionTier || data.subscription_tier || 'starter',
       status: data.status || 'pending'
     };
   } catch (error) {
@@ -123,8 +123,8 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
       
       try {
         const { data: qaUser, error: qaError } = await supabase
-          .from('ready-for-testing')
-          .select('id, subscriptiontier')
+          .from('readyForTestingUsers')
+          .select('id, subscriptionTier')
           .eq('id', userId)
           .single();
         
@@ -134,7 +134,7 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
           const qaUsage: UsageData = {
             comparisonsUsed: 0,
             comparisonsLimit: 999, // High limit for QA testing
-            subscriptionTier: qaUser.subscriptiontier || 'professional',
+            subscriptionTier: qaUser.subscriptionTier || 'professional',
             status: 'testing'
           };
           
