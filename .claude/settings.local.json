@@ -98,7 +98,10 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:grbalance.netlify.app)",
       "Bash(git merge:*)",
-      "Bash(iconv:*)"
+      "Bash(iconv:*)",
+      "Bash(nslookup:*)",
+      "Bash(host:*)",
+      "Bash(dig:*)"
     ],
     "deny": []
   }

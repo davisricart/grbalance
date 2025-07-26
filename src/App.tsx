@@ -46,22 +46,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isApproved, isPending, isLoading } = useAuth();
   
+  console.log('🛣️ ApprovedUserRoute: Auth state:', { isAuthenticated, isApproved, isPending, isLoading });
+  
   if (isLoading) {
     return <div>Loading...</div>;
   }
   
   if (!isAuthenticated) {
+    console.log('🛣️ ApprovedUserRoute: Not authenticated, redirecting to login');
     return <Navigate to="/login" />;
   }
   
   if (isPending) {
+    console.log('🛣️ ApprovedUserRoute: User pending, redirecting to pending approval');
     return <Navigate to="/pending-approval" />;
   }
   
   if (!isApproved) {
+    console.log('🛣️ ApprovedUserRoute: User not approved, redirecting to pending approval');
     return <Navigate to="/pending-approval" />;
   }
   
+  console.log('🛣️ ApprovedUserRoute: User approved, allowing access');
   return <>{children}</>;
 };
 
