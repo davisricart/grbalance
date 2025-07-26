@@ -52,8 +52,32 @@ export async function incrementUsage(userId: string): Promise<boolean> {
     // First get current usage
     const currentUsage = await getUserUsage(userId);
     if (!currentUsage) {
+      console.log('usageService: User not found in usage table, checking if QA testing user...');
+      
+      // Check if this is a QA testing user
+      try {
+        const { data: qaUser, error: qaError } = await supabase
+          .from('ready-for-testing')
+          .select('id')
+          .eq('id', userId)
+          .single();
+        
+        if (!qaError && qaUser) {
+          console.log('usageService: QA testing user - skipping usage increment');
+          return true; // Return success but don't increment for QA users
+        }
+      } catch (qaCheckError) {
+        console.log('usageService: Error checking QA testing status:', qaCheckError);
+      }
+      
       console.error('usageService: Could not fetch current usage');
       return false;
+    }
+
+    // Skip increment for testing status users
+    if (currentUsage.status === 'testing') {
+      console.log('usageService: Testing status user - skipping usage increment');
+      return true;
     }
 
     // Check if user has reached their limit
@@ -94,14 +118,43 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
     const usage = await getUserUsage(userId);
     
     if (!usage) {
+      // If user not found in usage table, check if they're in QA testing
+      console.log('usageService: User not found in usage table, checking QA testing status...');
+      
+      try {
+        const { data: qaUser, error: qaError } = await supabase
+          .from('ready-for-testing')
+          .select('id, subscriptiontier')
+          .eq('id', userId)
+          .single();
+        
+        if (!qaError && qaUser) {
+          console.log('usageService: Found user in QA testing, allowing reconciliation');
+          // Return a temporary usage object for QA testing users
+          const qaUsage: UsageData = {
+            comparisonsUsed: 0,
+            comparisonsLimit: 999, // High limit for QA testing
+            subscriptionTier: qaUser.subscriptiontier || 'professional',
+            status: 'testing'
+          };
+          
+          return { 
+            canProceed: true, 
+            usage: qaUsage 
+          };
+        }
+      } catch (qaCheckError) {
+        console.log('usageService: Error checking QA testing status:', qaCheckError);
+      }
+      
       return { 
         canProceed: false, 
         reason: 'Could not fetch usage data' 
       };
     }
 
-    // Check if user is in trial or paid status
-    if (usage.status !== 'trial' && usage.status !== 'approved' && usage.status !== 'paid') {
+    // Check if user is in trial, testing, or paid status
+    if (usage.status !== 'trial' && usage.status !== 'testing' && usage.status !== 'approved' && usage.status !== 'paid') {
       return { 
         canProceed: false, 
         reason: 'Account not activated. Please contact support.',
@@ -109,8 +162,8 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
       };
     }
 
-    // Check usage limits
-    if (usage.comparisonsUsed >= usage.comparisonsLimit) {
+    // Check usage limits (skip for testing status)
+    if (usage.status !== 'testing' && usage.comparisonsUsed >= usage.comparisonsLimit) {
       return { 
         canProceed: false, 
         reason: `Monthly limit reached (${usage.comparisonsUsed}/${usage.comparisonsLimit}). Upgrade your plan for more reconciliations.`,
