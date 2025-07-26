@@ -121,9 +121,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // Check user approval status for other users
         try {
           const { data: userProfile, error } = await supabase
-            .from('user_profiles')
-            .select('status, approved_at')
-            .eq('user_id', session.user.id)
+            .from('usage')
+            .select('status, approvedAt')
+            .eq('id', session.user.id)
             .single();
 
           if (!mounted.current) return;
@@ -134,9 +134,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
-          } else if (userProfile?.status === 'approved') {
-            console.log('🔐 AuthProvider: User approved');
-            setUserStatus('approved');
+          } else if (userProfile?.status === 'approved' || userProfile?.status === 'trial') {
+            console.log('🔐 AuthProvider: User approved/trial active');
+            setUserStatus(userProfile.status);
             setIsApproved(true);
             setIsPending(false);
           } else {
