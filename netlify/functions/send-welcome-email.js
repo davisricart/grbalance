@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
     }
 
     // Initialize Resend with API key from environment variables
-    const resend = new Resend(process.env.RESEND_API_KEY);
+    const resend = new Resend(process.env.VITE_RESEND_API_KEY || process.env.RESEND_API_KEY);
 
     // Create the HTML email content
     const htmlContent = `
