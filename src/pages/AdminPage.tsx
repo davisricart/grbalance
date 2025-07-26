@@ -968,14 +968,28 @@ const AdminPage: React.FC = () => {
 
       console.log('✅ PERMANENT DELETE SUCCESSFUL:', deleteResponse.data);
 
-      // Step 3: DELETE AUTH USER COMPLETELY (Alternative approach)
-      console.log('🔄 Attempting to delete authentication user...');
-      console.log('⚠️ Note: Auth admin operations require service role key');
-      console.log('💡 For now, database record is deleted. Auth user cleanup is manual.');
-      console.log('📋 Manual cleanup needed:');
-      console.log(`   • Go to Supabase Dashboard → Authentication → Users`);
-      console.log(`   • Find and delete: ${existingUser.email}`);
-      console.log('🔄 Future: We can implement auth deletion via backend API with service role key');
+      // Step 3: Delete from Supabase Auth using secure Netlify function
+      console.log('🔄 Deleting from Supabase Auth...');
+      try {
+        const response = await fetch('/.netlify/functions/delete-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ userId })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('❌ Error deleting from auth:', errorData);
+          // Continue anyway since database was already deleted
+        } else {
+          console.log('✅ User deleted from Supabase Auth');
+        }
+      } catch (authError) {
+        console.error('❌ Error calling delete-user function:', authError);
+        // Continue anyway since database was already deleted
+      }
 
       // Step 4: Clean up local state
       setSiteUrls((prev) => {
