@@ -94,7 +94,7 @@ const ApprovedUsersTab = React.memo(({
 
   const handleStartTrial = async (userId: string) => {
     setProcessing(userId);
-    console.log(`🚀 Starting 1-hour FREE trial for user ${userId} (NO CREDIT CARD REQUIRED - FOR TESTING)`);
+    console.log(`🚀 Starting 30-minute FREE trial for user ${userId} (NO CREDIT CARD REQUIRED - FOR TESTING)`);
     
     try {
       // Store trial start date in database
@@ -105,7 +105,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (for testing)
+      const trialEndDate = new Date(trialStartDate.getTime() + (30 * 60 * 1000)); // 30 minutes from now (for testing)
       
       const { error } = await supabase
         .from('usage')
@@ -129,7 +129,7 @@ const ApprovedUsersTab = React.memo(({
         }
       }));
       
-      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleDateString()}`);
+      console.log(`✅ 30-minute FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       
     } catch (error) {
       console.error('❌ Error starting trial:', error);
@@ -341,7 +341,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (for testing)
+      const trialEndDate = new Date(trialStartDate.getTime() + (30 * 60 * 1000)); // 30 minutes from now (for testing)
       
       const { error } = await supabase
         .from('usage')
@@ -354,7 +354,7 @@ const ApprovedUsersTab = React.memo(({
       
       if (error) throw error;
       
-      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleDateString()}`);
+      console.log(`✅ 30-minute FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       console.log('💡 User will be prompted for payment when trial expires');
       
       // Update all states to completed (billing will happen when trial expires)
