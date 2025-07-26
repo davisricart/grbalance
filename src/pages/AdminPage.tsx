@@ -1198,6 +1198,13 @@ const AdminPage: React.FC = () => {
         subscriptionTier: pendingUser.subscriptionTier
       });
       
+      // TEMPORARY FIX: Correct the business name if it's "GR Balance" for testing user
+      let correctedBusinessName = pendingUser.businessName;
+      if (pendingUser.email === 'grbalancetesting@gmail.com' && pendingUser.businessName === 'GR Balance') {
+        correctedBusinessName = 'GR Salon';
+        console.log('🔧 TEMPORARY FIX: Correcting business name from "GR Balance" to "GR Salon" for testing user');
+      }
+      
       // Check if consultation is complete and script is ready
       if (!pendingUser.consultationCompleted || !pendingUser.scriptReady) {
         throw new Error('User must complete consultation and have script ready before moving to testing.');
@@ -1210,7 +1217,7 @@ const AdminPage: React.FC = () => {
       const readyForTestingData = {
         id: userId,
         email: pendingUser.email,
-        businessname: pendingUser.businessName,
+        businessname: correctedBusinessName,
         businesstype: pendingUser.businessType,
         subscriptiontier: pendingUser.subscriptionTier,
         billingcycle: pendingUser.billingCycle,

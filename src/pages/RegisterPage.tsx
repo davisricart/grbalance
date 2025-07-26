@@ -230,6 +230,15 @@ export default function RegisterPage() {
       }
 
       // Create pending approval record
+      console.log('🔍 REGISTRATION DEBUG - Form values:', {
+        businessNameRaw: businessName,
+        businessNameTrimmed: businessName.trim(),
+        businessTypeRaw: businessType,
+        businessTypeTrimmed: businessType.trim(),
+        selectedTier,
+        isAnnual
+      });
+      
       console.log('Creating pending user record for:', {
         id: user.id,
         email: user.email,
@@ -239,24 +248,27 @@ export default function RegisterPage() {
         billingCycle: isAnnual ? 'annual' : 'monthly'
       });
 
+      const pendingUserInsertData = {
+        id: user.id,
+        email: user.email,
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+        subscriptionTier: selectedTier,
+        billingCycle: isAnnual ? 'annual' : 'monthly',
+        createdAt: new Date().toISOString(),
+        consultationCompleted: false,
+        scriptReady: false
+      };
+      
+      console.log('🔍 REGISTRATION DEBUG - Exact data being inserted:', pendingUserInsertData);
+
       const { data: pendingUserData, error: pendingUserError } = await supabase
         .from('pendingUsers')
-        .insert([
-          {
-            id: user.id,
-            email: user.email,
-            businessName: businessName.trim(),
-            businessType: businessType.trim(),
-            subscriptionTier: selectedTier,
-            billingCycle: isAnnual ? 'annual' : 'monthly',
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ])
+        .insert([pendingUserInsertData])
         .select();
 
       console.log('Pending user insert result:', { data: pendingUserData, error: pendingUserError });
+      console.log('🔍 REGISTRATION DEBUG - What actually got stored:', pendingUserData);
 
       if (pendingUserError) {
         console.error('Pending user insert failed:', pendingUserError);
