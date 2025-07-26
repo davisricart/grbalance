@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings, ArrowLeft, X } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
+import { stripeConfig } from '../../../config/stripe';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
@@ -289,7 +290,7 @@ const ApprovedUsersTab = React.memo(({
       }
       
       // Step 1: Send welcome email & start trial
-      console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
+      console.log('📧 Step 1: Sending welcome email and starting 30-minute trial...');
       
       // Send welcome email via Netlify function (server-side)
       const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
@@ -330,8 +331,8 @@ const ApprovedUsersTab = React.memo(({
       console.log('🌐 Step 3: Activating live site...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Step 4: Start 14-day free trial with database tracking
-      console.log('⏰ Step 4: Starting 14-day free trial with expiration tracking...');
+      // Step 4: Start 30-minute free trial with database tracking
+      console.log('⏰ Step 4: Starting 30-minute free trial with expiration tracking...');
       
       // Store trial start date in database
       const { createClient } = await import('@supabase/supabase-js');
@@ -629,7 +630,7 @@ const ApprovedUsersTab = React.memo(({
                           </h5>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          {userState.billingSetup ? 'All Systems Live' : '14-Day Trial Active'}
+                          {userState.billingSetup ? 'All Systems Live' : '30-Min Trial Active'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -639,7 +640,7 @@ const ApprovedUsersTab = React.memo(({
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Clock className="h-3 w-3" />
-                          <span>14-day trial active</span>
+                          <span>30-min trial active</span>
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Rocket className="h-3 w-3" />
@@ -733,7 +734,7 @@ const ApprovedUsersTab = React.memo(({
                       </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Clock className="h-4 w-4 text-green-500" />
-                        <span>Start 14-day free trial immediately</span>
+                        <span>Start 30-minute free trial immediately</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Rocket className="h-4 w-4 text-purple-500" />
@@ -878,7 +879,16 @@ const ApprovedUsersTab = React.memo(({
             Total: {users.length} active client{users.length !== 1 ? 's' : ''}
           </span>
           <span>
-            Revenue: ${users.length * 30}/month
+            Revenue: ${(() => {
+              const totalRevenue = users.reduce((sum, user) => {
+                const tier = user.subscriptionTier || 'starter';
+                const tierConfig = stripeConfig.plans[tier as keyof typeof stripeConfig.plans];
+                const monthlyPrice = tierConfig?.monthly?.amount || stripeConfig.plans.starter.monthly.amount;
+                return sum + (monthlyPrice / 100); // Convert from cents to dollars
+              }, 0);
+              
+              return totalRevenue;
+            })()}/month
           </span>
         </div>
       </div>
