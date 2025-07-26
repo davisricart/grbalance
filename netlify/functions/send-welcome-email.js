@@ -11,7 +11,7 @@ exports.handler = async (event, context) => {
 
   try {
     // Parse the request body
-    const { clientEmail, businessName, tier } = JSON.parse(event.body);
+    const { clientEmail, businessName, tier, clientPath } = JSON.parse(event.body);
 
     // Validate required fields
     if (!clientEmail || !businessName || !tier) {
@@ -121,13 +121,13 @@ exports.handler = async (event, context) => {
                         <li>Plan: ${tier} Plan</li>
                         <li>1-hour free trial included (for testing)</li>
                         <li>Full access to all features</li>
-                        <li>Login at: <strong>grbalance.com</strong></li>
+                        <li>Login at: <strong>${clientPath ? `grbalance.com/${clientPath}` : 'grbalance.com'}</strong></li>
                         <li>Use the same email/password you registered with</li>
                     </ul>
                 </div>
                 
                 <div style="text-align: center;">
-                    <a href="https://grbalance.com" class="button">Login Now</a>
+                    <a href="${clientPath ? `https://grbalance.com/${clientPath}` : 'https://grbalance.com'}" class="button">Login Now</a>
                 </div>
                 
                 <p>Need help? Email us at davis@grbalance.com</p>
