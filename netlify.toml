@@ -13,12 +13,7 @@
   node_bundler = "esbuild"
   external_node_modules = []
 
-# Scheduled function for reminder emails
-[[plugins]]
-  package = "@netlify/plugin-scheduled-functions"
-
-[plugins.inputs.scheduled-reminders]
-  schedule = "0 10 * * *"  # Run daily at 10 AM UTC
+# Scheduled function for reminder emails (configured via Netlify dashboard or deploy hooks)
 
 # Redirect rules for SPA
 [[redirects]]

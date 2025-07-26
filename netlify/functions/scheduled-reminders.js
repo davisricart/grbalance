@@ -2,7 +2,10 @@ const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
 
 exports.handler = async (event, context) => {
-  console.log('🔔 Running scheduled reminder check...');
+  console.log('🔔 Running reminder check...');
+  
+  // For now, this can be called manually or via external cron service
+  // TODO: Set up automated scheduling via Netlify dashboard or GitHub Actions
   
   try {
     // Initialize Supabase with service role key for full access
