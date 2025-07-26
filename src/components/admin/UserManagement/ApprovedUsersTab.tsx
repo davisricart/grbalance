@@ -292,18 +292,21 @@ const ApprovedUsersTab = React.memo(({
       // Import EmailJS email service (original setup - 200 emails/month)
       const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
       
-      // Send welcome email via EmailJS (200/month limit)
+      // Send welcome email via EmailJS (200/month limit) - TEMPORARILY DISABLED DUE TO CORS
       const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
-      const emailSent = await sendSimpleWelcomeEmail(
-        userEmail, 
-        businessName,
-        tier
-      );
+      console.log('📧 Email temporarily disabled due to CORS issue - will be fixed with server-side function');
+      const emailSent = true; // Skip email for now
       
-      if (!emailSent) {
-        console.warn('⚠️ Welcome email failed but continuing activation...');
-        // Don't throw error - continue with activation even if email fails
-      }
+      // const emailSent = await sendSimpleWelcomeEmail(
+      //   userEmail, 
+      //   businessName,
+      //   tier
+      // );
+      
+      // if (!emailSent) {
+      //   console.warn('⚠️ Welcome email failed but continuing activation...');
+      //   // Don't throw error - continue with activation even if email fails
+      // }
       
       // Step 2: Send welcome package (onboarding materials)
       console.log('📦 Step 2: Sending onboarding materials...');
@@ -332,8 +335,8 @@ const ApprovedUsersTab = React.memo(({
           status: 'trial',
           trialStartedAt: trialStartDate.toISOString(),
           trialEndsAt: trialEndDate.toISOString(),
-          subscriptionTier: tier,
-          billingCycle: 'monthly' // Default to monthly
+          subscriptionTier: tier
+          // Removed billingCycle - column doesn't exist in database
         })
         .eq('id', userId);
       
