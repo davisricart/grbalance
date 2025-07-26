@@ -291,14 +291,18 @@ const ApprovedUsersTab = React.memo(({
       // Import EmailJS email service (original setup - 200 emails/month)
       const { sendSimpleWelcomeEmail } = await import('../../../services/welcomeEmailService');
       
-      // Send welcome email via EmailJS (200/month limit) - TEMPORARILY DISABLED FOR TESTING
+      // Send welcome email via EmailJS (200/month limit)
       const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
-      console.log('📧 Email sending temporarily disabled for testing');
-      const emailSent = true; // Skip email for testing
+      const emailSent = await sendSimpleWelcomeEmail(
+        userEmail, 
+        businessName,
+        tier
+      );
       
-      // if (!emailSent) {
-      //   throw new Error('Failed to send welcome email');
-      // }
+      if (!emailSent) {
+        console.warn('⚠️ Welcome email failed but continuing activation...');
+        // Don't throw error - continue with activation even if email fails
+      }
       
       // Step 2: Send welcome package (onboarding materials)
       console.log('📦 Step 2: Sending onboarding materials...');
