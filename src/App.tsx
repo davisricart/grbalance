@@ -44,7 +44,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isApproved, isPending, isLoading } = useAuth();
+  const { isAuthenticated, isApproved, isPending, isLoading, userStatus } = useAuth();
   
   if (isLoading) {
     return <div>Loading...</div>;
@@ -52,6 +52,11 @@ const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
+  }
+  
+  // Explicitly allow trial and approved users
+  if (userStatus === 'trial' || userStatus === 'approved' || isApproved) {
+    return <>{children}</>;
   }
   
   if (isPending) {
