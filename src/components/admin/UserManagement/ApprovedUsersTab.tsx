@@ -333,10 +333,8 @@ const ApprovedUsersTab = React.memo(({
         .from('usage')
         .update({
           status: 'trial',
-          trialStartedAt: trialStartDate.toISOString(),
-          trialEndsAt: trialEndDate.toISOString(),
-          subscriptionTier: tier
-          // Removed billingCycle - column doesn't exist in database
+          updatedAt: new Date().toISOString()
+          // Note: Trial expiration will be handled by checking the updatedAt + 1 hour
         })
         .eq('id', userId);
       
