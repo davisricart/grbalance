@@ -103,7 +103,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (TESTING)
       
       const { error } = await supabase
         .from('usage')
@@ -322,7 +322,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      const trialEndDate = new Date(trialStartDate.getTime() + (1 * 60 * 60 * 1000)); // 1 hour from now (TESTING)
       
       const { error } = await supabase
         .from('usage')
