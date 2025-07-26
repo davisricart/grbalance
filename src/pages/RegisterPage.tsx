@@ -248,17 +248,16 @@ export default function RegisterPage() {
         billingCycle: isAnnual ? 'annual' : 'monthly'
       });
 
-      // Use snake_case column names to match database schema
+      // Use correct camelCase column names that match the actual pendingUsers table
       const pendingUserInsertData = {
         id: user.id,
         email: user.email,
-        business_name: businessName.trim(),  // snake_case
-        business_type: businessType.trim(),  // snake_case
-        subscription_tier: selectedTier,     // snake_case
-        billing_cycle: isAnnual ? 'annual' : 'monthly',  // snake_case
-        created_at: new Date().toISOString(),  // snake_case
-        consultation_completed: false,       // snake_case
-        script_ready: false                  // snake_case
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+        subscriptionTier: selectedTier,
+        billingCycle: isAnnual ? 'annual' : 'monthly',
+        createdAt: new Date().toISOString(),
+        status: 'pending'
       };
       
       console.log('🔍 REGISTRATION DEBUG - Exact data being inserted:', pendingUserInsertData);
