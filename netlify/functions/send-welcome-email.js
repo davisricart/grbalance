@@ -119,7 +119,7 @@ exports.handler = async (event, context) => {
                 <div class="features">
                     <ul>
                         <li>Plan: ${tier} Plan</li>
-                        <li>1-hour free trial included (for testing)</li>
+                        <li>14-day free trial included</li>
                         <li>Full access to all features</li>
                         <li>Login at: <strong>${clientPath ? `grbalance.com/${clientPath}` : 'grbalance.com'}</strong></li>
                         <li>Use the same email/password you registered with</li>

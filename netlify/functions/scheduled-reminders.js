@@ -185,7 +185,7 @@ function createReminderEmail(user) {
                 <ul>
                     <li>15-minute consultation call</li>
                     <li>Custom script built for your business</li>
-                    <li>1-hour free trial to test everything</li>
+                    <li>14-day free trial to test everything</li>
                     <li>Start catching errors immediately</li>
                 </ul>
                 

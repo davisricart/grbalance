@@ -95,7 +95,7 @@ const ApprovedUsersTab = React.memo(({
 
   const handleStartTrial = async (userId: string) => {
     setProcessing(userId);
-    console.log(`🚀 Starting 30-minute FREE trial for user ${userId} (NO CREDIT CARD REQUIRED - FOR TESTING)`);
+    console.log(`🚀 Starting 14-day FREE trial for user ${userId} (NO CREDIT CARD REQUIRED - FOR TESTING)`);
     
     try {
       // Store trial start date in database
@@ -106,7 +106,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (30 * 60 * 1000)); // 30 minutes from now (for testing)
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase
         .from('usage')
@@ -130,7 +130,7 @@ const ApprovedUsersTab = React.memo(({
         }
       }));
       
-      console.log(`✅ 30-minute FREE trial started - expires ${trialEndDate.toLocaleString()}`);
+      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       
     } catch (error) {
       console.error('❌ Error starting trial:', error);
@@ -290,7 +290,7 @@ const ApprovedUsersTab = React.memo(({
       }
       
       // Step 1: Send welcome email & start trial
-      console.log('📧 Step 1: Sending welcome email and starting 30-minute trial...');
+      console.log('📧 Step 1: Sending welcome email and starting 14-day trial...');
       
       // Send welcome email via Netlify function (server-side)
       const businessName = userEmail.split('@')[0]; // Use email prefix as business name fallback
@@ -331,8 +331,8 @@ const ApprovedUsersTab = React.memo(({
       console.log('🌐 Step 3: Activating live site...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Step 4: Start 30-minute free trial with database tracking
-      console.log('⏰ Step 4: Starting 30-minute free trial with expiration tracking...');
+      // Step 4: Start 14-day free trial with database tracking
+      console.log('⏰ Step 4: Starting 14-day free trial with expiration tracking...');
       
       // Store trial start date in database
       const { createClient } = await import('@supabase/supabase-js');
@@ -342,20 +342,20 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      const trialEndDate = new Date(trialStartDate.getTime() + (30 * 60 * 1000)); // 30 minutes from now (for testing)
+      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase
         .from('usage')
         .update({
           status: 'trial',
           updatedAt: new Date().toISOString()
-          // Note: Trial expiration will be handled by checking the updatedAt + 1 hour
+          // Note: Trial expiration will be handled by checking the updatedAt + 14 days
         })
         .eq('id', userId);
       
       if (error) throw error;
       
-      console.log(`✅ 30-minute FREE trial started - expires ${trialEndDate.toLocaleString()}`);
+      console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       console.log('💡 User will be prompted for payment when trial expires');
       
       // Update all states to completed (billing will happen when trial expires)
@@ -630,7 +630,7 @@ const ApprovedUsersTab = React.memo(({
                           </h5>
                         </div>
                         <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          {userState.billingSetup ? 'All Systems Live' : '30-Min Trial Active'}
+                          {userState.billingSetup ? 'All Systems Live' : '14-Day Trial Active'}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -640,7 +640,7 @@ const ApprovedUsersTab = React.memo(({
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Clock className="h-3 w-3" />
-                          <span>30-min trial active</span>
+                          <span>14-day trial active</span>
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Rocket className="h-3 w-3" />
@@ -734,7 +734,7 @@ const ApprovedUsersTab = React.memo(({
                       </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Clock className="h-4 w-4 text-green-500" />
-                        <span>Start 30-minute free trial immediately</span>
+                        <span>Start 14-day free trial immediately</span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-700">
                         <Rocket className="h-4 w-4 text-purple-500" />
