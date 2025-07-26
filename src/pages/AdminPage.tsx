@@ -616,26 +616,36 @@ const AdminPage: React.FC = () => {
       if (error) throw error;
       
       // Map database field names to frontend expected field names
-      const mappedData = (readyForTestingUsersData || []).map((user: any) => ({
-        ...user,
-        // Map database fields to camelCase frontend fields
-        readyForTestingAt: user.readyfortestingat,
-        businessName: user.businessname,
-        businessType: user.businesstype,
-        subscriptionTier: user.subscriptiontier,
-        billingCycle: user.billingcycle,
-        createdAt: user.createdat,
-        qaStatus: user.qastatus,
-        qaTestedAt: user.qatestedat,
-        qaTestingNotes: user.qatestnotes,
-        websiteProvisioned: user.websiteprovisioned,
-        websiteProvisionedAt: user.websiteprovisionedat,
-        scriptDeployed: user.scriptdeployed,
-        scriptDeployedAt: user.scriptdeployedat,
-        siteUrl: user.siteurl,
-        siteId: user.siteid,
-        siteName: user.sitename
-      }));
+      const mappedData = (readyForTestingUsersData || []).map((user: any) => {
+        console.log('🔍 Raw user data from ready-for-testing table:', {
+          id: user.id,
+          email: user.email,
+          businessname: user.businessname,
+          businesstype: user.businesstype,
+          subscriptiontier: user.subscriptiontier
+        });
+        
+        return {
+          ...user,
+          // Map database fields to camelCase frontend fields
+          readyForTestingAt: user.readyfortestingat,
+          businessName: user.businessname,
+          businessType: user.businesstype,
+          subscriptionTier: user.subscriptiontier,
+          billingCycle: user.billingcycle,
+          createdAt: user.createdat,
+          qaStatus: user.qastatus,
+          qaTestedAt: user.qatestedat,
+          qaTestingNotes: user.qatestnotes,
+          websiteProvisioned: user.websiteprovisioned,
+          websiteProvisionedAt: user.websiteprovisionedat,
+          scriptDeployed: user.scriptdeployed,
+          scriptDeployedAt: user.scriptdeployedat,
+          siteUrl: user.siteurl,
+          siteId: user.siteid,
+          siteName: user.sitename
+        };
+      });
       
       setReadyForTestingUsers(mappedData);
     } catch (error: any) {
@@ -1179,6 +1189,14 @@ const AdminPage: React.FC = () => {
       }
       
       console.log('✅ Found pending user:', pendingUser);
+      console.log('🔍 Business name from pending user:', pendingUser.businessName);
+      console.log('🔍 Full pending user data:', { 
+        id: pendingUser.id, 
+        email: pendingUser.email, 
+        businessName: pendingUser.businessName,
+        businessType: pendingUser.businessType,
+        subscriptionTier: pendingUser.subscriptionTier
+      });
       
       // Check if consultation is complete and script is ready
       if (!pendingUser.consultationCompleted || !pendingUser.scriptReady) {

@@ -821,9 +821,17 @@ export default function ReadyForTestingTab({
           const isScriptCompleted = currentScriptStatus === 'completed';
           const canApprove = isQAPassed && isScriptCompleted;
           const isProcessing = processingUser === user.id;
+          // Debug: Log the business name and URL generation
+          console.log('🔍 URL Generation for user:', user.email, {
+            businessName: user.businessName,
+            emailPrefix: user.email?.split('@')[0],
+            generatedPath: user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, ''),
+            customUrl: customUrls[user.id]
+          });
+          
           const defaultPath = user.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
-          const clientPath = customUrls[user.id] || defaultPath;
+          const clientPath = customUrls[user.id] !== undefined ? customUrls[user.id] : defaultPath;
           const currentWebsiteStatus = websiteStatus[user.id] || 'none';
 
           return (
