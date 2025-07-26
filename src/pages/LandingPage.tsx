@@ -129,13 +129,22 @@ export default function LandingPage() {
             <p className="text-sm text-gray-600 mb-2">
               Simple process: Email signup → Custom consultation → Start 14-day trial
             </p>
-            <Link
-              to="/book"
-              className="inline-flex items-center text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-            >
-              <Calendar className="mr-1 h-4 w-4" />
-              Or book consultation first
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm">
+              <Link
+                to="/book"
+                className="inline-flex items-center text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                <Calendar className="mr-1 h-4 w-4" />
+                Or book consultation first
+              </Link>
+              <span className="hidden sm:inline text-gray-400">•</span>
+              <Link
+                to="/login"
+                className="inline-flex items-center text-gray-600 hover:text-emerald-600 font-medium"
+              >
+                Already have an account? Sign In
+              </Link>
+            </div>
           </div>
         </div>
 
