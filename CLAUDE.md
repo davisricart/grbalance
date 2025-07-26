@@ -63,6 +63,35 @@
 - **Files**: `AdminPage.tsx` - `onFinalApprove` and `fetchApprovedUsers` functions
 - **Status**: Move to Approved button now works properly, website names preserved
 
+## Trial User Authentication & Routing - COMPLETED ✅
+- **Problem**: Trial users redirected to pending approval page despite proper authentication
+- **Root Cause**: Race condition - ApprovedUserRoute checked auth state before AuthProvider finished database lookup
+- **Solution**: Fixed AuthProvider to keep isLoading=true until database status check completes
+- **Files**: `src/contexts/AuthProvider.tsx`, `src/App.tsx`
+- **Status**: Trial users now properly access main app without pending approval redirect
+
+## Usage Tracking System - COMPLETED ✅
+- **Implementation**: Complete usage tracking with database integration
+- **Service**: `src/services/usageService.ts` - handles limits, increments, and checks
+- **Integration**: MainPage checks limits before reconciliation, increments after success
+- **Components**: UsageCounter displays real-time usage from database
+- **Enforcement**: Trial users blocked when hitting tier limits (starter: 50, professional: 75, business: 150)
+- **Status**: Fully functional usage tracking and limit enforcement
+
+## Header Login Button Fix - COMPLETED ✅  
+- **Problem**: Login button missing or stuck showing "Loading..." 
+- **Root Cause**: isLoading condition hiding button + AuthProvider not setting isLoading=false for unauthenticated users
+- **Solution**: Removed isLoading condition from button visibility, fixed AuthProvider loading state
+- **Files**: `src/components/Header.tsx`, `src/contexts/AuthProvider.tsx`
+- **Status**: Login button properly shows "Login" for unauthenticated users
+
+## Landing Page Login Access - COMPLETED ✅
+- **Addition**: "Already have an account? Sign In" link on landing page
+- **Purpose**: Existing users can access login without going through registration flow
+- **Location**: Below main CTA buttons alongside consultation booking link
+- **Files**: `src/pages/LandingPage.tsx`
+- **Status**: Multiple login access points for better UX
+
 ## Configuration Files - CRITICAL
 - **tailwind.config.js**: Must maintain proper Tailwind configuration
 - **postcss.config.js**: Required for PostCSS/Tailwind processing
