@@ -122,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         try {
           const { data: userProfile, error } = await supabase
             .from('usage')
-            .select('status, approvedAt')
+            .select('status')
             .eq('id', session.user.id)
             .single();
 
