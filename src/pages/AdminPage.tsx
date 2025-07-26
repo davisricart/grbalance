@@ -170,6 +170,8 @@ const AdminPage: React.FC = () => {
   const skipAuth = false; // Set to true only for testing
   const hasInitiallyLoaded = useRef(false);
   const [activeTab, setActiveTab] = useState('users');
+  const [showCleanupInput, setShowCleanupInput] = useState(false);
+  const [cleanupEmail, setCleanupEmail] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tierFilter, setTierFilter] = useState('all');
@@ -2487,14 +2489,46 @@ WARNING:
       
       if (!response.ok) {
         console.error('❌ Cleanup failed:', result);
-        alert(`Cleanup failed: ${result.error || 'Unknown error'}`);
+        // Show error notification instead of alert
+        setNotification({
+          id: Date.now().toString(),
+          type: 'error',
+          title: 'Cleanup Failed',
+          message: result.error || 'Unknown error occurred',
+          timestamp: new Date(),
+          read: false
+        });
       } else {
         console.log('✅ Successfully cleaned up orphaned auth user');
-        alert('✅ Orphaned auth user cleaned up successfully! You can now register again.');
+        // Show success notification instead of alert
+        setNotification({
+          id: Date.now().toString(),
+          type: 'success',
+          title: 'Cleanup Successful',
+          message: 'Orphaned auth user cleaned up! You can now register again.',
+          timestamp: new Date(),
+          read: false
+        });
       }
+      
+      // Hide the input and clear email
+      setShowCleanupInput(false);
+      setCleanupEmail('');
+      
     } catch (error) {
       console.error('❌ Error cleaning up orphaned auth user:', error);
-      alert(`❌ Cleanup error: ${error.message}`);
+      setNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Cleanup Error',
+        message: error.message,
+        timestamp: new Date(),
+        read: false
+      });
+      
+      // Hide the input and clear email
+      setShowCleanupInput(false);
+      setCleanupEmail('');
     }
   };
 
@@ -2912,18 +2946,54 @@ WARNING:
             >
               🔍 Debug DB
             </button>
-            <button
-              onClick={() => {
-                const email = prompt('Enter email to cleanup from auth (e.g., grbalancetesting@gmail.com):');
-                if (email) {
-                  cleanupOrphanedAuthUser(email);
-                }
-              }}
-              className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
-              title="Clean up orphaned auth users causing registration errors"
-            >
-              🧹 Cleanup Auth
-            </button>
+            {!showCleanupInput ? (
+              <button
+                onClick={() => setShowCleanupInput(true)}
+                className="px-3 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-800 rounded-md transition-colors"
+                title="Clean up orphaned auth users causing registration errors"
+              >
+                🧹 Cleanup Auth
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 bg-red-50 px-3 py-1 rounded-md border border-red-200">
+                <input
+                  type="email"
+                  value={cleanupEmail}
+                  onChange={(e) => setCleanupEmail(e.target.value)}
+                  placeholder="email@example.com"
+                  className="text-xs px-2 py-1 border border-red-300 rounded w-48 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && cleanupEmail.trim()) {
+                      cleanupOrphanedAuthUser(cleanupEmail.trim());
+                    } else if (e.key === 'Escape') {
+                      setShowCleanupInput(false);
+                      setCleanupEmail('');
+                    }
+                  }}
+                  autoFocus
+                />
+                <button
+                  onClick={() => {
+                    if (cleanupEmail.trim()) {
+                      cleanupOrphanedAuthUser(cleanupEmail.trim());
+                    }
+                  }}
+                  disabled={!cleanupEmail.trim()}
+                  className="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Clean
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCleanupInput(false);
+                    setCleanupEmail('');
+                  }}
+                  className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
             <span className="text-sm text-gray-600">Welcome, {user.email}</span>
             <button
               onClick={() => supabase.auth.signOut()}
