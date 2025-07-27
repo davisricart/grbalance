@@ -70,7 +70,16 @@ export default function UsageCounter({ refreshTrigger }: UsageCounterProps) {
   }, [refreshTrigger]);
 
   if (!usage) {
-    return null;
+    return (
+      <div className="flex flex-col gap-1">
+        <div className="text-sm font-medium text-gray-700">
+          Monthly Usage: Loading...
+        </div>
+        <div className="text-xs text-gray-500">
+          Fetching plan details...
+        </div>
+      </div>
+    );
   }
 
   const usagePercentage = (usage.comparisonsUsed / usage.comparisonsLimit) * 100;
