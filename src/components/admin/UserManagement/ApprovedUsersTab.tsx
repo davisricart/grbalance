@@ -511,9 +511,9 @@ const ApprovedUsersTab = React.memo(({
 
               {/* Usage Management Panel */}
               {expandedUsage[user.id] && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
                   <div className="flex items-center justify-between mb-3">
-                    <h5 className="text-sm font-semibold text-blue-900">Usage Controls</h5>
+                    <h5 className="text-sm font-semibold text-gray-900">Usage Controls</h5>
                     {getUserNotification(user.id) && (
                       <div className={`px-3 py-1 rounded-full text-xs font-medium ${
                         getUserNotification(user.id)?.type === 'success' 
@@ -525,60 +525,40 @@ const ApprovedUsersTab = React.memo(({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Quick Actions */}
                     <div className="space-y-2">
-                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Quick Actions</h6>
+                      <h6 className="text-xs font-medium text-gray-700 uppercase tracking-wide">Quick Actions</h6>
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={() => handleResetUsage(user.id)}
-                          className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-md text-sm hover:bg-emerald-700 transition-colors"
                         >
                           <RotateCcw className="h-4 w-4" />
                           Reset to 0
                         </button>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAddUsage(user.id, 5)}
-                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
-                          >
-                            +5
-                          </button>
-                          <button
-                            onClick={() => handleAddUsage(user.id, 10)}
-                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
-                          >
-                            +10
-                          </button>
-                    <button
-                            onClick={() => handleAddUsage(user.id, 20)}
-                            className="flex items-center gap-1 px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 transition-colors"
-                          >
-                            +20
-                    </button>
-                        </div>
                       </div>
-                  </div>
+                    </div>
 
                     {/* Update Limit */}
                     <div className="space-y-2">
-                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Monthly Limit</h6>
+                      <h6 className="text-xs font-medium text-gray-700 uppercase tracking-wide">Monthly Limit</h6>
                       <div className="flex gap-2">
                         <input
                           type="number"
                           placeholder={`Current: ${user.comparisonsLimit}`}
                           value={usageInputs[user.id] || ''}
                           onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
-                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                         />
-                    <button
+                        <button
                           onClick={() => handleUpdateLimit(user.id)}
                           disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
-                          className="flex items-center gap-1 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Settings className="h-3 w-3" />
                           Update
-                    </button>
+                        </button>
                       </div>
                     </div>
                   </div>
