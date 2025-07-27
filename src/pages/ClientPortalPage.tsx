@@ -28,9 +28,27 @@ export default function ClientPortalPage() {
   // Check authentication status on component load
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && clientData && user.email === clientData.email) {
-        setIsAuthenticated(true);
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error || !user) {
+          console.log('🔒 No authenticated user found');
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        if (clientData && user.email === clientData.email) {
+          console.log('✅ User authenticated and authorized for this client portal');
+          setIsAuthenticated(true);
+        } else {
+          console.log('❌ User not authorized for this client portal');
+          setIsAuthenticated(false);
+          // Sign out unauthorized user
+          await supabase.auth.signOut();
+        }
+      } catch (error) {
+        console.error('❌ Auth check error:', error);
+        setIsAuthenticated(false);
       }
     };
     
@@ -171,6 +189,12 @@ export default function ClientPortalPage() {
       console.error('❌ Authentication error:', error);
       setError('Authentication failed. Please try again.');
     }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    console.log('🔓 User logged out');
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
