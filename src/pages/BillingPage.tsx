@@ -335,6 +335,20 @@ export default function BillingPage() {
                 </div>
               </div>
             )}
+
+            {/* Payment Form */}
+            {showPaymentForm && user && (
+              <StripePaymentForm
+                planTier={selectedPlan}
+                planPrice={PLANS[selectedPlan]?.price || 0}
+                planName={PLANS[selectedPlan]?.name || ''}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+                userEmail={user.email || ''}
+                userId={user.id}
+                businessName={user.user_metadata?.business_name}
+              />
+            )}
           </div>
 
           {/* Sidebar */}
@@ -372,24 +386,8 @@ export default function BillingPage() {
             </div>
           </div>
         </div>
-
-        {/* Inline Payment Form */}
-        {showPaymentForm && user && (
-          <div className="lg:col-span-2">
-            <StripePaymentForm
-              planTier={selectedPlan}
-              planPrice={PLANS[selectedPlan]?.price || 0}
-              planName={PLANS[selectedPlan]?.name || ''}
-              onSuccess={handlePaymentSuccess}
-              onCancel={handlePaymentCancel}
-              userEmail={user.email || ''}
-              userId={user.id}
-              businessName={user.user_metadata?.business_name}
-            />
-          </div>
-        )}
-        </div>
       </div>
+    </div>
     </Elements>
   );
 } 
