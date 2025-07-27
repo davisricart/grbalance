@@ -4,8 +4,10 @@ import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../config/supabase';
 import { getUserUsage, UsageData } from '../services/usageService';
-import { createCheckoutSession, redirectToCheckout } from '../services/stripeService';
+import StripePaymentForm from '../components/StripePaymentForm';
 import { stripeConfig, formatPrice } from '../config/stripe';
+import { Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { 
   CreditCard, 
   Download, 
@@ -28,6 +30,8 @@ interface PlanDetails {
   features: string[];
   popular?: boolean;
 }
+
+const stripePromise = loadStripe(stripeConfig.publishableKey);
 
 const PLANS: Record<string, PlanDetails> = {
   starter: {
@@ -79,6 +83,7 @@ export default function BillingPage() {
   const [upgrading, setUpgrading] = useState(false);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -112,51 +117,24 @@ export default function BillingPage() {
     if (!user || !usage) return;
 
     console.log('🚀 Starting upgrade process for plan:', planTier);
-    console.log('👤 User data:', {
-      id: user.id,
-      email: user.email,
-      businessName: user.user_metadata?.business_name
-    });
-    console.log('📊 Usage data:', usage);
+    setSelectedPlan(planTier);
+    setShowPaymentForm(true);
+  };
 
-    setUpgrading(true);
-    try {
-      const checkoutData = {
-        userId: user.id,
-        email: user.email!,
-        tier: planTier as 'starter' | 'professional' | 'business',
-        cycle: 'monthly' as 'monthly' | 'annual',
-        businessName: user.user_metadata?.business_name,
-        successUrl: `${window.location.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/billing`
-      };
-
-      console.log('📋 Checkout data being sent:', checkoutData);
-
-      const session = await createCheckoutSession(checkoutData);
-      console.log('✅ Checkout session created:', session);
-
-      console.log('🔄 Redirecting to checkout with session ID:', session.id);
-      await redirectToCheckout(session.id);
-    } catch (error) {
-      console.error('❌ Error creating checkout session:', error);
-      
-      // Show more specific error message
-      let errorMessage = 'Failed to start checkout. Please try again.';
-      if (error instanceof Error) {
-        if (error.message.includes('404')) {
-          errorMessage = 'Payment system temporarily unavailable. Please try again in a few minutes.';
-        } else if (error.message.includes('500')) {
-          errorMessage = 'Payment configuration error. Please contact support.';
-        } else if (error.message.includes('Failed to create checkout session')) {
-          errorMessage = 'Unable to connect to payment system. Please check your internet connection and try again.';
-        }
-      }
-      
-      alert(errorMessage);
-    } finally {
-      setUpgrading(false);
+  const handlePaymentSuccess = async (subscriptionId: string) => {
+    console.log('✅ Payment successful, subscription ID:', subscriptionId);
+    // Refresh usage data to show updated subscription status
+    if (user) {
+      const updatedUsage = await getUserUsage(user.id);
+      setUsage(updatedUsage);
     }
+    setShowPaymentForm(false);
+    // Optionally redirect to success page or show success message
+  };
+
+  const handlePaymentCancel = () => {
+    console.log('❌ Payment cancelled');
+    setShowPaymentForm(false);
   };
 
   const getCurrentPlan = () => {
@@ -175,13 +153,14 @@ export default function BillingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Helmet>
-        <title>Billing & Subscription | GR Balance</title>
-        <meta name="description" content="Manage your GR Balance subscription, view usage, and upgrade your plan." />
-      </Helmet>
+    <Elements stripe={stripePromise}>
+      <div className="min-h-screen bg-gray-50">
+        <Helmet>
+          <title>Billing & Subscription | GR Balance</title>
+          <meta name="description" content="Manage your GR Balance subscription, view usage, and upgrade your plan." />
+        </Helmet>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Billing & Subscription</h1>
@@ -393,7 +372,25 @@ export default function BillingPage() {
             </div>
           </div>
         </div>
+
+        {/* Payment Form Modal */}
+        {showPaymentForm && user && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <StripePaymentForm
+                planTier={selectedPlan}
+                planPrice={PLANS[selectedPlan]?.price || 0}
+                planName={PLANS[selectedPlan]?.name || ''}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handlePaymentCancel}
+                userEmail={user.email || ''}
+                userId={user.id}
+                businessName={user.user_metadata?.business_name}
+              />
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </Elements>
   );
 } 
