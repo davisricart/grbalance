@@ -693,7 +693,14 @@ const AdminPage: React.FC = () => {
       (snapshot || []).forEach((userData) => {
         const userDataWithId = { 
           ...userData, 
-          client_path: clientPathMap[userData.id] // Add client_path from lookup
+          client_path: clientPathMap[userData.id], // Add client_path from lookup
+          // Map database fields to camelCase frontend fields
+          businessName: userData.businessname,
+          businessType: userData.businesstype,
+          subscriptionTier: userData.subscriptiontier,
+          billingCycle: userData.billingcycle,
+          approvedAt: userData.approvedat,
+          createdAt: userData.createdat
         } as ApprovedUser;
           
         // Separate users by status
