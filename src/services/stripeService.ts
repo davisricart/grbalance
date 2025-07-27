@@ -31,7 +31,7 @@ export const createCheckoutSession = async (data: CheckoutSessionData) => {
   try {
     const planConfig = getPlanConfig(data.tier, data.cycle);
     
-    const response = await fetch('/api/stripe-create-checkout-session', {
+    const response = await fetch('/.netlify/functions/stripe-create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,7 +104,7 @@ export const createSubscriptionAfterConsultation = async (data: SubscriptionData
 // Get subscription status
 export const getSubscriptionStatus = async (userId: string) => {
   try {
-    const response = await fetch(`/api/stripe-subscription-status/${userId}`);
+    const response = await fetch(`/.netlify/functions/stripe-subscription-status/${userId}`);
     if (!response.ok) {
       throw new Error('Failed to get subscription status');
     }
@@ -118,7 +118,7 @@ export const getSubscriptionStatus = async (userId: string) => {
 // Cancel subscription
 export const cancelSubscription = async (subscriptionId: string) => {
   try {
-    const response = await fetch('/api/stripe-cancel-subscription', {
+    const response = await fetch('/.netlify/functions/stripe-cancel-subscription', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -142,7 +142,7 @@ export const updateSubscription = async (subscriptionId: string, newTier: string
   try {
     const planConfig = getPlanConfig(newTier, newCycle);
     
-    const response = await fetch('/api/stripe-update-subscription', {
+    const response = await fetch('/.netlify/functions/stripe-update-subscription', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
