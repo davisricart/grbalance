@@ -126,7 +126,20 @@ export default function BillingPage() {
       await redirectToCheckout(session.id);
     } catch (error) {
       console.error('Error creating checkout session:', error);
-      alert('Failed to start checkout. Please try again.');
+      
+      // Show more specific error message
+      let errorMessage = 'Failed to start checkout. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('404')) {
+          errorMessage = 'Payment system temporarily unavailable. Please try again in a few minutes.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Payment configuration error. Please contact support.';
+        } else if (error.message.includes('Failed to create checkout session')) {
+          errorMessage = 'Unable to connect to payment system. Please check your internet connection and try again.';
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setUpgrading(false);
     }
