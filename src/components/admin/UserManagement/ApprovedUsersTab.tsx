@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Plus, Settings, ArrowLeft, X } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
 
@@ -229,6 +229,7 @@ const ApprovedUsersTab = React.memo(({
     }));
   };
 
+
   const handleUsageInputChange = (userId: string, value: string) => {
     setUsageInputs(prev => ({
       ...prev,
@@ -244,16 +245,6 @@ const ApprovedUsersTab = React.memo(({
     await onAddUsage(userId, amount);
   };
 
-  const handleCustomUsageAdd = async (userId: string) => {
-    const inputValue = usageInputs[userId];
-    if (!inputValue) return;
-    
-    const customAmount = parseInt(inputValue);
-    if (customAmount > 0) {
-      await onAddUsage(userId, customAmount);
-      handleUsageInputChange(userId, ''); // Clear input
-    }
-  };
 
   const handleUpdateLimit = async (userId: string) => {
     const inputValue = usageInputs[userId];
@@ -566,28 +557,6 @@ const ApprovedUsersTab = React.memo(({
                             +20
                     </button>
                         </div>
-                      </div>
-                  </div>
-
-                    {/* Custom Add Usage */}
-                    <div className="space-y-2">
-                      <h6 className="text-xs font-medium text-blue-800 uppercase tracking-wide">Add Usage</h6>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          placeholder="Amount"
-                          value={usageInputs[user.id] || ''}
-                          onChange={(e) => handleUsageInputChange(user.id, e.target.value)}
-                          className="flex-1 px-2 py-1 border border-blue-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                    <button
-                          onClick={() => handleCustomUsageAdd(user.id)}
-                          disabled={!usageInputs[user.id] || parseInt(usageInputs[user.id] || '0') <= 0}
-                          className="flex items-center gap-1 px-3 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        >
-                          <Plus className="h-3 w-3" />
-                          Add
-                    </button>
                       </div>
                   </div>
 

@@ -2322,7 +2322,7 @@ WARNING:
       const user = approvedUsers.find(u => u.id === userId);
       if (!user) throw new Error('User not found');
 
-      const newUsage = Math.max(0, user.comparisonsUsed - amount); // Subtract amount (give back usage)
+      const newUsage = Math.min(user.comparisonsLimit, user.comparisonsUsed + amount); // Add amount (increase usage)
 
       const { error } = await supabase
         .from('usage')
