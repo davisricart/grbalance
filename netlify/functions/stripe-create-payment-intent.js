@@ -48,7 +48,8 @@ exports.handler = async (event, context) => {
       planTier,
       userId,
       userEmail,
-      businessName
+      businessName,
+      isAnnual
     } = JSON.parse(event.body);
 
     console.log('🔥 Creating payment intent for:', {
@@ -102,7 +103,8 @@ exports.handler = async (event, context) => {
         userId: userId,
         tier: planTier,
         customerId: customer.id,
-        source: 'trial_conversion'
+        source: 'trial_conversion',
+        isAnnual: isAnnual
       },
       automatic_payment_methods: {
         enabled: true,

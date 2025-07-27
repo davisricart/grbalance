@@ -6,6 +6,7 @@ interface StripePaymentFormProps {
   planTier: string;
   planPrice: number;
   planName: string;
+  isAnnual?: boolean;
   onSuccess: (subscriptionId: string) => void;
   onCancel: () => void;
   userEmail: string;
@@ -32,6 +33,7 @@ export default function StripePaymentForm({
   planTier,
   planPrice,
   planName,
+  isAnnual = false,
   onSuccess,
   onCancel,
   userEmail,
@@ -62,12 +64,13 @@ export default function StripePaymentForm({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: planPrice * 100, // Convert to cents
+          amount: isAnnual ? (planPrice * 12 * 100) : (planPrice * 100), // Convert to cents
           currency: 'usd',
           planTier,
           userId,
           userEmail,
           businessName,
+          isAnnual,
         }),
       });
 
@@ -121,7 +124,9 @@ export default function StripePaymentForm({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Complete Your Purchase</h2>
-            <p className="text-gray-600">You're upgrading to the {planName} plan for ${planPrice}/month</p>
+            <p className="text-gray-600">
+              You're upgrading to the {planName} plan for ${planPrice}/{isAnnual ? 'month (billed annually)' : 'month'}
+            </p>
           </div>
           <button
             onClick={onCancel}
@@ -167,7 +172,7 @@ export default function StripePaymentForm({
               </>
             ) : (
               <>
-                Pay ${planPrice}
+                Pay ${isAnnual ? (planPrice * 12).toFixed(0) : planPrice}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}

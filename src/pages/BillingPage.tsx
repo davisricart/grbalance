@@ -26,6 +26,7 @@ import {
 interface PlanDetails {
   name: string;
   price: number;
+  annualPrice: number;
   comparisons: number;
   features: string[];
   popular?: boolean;
@@ -37,6 +38,7 @@ const PLANS: Record<string, PlanDetails> = {
   starter: {
     name: 'Starter',
     price: 19,
+    annualPrice: 15,
     comparisons: 50,
     features: [
       '50 comparisons per month',
@@ -49,6 +51,7 @@ const PLANS: Record<string, PlanDetails> = {
   professional: {
     name: 'Professional',
     price: 34,
+    annualPrice: 27,
     comparisons: 75,
     features: [
       '75 comparisons per month',
@@ -63,6 +66,7 @@ const PLANS: Record<string, PlanDetails> = {
   business: {
     name: 'Business',
     price: 59,
+    annualPrice: 47,
     comparisons: 150,
     features: [
       '150 comparisons per month',
@@ -84,6 +88,7 @@ export default function BillingPage() {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const [isAnnual, setIsAnnual] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -279,6 +284,34 @@ export default function BillingPage() {
             {usage?.status === 'trial' && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-6">Upgrade Your Plan</h2>
+                
+                {/* Annual/Monthly Toggle */}
+                <div className="flex justify-center mb-6">
+                  <div className="relative flex items-center bg-gray-50 rounded-xl p-1.5 shadow-md border border-gray-200">
+                    <button
+                      onClick={() => setIsAnnual(false)}
+                      className={`px-7 py-3 text-base font-semibold rounded-lg transition-all ${
+                        !isAnnual
+                          ? 'bg-white text-gray-900 shadow-lg border border-gray-200'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      onClick={() => setIsAnnual(true)}
+                      className={`px-7 py-3 text-base font-semibold rounded-lg transition-all ${
+                        isAnnual
+                          ? 'bg-white text-gray-900 shadow-lg border border-gray-200'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                      }`}
+                    >
+                      Annual
+                      <span className="ml-2 px-2 py-0.5 text-xs text-white bg-emerald-600 rounded-full font-bold">Best Value</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {Object.entries(PLANS).map(([key, plan]) => (
                     <div 
@@ -300,12 +333,17 @@ export default function BillingPage() {
                       <div className="text-center">
                         <h3 className="font-semibold text-gray-900">{plan.name}</h3>
                         <div className="text-2xl font-bold text-emerald-600 mt-2">
-                          ${plan.price}
+                          ${isAnnual ? plan.annualPrice : plan.price}
                           <span className="text-sm font-normal text-gray-500">/mo</span>
                         </div>
                         <div className="text-sm text-gray-600 mt-1">
                           {plan.comparisons} comparisons
                         </div>
+                        {isAnnual && (
+                          <div className="text-xs text-emerald-600 font-medium mt-1">
+                            Save ${((plan.price - plan.annualPrice) * 12).toFixed(0)}/year
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -340,8 +378,9 @@ export default function BillingPage() {
             {showPaymentForm && user && (
               <StripePaymentForm
                 planTier={selectedPlan}
-                planPrice={PLANS[selectedPlan]?.price || 0}
+                planPrice={isAnnual ? PLANS[selectedPlan]?.annualPrice || 0 : PLANS[selectedPlan]?.price || 0}
                 planName={PLANS[selectedPlan]?.name || ''}
+                isAnnual={isAnnual}
                 onSuccess={handlePaymentSuccess}
                 onCancel={handlePaymentCancel}
                 userEmail={user.email || ''}
