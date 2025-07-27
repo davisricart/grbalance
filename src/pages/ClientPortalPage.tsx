@@ -37,13 +37,14 @@ export default function ClientPortalPage() {
           return;
         }
         
+        // Strict authentication check - user email must exactly match client email
         if (clientData && user.email === clientData.email) {
           console.log('✅ User authenticated and authorized for this client portal');
           setIsAuthenticated(true);
         } else {
           console.log('❌ User not authorized for this client portal');
           setIsAuthenticated(false);
-          // Sign out unauthorized user
+          // Sign out unauthorized user immediately
           await supabase.auth.signOut();
         }
       } catch (error) {
@@ -116,11 +117,9 @@ export default function ClientPortalPage() {
                 console.log('❌ User not approved for portal access');
               }
             } else {
-              // For testing clients without authentication, still allow auto-auth
-              if (clients[0].status === 'testing') {
-                console.log('🧪 Testing client detected - auto-authenticating');
-                setIsAuthenticated(true);
-              }
+              // Require authentication for all clients, including testing clients
+              console.log('🔒 Client requires authentication - no auto-auth allowed');
+              setIsAuthenticated(false);
             }
           } else {
             console.log('❌ No clients found with client_path:', clientname);
@@ -234,6 +233,74 @@ export default function ClientPortalPage() {
           >
             Return to Home
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication form if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Client Portal Access</h1>
+            <p className="text-gray-600">Please authenticate to access {clientData.business_name}</p>
+          </div>
+          
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                id="password"
+                value={loginForm.password}
+                onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <p className="text-red-700 text-sm">{error}</p>
+              </div>
+            )}
+            
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 text-white py-2 px-4 rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors duration-200"
+            >
+              Sign In
+            </button>
+          </form>
+          
+          <div className="mt-6 text-center">
+            <a 
+              href="/" 
+              className="text-emerald-600 hover:text-emerald-700 text-sm"
+            >
+              Return to Home
+            </a>
+          </div>
         </div>
       </div>
     );

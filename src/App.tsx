@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
@@ -84,12 +84,12 @@ const getClientFromURL = () => {
   const subdomain = window.location.hostname.split('.')[0];
   
   // Check direct path first (grbalance.com/salon1)
-  if (directClientMatch && directClientMatch[1] !== 'app' && !['register', 'login', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'admin', 'billing', 'mockup-billing'].includes(directClientMatch[1])) {
+  if (directClientMatch && directClientMatch[1] && directClientMatch[1] !== 'app' && !['register', 'login', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'admin', 'billing', 'mockup-billing'].includes(directClientMatch[1])) {
     return directClientMatch[1];
   }
   
   // Legacy /client/ support
-  if (clientMatch) {
+  if (clientMatch && clientMatch[1]) {
     return clientMatch[1];
   }
   
@@ -111,6 +111,8 @@ const LoadingSpinner = () => (
 );
 
 export default function App() {
+  const [usageRefreshTrigger, setUsageRefreshTrigger] = useState(0);
+
   return (
     <ErrorBoundary>
       <HelmetProvider>
@@ -133,7 +135,7 @@ export default function App() {
               
               {/* All other routes - with layout */}
               <Route path="/*" element={
-                <Layout>
+                <Layout usageRefreshTrigger={usageRefreshTrigger}>
                   <Routes>
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/app" element={

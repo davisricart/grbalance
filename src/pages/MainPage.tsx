@@ -1018,10 +1018,6 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
               <span className="text-gray-700 text-sm sm:text-base truncate">{user.email}</span>
             </div>
             
-            <div className="hidden sm:block">
-              <UsageCounter refreshTrigger={usageRefreshTrigger} />
-            </div>
-            
             <button
               onClick={handleSignOut}
               className="inline-flex items-center min-h-[44px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 touch-manipulation flex-shrink-0"
@@ -1031,12 +1027,6 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
               <span className="sm:hidden">Out</span>
             </button>
           </div>
-          {/* Mobile Usage Counter */}
-          {user && (
-            <div className="sm:hidden mt-2 pt-2 border-t border-gray-100">
-              <UsageCounter refreshTrigger={usageRefreshTrigger} />
-            </div>
-          )}
         </div>
       </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">

@@ -5,7 +5,11 @@ import clientConfig from '../config/client';
 import { useAuth } from '../contexts/AuthProvider';
 import UsageCounter from './UsageCounter';
 
-export default function Header() {
+interface HeaderProps {
+  usageRefreshTrigger?: number;
+}
+
+export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
   // Safely use auth state with fallback for router context issues
   let authState;
   try {
@@ -35,7 +39,7 @@ export default function Header() {
     <header className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
         <div className="flex justify-between items-center sm:items-start">
-          <div className="flex flex-col items-start gap-1 sm:gap-2">
+          <div className="flex items-center gap-4 sm:gap-6">
             <Link to="/" className="shrink-0">
               <img 
                 src={clientConfig.logo}
@@ -43,7 +47,7 @@ export default function Header() {
                 className="h-10 sm:h-12 lg:h-14 w-auto"
               />
             </Link>
-            {isAuthenticated && <div className="hidden sm:block"><UsageCounter /></div>}
+            {isAuthenticated && <div className="hidden sm:block"><UsageCounter refreshTrigger={usageRefreshTrigger || 0} /></div>}
           </div>
           
           {/* Desktop Navigation */}
@@ -107,7 +111,7 @@ export default function Header() {
               {isAuthenticated && isApproved && (
                 <>
                   <div className="mb-3 pb-3 border-b border-gray-100">
-                    <UsageCounter />
+                    <UsageCounter refreshTrigger={usageRefreshTrigger || 0} />
                   </div>
                   <Link 
                     to="/mockup-billing" 
