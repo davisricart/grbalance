@@ -25,6 +25,20 @@ export default function ClientPortalPage() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
 
+  // Check authentication status on component load
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && clientData && user.email === clientData.email) {
+        setIsAuthenticated(true);
+      }
+    };
+    
+    if (clientData) {
+      checkAuthStatus();
+    }
+  }, [clientData]);
+
   // Check if client exists in Supabase
   useEffect(() => {
     const checkClientExists = async () => {
@@ -131,12 +145,31 @@ export default function ClientPortalPage() {
     
     if (!clientData) return;
     
-    // Simple validation - in production you'd have proper authentication
-    if (loginForm.email === clientData.email) {
-      setIsAuthenticated(true);
-      console.log('✅ Client authenticated');
-    } else {
-      setError('Invalid credentials');
+    try {
+      // Use proper Supabase authentication
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: loginForm.email,
+        password: loginForm.password
+      });
+      
+      if (error) {
+        setError('Invalid email or password');
+        return;
+      }
+      
+      if (data.user) {
+        // Verify user is authorized for this client portal
+        if (data.user.email === clientData.email) {
+          setIsAuthenticated(true);
+          console.log('✅ Client authenticated with proper Supabase auth');
+        } else {
+          setError('You are not authorized to access this client portal');
+          await supabase.auth.signOut(); // Sign out unauthorized user
+        }
+      }
+    } catch (error) {
+      console.error('❌ Authentication error:', error);
+      setError('Authentication failed. Please try again.');
     }
   };
 
