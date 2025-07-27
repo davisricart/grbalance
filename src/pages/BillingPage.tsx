@@ -373,21 +373,19 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Payment Form Modal */}
+        {/* Inline Payment Form */}
         {showPaymentForm && user && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full">
-              <StripePaymentForm
-                planTier={selectedPlan}
-                planPrice={PLANS[selectedPlan]?.price || 0}
-                planName={PLANS[selectedPlan]?.name || ''}
-                onSuccess={handlePaymentSuccess}
-                onCancel={handlePaymentCancel}
-                userEmail={user.email || ''}
-                userId={user.id}
-                businessName={user.user_metadata?.business_name}
-              />
-            </div>
+          <div className="lg:col-span-2">
+            <StripePaymentForm
+              planTier={selectedPlan}
+              planPrice={PLANS[selectedPlan]?.price || 0}
+              planName={PLANS[selectedPlan]?.name || ''}
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+              userEmail={user.email || ''}
+              userId={user.id}
+              businessName={user.user_metadata?.business_name}
+            />
           </div>
         )}
         </div>
