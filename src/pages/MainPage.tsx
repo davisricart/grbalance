@@ -78,6 +78,8 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       }
     }
     
+    console.log('🔍 Client detection result:', { clientId, pathname: window.location.pathname, search: window.location.search });
+    
     // If no client parameter, try to get from environment variable (for deployed sites)
     if (!clientId) {
       // For deployed Netlify sites, the CLIENT_ID should be available
