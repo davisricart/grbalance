@@ -26,6 +26,8 @@ const ReconciliationApp = React.lazy(() => import('./pages/ReconciliationApp'));
 const SupportPage = React.lazy(() => import('./pages/SupportPage'));
 const TermsPage = React.lazy(() => import('./pages/TermsPage'));
 const BillingPage = React.lazy(() => import('./pages/BillingPage'));
+const BillingSuccessPage = React.lazy(() => import('./pages/BillingSuccessPage'));
+const BillingCancelledPage = React.lazy(() => import('./pages/BillingCancelledPage'));
 const BillingWireframe = React.lazy(() => import('./mockups/BillingWireframe'));
 const ClientPortalPage = React.lazy(() => import('./pages/ClientPortalPage'));
 
@@ -162,6 +164,16 @@ export default function App() {
                     <Route path="/billing" element={
                       <ProtectedRoute>
                         <BillingPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/billing/success" element={
+                      <ProtectedRoute>
+                        <BillingSuccessPage />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="/billing/cancelled" element={
+                      <ProtectedRoute>
+                        <BillingCancelledPage />
                       </ProtectedRoute>
                     } />
                     <Route path="/mockup-billing" element={
