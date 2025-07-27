@@ -53,7 +53,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4 lg:gap-6">
             {isAuthenticated && isApproved && (
-              <Link to="/mockup-billing" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
+              <Link to="/billing" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
                 <CreditCard className="h-4 w-4" />
                 <span>Billing</span>
               </Link>
@@ -114,7 +114,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
                     <UsageCounter refreshTrigger={usageRefreshTrigger || 0} />
                   </div>
                   <Link 
-                    to="/mockup-billing" 
+                    to="/billing" 
                     className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
                     onClick={closeMobileMenu}
                   >
