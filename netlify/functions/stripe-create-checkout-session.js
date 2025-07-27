@@ -16,6 +16,65 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
+// Debug function to validate Stripe configuration
+async function validateStripeConfig() {
+  try {
+    console.log('🔍 Validating Stripe configuration...');
+    
+    // Check account status
+    const account = await stripe.accounts.retrieve();
+    console.log('✅ Account status:', {
+      id: account.id,
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      country: account.country
+    });
+    
+    // Check account capabilities
+    const capabilities = await stripe.accounts.listCapabilities();
+    console.log('✅ Account capabilities:', capabilities.data.map(cap => ({
+      object: cap.object,
+      requested: cap.requested,
+      status: cap.status
+    })));
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Stripe config validation failed:', error.message);
+    return false;
+  }
+}
+
+// Debug function to validate price
+async function validatePrice(priceId) {
+  try {
+    console.log('🔍 Validating price:', priceId);
+    const price = await stripe.prices.retrieve(priceId);
+    console.log('✅ Price validation:', {
+      id: price.id,
+      active: price.active,
+      currency: price.currency,
+      product: price.product,
+      type: price.type,
+      unit_amount: price.unit_amount
+    });
+    
+    // Check if product is active
+    const product = await stripe.products.retrieve(price.product);
+    console.log('✅ Product validation:', {
+      id: product.id,
+      active: product.active,
+      name: product.name
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Price validation failed:', error.message);
+    return false;
+  }
+}
+
 exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
@@ -59,8 +118,28 @@ exports.handler = async (event, context) => {
       email,
       tier,
       cycle,
-      priceId: priceId?.substring(0, 20) + '...'
+      priceId: priceId?.substring(0, 20) + '...',
+      successUrl,
+      cancelUrl,
+      businessName
     });
+
+    // Debug: Log all incoming data
+    console.log('📋 Full request data:', {
+      priceId,
+      userId,
+      email,
+      tier,
+      cycle,
+      businessName,
+      successUrl,
+      cancelUrl,
+      metadata
+    });
+
+    // Validate Stripe configuration and price
+    await validateStripeConfig();
+    await validatePrice(priceId);
 
     // Validate required fields
     if (!priceId || !userId || !email || !successUrl || !cancelUrl) {
@@ -96,8 +175,8 @@ exports.handler = async (event, context) => {
       console.log('✨ Created new customer:', customer.id);
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
+    // Debug: Log session configuration
+    const sessionConfig = {
       customer: customer.id,
       payment_method_types: ['card'],
       line_items: [
@@ -131,9 +210,26 @@ exports.handler = async (event, context) => {
         name: 'auto',
         address: 'auto'
       }
-    });
+    };
+
+    console.log('🔧 Session configuration:', JSON.stringify(sessionConfig, null, 2));
+
+    // Create checkout session
+    const session = await stripe.checkout.sessions.create(sessionConfig);
 
     console.log('✅ Checkout session created:', session.id);
+    console.log('🔗 Session URL:', session.url);
+    console.log('👤 Customer ID:', customer.id);
+    
+    // Debug: Log full session response
+    console.log('📄 Full session response:', JSON.stringify({
+      id: session.id,
+      url: session.url,
+      customer: session.customer,
+      payment_status: session.payment_status,
+      status: session.status,
+      created: session.created
+    }, null, 2));
     
     return {
       statusCode: 200,

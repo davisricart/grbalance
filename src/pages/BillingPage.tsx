@@ -111,21 +111,35 @@ export default function BillingPage() {
   const handleUpgrade = async (planTier: string) => {
     if (!user || !usage) return;
 
+    console.log('🚀 Starting upgrade process for plan:', planTier);
+    console.log('👤 User data:', {
+      id: user.id,
+      email: user.email,
+      businessName: user.user_metadata?.business_name
+    });
+    console.log('📊 Usage data:', usage);
+
     setUpgrading(true);
     try {
-      const session = await createCheckoutSession({
+      const checkoutData = {
         userId: user.id,
         email: user.email!,
         tier: planTier as 'starter' | 'professional' | 'business',
-        cycle: 'monthly',
+        cycle: 'monthly' as 'monthly' | 'annual',
         businessName: user.user_metadata?.business_name,
         successUrl: `${window.location.origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}/billing`
-      });
+      };
 
+      console.log('📋 Checkout data being sent:', checkoutData);
+
+      const session = await createCheckoutSession(checkoutData);
+      console.log('✅ Checkout session created:', session);
+
+      console.log('🔄 Redirecting to checkout with session ID:', session.id);
       await redirectToCheckout(session.id);
     } catch (error) {
-      console.error('Error creating checkout session:', error);
+      console.error('❌ Error creating checkout session:', error);
       
       // Show more specific error message
       let errorMessage = 'Failed to start checkout. Please try again.';
@@ -331,7 +345,7 @@ export default function BillingPage() {
                       </>
                     ) : (
                       <>
-                        Upgrade to {PLANS[selectedPlan].name}
+                        Upgrade to {PLANS[selectedPlan]?.name || 'Selected Plan'}
                         <ArrowRight className="h-4 w-4" />
                       </>
                     )}

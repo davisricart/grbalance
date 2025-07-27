@@ -69,19 +69,25 @@ export const createCheckoutSession = async (data: CheckoutSessionData) => {
 
 // Redirect to Stripe Checkout
 export const redirectToCheckout = async (sessionId: string) => {
+  console.log('🔄 Starting checkout redirect for session:', sessionId);
+  
   const stripe = await getStripe();
   if (!stripe) {
     throw new Error('Stripe failed to load');
   }
 
+  console.log('✅ Stripe loaded successfully, redirecting to checkout...');
+  
   const { error } = await stripe.redirectToCheckout({
     sessionId,
   });
 
   if (error) {
-    console.error('Stripe checkout error:', error);
+    console.error('❌ Stripe checkout error:', error);
     throw error;
   }
+  
+  console.log('✅ Checkout redirect initiated successfully');
 };
 
 // Create subscription after consultation is completed
