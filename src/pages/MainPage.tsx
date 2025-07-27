@@ -1018,6 +1018,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
                 </span>
               </div>
               <span className="text-gray-700 text-sm sm:text-base truncate">{user.email}</span>
+              <div className="hidden sm:block ml-4">
+                <UsageCounter refreshTrigger={usageRefreshTrigger} />
+              </div>
             </div>
             
             <button

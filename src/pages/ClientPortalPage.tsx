@@ -43,7 +43,7 @@ export default function ClientPortalPage() {
           console.log('✅ User authenticated and authorized for this client portal');
           setIsAuthenticated(true);
         } else {
-          console.log('❌ User not authorized for this client portal');
+          console.log('❌ User not authorized for this client portal - signing out unauthorized user');
           setIsAuthenticated(false);
           // Sign out unauthorized user immediately
           await supabase.auth.signOut();
@@ -104,22 +104,19 @@ export default function ClientPortalPage() {
             if (user) {
               console.log('🔐 User already authenticated:', user.email);
               
-              // Check if this user has access to this client portal
-              const { data: userProfile, error: profileError } = await supabase
-                .from('usage')
-                .select('status')
-                .eq('id', user.id)
-                .single();
-                
-              if (!profileError && (userProfile?.status === 'approved' || userProfile?.status === 'trial')) {
-                console.log('✅ User has approved/trial status - auto-authenticating');
+              // Verify user is authorized for this specific client portal
+              if (user.email === clients[0].email) {
+                console.log('✅ User authenticated and authorized for this client portal');
                 setIsAuthenticated(true);
               } else {
-                console.log('❌ User not approved for portal access');
+                console.log('❌ User not authorized for this client portal - signing out');
+                setIsAuthenticated(false);
+                // Sign out unauthorized user immediately
+                await supabase.auth.signOut();
               }
             } else {
-              // Require authentication for all clients, including testing clients
-              console.log('🔒 Client requires authentication - no auto-auth allowed');
+              // Require authentication for all clients
+              console.log('🔒 Client requires authentication');
               setIsAuthenticated(false);
             }
           } else {
