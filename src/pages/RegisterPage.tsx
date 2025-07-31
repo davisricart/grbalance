@@ -6,6 +6,7 @@ import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Build
 
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
+import { useAuth } from '../contexts/AuthProvider';
 
 const TIER_LIMITS = {
   starter: 50,
@@ -84,6 +85,7 @@ const validateEmail = (email: string): { isValid: boolean; error?: string } => {
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { refreshAuthState } = useAuth();
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -304,7 +306,8 @@ export default function RegisterPage() {
         throw usageError;
       }
 
-      // Redirect to pending approval page instead of main app
+      // Refresh auth state and then navigate to pending approval
+      await refreshAuthState();
       navigate('/pending-approval');
     } catch (error: any) {
       console.error('Registration error:', error);
