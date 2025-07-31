@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard } from 'lucide-react';
 import clientConfig from '../config/client';
@@ -26,6 +26,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
 
   const { isAuthenticated, isApproved, isPending, isLoading } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [dashboardUrl, setDashboardUrl] = useState('/app');
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -34,6 +35,42 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
+
+  // Determine the appropriate dashboard URL based on current context
+  useEffect(() => {
+    const updateDashboardUrl = () => {
+      const currentPath = window.location.pathname;
+      const pathSegments = currentPath.split('/').filter(segment => segment.length > 0);
+      
+      // If we're on a client portal path (e.g., /grsalon), stay on that path
+      if (pathSegments.length === 1 && 
+          !['app', 'admin', 'login', 'register', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'billing', 'mockup-billing'].includes(pathSegments[0])) {
+        console.log(`🎯 Header: Detected client portal path, setting dashboard URL to /${pathSegments[0]}`);
+        setDashboardUrl(`/${pathSegments[0]}`);
+      } else {
+        console.log('🎯 Header: Not on client portal path, setting dashboard URL to /app');
+        setDashboardUrl('/app');
+      }
+    };
+
+    // Update on mount
+    updateDashboardUrl();
+
+    // Listen for navigation changes
+    const handlePopState = () => {
+      updateDashboardUrl();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    
+    // Also check periodically in case of programmatic navigation
+    const interval = setInterval(updateDashboardUrl, 1000);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      clearInterval(interval);
+    };
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-200">
@@ -47,7 +84,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
                 className="h-10 sm:h-12 lg:h-14 w-auto"
               />
             </Link>
-            {isAuthenticated && <div className="hidden sm:block"><UsageCounter refreshTrigger={usageRefreshTrigger || 0} /></div>}
+            {isAuthenticated && <div className="hidden md:block"><UsageCounter refreshTrigger={usageRefreshTrigger || 0} /></div>}
           </div>
           
           {/* Desktop Navigation */}
@@ -75,7 +112,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
               Contact
             </Link>
             <Link
-              to={isAuthenticated ? (isPending ? '/pending-approval' : '/app') : '/login'}
+              to={isAuthenticated ? (isPending ? '/pending-approval' : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-4 lg:px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation"
             >
               {isLoading ? 'Loading...' : (isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login')}
@@ -85,7 +122,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2 sm:gap-4">
             <Link
-              to={isAuthenticated ? (isPending ? '/pending-approval' : '/app') : '/login'}
+              to={isAuthenticated ? (isPending ? '/pending-approval' : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-xs sm:text-sm min-h-[44px] flex items-center touch-manipulation"
             >
               {isLoading ? 'Loading...' : (isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login')}
