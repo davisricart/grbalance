@@ -72,7 +72,7 @@ export const migrateExistingData = async (): Promise<{
         }
       }
       
-      allUserData.set(user.id, {
+      const updatedData = {
         ...existing,
         id: user.id,
         email: user.email,
@@ -81,8 +81,11 @@ export const migrateExistingData = async (): Promise<{
         subscription_tier: user.subscriptiontier || existing.subscription_tier || 'starter',
         billing_cycle: user.billingcycle || existing.billing_cycle || 'monthly',
         workflow_stage: 'qa_testing',
-        source: existing.source + ',ready-for-testing'
-      });
+        source: (existing.source || '') + ',ready-for-testing'
+      };
+      
+      console.log(`📝 READY-FOR-TESTING: Set business_name to "${updatedData.business_name}" for ${user.email}`);
+      allUserData.set(user.id, updatedData);
     });
 
     // Process usage table users (approved/active users)
@@ -92,7 +95,7 @@ export const migrateExistingData = async (): Promise<{
                            user.status === 'deactivated' ? 'deactivated' :
                            user.status === 'deleted' ? 'deleted' : 'pending';
       
-      allUserData.set(user.id, {
+      const updatedData = {
         ...existing,
         id: user.id,
         email: user.email,
@@ -104,7 +107,10 @@ export const migrateExistingData = async (): Promise<{
         comparisons_used: user.comparisonsUsed || 0,
         comparisons_limit: user.comparisonsLimit || TIER_LIMITS.starter,
         source: (existing.source || '') + ',usage'
-      });
+      };
+      
+      console.log(`📝 USAGE TABLE: Set business_name to "${updatedData.business_name}" for ${user.email} (existing was: "${existing.business_name}")`);
+      allUserData.set(user.id, updatedData);
     });
 
     // Step 3: Enhance with existing clients data 
