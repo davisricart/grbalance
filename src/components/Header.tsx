@@ -42,14 +42,22 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
       const currentPath = window.location.pathname;
       const pathSegments = currentPath.split('/').filter(segment => segment.length > 0);
       
-      // If we're on a client portal path (e.g., /grsalon), stay on that path
+      // If we're currently on a client portal path (e.g., /grsalon), save it and use it
       if (pathSegments.length === 1 && 
           !['app', 'admin', 'login', 'register', 'docs', 'support', 'contact', 'terms', 'privacy', 'pricing', 'book', 'demo', 'interactive-demo', 'billing', 'mockup-billing'].includes(pathSegments[0])) {
-        console.log(`🎯 Header: Detected client portal path, setting dashboard URL to /${pathSegments[0]}`);
+        console.log(`🎯 Header: Detected client portal path, saving and setting dashboard URL to /${pathSegments[0]}`);
+        sessionStorage.setItem('clientPortalPath', `/${pathSegments[0]}`);
         setDashboardUrl(`/${pathSegments[0]}`);
       } else {
-        console.log('🎯 Header: Not on client portal path, setting dashboard URL to /app');
-        setDashboardUrl('/app');
+        // Check if we have a saved client portal path from previous navigation
+        const savedClientPath = sessionStorage.getItem('clientPortalPath');
+        if (savedClientPath) {
+          console.log(`🎯 Header: Using saved client portal path: ${savedClientPath}`);
+          setDashboardUrl(savedClientPath);
+        } else {
+          console.log('🎯 Header: No client portal context found, setting dashboard URL to /app');
+          setDashboardUrl('/app');
+        }
       }
     };
 
