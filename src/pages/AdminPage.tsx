@@ -3364,10 +3364,11 @@ WARNING:
                   console.log('ℹ️ No client record found, will use fallback');
                 }
                 
-                // Use minimal fields that definitely exist in usage table (like restoreUser does)
+                // Use minimal fields that definitely exist in usage table
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
+                  subscriptionTier: readyUser.subscriptionTier, // Required field - camelCase in usage table!
                   status: 'approved',
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100
