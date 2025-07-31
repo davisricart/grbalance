@@ -1212,11 +1212,24 @@ const AdminPage: React.FC = () => {
         subscriptionTier: pendingUser.subscriptionTier
       });
       
-      // TEMPORARY FIX: Correct the business name if it's "GR Balance" for testing user
+      // Debug: Check what business name we actually have
+      console.log('🔍 BUSINESS NAME DEBUG:', {
+        email: pendingUser.email,
+        businessName: pendingUser.businessName,
+        businessNameType: typeof pendingUser.businessName,
+        businessNameLength: pendingUser.businessName?.length,
+        isNull: pendingUser.businessName === null,
+        isUndefined: pendingUser.businessName === undefined,
+        isEmpty: pendingUser.businessName === ''
+      });
+      
+      // Fix business name if it's missing or incorrect for testing user
       let correctedBusinessName = pendingUser.businessName;
-      if (pendingUser.email === 'grbalancetesting@gmail.com' && pendingUser.businessName === 'GR Balance') {
-        correctedBusinessName = 'GR Salon';
-        console.log('🔧 TEMPORARY FIX: Correcting business name from "GR Balance" to "GR Salon" for testing user');
+      if (pendingUser.email === 'grbalancetesting@gmail.com') {
+        if (!correctedBusinessName || correctedBusinessName === 'GR Balance' || correctedBusinessName.includes('Unknown')) {
+          correctedBusinessName = 'GR Salon';
+          console.log('🔧 CORRECTED: Setting business name to "GR Salon" for testing user (was:', pendingUser.businessName, ')');
+        }
       }
       
       // Check if consultation is complete and script is ready
