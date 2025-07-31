@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
-import { supabase } from '../../../config/supabase';
 import { calculateTrialFromCreatedAt } from '../../../services/trialService';
 
 interface ApprovedUsersTabProps {
@@ -44,33 +43,6 @@ const ApprovedUsersTab = React.memo(({
   const [sendingBackToQA, setSendingBackToQA] = useState<string | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
-  const [userAuthData, setUserAuthData] = useState<{[key: string]: { created_at: string }}>({});
-
-  // Fetch auth data for trial calculations
-  useEffect(() => {
-    const fetchUserAuthData = async () => {
-      const authDataMap: {[key: string]: { created_at: string }} = {};
-      
-      for (const user of users) {
-        if (user.status === 'trial') {
-          try {
-            const { data: { user: authUser }, error } = await supabase.auth.admin.getUserById(user.id);
-            if (authUser && !error) {
-              authDataMap[user.id] = { created_at: authUser.created_at };
-            }
-          } catch (error) {
-            console.warn('Failed to fetch auth data for user:', user.id, error);
-          }
-        }
-      }
-      
-      setUserAuthData(authDataMap);
-    };
-
-    if (users.length > 0) {
-      fetchUserAuthData();
-    }
-  }, [users]);
 
   // Sequential workflow handlers
   const handleSetupBilling = async (userId: string, tier: string, userEmail: string, businessName?: string) => {
@@ -296,15 +268,12 @@ const ApprovedUsersTab = React.memo(({
       return null; // Not on trial
     }
     
-    // Use auth created_at if available, otherwise fallback to database createdAt
-    const authData = userAuthData[user.id];
-    const createdAt = authData?.created_at || user.createdAt;
-    
-    if (!createdAt) {
-      return 'Loading...';
+    // Use database createdAt (simple, reliable approach)
+    if (!user.createdAt) {
+      return 'Unknown';
     }
     
-    const trialInfo = calculateTrialFromCreatedAt(createdAt, true);
+    const trialInfo = calculateTrialFromCreatedAt(user.createdAt, true);
     return trialInfo.displayText;
   };
 
