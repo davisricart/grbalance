@@ -3364,18 +3364,16 @@ WARNING:
                   console.log('ℹ️ No client record found, will use fallback');
                 }
                 
-                // Include REQUIRED fields based on database constraint errors
+                // Include ONLY fields that exist in the usage table
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessname: readyUser.businessName,         // Fixed: Include business name in snake_case
-                  businesstype: readyUser.businessType,         // Fixed: Include business type in snake_case
-                  subscriptiontier: readyUser.subscriptionTier, // Fixed: snake_case for database
-                  billingcycle: readyUser.billingCycle,         // Fixed: Include billing cycle in snake_case
+                  subscriptiontier: readyUser.subscriptionTier, // Required field
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
                   status: 'approved'
-                  // Note: approvedAt and createdAt columns don't exist in usage table
+                  // Note: businessname, businesstype, billingcycle don't exist in usage table
+                  // These are stored in the clients table instead
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
