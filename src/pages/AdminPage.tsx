@@ -517,7 +517,7 @@ const AdminPage: React.FC = () => {
       const { data: clientsData, error } = await supabase
         .from('clients')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       

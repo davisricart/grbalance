@@ -148,6 +148,8 @@ export const migrateExistingData = async (): Promise<{
           // workflow_stage is managed through status field
         };
 
+        console.log(`📝 MIGRATION DEBUG: About to save user ${userId} with business_name: "${unifiedUser.business_name}"`);
+
         // Upsert to clients table
         const { error: clientError } = await supabase
           .from('clients')
