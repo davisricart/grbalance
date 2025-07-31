@@ -3386,12 +3386,14 @@ WARNING:
                 
                 // Update in database - move to usage collection with approved status
                 console.log('💾 Writing to usage collection...');
+                console.log('📊 Data being written:', JSON.stringify(dbApprovedUserData, null, 2));
                 const { error: upsertError } = await supabase
                   .from('usage')
                   .upsert(dbApprovedUserData);
                 
                 if (upsertError) {
                   console.error('❌ Database upsert failed:', upsertError);
+                  console.error('❌ Error details:', JSON.stringify(upsertError, null, 2));
                   throw upsertError;
                 }
                 console.log('✅ Successfully wrote to usage collection');
