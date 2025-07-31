@@ -106,15 +106,6 @@ export default function BillingPage() {
           const now = new Date();
           const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
           setTrialDaysLeft(Math.max(0, daysLeft));
-          
-          // DEBUG: Log timing details
-          console.log('=== TRIAL TIMING DEBUG ===');
-          console.log('Signup time:', trialStart.toLocaleString());
-          console.log('Current time:', now.toLocaleString());
-          console.log('Trial ends:', trialEnd.toLocaleString());
-          console.log('Hours elapsed:', Math.floor((now.getTime() - trialStart.getTime()) / (1000 * 60 * 60)));
-          console.log('Hours remaining:', Math.floor((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60)));
-          console.log('Days remaining (Math.ceil):', daysLeft);
         }
 
         setLoading(false);
@@ -183,22 +174,21 @@ export default function BillingPage() {
 
         {/* Trial Banner */}
         {usage?.status === 'trial' && trialDaysLeft !== null && (
-          <>
-            <div className="mb-4 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-6">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <Clock className="h-6 w-6 text-emerald-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-emerald-900 mb-2">
-                    {trialDaysLeft === 0 ? 'Trial Expired' : `${trialDaysLeft} Days Left in Trial`}
-                  </h3>
-                  <p className="text-emerald-700 mb-4">
-                    {trialDaysLeft === 0 
-                      ? 'Your trial has ended. Upgrade to continue using GR Balance.'
-                      : `You're currently on a 14-day free trial. Upgrade anytime to continue using all features.`
-                    }
-                  </p>
+          <div className="mb-8 bg-gradient-to-r from-emerald-50 to-blue-50 border border-emerald-200 rounded-lg p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <Clock className="h-6 w-6 text-emerald-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-emerald-900 mb-2">
+                  {trialDaysLeft === 0 ? 'Trial Expired' : `${trialDaysLeft} Days Left in Trial`}
+                </h3>
+                <p className="text-emerald-700 mb-4">
+                  {trialDaysLeft === 0 
+                    ? 'Your trial has ended. Upgrade to continue using GR Balance.'
+                    : `You're currently on a 14-day free trial. Upgrade anytime to continue using all features.`
+                  }
+                </p>
                 {trialDaysLeft === 0 && (
                   <button
                     onClick={() => handleUpgrade('professional')}
@@ -220,19 +210,7 @@ export default function BillingPage() {
                 )}
               </div>
             </div>
-            
-            {/* DEBUG: Trial Timing Details */}
-            <div className="mb-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-yellow-900 mb-2">DEBUG: Trial Timing Details</h4>
-              <div className="text-xs text-yellow-800 space-y-1">
-                <div>Signup: {user ? new Date(user.created_at).toLocaleString() : 'Loading...'}</div>
-                <div>Current: {new Date().toLocaleString()}</div>
-                <div>Trial Ends: {user ? new Date(new Date(user.created_at).getTime() + (14 * 24 * 60 * 60 * 1000)).toLocaleString() : 'Loading...'}</div>
-                <div>Hours Elapsed: {user ? Math.floor((new Date().getTime() - new Date(user.created_at).getTime()) / (1000 * 60 * 60)) : 'Loading...'}</div>
-                <div>Hours Remaining: {user ? Math.floor((new Date(new Date(user.created_at).getTime() + (14 * 24 * 60 * 60 * 1000)).getTime() - new Date().getTime()) / (1000 * 60 * 60)) : 'Loading...'}</div>
-              </div>
-            </div>
-          </>
+          </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
