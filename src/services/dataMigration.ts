@@ -116,18 +116,27 @@ export const migrateExistingData = async (): Promise<{
     // Step 3: Enhance with existing clients data 
     (existingClients || []).forEach((client: any) => {
       const existing = allUserData.get(client.id) || {};
-      allUserData.set(client.id, {
+      
+      // Preserve existing business name if it's already been corrected
+      const businessName = existing.business_name && existing.business_name !== 'Business Name Not Set' 
+        ? existing.business_name  // Keep corrected name (like "GR Salon")
+        : client.business_name || client.name || 'Business Name Not Set';
+      
+      const updatedData = {
         ...existing,
         id: client.id,
         email: client.email || existing.email,
-        business_name: client.business_name || client.name || existing.business_name || 'Business Name Not Set',
+        business_name: businessName,
         business_type: client.business_type || existing.business_type || 'Other',
         client_path: client.client_path || generateClientPath(
-          existing.business_name || 'Business Name Not Set', 
-          existing.email || ''
+          businessName, 
+          client.email || existing.email || ''
         ),
         source: (existing.source || '') + ',clients'
-      });
+      };
+      
+      console.log(`📝 CLIENTS TABLE: Set business_name to "${updatedData.business_name}" for ${client.email} (existing was: "${existing.business_name}", client had: "${client.business_name}")`);
+      allUserData.set(client.id, updatedData);
     });
 
     console.log(`🔍 MIGRATION: Found ${allUserData.size} unique users to migrate`);
