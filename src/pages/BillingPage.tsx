@@ -238,7 +238,7 @@ export default function BillingPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="text-sm text-gray-600 mb-1">Comparisons Used</div>
                   <div className="text-2xl font-semibold">
-                    {usage?.comparisonsUsed || 0}/{currentPlan?.comparisons || 50}
+                    {usage?.comparisonsUsed || 0}/{usage?.comparisonsLimit || currentPlan?.comparisons || 50}
                   </div>
                   <div className="text-xs text-gray-500 mt-1">Resets monthly</div>
                   {/* Usage Progress Bar */}
