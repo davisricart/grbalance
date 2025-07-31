@@ -3364,16 +3364,14 @@ WARNING:
                   console.log('ℹ️ No client record found, will use fallback');
                 }
                 
-                // Include ONLY fields that exist in the usage table
+                // Use minimal fields that definitely exist in usage table (like restoreUser does)
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
-                  subscriptiontier: readyUser.subscriptionTier, // Required field
+                  status: 'approved',
                   comparisonsUsed: 0,
-                  comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved'
-                  // Note: businessname, businesstype, billingcycle don't exist in usage table
-                  // These are stored in the clients table instead
+                  comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100
+                  // Note: Business data is stored in clients table, not usage table
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
