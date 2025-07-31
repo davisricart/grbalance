@@ -268,23 +268,12 @@ const ApprovedUsersTab = React.memo(({
       return null; // Not on trial
     }
     
-    // Debug: Log what we have
-    console.log('Trial user data:', { 
-      id: user.id, 
-      email: user.email, 
-      createdAt: user.createdAt, 
-      approvedAt: user.approvedAt,
-      status: user.status
-    });
-    
     // Use database createdAt (simple, reliable approach)
     if (!user.createdAt) {
-      console.warn('No createdAt for user:', user.id);
       return 'Unknown';
     }
     
     const trialInfo = calculateTrialFromCreatedAt(user.createdAt, true);
-    console.log('Trial info calculated:', trialInfo);
     return trialInfo.displayText;
   };
 

@@ -721,7 +721,7 @@ const AdminPage: React.FC = () => {
       // Also fetch client data from clients table for each user
       const { data: clientsData } = await supabase
         .from('clients')
-        .select('id, client_path, business_name')
+        .select('id, client_path, business_name, created_at')
         .in('id', (snapshot || []).map(u => u.id));
 
       const clientDataMap: {[userId: string]: any} = {};
@@ -729,7 +729,8 @@ const AdminPage: React.FC = () => {
         clientDataMap[client.id] = {
           client_path: client.client_path,
           business_name: client.business_name,
-          business_type: client.business_type
+          business_type: client.business_type,
+          created_at: client.created_at
         };
       });
 
@@ -746,7 +747,7 @@ const AdminPage: React.FC = () => {
           subscriptionTier: userData.subscriptionTier, // This exists in usage table
           billingCycle: userData.billingcycle,
           approvedAt: userData.approvedat,
-          createdAt: userData.createdat
+          createdAt: clientData.created_at || userData.createdat
         } as ApprovedUser;
           
         // Separate users by status
