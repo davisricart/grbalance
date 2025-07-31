@@ -740,7 +740,7 @@ const AdminPage: React.FC = () => {
       // Also fetch client data from clients table for each user
       const { data: clientsData } = await supabase
         .from('clients')
-        .select('id, client_path, business_name, business_type')
+        .select('id, client_path, business_name')
         .in('id', (snapshot || []).map(u => u.id));
 
       const clientDataMap: {[userId: string]: any} = {};
@@ -2482,7 +2482,7 @@ WARNING:
       try {
         const { data: clientData } = await supabase
           .from('clients')
-          .select('business_name, business_type')
+          .select('business_name')
           .eq('id', userId)
           .single();
         

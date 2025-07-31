@@ -37,10 +37,20 @@ export const migrateExistingData = async (): Promise<{
 
     // Process pending users
     (pendingUsers || []).forEach((user: any) => {
+      let businessName = user.businessname || user.businessName || 'Business Name Not Set';
+      
+      // Apply same correction logic as AdminPage for test user
+      if (user.email === 'grbalancetesting@gmail.com') {
+        if (!businessName || businessName === 'Business Name Not Set' || businessName === 'GR Balance' || businessName.includes('Unknown')) {
+          businessName = 'GR Salon';
+          console.log('🔧 MIGRATION: Setting business name to "GR Salon" for testing user (was:', user.businessname || user.businessName, ')');
+        }
+      }
+      
       allUserData.set(user.id, {
         id: user.id,
         email: user.email,
-        business_name: user.businessname || user.businessName || 'Business Name Not Set',
+        business_name: businessName,
         business_type: user.businesstype || user.businessType || 'Other',
         subscription_tier: user.subscriptiontier || user.subscriptionTier || 'starter',
         billing_cycle: user.billingcycle || user.billingCycle || 'monthly',
@@ -52,11 +62,21 @@ export const migrateExistingData = async (): Promise<{
     // Process ready-for-testing users
     (readyUsers || []).forEach((user: any) => {
       const existing = allUserData.get(user.id) || {};
+      let businessName = user.businessname || existing.business_name || 'Business Name Not Set';
+      
+      // Apply same correction logic as AdminPage for test user
+      if (user.email === 'grbalancetesting@gmail.com') {
+        if (!businessName || businessName === 'Business Name Not Set' || businessName === 'GR Balance' || businessName.includes('Unknown')) {
+          businessName = 'GR Salon';
+          console.log('🔧 MIGRATION: Setting business name to "GR Salon" for testing user in ready-for-testing (was:', user.businessname, ')');
+        }
+      }
+      
       allUserData.set(user.id, {
         ...existing,
         id: user.id,
         email: user.email,
-        business_name: user.businessname || existing.business_name || 'Business Name Not Set',
+        business_name: businessName,
         business_type: user.businesstype || existing.business_type || 'Other',
         subscription_tier: user.subscriptiontier || existing.subscription_tier || 'starter',
         billing_cycle: user.billingcycle || existing.billing_cycle || 'monthly',
