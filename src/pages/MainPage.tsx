@@ -1008,6 +1008,29 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           </div>
         </div>
       )}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-emerald-700 font-medium text-sm">
+                  {user.email?.[0].toUpperCase() || 'U'}
+                </span>
+              </div>
+              <span className="text-gray-700 text-sm sm:text-base truncate">{user.email}</span>
+            </div>
+            
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center min-h-[44px] px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 touch-manipulation flex-shrink-0"
+            >
+              <LogOut className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
+              <span className="sm:hidden">Out</span>
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6 border border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
