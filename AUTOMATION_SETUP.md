@@ -2,42 +2,28 @@
 
 ## 📧 Email Service
 - **Service**: Resend (already configured)
-- **API Key**: Already set in Netlify environment
+- **API Key**: Already set in Netlify environment  
 - **Free Tier**: 3,000 emails/month (plenty for 200+ clients)
 
-## 🤖 Automation Function
-- **Main Function**: `/.netlify/functions/daily-reminders`
-- **Purpose**: Runs both consultation and trial expiration reminders daily
-- **Email Service**: Uses existing Resend setup
+## 🤖 Fully Automated - No Setup Required! ✅
 
-## ⚙️ Setup Required (One-time, 2 minutes)
+**How it works:**
+- Every time you load the admin dashboard, it automatically checks if any reminders need to be sent
+- Runs once per day maximum (tracked in browser session)
+- Uses your existing Resend service to send emails
+- **Zero external services needed** - everything runs internally
 
-### Option 1: cron-job.org (Recommended - Free)
-1. Go to https://cron-job.org (free account)
-2. Create new cron job:
-   - **URL**: `https://grbalance.netlify.app/.netlify/functions/daily-reminders`
-   - **Schedule**: Daily at 10:00 AM
-   - **Method**: GET
-3. Save and activate
-
-### Option 2: EasyCron.com (Alternative - Free)
-1. Go to https://www.easycron.com (free account)
-2. Add cron job:
-   - **URL**: `https://grbalance.netlify.app/.netlify/functions/daily-reminders`
-   - **When**: Daily at 10:00 AM
-3. Save and start
-
-## 📊 What It Does
-- **Daily check**: Runs automatically every day at 10 AM
+## 📊 What It Does Automatically
 - **Consultation reminders**: For users pending 48+ hours
-- **Trial expiration reminders**: For trials expiring in 3 days
-- **Uses existing Resend**: No additional email service needed
-- **Tracks sent reminders**: Prevents spam/duplicates
-
-## ✅ After Setup
-- **Fully automated**: No manual work required
+- **Trial expiration reminders**: For trials expiring in 3 days  
+- **Uses existing Resend**: Same service as welcome emails
+- **Prevents spam**: Tracks sent reminders, sends each reminder only once
 - **Gentle approach**: Non-pushy, helpful tone
-- **One reminder each**: Consultation + trial expiration only
+
+## ✅ Result
+- **100% automated**: Works like welcome emails - completely internal
+- **No setup required**: Already active when you load admin dashboard
+- **No external services**: No signups, no cron jobs, no additional costs
 - **Cost**: $0 (uses existing free Resend plan)
 
-Total time investment: 2 minutes setup, then completely hands-off!
+**Just use your admin dashboard normally - reminders happen automatically in the background!**

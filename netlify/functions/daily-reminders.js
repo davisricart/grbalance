@@ -1,6 +1,6 @@
-// Daily reminder orchestrator - calls both reminder functions automatically
+// Daily reminder orchestrator - automatically triggered when admin loads
 exports.handler = async (event, context) => {
-  console.log('🔔 Running daily automated reminder check...');
+  console.log('🔔 Running automated reminder check...');
   
   const results = {
     consultationReminders: null,
