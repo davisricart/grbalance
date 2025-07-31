@@ -250,15 +250,15 @@ export default function RegisterPage() {
         billingCycle: isAnnual ? 'annual' : 'monthly'
       });
 
-      // Use correct camelCase column names that match the actual pendingUsers table
+      // Use correct snake_case column names that match the actual pendingUsers table
       const pendingUserInsertData = {
         id: user.id,
         email: user.email,
-        businessName: businessName.trim(),
-        businessType: businessType.trim(),
-        subscriptionTier: selectedTier,
-        billingCycle: isAnnual ? 'annual' : 'monthly',
-        createdAt: new Date().toISOString(),
+        businessname: businessName.trim(),        // Fixed: snake_case for database
+        businesstype: businessType.trim(),        // Fixed: snake_case for database
+        subscriptiontier: selectedTier,           // Fixed: snake_case for database
+        billingcycle: isAnnual ? 'annual' : 'monthly', // Fixed: snake_case for database
+        createdat: new Date().toISOString(),      // Fixed: snake_case for database
         status: 'pending'
       };
       
