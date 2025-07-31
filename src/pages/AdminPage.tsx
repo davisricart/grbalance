@@ -2402,12 +2402,32 @@ WARNING:
         return;
       }
 
+      // Fetch business name from clients table to ensure it's preserved
+      let businessName = approvedUser.businessName;
+      let businessType = approvedUser.businessType;
+      
+      try {
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('business_name, business_type')
+          .eq('id', userId)
+          .single();
+        
+        if (clientData) {
+          businessName = clientData.business_name || businessName;
+          businessType = clientData.business_type || businessType;
+          console.log('✅ Found business data from clients table:', { businessName, businessType });
+        }
+      } catch (error) {
+        console.warn('⚠️ Could not fetch from clients table, using approved user data');
+      }
+
       // Move user from usage table to ready-for-testing table
       const readyForTestingData = {
         id: userId,
         email: approvedUser.email,
-        businessname: approvedUser.businessName || 'Unknown Business',
-        businesstype: approvedUser.businessType || 'Other',
+        businessname: businessName || 'Business Name Not Set',
+        businesstype: businessType || 'Other',
         subscriptiontier: approvedUser.subscriptionTier,
         billingcycle: approvedUser.billingCycle || 'monthly',
         createdat: approvedUser.createdAt || new Date().toISOString(),
