@@ -101,7 +101,8 @@
       "Bash(iconv:*)",
       "Bash(nslookup:*)",
       "Bash(host:*)",
-      "Bash(dig:*)"
+      "Bash(dig:*)",
+      "WebFetch(domain:resend.com)"
     ],
     "deny": []
   }

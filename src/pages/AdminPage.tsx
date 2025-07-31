@@ -1116,15 +1116,6 @@ const AdminPage: React.FC = () => {
           fetchApprovedUsers()
         ]).finally(() => {
           setLoading(false);
-          
-          // Auto-check reminders when admin loads (once per day)
-          const lastCheck = sessionStorage.getItem('reminderCheck');
-          const today = new Date().toDateString();
-          if (lastCheck !== today) {
-            fetch('/.netlify/functions/daily-reminders', { method: 'POST' })
-              .then(() => sessionStorage.setItem('reminderCheck', today))
-              .catch(() => {/* silent */});
-          }
         });
       }
     } else if (!currentUser && !isLoading) {

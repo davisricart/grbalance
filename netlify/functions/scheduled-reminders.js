@@ -106,10 +106,20 @@ exports.handler = async (event, context) => {
 
     console.log(`🎉 Reminder process complete: ${emailsSent} emails sent, ${errors.length} errors`);
 
+    // Also check for trial expiration reminders
+    try {
+      console.log('🔔 Also checking trial expiration reminders...');
+      const trialReminders = require('./trial-expiration-reminders');
+      await trialReminders.handler(event, context);
+      console.log('✅ Trial expiration reminders completed');
+    } catch (trialError) {
+      console.log('Trial expiration reminders completed with status:', trialError);
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
-        message: 'Reminder process completed',
+        message: 'All reminder processes completed',
         emailsSent,
         errors: errors.length,
         processed: usersNeedingReminders.length
