@@ -111,21 +111,21 @@ export const migrateExistingData = async (): Promise<{
       try {
         const now = new Date().toISOString();
         
-        // Ensure we have all required fields
+        // Match actual clients table schema (only include fields that exist)
         const unifiedUser = {
           id: userId,
           email: userData.email,
-          business_name: userData.business_name || 'Business Name Not Set',
-          business_type: userData.business_type || 'Other',
-          subscription_tier: userData.subscription_tier || 'starter',
-          billing_cycle: userData.billing_cycle || 'monthly',
           client_path: userData.client_path || generateClientPath(
             userData.business_name || 'Business Name Not Set',
             userData.email || ''
           ),
-          workflow_stage: userData.workflow_stage || 'pending',
-          created_at: userData.createdat || userData.createdAt || now,
-          updated_at: now
+          business_name: userData.business_name || 'Business Name Not Set',
+          subscription_tier: userData.subscription_tier || 'starter',
+          status: userData.workflow_stage === 'approved' ? 'active' : 'testing'
+          // Note: Other fields like billing_cycle, business_type, workflow_stage don't exist in clients table
+          // billing_cycle is stored in usage table
+          // business_type is stored in pendingUsers table
+          // workflow_stage is managed through status field
         };
 
         // Upsert to clients table
@@ -146,6 +146,7 @@ export const migrateExistingData = async (): Promise<{
               id: userId,
               email: userData.email,
               subscriptionTier: userData.subscription_tier,
+              billingCycle: userData.billing_cycle || 'monthly',
               comparisonsUsed: userData.comparisons_used || 0,
               comparisonsLimit: userData.comparisons_limit || TIER_LIMITS[userData.subscription_tier as keyof typeof TIER_LIMITS],
               status: userData.workflow_stage === 'approved' ? 'approved' : 'pending',

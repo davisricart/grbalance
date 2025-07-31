@@ -4,19 +4,26 @@
 import { supabase } from '../config/supabase';
 
 // Standardized User Data Interface
+// Note: This combines data from clients table, usage table, and pendingUsers table
 export interface UnifiedUser {
+  // From clients table:
   id: string;
   email: string;
   business_name: string;
-  business_type: string;
-  subscription_tier: string;
-  billing_cycle: string;
   client_path: string;
-  workflow_stage: 'pending' | 'qa_testing' | 'approved' | 'deactivated' | 'deleted';
-  comparisons_used: number;
-  comparisons_limit: number;
+  subscription_tier: string; // Actually stored in clients table
+  status: string; // 'testing', 'active', etc.
   created_at: string;
   updated_at: string;
+  
+  // From usage table:
+  billing_cycle: string;
+  comparisons_used: number;
+  comparisons_limit: number;
+  
+  // From pendingUsers table (for compatibility):
+  business_type: string;
+  workflow_stage: 'pending' | 'qa_testing' | 'approved' | 'deactivated' | 'deleted';
 }
 
 // Generate consistent client path
@@ -49,18 +56,16 @@ export const createUser = async (userData: {
   const comparison_limit = TIER_LIMITS[userData.subscription_tier];
   const now = new Date().toISOString();
   
-  // Create in clients table (primary storage)
+  // Create in clients table (primary storage) - match actual schema
   const clientData = {
     id: userData.id,
     email: userData.email,
     business_name: userData.business_name,
-    business_type: userData.business_type,
-    subscription_tier: userData.subscription_tier,
-    billing_cycle: userData.billing_cycle,
     client_path: client_path,
-    workflow_stage: 'pending' as const,
-    created_at: now,
-    updated_at: now
+    subscription_tier: userData.subscription_tier,
+    status: 'testing' // Default status for new users
+    // Note: business_type is stored in pendingUsers table
+    // billing_cycle is stored in usage table
   };
 
   const { error: clientError } = await supabase
@@ -69,13 +74,14 @@ export const createUser = async (userData: {
 
   if (clientError) throw clientError;
 
-  // Create usage tracking record
+  // Create usage tracking record (includes subscription and billing info)
   const { error: usageError } = await supabase
     .from('usage')
     .upsert({
       id: userData.id,
       email: userData.email,
       subscriptionTier: userData.subscription_tier, // Keep existing field name for compatibility
+      billingCycle: userData.billing_cycle, // Store billing cycle in usage table
       comparisonsUsed: 0,
       comparisonsLimit: comparison_limit,
       status: 'pending',
@@ -102,9 +108,19 @@ export const createUser = async (userData: {
   if (pendingError) console.warn('Warning: pendingUsers update failed:', pendingError);
 
   return {
-    ...clientData,
+    id: userData.id,
+    email: userData.email,
+    business_name: userData.business_name,
+    business_type: userData.business_type,
+    client_path: client_path,
+    subscription_tier: userData.subscription_tier,
+    billing_cycle: userData.billing_cycle,
+    status: 'testing',
+    workflow_stage: 'pending' as const,
     comparisons_used: 0,
-    comparisons_limit: comparison_limit
+    comparisons_limit: comparison_limit,
+    created_at: now,
+    updated_at: now
   };
 };
 
@@ -124,24 +140,39 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     return null;
   }
 
-  // Get usage data
+  // Get usage data (includes billing info)
   const { data: usageData } = await supabase
     .from('usage')
-    .select('comparisonsUsed, comparisonsLimit')
+    .select('billingCycle, comparisonsUsed, comparisonsLimit')
     .eq('id', userId)
     .single();
+
+  // Get business_type from pendingUsers table if available
+  const { data: pendingData } = await supabase
+    .from('pendingUsers')
+    .select('businesstype')
+    .eq('id', userId)
+    .single();
+
+  // Map status to workflow_stage
+  const statusToWorkflowStage = {
+    'testing': 'qa_testing',
+    'active': 'approved',
+    'inactive': 'deactivated'
+  } as const;
 
   return {
     id: clientData.id,
     email: clientData.email,
-    business_name: clientData.business_name,
-    business_type: clientData.business_type,
-    subscription_tier: clientData.subscription_tier,
-    billing_cycle: clientData.billing_cycle,
+    business_name: clientData.business_name || 'Business Name Not Set',
+    business_type: pendingData?.businesstype || 'Other',
     client_path: clientData.client_path,
-    workflow_stage: clientData.workflow_stage,
+    subscription_tier: clientData.subscription_tier || 'starter',
+    status: clientData.status || 'testing',
+    workflow_stage: statusToWorkflowStage[clientData.status as keyof typeof statusToWorkflowStage] || 'pending',
+    billing_cycle: usageData?.billingCycle || 'monthly',
     comparisons_used: usageData?.comparisonsUsed || 0,
-    comparisons_limit: usageData?.comparisonsLimit || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS],
+    comparisons_limit: usageData?.comparisonsLimit || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
     created_at: clientData.created_at,
     updated_at: clientData.updated_at
   };
@@ -156,12 +187,20 @@ export const updateUserWorkflowStage = async (
 ): Promise<void> => {
   const now = new Date().toISOString();
 
-  // Update clients table (primary)
+  // Map workflow_stage to status for clients table
+  const workflowToStatusMap = {
+    pending: 'testing',
+    qa_testing: 'testing',
+    approved: 'active',
+    deactivated: 'inactive',
+    deleted: 'inactive'
+  } as const;
+
+  // Update clients table (update status, not workflow_stage since that column doesn't exist)
   const { error: clientError } = await supabase
     .from('clients')
     .update({
-      workflow_stage: newStage,
-      updated_at: now
+      status: workflowToStatusMap[newStage]
     })
     .eq('id', userId);
 
@@ -193,37 +232,63 @@ export const updateUserWorkflowStage = async (
 export const getUsersByWorkflowStage = async (
   stage: UnifiedUser['workflow_stage']
 ): Promise<UnifiedUser[]> => {
+  // Map workflow_stage to status for querying clients table
+  const workflowToStatusMap = {
+    pending: 'testing',
+    qa_testing: 'testing',
+    approved: 'active',
+    deactivated: 'inactive',
+    deleted: 'inactive'
+  } as const;
+
   const { data: clients, error } = await supabase
     .from('clients')
     .select('*')
-    .eq('workflow_stage', stage)
+    .eq('status', workflowToStatusMap[stage])
     .order('created_at', { ascending: false });
 
   if (error) throw error;
   if (!clients) return [];
 
-  // Get usage data for all users
+  // Get usage data for all users (includes billing info)
   const userIds = clients.map(c => c.id);
   const { data: usageData } = await supabase
     .from('usage')
-    .select('id, comparisonsUsed, comparisonsLimit')
+    .select('id, billingCycle, comparisonsUsed, comparisonsLimit')
+    .in('id', userIds);
+
+  // Get business_type data from pendingUsers table
+  const { data: pendingData } = await supabase
+    .from('pendingUsers')
+    .select('id, businesstype')
     .in('id', userIds);
 
   const usageMap = new Map(usageData?.map(u => [u.id, u]) || []);
+  const pendingMap = new Map(pendingData?.map(p => [p.id, p]) || []);
+
+  // Map status back to workflow_stage
+  const statusToWorkflowStage = {
+    'testing': stage === 'pending' ? 'pending' : 'qa_testing', // Distinguish based on requested stage
+    'active': 'approved',
+    'inactive': 'deactivated'
+  } as const;
 
   return clients.map(client => {
     const usage = usageMap.get(client.id);
+    const pending = pendingMap.get(client.id);
+    
     return {
       id: client.id,
       email: client.email,
-      business_name: client.business_name,
-      business_type: client.business_type,
-      subscription_tier: client.subscription_tier,
-      billing_cycle: client.billing_cycle,
+      business_name: client.business_name || 'Business Name Not Set',
+      business_type: pending?.businesstype || 'Other',
       client_path: client.client_path,
-      workflow_stage: client.workflow_stage,
+      subscription_tier: client.subscription_tier || 'starter',
+      status: client.status || 'testing',
+      workflow_stage: statusToWorkflowStage[client.status as keyof typeof statusToWorkflowStage] || stage,
+      billing_cycle: usage?.billingCycle || 'monthly',
       comparisons_used: usage?.comparisonsUsed || 0,
-      comparisons_limit: usage?.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS],
+      comparisons_limit: usage?.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
       updated_at: client.updated_at
     };
@@ -239,38 +304,70 @@ export const updateUserBusinessInfo = async (
 ): Promise<void> => {
   const now = new Date().toISOString();
   
-  // Update client_path if business_name changed
-  const updateData: any = {
-    ...updates,
-    updated_at: now
-  };
+  // Prepare updates for clients table (only fields that exist there)
+  const clientUpdates: any = {};
+  let needsClientUpdate = false;
   
   if (updates.business_name) {
+    clientUpdates.business_name = updates.business_name;
+    // Update client_path when business_name changes
     const user = await getUserById(userId);
     if (user) {
-      updateData.client_path = generateClientPath(updates.business_name, user.email);
+      clientUpdates.client_path = generateClientPath(updates.business_name, user.email);
     }
+    needsClientUpdate = true;
+  }
+  
+  if (updates.subscription_tier) {
+    clientUpdates.subscription_tier = updates.subscription_tier;
+    needsClientUpdate = true;
   }
 
-  // Update clients table (primary)
-  const { error: clientError } = await supabase
-    .from('clients')
-    .update(updateData)
-    .eq('id', userId);
+  // Update clients table if needed
+  if (needsClientUpdate) {
+    const { error: clientError } = await supabase
+      .from('clients')
+      .update(clientUpdates)
+      .eq('id', userId);
 
-  if (clientError) throw clientError;
+    if (clientError) throw clientError;
+  }
 
-  // Update usage table for compatibility if subscription changed
+  // Update usage table for subscription/billing changes (these fields are stored in usage table)
+  const usageUpdates: any = {};
+  let needsUsageUpdate = false;
+  
   if (updates.subscription_tier) {
+    usageUpdates.subscriptionTier = updates.subscription_tier;
+    usageUpdates.comparisonsLimit = TIER_LIMITS[updates.subscription_tier as keyof typeof TIER_LIMITS];
+    needsUsageUpdate = true;
+  }
+  
+  if (updates.billing_cycle) {
+    usageUpdates.billingCycle = updates.billing_cycle;
+    needsUsageUpdate = true;
+  }
+  
+  if (needsUsageUpdate) {
+    usageUpdates.updatedAt = now;
+    
     const { error: usageError } = await supabase
       .from('usage')
-      .update({
-        subscriptionTier: updates.subscription_tier,
-        comparisonsLimit: TIER_LIMITS[updates.subscription_tier as keyof typeof TIER_LIMITS],
-        updatedAt: now
-      })
+      .update(usageUpdates)
       .eq('id', userId);
 
     if (usageError) console.warn('Usage table update failed:', usageError);
+  }
+  
+  // Update pendingUsers table for business_type (if it exists there)
+  if (updates.business_type) {
+    const { error: pendingError } = await supabase
+      .from('pendingUsers')
+      .update({
+        businesstype: updates.business_type
+      })
+      .eq('id', userId);
+
+    if (pendingError) console.warn('PendingUsers table update failed:', pendingError);
   }
 };
