@@ -512,25 +512,6 @@ const AdminPage: React.FC = () => {
   }, []);
 
   // Fetch clients
-  const fetchClients = useCallback(async () => {
-    try {
-      const { data: clientsData, error } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      setClients(clientsData || []);
-    } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchClients:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
-      setClients([]);
-    }
-  }, [user]);
 
   // Fetch pending users
   const fetchPendingUsers = useCallback(async () => {
@@ -1129,7 +1110,6 @@ const AdminPage: React.FC = () => {
       } else {
         // Fetch data for real auth
         Promise.all([
-          fetchClients(),
           fetchPendingUsers(),
           fetchReadyForTestingUsers(),
           fetchApprovedUsers()
@@ -1425,7 +1405,6 @@ const AdminPage: React.FC = () => {
       setSelectedUserForEdit(null);
       await fetchApprovedUsers();
       await fetchPendingUsers(); // Refresh pending users to update badge count
-      await fetchClients(); // Refresh clients to update admin dashboard counts
       
     } catch (error: any) {
       console.error('Error updating user:', error);
@@ -3124,16 +3103,6 @@ WARNING:
               >
                 <User className="inline w-4 h-4 mr-2" />
                 CLIENTS
-                {activeTab !== 'clients' && clients.length > 0 && (
-                  <span className="ml-2 bg-gray-500 text-white px-2 py-1 rounded-full text-xs">
-                    {clients.length}
-                  </span>
-                )}
-                {activeTab === 'clients' && clients.length > 0 && (
-                  <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                    {clients.length}
-                  </span>
-                )}
               </button>
               <button
                 onClick={() => setActiveTab('pending')}
@@ -3260,138 +3229,29 @@ WARNING:
         {/* Tab Content */}
         {activeTab === 'clients' && (
           <div className="space-y-6">
-            {/* Action Buttons */}
-            <div className="flex space-x-4">
-              <button
-                onClick={() => setShowAddClient(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Client
-              </button>
-              <button
-                onClick={() => setShowUploadScript(true)}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center transition-colors"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Script
-              </button>
-            </div>
-
-            {/* Clients Table */}
+            {/* Manual Client Management */}
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-medium text-gray-900">Active Clients</h3>
-                <p className="text-sm text-gray-500 mt-1">Manage your client accounts and their configurations</p>
+                <h3 className="text-lg font-medium text-gray-900">Manual Client Management</h3>
+                <p className="text-sm text-gray-500 mt-1">Manually add new clients to the system</p>
               </div>
               
-              {clients.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="mx-auto h-12 w-12 text-gray-400">
-                    <User className="h-12 w-12" />
-                  </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No clients</h3>
-                  <p className="mt-1 text-sm text-gray-500">Get started by adding your first client.</p>
-                  <div className="mt-6">
-                    <button
-                      onClick={() => setShowAddClient(true)}
-                      className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Client
-                    </button>
-                  </div>
+              <div className="p-12 text-center">
+                <div className="mx-auto h-12 w-12 text-gray-400">
+                  <User className="h-12 w-12" />
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200 border border-gray-300">
-                    <thead className="bg-gray-400">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Client Information
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Contact
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Configuration
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Scripts
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-300">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {clients.map((client) => (
-                        <tr key={client.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                <User className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                                <div className="text-sm text-gray-500">ID: {client.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
-                            <div className="text-sm text-gray-900">{client.email}</div>
-                            <div className="text-sm text-gray-500">Registered: {parseDate(client.createdAt)?.toLocaleDateString() || 'N/A'}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
-                            <div className="text-sm text-gray-900">Subdomain: {client.subdomain}</div>
-                            <div className="text-sm text-gray-500">{client.scripts?.length || 0} scripts</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap border-b border-gray-200">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              client.status === 'active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {client.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 border-b border-gray-200">
-                            {client.scripts?.length > 0 ? (
-                              <div className="space-y-1">
-                                {client.scripts.slice(0, 2).map((script, index) => (
-                                  <div key={index} className="text-xs bg-gray-100 rounded px-2 py-1">{script}</div>
-                                ))}
-                                {client.scripts.length > 2 && (
-                                  <div className="text-xs text-gray-400">+{client.scripts.length - 2} more</div>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">No scripts</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2 border-b border-gray-200">
-                            <button 
-                              onClick={() => {
-                                setSelectedClientForScript(client.id);
-                                setShowUploadScript(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded text-xs"
-                            >
-                              Upload Script
-                            </button>
-                            <button className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-2 py-1 rounded text-xs">
-                              <Trash2 className="w-3 h-3 inline" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">Add New Client</h3>
+                <p className="mt-1 text-sm text-gray-500">Create a new client account manually with custom settings.</p>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setShowAddClient(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Client
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         )}
@@ -5521,12 +5381,7 @@ WARNING:
                     onChange={(e) => setSelectedClientForScript(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="">Choose a client...</option>
-                    {clients.map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
+                    <option value="">No clients available</option>
                   </select>
                 </div>
                 
