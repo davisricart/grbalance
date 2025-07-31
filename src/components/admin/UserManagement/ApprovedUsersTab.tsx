@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
+import { supabase } from '../../../config/supabase';
+import { calculateTrialFromCreatedAt } from '../../../services/trialService';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
@@ -42,6 +44,33 @@ const ApprovedUsersTab = React.memo(({
   const [sendingBackToQA, setSendingBackToQA] = useState<string | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [userAuthData, setUserAuthData] = useState<{[key: string]: { created_at: string }}>({});
+
+  // Fetch auth data for trial calculations
+  useEffect(() => {
+    const fetchUserAuthData = async () => {
+      const authDataMap: {[key: string]: { created_at: string }} = {};
+      
+      for (const user of users) {
+        if (user.status === 'trial') {
+          try {
+            const { data: { user: authUser }, error } = await supabase.auth.admin.getUserById(user.id);
+            if (authUser && !error) {
+              authDataMap[user.id] = { created_at: authUser.created_at };
+            }
+          } catch (error) {
+            console.warn('Failed to fetch auth data for user:', user.id, error);
+          }
+        }
+      }
+      
+      setUserAuthData(authDataMap);
+    };
+
+    if (users.length > 0) {
+      fetchUserAuthData();
+    }
+  }, [users]);
 
   // Sequential workflow handlers
   const handleSetupBilling = async (userId: string, tier: string, userEmail: string, businessName?: string) => {
@@ -261,31 +290,22 @@ const ApprovedUsersTab = React.memo(({
     return inlineNotifications[userId];
   };
 
-  // Calculate trial time remaining for a user
+  // Calculate trial time remaining for a user using shared service
   const getTrialTimeRemaining = (user: ApprovedUser) => {
     if (user.status !== 'trial') {
       return null; // Not on trial
     }
     
-    const trialStart = new Date(user.createdAt);
-    const trialEnd = new Date(trialStart.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days
-    const now = new Date();
-    const timeRemaining = trialEnd.getTime() - now.getTime();
+    // Use auth created_at if available, otherwise fallback to database createdAt
+    const authData = userAuthData[user.id];
+    const createdAt = authData?.created_at || user.createdAt;
     
-    if (timeRemaining <= 0) {
-      return 'Expired';
+    if (!createdAt) {
+      return 'Loading...';
     }
     
-    const daysLeft = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000));
-    const hoursLeft = Math.floor(timeRemaining / (60 * 60 * 1000));
-    
-    if (daysLeft > 1) {
-      return `${daysLeft} days left`;
-    } else if (hoursLeft > 1) {
-      return `${hoursLeft} hours left`;
-    } else {
-      return 'Expires today';
-    }
+    const trialInfo = calculateTrialFromCreatedAt(createdAt, true);
+    return trialInfo.displayText;
   };
 
   // Client Activation Functions

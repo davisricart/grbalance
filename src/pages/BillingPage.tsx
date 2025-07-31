@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../config/supabase';
 import { getUserUsage, UsageData } from '../services/usageService';
+import { calculateTrialFromCreatedAt } from '../services/trialService';
 import StripePaymentForm from '../components/StripePaymentForm';
 import { stripeConfig, formatPrice } from '../config/stripe';
 import { Elements } from '@stripe/react-stripe-js';
@@ -99,13 +100,10 @@ export default function BillingPage() {
         const usageData = await getUserUsage(user.id);
         setUsage(usageData);
 
-        // Calculate trial days left
+        // Calculate trial days left using shared service
         if (usageData?.status === 'trial') {
-          const trialStart = new Date(user.created_at);
-          const trialEnd = new Date(trialStart.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days
-          const now = new Date();
-          const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-          setTrialDaysLeft(Math.max(0, daysLeft));
+          const trialInfo = calculateTrialFromCreatedAt(user.created_at, true);
+          setTrialDaysLeft(trialInfo.daysLeft);
         }
 
         setLoading(false);
