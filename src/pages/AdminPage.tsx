@@ -1116,10 +1116,6 @@ const AdminPage: React.FC = () => {
           fetchApprovedUsers()
         ]).finally(() => {
           setLoading(false);
-          
-          // Auto-check for pending user reminders (silent background check)
-          fetch('/.netlify/functions/scheduled-reminders', { method: 'POST' })
-            .catch(() => {/* silent - reminder check is optional */});
         });
       }
     } else if (!currentUser && !isLoading) {
