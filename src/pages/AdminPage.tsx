@@ -8,6 +8,7 @@ import {
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { useAdminVerification } from '../services/adminService';
+import { migrateExistingData, verifyMigration } from '../services/dataMigration';
 import clientConfig from '../config/client';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
@@ -291,6 +292,17 @@ const AdminPage: React.FC = () => {
   const [testFile2, setTestFile2] = useState<File | null>(null);
   const [testFile1Info, setTestFile1Info] = useState<ParsedFileData | null>(null);
   const [testFile2Info, setTestFile2Info] = useState<ParsedFileData | null>(null);
+
+  // Migration state
+  const [migrationStatus, setMigrationStatus] = useState<{
+    isRunning: boolean;
+    result: { success: boolean; migrated: number; errors: string[] } | null;
+    verificationResult: { totalUsers: number; businessNamesSet: number; clientPathsSet: number; issues: string[] } | null;
+  }>({
+    isRunning: false,
+    result: null,
+    verificationResult: null
+  });
   const [testFile1Error, setTestFile1Error] = useState<string>('');
   const [testFile2Error, setTestFile2Error] = useState<string>('');
   const [testFileLoading, setTestFileLoading] = useState<{file1: boolean, file2: boolean}>({file1: false, file2: false});
@@ -605,6 +617,54 @@ const AdminPage: React.FC = () => {
     }
     
     return true;
+  };
+
+  // Data Migration Functions
+  const runDataMigration = async () => {
+    setMigrationStatus(prev => ({ ...prev, isRunning: true, result: null, verificationResult: null }));
+    
+    try {
+      console.log('🚀 MIGRATION: Starting data migration to unified structure...');
+      const result = await migrateExistingData();
+      
+      console.log('🎉 MIGRATION COMPLETE:', result);
+      setMigrationStatus(prev => ({ ...prev, result }));
+      
+      // Run verification after migration
+      const verificationResult = await verifyMigration();
+      setMigrationStatus(prev => ({ ...prev, verificationResult }));
+      
+      // Refresh all user data to reflect changes
+      await Promise.all([
+        fetchPendingUsers(),
+        fetchReadyForTestingUsers(),
+        fetchApprovedUsers()
+      ]);
+      
+    } catch (error) {
+      console.error('🚨 MIGRATION FAILED:', error);
+      setMigrationStatus(prev => ({ 
+        ...prev, 
+        result: { 
+          success: false, 
+          migrated: 0, 
+          errors: [error instanceof Error ? error.message : String(error)] 
+        }
+      }));
+    } finally {
+      setMigrationStatus(prev => ({ ...prev, isRunning: false }));
+    }
+  };
+
+  const runMigrationVerification = async () => {
+    try {
+      console.log('🔍 VERIFICATION: Checking migration integrity...');
+      const verificationResult = await verifyMigration();
+      console.log('📊 VERIFICATION RESULT:', verificationResult);
+      setMigrationStatus(prev => ({ ...prev, verificationResult }));
+    } catch (error) {
+      console.error('🚨 VERIFICATION FAILED:', error);
+    }
   };
 
   // Fetch ready-for-testing users
@@ -3182,6 +3242,17 @@ WARNING:
                 <FiCode className="inline w-4 h-4 mr-2" />
                 SCRIPT TESTING
               </button>
+              <button
+                onClick={() => setActiveTab('data-migration')}
+                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
+                  activeTab === 'data-migration'
+                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                }`}
+              >
+                <FiDatabase className="inline w-4 h-4 mr-2" />
+                DATA MIGRATION
+              </button>
             </nav>
           </div>
         </div>
@@ -5137,6 +5208,164 @@ WARNING:
                           Execute script to see client-side results here...
                         </div>
                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Data Migration Tab */}
+        {activeTab === 'data-migration' && (
+          <div className="space-y-6">
+            {/* Data Migration Section */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <h3 className="text-lg font-medium text-gray-900">Data Migration - Unified Architecture</h3>
+                <p className="text-sm text-gray-500 mt-1">Migrate existing fragmented data to clean, unified structure</p>
+              </div>
+              
+              <div className="p-6">
+                {/* Migration Description */}
+                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">🔄 What This Migration Does</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Consolidates user data from pendingUsers, ready-for-testing, and usage tables</li>
+                    <li>• Creates unified records in clients table with consistent field naming</li>
+                    <li>• Preserves business names and ensures they flow through entire workflow</li>
+                    <li>• Generates proper client_path values for website access</li>
+                    <li>• Maintains backward compatibility with existing systems</li>
+                  </ul>
+                </div>
+
+                {/* Migration Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="space-y-4">
+                    <button
+                      onClick={runDataMigration}
+                      disabled={migrationStatus.isRunning}
+                      className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors duration-200"
+                    >
+                      {migrationStatus.isRunning ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Running Migration...
+                        </div>
+                      ) : (
+                        '🚀 Run Data Migration'
+                      )}
+                    </button>
+                    <p className="text-xs text-gray-500">Safely migrate existing data to unified structure</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <button
+                      onClick={runMigrationVerification}
+                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors duration-200"
+                    >
+                      🔍 Verify Data Integrity
+                    </button>
+                    <p className="text-xs text-gray-500">Check migration results and data quality</p>
+                  </div>
+                </div>
+
+                {/* Migration Results */}
+                {migrationStatus.result && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Migration Results</h4>
+                    <div className={`p-4 rounded-lg border ${
+                      migrationStatus.result.success 
+                        ? 'bg-green-50 border-green-200' 
+                        : 'bg-red-50 border-red-200'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg">
+                          {migrationStatus.result.success ? '✅' : '❌'}
+                        </span>
+                        <span className={`font-medium ${
+                          migrationStatus.result.success ? 'text-green-900' : 'text-red-900'
+                        }`}>
+                          {migrationStatus.result.success ? 'Migration Successful' : 'Migration Failed'}
+                        </span>
+                      </div>
+                      
+                      <div className={`text-sm ${
+                        migrationStatus.result.success ? 'text-green-800' : 'text-red-800'
+                      }`}>
+                        <p>Migrated Users: {migrationStatus.result.migrated}</p>
+                        {migrationStatus.result.errors.length > 0 && (
+                          <div className="mt-2">
+                            <p className="font-medium">Errors:</p>
+                            <ul className="list-disc list-inside space-y-1">
+                              {migrationStatus.result.errors.map((error, index) => (
+                                <li key={index} className="text-xs">{error}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Verification Results */}
+                {migrationStatus.verificationResult && (
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Data Integrity Check</h4>
+                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-blue-600">
+                            {migrationStatus.verificationResult.totalUsers}
+                          </div>
+                          <div className="text-sm text-gray-600">Total Users</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {migrationStatus.verificationResult.businessNamesSet}
+                          </div>
+                          <div className="text-sm text-gray-600">Business Names Set</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {migrationStatus.verificationResult.clientPathsSet}
+                          </div>
+                          <div className="text-sm text-gray-600">Client Paths Set</div>
+                        </div>
+                      </div>
+
+                      {migrationStatus.verificationResult.issues.length > 0 && (
+                        <div className="mt-4">
+                          <h5 className="font-medium text-gray-900 mb-2">Issues Found:</h5>
+                          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                            <ul className="text-sm text-yellow-800 space-y-1">
+                              {migrationStatus.verificationResult.issues.map((issue, index) => (
+                                <li key={index} className="flex items-start gap-2">
+                                  <span className="text-yellow-600">⚠️</span>
+                                  {issue}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Warning */}
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <span className="text-yellow-600 text-lg">⚠️</span>
+                    <div className="text-sm text-yellow-800">
+                      <p className="font-medium mb-1">Important Notes:</p>
+                      <ul className="space-y-1">
+                        <li>• This migration is safe and preserves all existing data</li>
+                        <li>• Run during low-traffic periods for best performance</li>
+                        <li>• Verify results before approving new users</li>
+                        <li>• Business names should now persist through entire workflow</li>
+                      </ul>
                     </div>
                   </div>
                 </div>

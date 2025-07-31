@@ -7,6 +7,7 @@ import { UserPlus, AlertCircle, ArrowLeft, Home, CheckSquare, Check, Star, Build
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 import { useAuth } from '../contexts/AuthProvider';
+import { createUser } from '../services/userDataService';
 
 const TIER_LIMITS = {
   starter: 50,
@@ -250,61 +251,19 @@ export default function RegisterPage() {
         billingCycle: isAnnual ? 'annual' : 'monthly'
       });
 
-      // Use correct snake_case column names that match the actual pendingUsers table
-      const pendingUserInsertData = {
+      // Use new unified user data service - single source of truth!
+      console.log('🚀 UNIFIED REGISTRATION: Creating user with clean data structure');
+      
+      const newUser = await createUser({
         id: user.id,
         email: user.email,
-        businessname: businessName.trim(),        // Fixed: snake_case for database
-        businesstype: businessType.trim(),        // Fixed: snake_case for database
-        subscriptiontier: selectedTier,           // Fixed: snake_case for database
-        billingcycle: isAnnual ? 'annual' : 'monthly', // Fixed: snake_case for database
-        createdat: new Date().toISOString(),      // Fixed: snake_case for database
-        status: 'pending'
-      };
-      
-      console.log('🔍 REGISTRATION DEBUG - Exact data being inserted:', pendingUserInsertData);
+        business_name: businessName.trim(),
+        business_type: businessType.trim(),
+        subscription_tier: selectedTier as 'starter' | 'professional' | 'business',
+        billing_cycle: isAnnual ? 'annual' : 'monthly'
+      });
 
-      const { data: pendingUserData, error: pendingUserError } = await supabase
-        .from('pendingUsers')
-        .insert([pendingUserInsertData])
-        .select();
-
-      console.log('Pending user insert result:', { data: pendingUserData, error: pendingUserError });
-      console.log('🔍 REGISTRATION DEBUG - What actually got stored:', pendingUserData);
-      
-      if (pendingUserError) {
-        console.error('🚨 DETAILED PENDING USER ERROR:');
-        console.error('Error Code:', pendingUserError.code);
-        console.error('Error Message:', pendingUserError.message);
-        console.error('Error Details:', pendingUserError.details);
-        console.error('Error Hint:', pendingUserError.hint);
-        console.error('Full Error Object:', pendingUserError);
-      }
-
-      if (pendingUserError) {
-        console.error('Pending user insert failed:', pendingUserError);
-        throw pendingUserError;
-      }
-
-      // Create initial usage record with pending status
-      const { error: usageError } = await supabase
-        .from('usage')
-        .insert([
-          {
-            id: user.id,
-            email: user.email,
-            comparisonsUsed: 0,
-            comparisonsLimit: 0, // No access until approved
-            subscriptionTier: selectedTier,
-            status: 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        ]);
-
-      if (usageError) {
-        throw usageError;
-      }
+      console.log('✅ UNIFIED REGISTRATION: User created successfully:', newUser);
 
       // Refresh auth state and then navigate to pending approval
       await refreshAuthState();
