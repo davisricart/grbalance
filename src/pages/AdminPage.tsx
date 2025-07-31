@@ -3374,9 +3374,8 @@ WARNING:
                   billingcycle: readyUser.billingCycle,         // Fixed: Include billing cycle in snake_case
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved',
-                  approvedAt: new Date().toISOString(),
-                  createdAt: readyUser.createdAt || new Date().toISOString()
+                  status: 'approved'
+                  // Note: approvedAt and createdAt columns don't exist in usage table
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
