@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 import ReconciliationApp from './ReconciliationApp';
+import { verifyAdminAccess } from '../services/adminService';
 
 interface ClientData {
   id: string;
@@ -25,6 +26,7 @@ export default function ClientPortalPage() {
   const [loading, setLoading] = useState(true);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [isAdminBypass, setIsAdminBypass] = useState(false);
 
   // Check authentication status on component load
   useEffect(() => {
@@ -38,15 +40,31 @@ export default function ClientPortalPage() {
           return;
         }
         
-        // Strict authentication check - user email must exactly match client email
+        // Check if user is admin first (admin bypass for QA testing)
+        try {
+          const adminResult = await verifyAdminAccess();
+          if (adminResult.isAdmin) {
+            console.log('🔧 Admin bypass: Granting access for QA testing');
+            setIsAdminBypass(true);
+            setIsAuthenticated(true);
+            return;
+          }
+        } catch (adminError) {
+          console.warn('⚠️ Admin verification failed, continuing with normal auth:', adminError);
+        }
+        
+        // Normal authentication check - user email must exactly match client email
         if (clientData && user.email === clientData.email) {
           console.log('✅ User authenticated and authorized for this client portal');
           setIsAuthenticated(true);
         } else {
           console.log('❌ User not authorized for this client portal - signing out unauthorized user');
           setIsAuthenticated(false);
-          // Sign out unauthorized user immediately
-          await supabase.auth.signOut();
+          // Only sign out if not admin (preserve admin session)
+          const adminResult = await verifyAdminAccess();
+          if (!adminResult.isAdmin) {
+            await supabase.auth.signOut();
+          }
         }
       } catch (error) {
         console.error('❌ Auth check error:', error);
@@ -104,15 +122,40 @@ export default function ClientPortalPage() {
             if (user) {
               console.log('🔐 User already authenticated:', user.email);
               
+              // Check admin bypass first
+              try {
+                const adminResult = await verifyAdminAccess();
+                if (adminResult.isAdmin) {
+                  console.log('🔧 Admin bypass: Granting access for QA testing');
+                  setIsAdminBypass(true);
+                  setIsAuthenticated(true);
+                  return;
+                }
+              } catch (adminError) {
+                console.warn('⚠️ Admin verification failed, continuing with normal auth:', adminError);
+              }
+              
               // Verify user is authorized for this specific client portal
               if (user.email === clients[0].email) {
                 console.log('✅ User authenticated and authorized for this client portal');
                 setIsAuthenticated(true);
               } else {
-                console.log('❌ User not authorized for this client portal - signing out');
-                setIsAuthenticated(false);
-                // Sign out unauthorized user immediately
-                await supabase.auth.signOut();
+                console.log('❌ User not authorized for this client portal - checking admin status');
+                // Check admin status before signing out
+                try {
+                  const adminResult = await verifyAdminAccess();
+                  if (!adminResult.isAdmin) {
+                    setIsAuthenticated(false);
+                    await supabase.auth.signOut();
+                  } else {
+                    console.log('🔧 Preserving admin session');
+                    setIsAdminBypass(true);
+                    setIsAuthenticated(true);
+                  }
+                } catch (adminError) {
+                  setIsAuthenticated(false);
+                  await supabase.auth.signOut();
+                }
               }
             } else {
               // Require authentication for all clients
@@ -173,6 +216,19 @@ export default function ClientPortalPage() {
       }
       
       if (data.user) {
+        // Check admin bypass first
+        try {
+          const adminResult = await verifyAdminAccess();
+          if (adminResult.isAdmin) {
+            console.log('🔧 Admin login: Granting access for QA testing');
+            setIsAdminBypass(true);
+            setIsAuthenticated(true);
+            return;
+          }
+        } catch (adminError) {
+          console.warn('⚠️ Admin verification failed during login, continuing with normal auth:', adminError);
+        }
+        
         // Verify user is authorized for this client portal
         if (data.user.email === clientData.email) {
           setIsAuthenticated(true);
@@ -189,6 +245,13 @@ export default function ClientPortalPage() {
   };
 
   const handleLogout = async () => {
+    if (isAdminBypass) {
+      // For admin bypass, just redirect back to admin without signing out
+      console.log('🔧 Admin bypass: Redirecting to admin dashboard without logout');
+      window.location.href = '/admin/dashboard';
+      return;
+    }
+    
     await supabase.auth.signOut();
     setIsAuthenticated(false);
     console.log('🔓 User logged out');
@@ -341,8 +404,38 @@ export default function ClientPortalPage() {
     },
     // Add client portal specific data
     isClientPortal: true,
-    clientStatus: clientData.status
+    clientStatus: clientData.status,
+    isAdminBypass: isAdminBypass
   };
+  
+  // Add admin bypass indicator if in admin mode
+  if (isAdminBypass) {
+    return (
+      <div>
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-amber-700">
+                <strong>Admin QA Mode:</strong> You are viewing this client portal as an admin for testing purposes.
+                <button 
+                  onClick={handleLogout}
+                  className="ml-2 text-amber-800 underline hover:text-amber-900"
+                >
+                  Return to Admin Dashboard
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+        <ReconciliationApp clientPortalUser={mockUser} />
+      </div>
+    );
+  }
   
   return <ReconciliationApp clientPortalUser={mockUser} />;
 } 
