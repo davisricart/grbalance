@@ -3242,13 +3242,20 @@ WARNING:
                 </div>
                 <h3 className="mt-2 text-sm font-medium text-gray-900">Add New Client</h3>
                 <p className="mt-1 text-sm text-gray-500">Create a new client account manually with custom settings.</p>
-                <div className="mt-6">
+                <div className="mt-6 space-x-4">
                   <button
                     onClick={() => setShowAddClient(true)}
                     className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Client
+                  </button>
+                  <button
+                    onClick={() => setShowUploadScript(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload Script
                   </button>
                 </div>
               </div>
