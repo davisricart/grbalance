@@ -677,27 +677,32 @@ const AdminPage: React.FC = () => {
       const idsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
-      // Also fetch client_path from clients table for each user
+      // Also fetch client data from clients table for each user
       const { data: clientsData } = await supabase
         .from('clients')
-        .select('id, client_path')
+        .select('id, client_path, business_name, business_type')
         .in('id', (snapshot || []).map(u => u.id));
 
-      const clientPathMap: {[userId: string]: string} = {};
+      const clientDataMap: {[userId: string]: any} = {};
       (clientsData || []).forEach((client) => {
-        clientPathMap[client.id] = client.client_path;
+        clientDataMap[client.id] = {
+          client_path: client.client_path,
+          business_name: client.business_name,
+          business_type: client.business_type
+        };
       });
 
       const deletedUsersData: ApprovedUser[] = [];
 
       (snapshot || []).forEach((userData) => {
+        const clientData = clientDataMap[userData.id] || {};
         const userDataWithId = { 
           ...userData, 
-          client_path: clientPathMap[userData.id], // Add client_path from lookup
-          // Map database fields to camelCase frontend fields
-          businessName: userData.businessname,
-          businessType: userData.businesstype,
-          subscriptionTier: userData.subscriptiontier,
+          client_path: clientData.client_path, // Add client_path from lookup
+          // Get business data from clients table (not usage table)
+          businessName: clientData.business_name || userData.businessname,
+          businessType: clientData.business_type || userData.businesstype,
+          subscriptionTier: userData.subscriptionTier, // This exists in usage table
           billingCycle: userData.billingcycle,
           approvedAt: userData.approvedat,
           createdAt: userData.createdat
@@ -3393,6 +3398,27 @@ WARNING:
                   throw upsertError;
                 }
                 console.log('✅ Successfully wrote to usage collection');
+                
+                // Ensure business name is stored in clients table for proper display
+                console.log('📝 Updating/creating clients table entry with business name...');
+                const clientsData = {
+                  id: userId,
+                  business_name: readyUser.businessName,
+                  business_type: readyUser.businessType,
+                  email: readyUser.email,
+                  client_path: clientPath || readyUser.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
+                              readyUser.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'
+                };
+                
+                const { error: clientsError } = await supabase
+                  .from('clients')
+                  .upsert(clientsData);
+                
+                if (clientsError) {
+                  console.warn('⚠️ Failed to update clients table (non-critical):', clientsError);
+                } else {
+                  console.log('✅ Successfully updated clients table with business name');
+                }
                 
                 // Remove from ready-for-testing collection
                 console.log('🗑️ Removing from ready-for-testing collection...');
