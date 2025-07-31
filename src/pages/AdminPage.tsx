@@ -1294,15 +1294,16 @@ const AdminPage: React.FC = () => {
       // Get the comparison limit based on subscription tier
       const comparisonLimit = TIER_LIMITS[pendingUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
 
-      // Prepare update data
+      // Prepare update data (using snake_case for database fields)
       const updateData = {
         status: 'approved',
         comparisonsLimit: comparisonLimit,
+        subscriptiontier: pendingUser.subscriptionTier, // Fixed: snake_case for database
         approvedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        businessName: pendingUser.businessName,
-        businessType: pendingUser.businessType,
-        billingCycle: pendingUser.billingCycle
+        businessname: pendingUser.businessName,  // Fixed: snake_case for database
+        businesstype: pendingUser.businessType,  // Fixed: snake_case for database
+        billingcycle: pendingUser.billingCycle   // Fixed: snake_case for database
       };
       
 
@@ -1676,10 +1677,10 @@ WARNING:
       const { error } = await supabase
         .from('usage')
         .update({
-          businessName: editUserForm.businessName,
-          businessType: editUserForm.businessType,
-          subscriptionTier: editUserForm.subscriptionTier,
-          billingCycle: editUserForm.billingCycle,
+          businessname: editUserForm.businessName,        // Fixed: snake_case for database
+          businesstype: editUserForm.businessType,        // Fixed: snake_case for database
+          subscriptiontier: editUserForm.subscriptionTier, // Fixed: snake_case for database
+          billingcycle: editUserForm.billingCycle,         // Fixed: snake_case for database
           comparisonsLimit: newComparisonLimit,
           adminNotes: editUserForm.adminNotes,
           updatedAt: new Date().toISOString()
@@ -1720,10 +1721,10 @@ WARNING:
       const clientData = {
         id: clientId,
         email: newClient.email,
-        businessName: newClient.businessName,
-        businessType: newClient.businessType,
-        subscriptionTier: newClient.subscriptionTier,
-        billingCycle: newClient.billingCycle,
+        businessname: newClient.businessName,        // Fixed: snake_case for database
+        businesstype: newClient.businessType,        // Fixed: snake_case for database
+        subscriptiontier: newClient.subscriptionTier, // Fixed: snake_case for database
+        billingcycle: newClient.billingCycle,         // Fixed: snake_case for database
         comparisonsUsed: 0,
         comparisonsLimit: comparisonLimit,
         status: 'approved',
@@ -3367,11 +3368,15 @@ WARNING:
                 const dbApprovedUserData = {
                   id: userId,
                   email: readyUser.email,
-                  subscriptionTier: readyUser.subscriptionTier, // REQUIRED: NOT NULL constraint
+                  businessname: readyUser.businessName,         // Fixed: Include business name in snake_case
+                  businesstype: readyUser.businessType,         // Fixed: Include business type in snake_case
+                  subscriptiontier: readyUser.subscriptionTier, // Fixed: snake_case for database
+                  billingcycle: readyUser.billingCycle,         // Fixed: Include billing cycle in snake_case
                   comparisonsUsed: 0,
                   comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100,
-                  status: 'approved'
-                  // Note: businessName and client_path are not stored in usage table, they're stored in clients table
+                  status: 'approved',
+                  approvedAt: new Date().toISOString(),
+                  createdAt: readyUser.createdAt || new Date().toISOString()
                 };
                 
                 console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
