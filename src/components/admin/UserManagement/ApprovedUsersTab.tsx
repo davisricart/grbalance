@@ -261,6 +261,33 @@ const ApprovedUsersTab = React.memo(({
     return inlineNotifications[userId];
   };
 
+  // Calculate trial time remaining for a user
+  const getTrialTimeRemaining = (user: ApprovedUser) => {
+    if (user.status !== 'trial') {
+      return null; // Not on trial
+    }
+    
+    const trialStart = new Date(user.createdAt);
+    const trialEnd = new Date(trialStart.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days
+    const now = new Date();
+    const timeRemaining = trialEnd.getTime() - now.getTime();
+    
+    if (timeRemaining <= 0) {
+      return 'Expired';
+    }
+    
+    const daysLeft = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000));
+    const hoursLeft = Math.floor(timeRemaining / (60 * 60 * 1000));
+    
+    if (daysLeft > 1) {
+      return `${daysLeft} days left`;
+    } else if (hoursLeft > 1) {
+      return `${hoursLeft} hours left`;
+    } else {
+      return 'Expires today';
+    }
+  };
+
   // Client Activation Functions
   const toggleActivationExpanded = (userId: string) => {
     setExpandedActivation(prev => ({
@@ -497,6 +524,20 @@ const ApprovedUsersTab = React.memo(({
                       </span>
                     )}
                 </span>
+                {/* Trial Time Display */}
+                {user.status === 'trial' && (
+                  <>
+                    <span>•</span>
+                    <span className={`flex items-center gap-1 ${
+                      getTrialTimeRemaining(user) === 'Expired' ? 'text-red-600' :
+                      getTrialTimeRemaining(user)?.includes('hours') || getTrialTimeRemaining(user) === 'Expires today' ? 'text-orange-600' :
+                      'text-blue-600'
+                    }`}>
+                      <Clock className="h-3 w-3" />
+                      Trial: {getTrialTimeRemaining(user)}
+                    </span>
+                  </>
+                )}
               </div>
 
                 {/* Usage Management Toggle */}
