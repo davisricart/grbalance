@@ -29,7 +29,7 @@ exports.handler = async (event, context) => {
     // Note: We'll check for sent reminders in a simpler way
     const { data: usersNeedingReminders, error } = await supabase
       .from('clients')
-      .select('id, email, business_name, business_type, created_at')
+      .select('id, email, business_name, created_at')
       .eq('status', 'pending')
       .lt('created_at', fortyEightHoursAgo.toISOString());
 
