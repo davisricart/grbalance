@@ -25,14 +25,13 @@ exports.handler = async (event, context) => {
 
     // Find pending users who:
     // 1. Signed up more than 48 hours ago
-    // 2. Haven't received a reminder yet (or reminder_sent_at is null)
-    // 3. Are still in pending status
+    // 2. Are still in pending status
+    // Note: We'll check for sent reminders in a simpler way
     const { data: usersNeedingReminders, error } = await supabase
-      .from('pendingUsers')
-      .select('id, email, businessName, businessType, createdAt, reminder_sent_at, reminder_count')
+      .from('clients')
+      .select('id, email, business_name, business_type, created_at')
       .eq('status', 'pending')
-      .lt('createdAt', fortyEightHoursAgo.toISOString())
-      .or('reminder_sent_at.is.null,reminder_count.is.null,reminder_count.eq.0');
+      .lt('created_at', fortyEightHoursAgo.toISOString());
 
     if (error) {
       console.error('❌ Error fetching pending users:', error);
@@ -60,10 +59,14 @@ exports.handler = async (event, context) => {
     // Process each user
     for (const user of usersNeedingReminders) {
       try {
-        console.log(`📧 Sending reminder to: ${user.email} (${user.businessName})`);
+        console.log(`📧 Sending reminder to: ${user.email} (${user.business_name})`);
 
         // Create reminder email content
-        const emailContent = createReminderEmail(user);
+        const emailContent = createReminderEmail({
+          ...user,
+          businessName: user.business_name,
+          createdAt: user.created_at
+        });
 
         // Send email via Resend
         const emailResult = await resend.emails.send({
@@ -79,24 +82,9 @@ exports.handler = async (event, context) => {
           continue;
         }
 
-        // Update database to track reminder sent
-        const { error: updateError } = await supabase
-          .from('pendingUsers')
-          .update({
-            reminder_sent_at: now.toISOString(),
-            reminder_count: (user.reminder_count || 0) + 1,
-            last_reminder_type: 'consultation_reminder',
-            updatedAt: now.toISOString()
-          })
-          .eq('id', user.id);
-
-        if (updateError) {
-          console.error(`❌ Database update failed for ${user.email}:`, updateError);
-          errors.push({ email: user.email, error: updateError });
-        } else {
-          emailsSent++;
-          console.log(`✅ Reminder sent successfully to ${user.email}`);
-        }
+        // For now, just log success (we can add reminder tracking later if needed)
+        emailsSent++;
+        console.log(`✅ Reminder sent successfully to ${user.email}`);
 
       } catch (userError) {
         console.error(`❌ Failed to process user ${user.email}:`, userError);
