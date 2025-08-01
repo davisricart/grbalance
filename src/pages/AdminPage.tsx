@@ -8,7 +8,6 @@ import {
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { useAdminVerification } from '../services/adminService';
-import { migrateExistingData, verifyMigration } from '../services/dataMigration';
 import clientConfig from '../config/client';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
@@ -170,7 +169,7 @@ const AdminPage: React.FC = () => {
   // Skip auth for testing (only on localhost)
   const skipAuth = false; // Set to true only for testing
   const hasInitiallyLoaded = useRef(false);
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('clients');
   const [showCleanupInput, setShowCleanupInput] = useState(false);
   const [cleanupEmail, setCleanupEmail] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -192,7 +191,6 @@ const AdminPage: React.FC = () => {
   const [readyForTestingUsers, setReadyForTestingUsers] = useState<ReadyForTestingUser[]>([]);
   const [approvedUsers, setApprovedUsers] = useState<ApprovedUser[]>([]);
 
-  const [deletedUsers, setDeletedUsers] = useState<ApprovedUser[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Persistent state for ReadyForTestingTab
@@ -294,15 +292,6 @@ const AdminPage: React.FC = () => {
   const [testFile2Info, setTestFile2Info] = useState<ParsedFileData | null>(null);
 
   // Migration state
-  const [migrationStatus, setMigrationStatus] = useState<{
-    isRunning: boolean;
-    result: { success: boolean; migrated: number; errors: string[] } | null;
-    verificationResult: { totalUsers: number; businessNamesSet: number; clientPathsSet: number; issues: string[] } | null;
-  }>({
-    isRunning: false,
-    result: null,
-    verificationResult: null
-  });
   const [testFile1Error, setTestFile1Error] = useState<string>('');
   const [testFile2Error, setTestFile2Error] = useState<string>('');
   const [testFileLoading, setTestFileLoading] = useState<{file1: boolean, file2: boolean}>({file1: false, file2: false});
@@ -600,53 +589,6 @@ const AdminPage: React.FC = () => {
     return true;
   };
 
-  // Data Migration Functions
-  const runDataMigration = async () => {
-    setMigrationStatus(prev => ({ ...prev, isRunning: true, result: null, verificationResult: null }));
-    
-    try {
-      console.log('🚀 MIGRATION: Starting data migration to unified structure...');
-      const result = await migrateExistingData();
-      
-      console.log('🎉 MIGRATION COMPLETE:', result);
-      setMigrationStatus(prev => ({ ...prev, result }));
-      
-      // Run verification after migration
-      const verificationResult = await verifyMigration();
-      setMigrationStatus(prev => ({ ...prev, verificationResult }));
-      
-      // Refresh all user data to reflect changes
-      await Promise.all([
-        fetchPendingUsers(),
-        fetchReadyForTestingUsers(),
-        fetchApprovedUsers()
-      ]);
-      
-    } catch (error) {
-      console.error('🚨 MIGRATION FAILED:', error);
-      setMigrationStatus(prev => ({ 
-        ...prev, 
-        result: { 
-          success: false, 
-          migrated: 0, 
-          errors: [error instanceof Error ? error.message : String(error)] 
-        }
-      }));
-    } finally {
-      setMigrationStatus(prev => ({ ...prev, isRunning: false }));
-    }
-  };
-
-  const runMigrationVerification = async () => {
-    try {
-      console.log('🔍 VERIFICATION: Checking migration integrity...');
-      const verificationResult = await verifyMigration();
-      console.log('📊 VERIFICATION RESULT:', verificationResult);
-      setMigrationStatus(prev => ({ ...prev, verificationResult }));
-    } catch (error) {
-      console.error('🚨 VERIFICATION FAILED:', error);
-    }
-  };
 
   // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = useCallback(async () => {
@@ -734,8 +676,6 @@ const AdminPage: React.FC = () => {
         };
       });
 
-      const deletedUsersData: ApprovedUser[] = [];
-
       (snapshot || []).forEach((userData) => {
         const clientData = clientDataMap[userData.id] || {};
         const userDataWithId = { 
@@ -750,11 +690,8 @@ const AdminPage: React.FC = () => {
           createdAt: clientData.created_at || userData.createdat
         } as ApprovedUser;
           
-        // Separate users by status
-        if (userData.status === 'deleted') {
-          deletedUsersData.push(userDataWithId);
-        } else {
-          // Add approved/deactivated users
+        // Add users (skip deleted users since we're doing hard deletes)
+        if (userData.status !== 'deleted') {
           approvedUsersData.push(userDataWithId);
         }
         
@@ -772,7 +709,6 @@ const AdminPage: React.FC = () => {
       
       
       setApprovedUsers(approvedUsersData);
-      setDeletedUsers(deletedUsersData);
       setSiteUrls(urlsData);
       // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
@@ -783,7 +719,6 @@ const AdminPage: React.FC = () => {
       console.error('🚨 Full Error Object:', error);
       console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
       setApprovedUsers([]);
-      setDeletedUsers([]);
     }
   }, [user]);
 
@@ -943,154 +878,6 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Restore deleted user
-  const restoreUser = async (userId: string) => {
-    try {
-      
-      // Find the deleted user to get their original subscription tier
-      const deletedUser = deletedUsers.find(user => user.id === userId);
-      if (!deletedUser) {
-        console.error('🚨 Deleted user not found');
-        return;
-      }
-
-      // Get the comparison limit based on subscription tier
-      const comparisonLimit = TIER_LIMITS[deletedUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
-      
-      // Update status back to "approved" and restore limits
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'approved',
-          comparisonsLimit: comparisonLimit
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
-
-      
-      // Refresh data
-      await fetchApprovedUsers();
-      
-    } catch (error) {
-      console.error('🚨 Error restoring user:', error);
-    }
-  };
-
-  // Permanently delete user
-  const permanentlyDeleteUser = async (userId: string) => {
-    try {
-      
-      // Find the user to get their site info
-      const userToDelete = deletedUsers.find(user => user.id === userId);
-      if (!userToDelete) {
-        console.error('🚨 User not found in deleted users');
-        return;
-      }
-
-      console.log('🗑️ Permanently deleting user:', {
-        id: userId,
-        email: userToDelete?.email,
-        status: userToDelete?.status
-      });
-
-      // Step 1: Verify user exists in database
-      const { data: existingUser, error: selectError } = await supabase
-        .from('usage')
-        .select('id, email, status')
-        .eq('id', userId)
-        .single();
-
-      if (selectError) {
-        console.error('❌ Error checking user existence:', selectError);
-        throw new Error(`User verification failed: ${selectError.message}`);
-      }
-
-      console.log('✅ User confirmed in database:', existingUser);
-
-      // Step 2: Delete from database completely with response logging
-      console.log('🔄 Executing permanent delete...');
-      const deleteResponse = await supabase
-        .from('usage')
-        .delete()
-        .eq('id', userId)
-        .select();
-
-      console.log('📋 PERMANENT DELETE RESPONSE:', {
-        error: deleteResponse.error,
-        data: deleteResponse.data,
-        count: deleteResponse.count
-      });
-      
-      if (deleteResponse.error) {
-        throw new Error(`Permanent delete failed: ${deleteResponse.error.message}`);
-      }
-
-      // Verify deletion occurred
-      if (!deleteResponse.data || deleteResponse.data.length === 0) {
-        console.error('❌ PERMANENT DELETE FAILED - No rows were deleted!');
-        throw new Error('Permanent delete operation failed - no rows affected');
-      }
-
-      console.log('✅ PERMANENT DELETE SUCCESSFUL:', deleteResponse.data);
-
-      // Step 3: Delete from Supabase Auth using secure Netlify function
-      console.log('🔄 Deleting from Supabase Auth...');
-      try {
-        const response = await fetch('/.netlify/functions/delete-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userId })
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('❌ Error deleting from auth:', errorData);
-          // Continue anyway since database was already deleted
-        } else {
-          console.log('✅ User deleted from Supabase Auth');
-        }
-      } catch (authError) {
-        console.error('❌ Error calling delete-user function:', authError);
-        // Continue anyway since database was already deleted
-      }
-
-      // Step 4: Clean up local state
-      setSiteUrls((prev) => {
-        const copy = { ...prev };
-        delete copy[userId];
-        return copy;
-      });
-      
-      // Step 5: Refresh data
-      await fetchApprovedUsers();
-
-      setNotification({
-        id: Date.now().toString(),
-        type: 'success',
-        title: 'User Permanently Deleted',
-        message: `User ${userToDelete?.email} has been permanently removed`,
-        timestamp: new Date(),
-        read: false
-      });
-      
-    } catch (error: any) {
-      console.error('🚨 PERMANENT DELETE ERROR REPORT:');
-      console.error('🚨 Error message:', error.message);
-      console.error('🚨 Full error:', error);
-      
-      setNotification({
-        id: Date.now().toString(),
-        type: 'error',
-        title: 'Permanent Delete Failed',
-        message: `Could not permanently delete user: ${error.message}`,
-        timestamp: new Date(),
-        read: false
-      });
-    }
-  };
 
   // Load data when user is authenticated (or when bypassing auth)
   useEffect(() => {
@@ -1662,56 +1449,6 @@ This will:
   };
 
   // Handler for user restoration with confirmation  
-  const handleRestoreUser = (userId: string) => {
-    const deletedUser = deletedUsers.find(user => user.id === userId);
-    const userEmail = deletedUser?.email || 'Unknown';
-    
-    showConfirmation(
-      'Restore User Account',
-      `Are you sure you want to restore the account for ${userEmail}?
-
-This will:
-• Move user back to "Approved" tab
-• Restore full subscription access
-• Re-enable comparison limits based on tier
-• Allow platform access immediately
-
-Result:
-• User will regain access immediately
-• All data and settings will be restored
-• Usage history will be preserved`,
-      'Restore User',
-      'bg-green-600 hover:bg-green-700',
-      () => restoreUser(userId)
-    );
-  };
-
-  // Handler for permanent deletion with strong confirmation
-  const handlePermanentDeleteUser = (userId: string) => {
-    const deletedUser = deletedUsers.find(user => user.id === userId);
-    const userEmail = deletedUser?.email || 'Unknown';
-    const hasNetlifySite = siteUrls[userId] ? 'YES' : 'NO';
-    
-    showConfirmation(
-      'PERMANENT DELETION - IRREVERSIBLE',
-      `Are you sure you want to permanently delete ALL data for ${userEmail}?
-
-This will COMPLETELY REMOVE:
-• User account from database
-• Netlify website and all deployed scripts (${hasNetlifySite} site found)
-• All user data and history
-• All admin notes and records
-
-WARNING:
-• THIS ACTION IS 100% IRREVERSIBLE
-• User will be completely erased from all systems
-• No recovery will be possible
-• Consider data retention compliance requirements`,
-      'DELETE EVERYTHING',
-      'bg-red-600 hover:bg-red-700',
-      () => permanentlyDeleteUser(userId)
-    );
-  };
 
   // Edit user handlers
   const handleEditUser = (user: ApprovedUser) => {
@@ -3169,28 +2906,6 @@ WARNING:
                 )}
               </button>
               <button
-                onClick={() => setActiveTab('deleted')}
-                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
-                  activeTab === 'deleted'
-                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                }`}
-              >
-                <Trash2 className="inline w-4 h-4 mr-2" />
-                DELETED
-                {activeTab !== 'deleted' && deletedUsers.length > 0 && (
-                  <span className="ml-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs">
-                    {deletedUsers.length}
-                  </span>
-                )}
-                {activeTab === 'deleted' && deletedUsers.length > 0 && (
-                  <span className="ml-2 bg-green-100 text-green-600 px-2 py-1 rounded-full text-xs">
-                    {deletedUsers.length}
-                  </span>
-                )}
-              </button>
-
-              <button
                 onClick={() => setActiveTab('settings')}
                 className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
                   activeTab === 'settings'
@@ -3211,17 +2926,6 @@ WARNING:
               >
                 <FiCode className="inline w-4 h-4 mr-2" />
                 SCRIPT TESTING
-              </button>
-              <button
-                onClick={() => setActiveTab('data-migration')}
-                className={`flex-1 py-3 px-4 text-xs font-medium uppercase tracking-wide transition-all duration-200 rounded-md ${
-                  activeTab === 'data-migration'
-                    ? 'bg-white text-green-600 shadow-sm border border-green-200'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                }`}
-              >
-                <FiDatabase className="inline w-4 h-4 mr-2" />
-                DATA MIGRATION
               </button>
             </nav>
           </div>
@@ -3891,114 +3595,6 @@ WARNING:
           </div>
         )}
 
-        {activeTab === 'deleted' && (
-          <div className="space-y-6">
-            {/* Deleted Users Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-medium text-gray-900">Deleted Users</h3>
-                <p className="text-sm text-gray-500 mt-1">Manage deleted user accounts</p>
-              </div>
-              
-              {deletedUsers.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="mx-auto h-12 w-12 text-gray-400">
-                    <Settings className="h-12 w-12" />
-                  </div>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No deleted users</h3>
-                  <p className="mt-1 text-sm text-gray-500">All deleted users have been permanently removed.</p>
-                  <div className="mt-6">
-                    <div className="text-xs text-gray-400">
-                      Deleted users will appear here for admin review
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-400">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          User Information
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Business Details
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Subscription Plan
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Usage Limit
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Registration Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {deletedUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                                <User className="h-5 w-5 text-gray-600" />
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                                <div className="text-sm text-gray-500">ID: {user.id}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{user.businessName}</div>
-                            <div className="text-sm text-gray-500">{user.businessType}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                              {user.subscriptionTier}
-                            </span>
-                            <div className="text-xs text-gray-500 mt-1">{user.billingCycle}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div className="text-sm font-medium text-gray-900">
-                              {TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 'Unknown'} calls/month
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              ${user.subscriptionTier === 'starter' ? '29' : user.subscriptionTier === 'professional' ? '79' : '149'}/month
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            <div>{parseDate(user.createdAt)?.toLocaleDateString() || 'N/A'}</div>
-                            <div className="text-xs text-gray-400">
-                              {getDaysAgo(user.createdAt)} days ago
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <button
-                              onClick={() => handleRestoreUser(user.id)}
-                              className="bg-green-600 text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors flex items-center"
-                            >
-                              ✓ Restore
-                            </button>
-                            <button
-                              onClick={() => handlePermanentDeleteUser(user.id)}
-                              className="bg-red-600 text-white px-3 py-1.5 rounded text-sm hover:bg-red-700 transition-colors flex items-center mt-1"
-                            >
-                              ✗ Permanent Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
 
         {false && activeTab === 'profiles' && (
@@ -5084,163 +4680,6 @@ WARNING:
           </div>
         )}
 
-        {/* Data Migration Tab */}
-        {activeTab === 'data-migration' && (
-          <div className="space-y-6">
-            {/* Data Migration Section */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-                <h3 className="text-lg font-medium text-gray-900">Data Migration - Unified Architecture</h3>
-                <p className="text-sm text-gray-500 mt-1">Migrate existing fragmented data to clean, unified structure</p>
-              </div>
-              
-              <div className="p-6">
-                {/* Migration Description */}
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">🔄 What This Migration Does</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Consolidates user data from pendingUsers, ready-for-testing, and usage tables</li>
-                    <li>• Creates unified records in clients table with consistent field naming</li>
-                    <li>• Preserves business names and ensures they flow through entire workflow</li>
-                    <li>• Generates proper client_path values for website access</li>
-                    <li>• Maintains backward compatibility with existing systems</li>
-                  </ul>
-                </div>
-
-                {/* Migration Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="space-y-4">
-                    <button
-                      onClick={runDataMigration}
-                      disabled={migrationStatus.isRunning}
-                      className="w-full px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors duration-200"
-                    >
-                      {migrationStatus.isRunning ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Running Migration...
-                        </div>
-                      ) : (
-                        '🚀 Run Data Migration'
-                      )}
-                    </button>
-                    <p className="text-xs text-gray-500">Safely migrate existing data to unified structure</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <button
-                      onClick={runMigrationVerification}
-                      className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors duration-200"
-                    >
-                      🔍 Verify Data Integrity
-                    </button>
-                    <p className="text-xs text-gray-500">Check migration results and data quality</p>
-                  </div>
-                </div>
-
-                {/* Migration Results */}
-                {migrationStatus.result && (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-900 mb-3">Migration Results</h4>
-                    <div className={`p-4 rounded-lg border ${
-                      migrationStatus.result.success 
-                        ? 'bg-green-50 border-green-200' 
-                        : 'bg-red-50 border-red-200'
-                    }`}>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">
-                          {migrationStatus.result.success ? '✅' : '❌'}
-                        </span>
-                        <span className={`font-medium ${
-                          migrationStatus.result.success ? 'text-green-900' : 'text-red-900'
-                        }`}>
-                          {migrationStatus.result.success ? 'Migration Successful' : 'Migration Failed'}
-                        </span>
-                      </div>
-                      
-                      <div className={`text-sm ${
-                        migrationStatus.result.success ? 'text-green-800' : 'text-red-800'
-                      }`}>
-                        <p>Migrated Users: {migrationStatus.result.migrated}</p>
-                        {migrationStatus.result.errors.length > 0 && (
-                          <div className="mt-2">
-                            <p className="font-medium">Errors:</p>
-                            <ul className="list-disc list-inside space-y-1">
-                              {migrationStatus.result.errors.map((error, index) => (
-                                <li key={index} className="text-xs">{error}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Verification Results */}
-                {migrationStatus.verificationResult && (
-                  <div className="mb-6">
-                    <h4 className="font-medium text-gray-900 mb-3">Data Integrity Check</h4>
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {migrationStatus.verificationResult.totalUsers}
-                          </div>
-                          <div className="text-sm text-gray-600">Total Users</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            {migrationStatus.verificationResult.businessNamesSet}
-                          </div>
-                          <div className="text-sm text-gray-600">Business Names Set</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-purple-600">
-                            {migrationStatus.verificationResult.clientPathsSet}
-                          </div>
-                          <div className="text-sm text-gray-600">Client Paths Set</div>
-                        </div>
-                      </div>
-
-                      {migrationStatus.verificationResult.issues.length > 0 && (
-                        <div className="mt-4">
-                          <h5 className="font-medium text-gray-900 mb-2">Issues Found:</h5>
-                          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                            <ul className="text-sm text-yellow-800 space-y-1">
-                              {migrationStatus.verificationResult.issues.map((issue, index) => (
-                                <li key={index} className="flex items-start gap-2">
-                                  <span className="text-yellow-600">⚠️</span>
-                                  {issue}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Warning */}
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <span className="text-yellow-600 text-lg">⚠️</span>
-                    <div className="text-sm text-yellow-800">
-                      <p className="font-medium mb-1">Important Notes:</p>
-                      <ul className="space-y-1">
-                        <li>• This migration is safe and preserves all existing data</li>
-                        <li>• Run during low-traffic periods for best performance</li>
-                        <li>• Verify results before approving new users</li>
-                        <li>• Business names should now persist through entire workflow</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Add Client Modal */}
         {showAddClient && (

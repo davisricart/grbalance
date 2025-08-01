@@ -1,21 +1,18 @@
 import React, { useState } from 'react';
-import { User, UserCheck, Settings, Trash2, Search, Filter } from 'lucide-react';
-import { PendingUser, ApprovedUser, DeletedUser, AdminTab, TIER_LIMITS } from '../../../types/admin';
+import { User, UserCheck, Settings, Search, Filter } from 'lucide-react';
+import { PendingUser, ApprovedUser, AdminTab, TIER_LIMITS } from '../../../types/admin';
 import PendingUsersTab from './PendingUsersTab';
 import ApprovedUsersTab from './ApprovedUsersTab';
-import DeletedUsersTab from './DeletedUsersTab';
 
 interface UserManagementProps {
   activeTab: AdminTab;
   setActiveTab: (tab: AdminTab) => void;
   pendingUsers: PendingUser[];
   approvedUsers: ApprovedUser[];
-  deletedUsers: DeletedUser[];
   onApproveUser: (userId: string, userData: Partial<ApprovedUser>) => Promise<void>;
   onRejectUser: (userId: string, reason?: string) => Promise<void>;
   onUpdatePendingUser: (userId: string, updates: Partial<PendingUser>) => Promise<void>;
   onDeleteUser: (userId: string, reason?: string) => Promise<void>;
-  onRestoreUser: (userId: string) => Promise<void>;
   onUpdateUser: (userId: string, updates: Partial<ApprovedUser>) => Promise<void>;
   isLoading: boolean;
 }
@@ -25,12 +22,10 @@ export default function UserManagement({
   setActiveTab,
   pendingUsers,
   approvedUsers,
-  deletedUsers,
   onApproveUser,
   onRejectUser,
   onUpdatePendingUser,
   onDeleteUser,
-  onRestoreUser,
   onUpdateUser,
   isLoading
 }: UserManagementProps) {
@@ -70,17 +65,6 @@ export default function UserManagement({
           >
             <UserCheck className="inline w-4 h-4 mr-2" />
             Approved Users ({filteredUsers.length}{filteredUsers.length !== approvedUsers.length ? `/${approvedUsers.length}` : ''})
-          </button>
-          <button
-            onClick={() => setActiveTab('deleted')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'deleted'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <Trash2 className="inline w-4 h-4 mr-2" />
-            Deleted Users ({deletedUsers.length})
           </button>
         </nav>
       </div>
@@ -140,13 +124,6 @@ export default function UserManagement({
         />
       )}
 
-      {activeTab === 'deleted' && (
-        <DeletedUsersTab
-          deletedUsers={deletedUsers}
-          onRestoreUser={onRestoreUser}
-          isLoading={isLoading}
-        />
-      )}
     </div>
   );
 }

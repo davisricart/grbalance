@@ -105,21 +105,12 @@ export interface ScriptInfo {
   };
 }
 
-export interface DeletedUser {
-  id: string;
-  email: string;
-  businessName?: string;
-  deletedAt: string;
-  deletedBy: string;
-  reason?: string;
-}
 
 export type AdminTab = 
   | 'clients' 
   | 'pending' 
   | 'ready-for-testing'
   | 'approved' 
-  | 'deleted' 
   | 'profiles' 
   | 'dynamic-profiles' 
   | 'settings' 
@@ -131,7 +122,6 @@ export interface AdminState {
   pendingUsers: PendingUser[];
   readyForTestingUsers: ReadyForTestingUser[];
   approvedUsers: ApprovedUser[];
-  deletedUsers: DeletedUser[];
   isLoading: boolean;
   error: string | null;
 }
