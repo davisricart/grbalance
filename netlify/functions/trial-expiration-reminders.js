@@ -21,18 +21,15 @@ exports.handler = async (event, context) => {
 
     console.log('🔍 Looking for trials that expire in 3 days (started around):', elevenDaysAgo.toISOString());
 
-    // Find trial users whose accounts were created ~11 days ago (expires in ~3 days)
-    // and haven't received a trial expiration reminder yet
+    // Find trial users (we'll filter by date below)
     const { data: usersNeedingReminders, error } = await supabase
       .from('usage')
       .select(`
         id, 
         subscriptionTier, 
-        status,
-        trial_reminder_sent_at
+        status
       `)
-      .eq('status', 'trial')
-      .is('trial_reminder_sent_at', null); // Haven't received trial reminder yet
+      .eq('status', 'trial');
 
     if (error) {
       console.error('❌ Error fetching trial users from usage table:', error);
@@ -122,21 +119,9 @@ exports.handler = async (event, context) => {
           continue;
         }
 
-        // Update database to track reminder sent
-        const { error: updateError } = await supabase
-          .from('usage')
-          .update({
-            trial_reminder_sent_at: now.toISOString()
-          })
-          .eq('id', client.id);
-
-        if (updateError) {
-          console.error(`❌ Database update failed for ${client.email}:`, updateError);
-          errors.push({ email: client.email, error: updateError });
-        } else {
-          emailsSent++;
-          console.log(`✅ Trial expiration reminder sent successfully to ${client.email}`);
-        }
+        // For now, just count successful emails (we can add reminder tracking later if needed)
+        emailsSent++;
+        console.log(`✅ Trial expiration reminder sent successfully to ${client.email}`);
 
       } catch (userError) {
         console.error(`❌ Failed to process user ${client.email}:`, userError);
