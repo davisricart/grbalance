@@ -2,6 +2,7 @@
 // This service provides a clean, consistent interface for all user data operations
 
 import { supabase } from '../config/supabase';
+import { withErrorHandling, validateRequired, ServiceResult } from '../utils/errorHandler';
 
 // Standardized User Data Interface
 // Note: This combines data from clients table, usage table, and pendingUsers table

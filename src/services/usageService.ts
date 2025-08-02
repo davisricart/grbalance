@@ -1,5 +1,6 @@
 // Usage tracking service for GR Balance
 import { supabase } from '../config/supabase';
+import { withErrorHandling, validateRequired, ServiceResult } from '../utils/errorHandler';
 
 export interface UsageData {
   comparisonsUsed: number;
