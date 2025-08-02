@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
-import { calculateTrialFromCreatedAt } from '../../../services/trialService';
+import { calculateTrialFromCreatedAt, calculateTrialEndDate, setTrialStatus } from '../../../services/trialService';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
@@ -107,8 +107,8 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
-      // Use consistent 14-day trial duration (should match trialService.ts)
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      // Use trialService for consistent trial duration
+      const trialEndDate = calculateTrialEndDate(trialStartDate);
       
       const { error } = await supabase
         .from('usage')
@@ -349,16 +349,18 @@ const ApprovedUsersTab = React.memo(({
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
       );
       
+      // Use trialService for consistent trial setup
+      const success = await setTrialStatus(userId);
+      if (!success) throw new Error('Failed to set trial status');
+      
       const trialStartDate = new Date();
-      // Use consistent 14-day trial duration (should match trialService.ts)
-      const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
+      const trialEndDate = calculateTrialEndDate(trialStartDate);
       
       const { error } = await supabase
         .from('usage')
         .update({
-          status: 'trial',
           updatedAt: new Date().toISOString()
-          // Note: Trial expiration will be handled by checking the updatedAt + 14 days
+          // Trial status already set via trialService
         })
         .eq('id', userId);
       

@@ -1,5 +1,6 @@
 const { createClient } = require('@supabase/supabase-js');
 const { Resend } = require('resend');
+const { calculateTrialInfoServer, isTrialExpiringSoon, getDaysUntilTrialExpiry } = require('./utils/trialUtils');
 
 exports.handler = async (event, context) => {
   console.log('🔔 Running trial expiration reminder check...');
@@ -67,11 +68,9 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Filter for users whose trial expires in ~3 days (created ~11 days ago)
+    // Filter for users whose trial expires in ~3 days using centralized trial utilities
     const usersExpiringIn3Days = clientsData?.filter(client => {
-      const createdAt = new Date(client.created_at);
-      const trialExpiresAt = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
-      const daysUntilExpiry = Math.ceil((trialExpiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      const daysUntilExpiry = getDaysUntilTrialExpiry(client.created_at);
       
       // Send reminder when 2-4 days left (gives some buffer for timing)
       return daysUntilExpiry >= 2 && daysUntilExpiry <= 4;
@@ -95,10 +94,10 @@ exports.handler = async (event, context) => {
     // Process each user
     for (const client of usersExpiringIn3Days) {
       try {
-        // Calculate exact days left
-        const createdAt = new Date(client.created_at);
-        const trialExpiresAt = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
-        const daysLeft = Math.ceil((trialExpiresAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+        // Calculate exact days left using centralized trial utilities
+        const trialInfo = calculateTrialInfoServer(client.created_at);
+        const daysLeft = trialInfo.daysLeft;
+        const trialExpiresAt = trialInfo.expiresAt;
 
         console.log(`📧 Sending trial expiration reminder to: ${client.email} (${client.business_name}) - ${daysLeft} days left`);
 

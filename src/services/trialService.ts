@@ -1,6 +1,10 @@
 // Trial time calculation service - Single source of truth
 import { supabase } from '../config/supabase';
 
+// Constants
+export const TRIAL_DURATION_DAYS = 14;
+export const TRIAL_DURATION_MS = TRIAL_DURATION_DAYS * 24 * 60 * 60 * 1000;
+
 export interface TrialInfo {
   daysLeft: number;
   hoursLeft: number;
@@ -47,7 +51,7 @@ export async function getTrialInfo(userId: string): Promise<TrialInfo> {
 
     // Calculate trial time remaining using auth created_at
     const trialStart = new Date(user.created_at);
-    const trialEnd = new Date(trialStart.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days
+    const trialEnd = new Date(trialStart.getTime() + TRIAL_DURATION_MS);
     const now = new Date();
     const timeRemaining = trialEnd.getTime() - now.getTime();
     
@@ -111,7 +115,7 @@ export function calculateTrialFromCreatedAt(createdAt: string, isTrialStatus: bo
   }
 
   const trialStart = new Date(createdAt);
-  const trialEnd = new Date(trialStart.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days
+  const trialEnd = new Date(trialStart.getTime() + TRIAL_DURATION_MS);
   const now = new Date();
   const timeRemaining = trialEnd.getTime() - now.getTime();
   
@@ -147,4 +151,78 @@ export function calculateTrialFromCreatedAt(createdAt: string, isTrialStatus: bo
     status: 'active',
     displayText
   };
+}
+
+/**
+ * Calculate trial end date from start date
+ */
+export function calculateTrialEndDate(startDate: Date): Date {
+  return new Date(startDate.getTime() + TRIAL_DURATION_MS);
+}
+
+/**
+ * Set user to trial status (admin function)
+ */
+export async function setTrialStatus(userId: string): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('usage')
+      .update({ 
+        status: 'trial',
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('trialService: Error setting trial status:', error);
+      return false;
+    }
+
+    console.log('trialService: Set trial status for user:', userId);
+    return true;
+  } catch (error) {
+    console.error('trialService: Error in setTrialStatus:', error);
+    return false;
+  }
+}
+
+/**
+ * Get trial info for server-side use (Netlify functions) - no Supabase client required
+ */
+export function calculateTrialInfoServer(createdAt: string): {
+  daysLeft: number;
+  hoursLeft: number;
+  expiresAt: Date;
+  isExpired: boolean;
+} {
+  const trialStart = new Date(createdAt);
+  const trialEnd = new Date(trialStart.getTime() + TRIAL_DURATION_MS);
+  const now = new Date();
+  const timeRemaining = trialEnd.getTime() - now.getTime();
+  
+  const hoursLeft = Math.floor(timeRemaining / (60 * 60 * 1000));
+  const daysLeft = Math.ceil(timeRemaining / (24 * 60 * 60 * 1000));
+  
+  return {
+    daysLeft: Math.max(0, daysLeft),
+    hoursLeft: Math.max(0, hoursLeft),
+    expiresAt: trialEnd,
+    isExpired: timeRemaining <= 0
+  };
+}
+
+/**
+ * Check if trial is expiring soon (for reminders)
+ */
+export function isTrialExpiringSoon(createdAt: string, daysThreshold: number = 3): boolean {
+  const trialInfo = calculateTrialInfoServer(createdAt);
+  return trialInfo.daysLeft <= daysThreshold && !trialInfo.isExpired;
+}
+
+/**
+ * Get days until trial expiry (for server-side use)
+ */
+export function getDaysUntilTrialExpiry(createdAt: string): number {
+  const trialInfo = calculateTrialInfoServer(createdAt);
+  return trialInfo.daysLeft;
 }

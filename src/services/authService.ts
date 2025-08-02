@@ -149,20 +149,20 @@ export async function getTrialStatus(userId: string): Promise<{
 }> {
   try {
     // Use trialService for consistent trial calculations
-    const { getTrialInfo } = await import('./trialService');
+    const { getTrialInfo, calculateTrialEndDate } = await import('./trialService');
     const trialInfo = await getTrialInfo(userId);
 
     if (trialInfo.status === 'not-trial') {
       return { isTrial: false };
     }
 
-    // Calculate expiration date if on trial
+    // Calculate expiration date using trialService
     let expiresAt: Date | undefined;
     if (trialInfo.status === 'active') {
       const userData = await getUserById(userId);
       if (userData) {
         const createdAt = new Date(userData.created_at);
-        expiresAt = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+        expiresAt = calculateTrialEndDate(createdAt);
       }
     }
 

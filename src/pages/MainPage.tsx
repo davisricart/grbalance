@@ -2,7 +2,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { FileSpreadsheet, Download, AlertCircle, LogOut, BarChart3, TrendingUp, DollarSign, CheckCircle, XCircle, Users } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { supabase } from '../config/supabase';
+import { signOut } from '../services/authService';
+import { loadClientScript } from '../services/clientScriptService';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
 import VirtualTable from '../components/VirtualTable';
@@ -135,111 +136,31 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const loadClientScriptsFromSupabase = async (clientPath: string) => {
     try {
-      console.log('🔍 Loading scripts from Supabase for client path:', clientPath);
+      console.log('🔍 Loading scripts via clientScriptService for client path:', clientPath);
       
-      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
+      // Use the centralized service to load client script
+      const scriptContent = await loadClientScript(clientPath);
       
-      // First try to find client by client_path
-      let response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=*`, {
-        method: 'GET',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      let clients = [];
-      if (response.ok) {
-        clients = await response.json();
-      }
-      
-      // If not found by client_path, try to find by ID (fallback for admin-created clients)
-      if (!clients || clients.length === 0) {
-        console.log('🔍 Client not found by client_path, trying to find by ID...');
-        response = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${clientPath}&select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      if (scriptContent) {
+        const scriptNames = [`${clientPath} Script`];
+        const scriptMap = new Map<string, string>();
+        scriptMap.set(scriptNames[0], scriptContent);
         
-        if (response.ok) {
-          clients = await response.json();
-        }
-      }
-      
-      // If still not found, try a broader search by partial business name match
-      if (!clients || clients.length === 0) {
-        console.log('🔍 Client not found by ID, trying broader search...');
-        response = await fetch(`${supabaseUrl}/rest/v1/clients?business_name=ilike.*${clientPath}*&select=*`, {
-          method: 'GET',
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        // Store the script map globally so we can access script content (maintaining compatibility)
+        (window as any).clientScriptMap = scriptMap;
         
-        if (response.ok) {
-          clients = await response.json();
-        }
-      }
-      
-      if (!clients || clients.length === 0) {
-        console.log('❌ No client data found in Supabase after all lookup attempts, using empty script list');
-        setAvailableScripts([]);
-        setScript('');
-        return;
-      }
-      
-      const clientData = clients[0];
-      console.log('✅ Found client in Supabase:', clientData.business_name);
-      console.log('📊 Client lookup details:', {
-        foundBy: clientData.client_path === clientPath ? 'client_path' : 
-                 clientData.id === clientPath ? 'id' : 'business_name_search',
-        clientId: clientData.id,
-        clientPath: clientData.client_path,
-        businessName: clientData.business_name,
-        searchTerm: clientPath
-      });
-      
-      // Get deployed scripts for this client
-      const deployedScripts = clientData.deployed_scripts || [];
-      console.log('📜 Raw deployed scripts from Supabase:', deployedScripts);
-      
-      // Store both script names and full script objects for content access
-      const scriptNames: string[] = [];
-      const scriptMap = new Map<string, string>();
-      
-      deployedScripts.forEach((script: any) => {
-        if (script && typeof script === 'object' && script.name && script.content) {
-          scriptNames.push(script.name);
-          scriptMap.set(script.name, script.content);
-        }
-      });
-      
-      console.log('✅ Available scripts for client:', scriptNames);
-      console.log('📄 Script content map created with', scriptMap.size, 'scripts');
-      
-      // Store the script map globally so we can access script content
-      (window as any).clientScriptMap = scriptMap;
-      
-      if (scriptNames.length > 0) {
         setAvailableScripts(scriptNames);
-        setScript(scriptNames[0] || ''); // Select first script by default
+        setScript(scriptNames[0] || '');
+        
+        console.log('✅ Loaded script via service:', scriptNames[0]);
       } else {
-        console.log('ℹ️ No scripts deployed for this client');
+        console.log('ℹ️ No scripts found for client');
         setAvailableScripts([]);
         setScript('');
       }
       
     } catch (error) {
-      console.error('❌ Error loading scripts from database:', error);
-      // Fallback to empty array if database fails
+      console.error('❌ Error loading client scripts via service:', error);
       setAvailableScripts([]);
       setScript('');
     }
@@ -253,8 +174,12 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const handleSignOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut();
-      navigate('/');
+      const success = await signOut();
+      if (success) {
+        navigate('/');
+      } else {
+        console.error('Failed to sign out');
+      }
     } catch (error) {
       console.error('Error signing out:', error);
     }
