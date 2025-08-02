@@ -165,10 +165,10 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     return null;
   }
 
-  // Get usage data (includes billing info)
+  // Get usage data (billingcycle column doesn't exist in usage table)
   const { data: usageData } = await supabase
     .from('usage')
-    .select('billingcycle, comparisonsUsed, comparisonsLimit')
+    .select('comparisonsUsed, comparisonsLimit')
     .eq('id', userId)
     .single();
 
@@ -195,7 +195,7 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     subscription_tier: clientData.subscription_tier || 'starter',
     status: clientData.status || 'testing',
     workflow_stage: statusToWorkflowStage[clientData.status as keyof typeof statusToWorkflowStage] || 'pending',
-    billing_cycle: usageData?.billingcycle || 'monthly',
+    billing_cycle: 'monthly', // Default since billingcycle column doesn't exist
     comparisons_used: usageData?.comparisonsUsed || 0,
     comparisons_limit: usageData?.comparisonsLimit || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
     created_at: clientData.created_at,
@@ -271,7 +271,7 @@ export const getUsersByWorkflowStage = async (
   // Get users from usage table first (this has the proper status differentiation)
   const { data: usageUsers, error: usageError } = await supabase
     .from('usage')
-    .select('id, status, subscriptionTier, comparisonsUsed, comparisonsLimit, billingcycle')
+    .select('id, status, subscriptionTier, comparisonsUsed, comparisonsLimit')
     .eq('status', stageToUsageStatusMap[stage])
     .order('id');
 
@@ -344,7 +344,7 @@ export const getUsersByWorkflowStage = async (
       subscription_tier: client.subscription_tier || 'starter',
       status: client.status || 'testing',
       workflow_stage: usageStatusToWorkflowStage[usageUser.status as keyof typeof usageStatusToWorkflowStage] || stage,
-      billing_cycle: usageUser.billingcycle || 'monthly',
+      billing_cycle: 'monthly', // Default since billingcycle column doesn't exist in usage table
       comparisons_used: usageUser.comparisonsUsed || 0,
       comparisons_limit: usageUser.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
@@ -404,10 +404,11 @@ export const updateUserBusinessInfo = async (
     needsUsageUpdate = true;
   }
   
-  if (updates.billing_cycle) {
-    usageUpdates.billingcycle = updates.billing_cycle;
-    needsUsageUpdate = true;
-  }
+  // Note: billing_cycle is not stored in usage table anymore
+  // if (updates.billing_cycle) {
+  //   usageUpdates.billingcycle = updates.billing_cycle;
+  //   needsUsageUpdate = true;
+  // }
   
   if (needsUsageUpdate) {
     usageUpdates.updatedAt = now;
