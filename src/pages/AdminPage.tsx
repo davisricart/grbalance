@@ -505,16 +505,64 @@ const AdminPage: React.FC = () => {
   // Fetch pending users
   const fetchPendingUsers = useCallback(async () => {
     try {
-      console.log('🔍 fetchPendingUsers: Starting to fetch pending users from clients table...');
+      console.log('🔍 fetchPendingUsers: Starting comprehensive data fetch...');
+      console.log('🔍 User authenticated:', user?.email);
       
-      // First, let's see ALL clients in the table
-      const { data: allClients, error: allError } = await supabase
+      // Check BOTH tables to see where our data is
+      console.log('🔍 STEP 1: Checking pendingUsers table...');
+      const { data: pendingUsersData, error: pendingError } = await supabase
         .from('pendingUsers')
         .select('*');
       
-      if (allError) {
-        console.error('❌ Error fetching all clients:', allError);
+      if (pendingError) {
+        console.error('❌ Error fetching pendingUsers:', pendingError);
       } else {
+        console.log('📊 pendingUsers table:', pendingUsersData?.length || 0, 'records:', pendingUsersData);
+        const testUserInPending = pendingUsersData?.find(u => u.email === 'grbalancetesting@gmail.com');
+        if (testUserInPending) {
+          console.log('🎯 FOUND TEST USER in pendingUsers:', JSON.stringify(testUserInPending, null, 2));
+        } else {
+          console.log('❌ TEST USER NOT FOUND in pendingUsers table');
+        }
+      }
+
+      console.log('🔍 STEP 2: Checking clients table...');
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('*');
+      
+      if (clientsError) {
+        console.error('❌ Error fetching clients:', clientsError);
+      } else {
+        console.log('📊 clients table:', clientsData?.length || 0, 'records:', clientsData);
+        const testUserInClients = clientsData?.find(u => u.email === 'grbalancetesting@gmail.com');
+        if (testUserInClients) {
+          console.log('🎯 FOUND TEST USER in clients:', JSON.stringify(testUserInClients, null, 2));
+        } else {
+          console.log('❌ TEST USER NOT FOUND in clients table');
+        }
+      }
+
+      console.log('🔍 STEP 3: Checking usage table...');
+      const { data: usageData, error: usageError } = await supabase
+        .from('usage')
+        .select('*');
+      
+      if (usageError) {
+        console.error('❌ Error fetching usage:', usageError);
+      } else {
+        console.log('📊 usage table:', usageData?.length || 0, 'records:', usageData);
+        const testUserInUsage = usageData?.find(u => u.email === 'grbalancetesting@gmail.com');
+        if (testUserInUsage) {
+          console.log('🎯 FOUND TEST USER in usage:', JSON.stringify(testUserInUsage, null, 2));
+        } else {
+          console.log('❌ TEST USER NOT FOUND in usage table');
+        }
+      }
+
+      // For now, let's use the original pendingUsers table logic, but with enhanced debugging
+      const allClients = pendingUsersData;
+      if (allClients) {
         console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
         
         // Let's see what status values exist
