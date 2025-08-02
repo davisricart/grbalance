@@ -2429,7 +2429,52 @@ This will:
 
   const handleDeployScript = async (user: ApprovedUser) => {
     console.log('🚀 Deploying script for user:', user.email);
-    // Add script deployment logic here
+    
+    try {
+      const currentScript = scriptInputMethod === 'paste' ? testScriptText : testScript;
+      
+      if (!currentScript.trim()) {
+        alert('No script content to deploy. Please generate or paste a script first.');
+        return;
+      }
+      
+      if (!selectedUserForScript) {
+        alert('No user selected for deployment.');
+        return;
+      }
+      
+      console.log('📦 Deploying script to client_scripts table for client:', selectedUserForScript.clientPath);
+      
+      // Deploy script to client_scripts table where client portal can access it
+      const scriptData = {
+        client_id: selectedUserForScript.clientPath, // Use client_path as client_id
+        name: `Reconciliation Script - ${new Date().toLocaleDateString()}`,
+        content: currentScript,
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('client_scripts')
+        .upsert(scriptData, { onConflict: 'client_id' });
+      
+      if (error) {
+        console.error('❌ Script deployment failed:', error);
+        alert(`Deployment failed: ${error.message}`);
+        return;
+      }
+      
+      console.log('✅ Script deployed successfully to client portal:', data);
+      alert(`✅ Script deployed successfully to ${selectedUserForScript.businessName} client portal!`);
+      
+      // Refresh the QA testing data to show updated deployment status
+      await fetchReadyForTestingUsers();
+      
+    } catch (error) {
+      console.error('❌ Deployment error:', error);
+      alert(`Deployment error: ${error.message}`);
+    }
   };
 
   // Save script to file function
