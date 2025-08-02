@@ -356,7 +356,7 @@ const ApprovedUsersTab = React.memo(({
       const { error } = await supabase
         .from('usage')
         .update({
-          status: 'active', // Active paying customer, out of workflow
+          status: 'approved', // Keep in approved workflow stage for admin visibility
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
