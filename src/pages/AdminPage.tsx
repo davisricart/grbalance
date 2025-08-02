@@ -1443,27 +1443,40 @@ This will:
       const comparisonLimit = TIER_LIMITS[newClient.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
 
 
+      // Create client record
       const clientData = {
         id: clientId,
         email: newClient.email,
-        businessname: newClient.businessName,        // Fixed: snake_case for database
-        businesstype: newClient.businessType,        // Fixed: snake_case for database
-        subscriptiontier: newClient.subscriptionTier, // Fixed: snake_case for database
-        billingcycle: newClient.billingCycle,         // Fixed: snake_case for database
+        business_name: newClient.businessName,        // snake_case for clients table
+        subscription_tier: newClient.subscriptionTier, // snake_case for clients table
+        client_path: newClient.businessName.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        status: 'active'
+      };
+
+      // Create usage record
+      const usageData = {
+        id: clientId,
+        email: newClient.email,
+        subscriptionTier: newClient.subscriptionTier, // camelCase for usage table
         comparisonsUsed: 0,
         comparisonsLimit: comparisonLimit,
         status: 'approved',
-        createdAt: new Date().toISOString(),
-        approvedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        createdBy: 'admin'
+        updatedAt: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('usage')
+      // Insert into clients table
+      const { error: clientError } = await supabase
+        .from('clients')
         .insert(clientData);
+
+      if (clientError) throw clientError;
+
+      // Insert into usage table
+      const { error: usageError } = await supabase
+        .from('usage')
+        .insert(usageData);
       
-      if (error) throw error;
+      if (usageError) throw usageError;
 
       // Success - no notification needed
       
