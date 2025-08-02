@@ -19,11 +19,12 @@ export async function loadClientScript(clientId: string): Promise<string | null>
   try {
     console.log(`🔄 Loading script for client: ${clientId}`);
     
-    // Using direct fetch to Supabase REST API (as done in MainPage)
+    // Using direct fetch to Supabase REST API to get client's deployed_scripts
     const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
     const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
     
-    const response = await fetch(`${supabaseUrl}/rest/v1/client_scripts?client_id=eq.${clientId}&select=*`, {
+    // Load from clients.deployed_scripts array (where QA testing uploads them)
+    const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientId}&select=deployed_scripts`, {
       headers: {
         'apikey': anonKey,
         'Authorization': `Bearer ${anonKey}`,
@@ -34,21 +35,30 @@ export async function loadClientScript(clientId: string): Promise<string | null>
 
     if (!response.ok) {
       if (response.status === 404) {
-        console.info(`📝 No scripts uploaded yet for client ${clientId} - this is normal for new clients`);
+        console.info(`📝 No client found for ${clientId} - this is normal for new clients`);
       } else {
-        console.warn(`⚠️ Script fetch error for client ${clientId}: ${response.status}`);
+        console.warn(`⚠️ Client fetch error for ${clientId}: ${response.status}`);
       }
       return null;
     }
 
-    const scripts = await response.json();
+    const clients = await response.json();
     
-    if (!scripts || scripts.length === 0) {
-      console.info(`📝 No scripts found for client: ${clientId} - scripts need to be uploaded in admin`);
+    if (!clients || clients.length === 0) {
+      console.info(`📝 No client found for: ${clientId}`);
       return null;
     }
 
-    const script = scripts[0]; // Get first script
+    const client = clients[0];
+    const deployedScripts = client.deployed_scripts || [];
+    
+    if (deployedScripts.length === 0) {
+      console.info(`📝 No scripts found for client: ${clientId} - scripts need to be uploaded in admin QA testing`);
+      return null;
+    }
+
+    // Get the most recent script (last in array)
+    const script = deployedScripts[deployedScripts.length - 1];
     console.log(`✅ Loaded script for client ${clientId}:`, script.name);
     
     return script.content || null;
@@ -161,4 +171,5 @@ export async function getScriptByClientId(clientId: string): Promise<ClientScrip
     console.error('clientScriptService: Error in getScriptByClientId:', error);
     return null;
   }
+}
 }

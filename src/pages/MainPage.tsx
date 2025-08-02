@@ -136,31 +136,65 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
 
   const loadClientScriptsFromSupabase = async (clientPath: string) => {
     try {
-      console.log('🔍 Loading scripts via clientScriptService for client path:', clientPath);
+      console.log('🔍 Loading scripts for client path:', clientPath);
       
-      // Use the centralized service to load client script
-      const scriptContent = await loadClientScript(clientPath);
+      // Load all scripts from clients.deployed_scripts array
+      const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
+      const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
       
-      if (scriptContent) {
-        const scriptNames = [`${clientPath} Script`];
-        const scriptMap = new Map<string, string>();
-        scriptMap.set(scriptNames[0], scriptContent);
-        
-        // Store the script map globally so we can access script content (maintaining compatibility)
-        (window as any).clientScriptMap = scriptMap;
-        
-        setAvailableScripts(scriptNames);
-        setScript(scriptNames[0] || '');
-        
-        console.log('✅ Loaded script via service:', scriptNames[0]);
-      } else {
-        console.log('ℹ️ No scripts found for client');
+      const response = await fetch(`${supabaseUrl}/rest/v1/clients?client_path=eq.${clientPath}&select=deployed_scripts`, {
+        headers: {
+          'apikey': anonKey,
+          'Authorization': `Bearer ${anonKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.warn(`⚠️ Client fetch error for ${clientPath}: ${response.status}`);
         setAvailableScripts([]);
         setScript('');
+        return;
       }
+
+      const clients = await response.json();
+      
+      if (!clients || clients.length === 0) {
+        console.info(`📝 No client found for: ${clientPath}`);
+        setAvailableScripts([]);
+        setScript('');
+        return;
+      }
+
+      const deployedScripts = clients[0].deployed_scripts || [];
+      
+      if (deployedScripts.length === 0) {
+        console.info(`📝 No scripts found for client: ${clientPath} - scripts need to be uploaded in admin QA testing`);
+        setAvailableScripts([]);
+        setScript('');
+        return;
+      }
+
+      // Create script map with all available scripts
+      const scriptMap = new Map<string, string>();
+      const scriptNames: string[] = [];
+      
+      deployedScripts.forEach((scriptData: any) => {
+        const scriptName = scriptData.name || scriptData.id || 'Unnamed Script';
+        scriptNames.push(scriptName);
+        scriptMap.set(scriptName, scriptData.content || '');
+      });
+      
+      // Store the script map globally so we can access script content
+      (window as any).clientScriptMap = scriptMap;
+      
+      setAvailableScripts(scriptNames);
+      setScript(scriptNames[0] || '');
+      
+      console.log(`✅ Loaded ${scriptNames.length} scripts:`, scriptNames);
       
     } catch (error) {
-      console.error('❌ Error loading client scripts via service:', error);
+      console.error('❌ Error loading client scripts:', error);
       setAvailableScripts([]);
       setScript('');
     }
