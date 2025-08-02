@@ -135,6 +135,13 @@ export default function ClientPortalPage() {
                 console.warn('⚠️ Admin verification failed, continuing with normal auth:', adminError);
               }
               
+              // For active clients, automatically grant access
+              if (clients[0].status === 'active') {
+                console.log('🟢 Active client - granting access');
+                setIsAuthenticated(true);
+                return;
+              }
+              
               // Verify user is authorized for this specific client portal
               if (user.email === clients[0].email) {
                 console.log('✅ User authenticated and authorized for this client portal');
