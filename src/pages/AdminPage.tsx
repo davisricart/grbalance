@@ -8,6 +8,7 @@ import {
   UserCheck, Shield, Settings, Database, PieChart, TrendingUp, Grid, Lock, Mail, Key, HelpCircle, Upload, Copy } from 'lucide-react';
 import { VisualStepBuilder } from '../components/VisualStepBuilder';
 import { useAdminVerification } from '../services/adminService';
+import { getUsersByWorkflowStage, updateUserWorkflowStage, updateUserBusinessInfo, UnifiedUser } from '../services/userDataService';
 import clientConfig from '../config/client';
 import { HiGlobeAlt, HiLockClosed, HiExclamation } from 'react-icons/hi';
 import { parseFile, FileStore, generateComparisonPrompt, ParsedFileData } from '../utils/fileProcessor';
@@ -505,138 +506,30 @@ const AdminPage: React.FC = () => {
   // Fetch pending users
   const fetchPendingUsers = useCallback(async () => {
     try {
-      console.log('🔍 fetchPendingUsers: Starting comprehensive data fetch...');
-      console.log('🔍 User authenticated:', user?.email);
+      console.log('🔍 fetchPendingUsers: Using unified data service...');
       
-      // Check BOTH tables to see where our data is
-      console.log('🔍 STEP 1: Checking pendingUsers table...');
-      const { data: pendingUsersData, error: pendingError } = await supabase
-        .from('pendingUsers')
-        .select('*');
+      // Use unified service - handles all table complexity internally
+      const unifiedUsers = await getUsersByWorkflowStage('pending');
       
-      if (pendingError) {
-        console.error('❌ Error fetching pendingUsers:', pendingError);
-      } else {
-        console.log('📊 pendingUsers table:', pendingUsersData?.length || 0, 'records:', pendingUsersData);
-        const testUserInPending = pendingUsersData?.find(u => u.email === 'grbalancetesting@gmail.com');
-        if (testUserInPending) {
-          console.log('🎯 FOUND TEST USER in pendingUsers:', JSON.stringify(testUserInPending, null, 2));
-        } else {
-          console.log('❌ TEST USER NOT FOUND in pendingUsers table');
-        }
-      }
-
-      console.log('🔍 STEP 2: Checking clients table...');
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*');
+      // Map UnifiedUser to PendingUser interface for backward compatibility
+      const mappedUsers: PendingUser[] = unifiedUsers.map((user: UnifiedUser) => ({
+        id: user.id,
+        email: user.email,
+        businessName: user.business_name,
+        businessType: user.business_type,
+        subscriptionTier: user.subscription_tier,
+        billingCycle: user.billing_cycle,
+        createdAt: user.created_at,
+        // Add consultation tracking fields
+        consultationCompleted: false, // Default for pending users
+        scriptReady: false // Default for pending users
+      }));
       
-      if (clientsError) {
-        console.error('❌ Error fetching clients:', clientsError);
-      } else {
-        console.log('📊 clients table:', clientsData?.length || 0, 'records:', clientsData);
-        const testUserInClients = clientsData?.find(u => u.email === 'grbalancetesting@gmail.com');
-        if (testUserInClients) {
-          console.log('🎯 FOUND TEST USER in clients:', JSON.stringify(testUserInClients, null, 2));
-        } else {
-          console.log('❌ TEST USER NOT FOUND in clients table');
-        }
-      }
-
-      console.log('🔍 STEP 3: Checking usage table...');
-      const { data: usageData, error: usageError } = await supabase
-        .from('usage')
-        .select('*');
+      console.log('✅ fetchPendingUsers: Found', mappedUsers.length, 'pending users via unified service');
+      setPendingUsers(mappedUsers);
       
-      if (usageError) {
-        console.error('❌ Error fetching usage:', usageError);
-      } else {
-        console.log('📊 usage table:', usageData?.length || 0, 'records:', usageData);
-        const testUserInUsage = usageData?.find(u => u.email === 'grbalancetesting@gmail.com');
-        if (testUserInUsage) {
-          console.log('🎯 FOUND TEST USER in usage:', JSON.stringify(testUserInUsage, null, 2));
-        } else {
-          console.log('❌ TEST USER NOT FOUND in usage table');
-        }
-      }
-
-      // SMART FIX: Use whichever table actually has data
-      let allClients, dataSource;
-      if (clientsData && clientsData.length > 0) {
-        console.log('🔧 Using clients table data (has', clientsData.length, 'records)');
-        allClients = clientsData;
-        dataSource = 'clients';
-      } else if (pendingUsersData && pendingUsersData.length > 0) {
-        console.log('🔧 Using pendingUsers table data (has', pendingUsersData.length, 'records)');
-        allClients = pendingUsersData;
-        dataSource = 'pendingUsers';
-      } else {
-        console.log('❌ No data found in either table');
-        allClients = [];
-        dataSource = 'none';
-      }
-      
-      console.log('🔧 Data source selected:', dataSource);
-      if (allClients) {
-        console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
-        
-        // Let's see what status values exist
-        const statusCounts = allClients?.reduce((acc: any, client: any) => {
-          const status = client.status || 'null';
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {});
-        console.log('📊 STATUS BREAKDOWN:', statusCounts);
-        
-        // Show detailed info about each client to understand the discrepancy
-        console.log('🔍 DETAILED CLIENT INFO:');
-        allClients?.forEach((client: any, index: number) => {
-          console.log(`Client ${index + 1}:`, {
-            id: client.id,
-            email: client.email,
-            business_name: client.business_name,
-            status: client.status,
-            website_created: client.website_created,
-            client_path: client.client_path
-          });
-        });
-        
-        // Filter for pending users from clients table (status = testing only)
-        const potentialPending = allClients?.filter((client: any) => 
-          client.status === 'testing' // Only include new registrations, exclude qa_testing, approved, etc.
-        );
-        console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
-        
-        // Map clients table data to PendingUser format
-        const mappedUsers: PendingUser[] = potentialPending?.map((client: any) => {
-          console.log('🔧 Mapping client to pending user:', client);
-          const pendingUserData = pendingUsersData?.find((p: any) => p.id === client.id);
-          
-          return {
-            id: client.id,
-            email: client.email,
-            businessName: client.business_name || 'Business Name Not Set',
-            businessType: pendingUserData?.businesstype || 'Other',
-            subscriptionTier: client.subscription_tier || 'starter',
-            billingCycle: pendingUserData?.billingcycle || 'monthly',
-            createdAt: client.created_at || new Date().toISOString()
-          };
-        }) || [];
-        
-        console.log('🔧 MAPPED PENDING USERS:', JSON.stringify(mappedUsers, null, 2));
-        console.log('✅ fetchPendingUsers: Found', mappedUsers.length, 'pending users from clients table');
-        setPendingUsers(mappedUsers);
-        return; // Exit early since we've found and set the data
-      }
-      
-      console.log('❌ No data found, setting empty array');
-      setPendingUsers([]);
     } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+      console.error('❌ Error in fetchPendingUsers:', error);
       setPendingUsers([]);
     }
   }, [user]);
@@ -667,52 +560,57 @@ const AdminPage: React.FC = () => {
   // Fetch ready-for-testing users
   const fetchReadyForTestingUsers = useCallback(async () => {
     try {
-      const { data: readyForTestingUsersData, error } = await supabase
+      console.log('🔍 fetchReadyForTestingUsers: Using unified data service...');
+      
+      // Use unified service for core user data
+      const unifiedUsers = await getUsersByWorkflowStage('qa_testing');
+      
+      // Get QA-specific data from ready-for-testing table
+      const userIds = unifiedUsers.map(u => u.id);
+      const { data: qaData } = await supabase
         .from('ready-for-testing')
         .select('*')
+        .in('id', userIds)
         .order('readyfortestingat', { ascending: false });
       
-      if (error) throw error;
+      // Map QA data by user ID for easy lookup
+      const qaDataMap = new Map(qaData?.map(qa => [qa.id, qa]) || []);
       
-      // Map database field names to frontend expected field names
-      const mappedData = (readyForTestingUsersData || []).map((user: any) => {
-        console.log('🔍 Raw user data from ready-for-testing table:', {
-          id: user.id,
-          email: user.email,
-          businessname: user.businessname,
-          businesstype: user.businesstype,
-          subscriptiontier: user.subscriptiontier
-        });
+      // Combine unified user data with QA-specific fields
+      const mappedData: ReadyForTestingUser[] = unifiedUsers.map((user: UnifiedUser) => {
+        const qa = qaDataMap.get(user.id);
         
         return {
-          ...user,
-          // Map database fields to camelCase frontend fields
-          readyForTestingAt: user.readyfortestingat,
-          businessName: user.businessname,
-          businessType: user.businesstype,
-          subscriptionTier: user.subscriptiontier,
-          billingCycle: user.billingcycle,
-          createdAt: user.createdat,
-          qaStatus: user.qastatus,
-          qaTestedAt: user.qatestedat,
-          qaTestingNotes: user.qatestnotes,
-          websiteProvisioned: user.websiteprovisioned,
-          websiteProvisionedAt: user.websiteprovisionedat,
-          scriptDeployed: user.scriptdeployed,
-          scriptDeployedAt: user.scriptdeployedat,
-          siteUrl: user.siteurl,
-          siteId: user.siteid,
-          siteName: user.sitename
+          id: user.id,
+          email: user.email,
+          businessName: user.business_name,
+          businessType: user.business_type,
+          subscriptionTier: user.subscription_tier,
+          billingCycle: user.billing_cycle,
+          createdAt: user.created_at,
+          // QA-specific fields from ready-for-testing table
+          readyForTestingAt: qa?.readyfortestingat || new Date().toISOString(),
+          qaStatus: qa?.qastatus || 'pending',
+          qaTestedAt: qa?.qatestedat,
+          qaTestingNotes: qa?.qatestnotes || '',
+          websiteProvisioned: qa?.websiteprovisioned || false,
+          websiteProvisionedAt: qa?.websiteprovisionedat,
+          scriptDeployed: qa?.scriptdeployed || false,
+          scriptDeployedAt: qa?.scriptdeployedat,
+          siteUrl: qa?.siteurl,
+          siteId: qa?.siteid,
+          siteName: qa?.sitename,
+          // Default consultation fields
+          consultationCompleted: true, // Must be true to reach QA testing
+          scriptReady: true // Must be true to reach QA testing
         };
       });
       
+      console.log('✅ fetchReadyForTestingUsers: Found', mappedData.length, 'QA testing users via unified service');
       setReadyForTestingUsers(mappedData);
+      
     } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchReadyForTestingUsers:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+      console.error('❌ Error in fetchReadyForTestingUsers:', error);
       setReadyForTestingUsers([]);
     }
   }, [user]);
@@ -720,78 +618,63 @@ const AdminPage: React.FC = () => {
   // Fetch approved users
   const fetchApprovedUsers = useCallback(async () => {
     try {
+      console.log('🔍 fetchApprovedUsers: Using unified data service...');
       
-      // Fetch approved, deactivated, and deleted users
-      const { data: snapshot, error } = await supabase
+      // Use unified service for core user data
+      const unifiedUsers = await getUsersByWorkflowStage('approved');
+      
+      // Get approved-user-specific data from usage table (for site URLs, scripts, etc.)
+      const userIds = unifiedUsers.map(u => u.id);
+      const { data: usageData } = await supabase
         .from('usage')
-        .select('*')
-        .in('status', ['approved', 'trial', 'deactivated', 'deleted']);
+        .select('id, siteUrl, deployedScripts, approvedat')
+        .in('id', userIds);
       
-      if (error) throw error;
+      // Map usage data by user ID for easy lookup
+      const usageDataMap = new Map(usageData?.map(usage => [usage.id, usage]) || []);
       
-      const approvedUsersData: ApprovedUser[] = [];
-      const urlsData: {[userId: string]: string} = {};
-      const idsData: {[userId: string]: string} = {};
-      const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
-      
-      // Also fetch client data from clients table for each user
-      const { data: clientsData } = await supabase
-        .from('clients')
-        .select('id, client_path, business_name, created_at')
-        .in('id', (snapshot || []).map(u => u.id));
-
-      const clientDataMap: {[userId: string]: any} = {};
-      (clientsData || []).forEach((client) => {
-        clientDataMap[client.id] = {
-          client_path: client.client_path,
-          business_name: client.business_name,
-          business_type: client.business_type,
-          created_at: client.created_at
+      // Combine unified user data with approved-user-specific fields
+      const approvedUsersData: ApprovedUser[] = unifiedUsers.map((user: UnifiedUser) => {
+        const usage = usageDataMap.get(user.id);
+        
+        return {
+          id: user.id,
+          email: user.email,
+          businessName: user.business_name,
+          businessType: user.business_type,
+          subscriptionTier: user.subscription_tier,
+          billingCycle: user.billing_cycle,
+          comparisonsUsed: user.comparisons_used,
+          comparisonsLimit: user.comparisons_limit,
+          status: user.status,
+          createdAt: user.created_at,
+          approvedAt: usage?.approvedat || new Date().toISOString(),
+          // Default consultation fields
+          consultationCompleted: true, // Must be true to reach approved
+          scriptReady: true, // Must be true to reach approved
         };
       });
-
-      (snapshot || []).forEach((userData) => {
-        const clientData = clientDataMap[userData.id] || {};
-        const userDataWithId = { 
-          ...userData, 
-          client_path: clientData.client_path, // Add client_path from lookup
-          // Get business data from clients table (not usage table)
-          businessName: clientData.business_name || userData.businessname,
-          businessType: clientData.business_type || userData.businesstype,
-          subscriptionTier: userData.subscriptionTier, // This exists in usage table
-          billingCycle: userData.billingcycle,
-          approvedAt: userData.approvedat,
-          createdAt: clientData.created_at || userData.createdat
-        } as ApprovedUser;
-          
-        // Add users (skip deleted users since we're doing hard deletes)
-        if (userData.status !== 'deleted') {
-          approvedUsersData.push(userDataWithId);
+      
+      // Extract site URLs and deployed scripts for backward compatibility
+      const urlsData: {[userId: string]: string} = {};
+      const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
+      
+      usageData?.forEach((usage) => {
+        if (usage.siteUrl) {
+          urlsData[usage.id] = usage.siteUrl;
         }
-        
-        // Load site info if it exists (for all users)
-        if (userData.siteUrl) {
-          urlsData[userData.id] = userData.siteUrl;
-        }
-        // siteId loading removed - using single-site architecture
-        
-        // Load deployed scripts if they exist
-        if (userData.deployedScripts && Array.isArray(userData.deployedScripts)) {
-          scriptsData[userData.id] = userData.deployedScripts;
+        if (usage.deployedScripts && Array.isArray(usage.deployedScripts)) {
+          scriptsData[usage.id] = usage.deployedScripts;
         }
       });
       
-      
+      console.log('✅ fetchApprovedUsers: Found', approvedUsersData.length, 'approved users via unified service');
       setApprovedUsers(approvedUsersData);
       setSiteUrls(urlsData);
-      // setSiteIds removed - using single-site architecture
       setDeployedScripts(scriptsData);
+      
     } catch (error: any) {
-      console.error('🚨 DATABASE ERROR in fetchApprovedUsers:');
-      console.error('🚨 Error Code:', error.code);
-      console.error('🚨 Error Message:', error.message);
-      console.error('🚨 Full Error Object:', error);
-      console.error('🚨 Auth State:', user ? 'authenticated' : 'not authenticated');
+      console.error('❌ Error in fetchApprovedUsers:', error);
       setApprovedUsers([]);
     }
   }, [user]);
@@ -1095,43 +978,13 @@ const AdminPage: React.FC = () => {
   // Move pending user to ready-for-testing (3-stage workflow)
   const moveToTesting = async (userId: string, userData: Partial<ReadyForTestingUser>) => {
     try {
-      console.log('🚀 moveToTesting called with userId:', userId);
+      console.log('🚀 moveToTesting: Using unified service for workflow stage update...');
       
-      // Get the pending user data
+      // Get the pending user data for validation
       const pendingUser = pendingUsers.find(user => user.id === userId);
       if (!pendingUser) {
         console.error('🚨 Pending user not found');
         return;
-      }
-      
-      console.log('✅ Found pending user:', pendingUser);
-      console.log('🔍 Business name from pending user:', pendingUser.businessName);
-      console.log('🔍 Full pending user data:', { 
-        id: pendingUser.id, 
-        email: pendingUser.email, 
-        businessName: pendingUser.businessName,
-        businessType: pendingUser.businessType,
-        subscriptionTier: pendingUser.subscriptionTier
-      });
-      
-      // Debug: Check what business name we actually have
-      console.log('🔍 BUSINESS NAME DEBUG:', {
-        email: pendingUser.email,
-        businessName: pendingUser.businessName,
-        businessNameType: typeof pendingUser.businessName,
-        businessNameLength: pendingUser.businessName?.length,
-        isNull: pendingUser.businessName === null,
-        isUndefined: pendingUser.businessName === undefined,
-        isEmpty: pendingUser.businessName === ''
-      });
-      
-      // Fix business name if it's missing or incorrect for testing user
-      let correctedBusinessName = pendingUser.businessName;
-      if (pendingUser.email === 'grbalancetesting@gmail.com') {
-        if (!correctedBusinessName || correctedBusinessName === 'GR Balance' || correctedBusinessName.includes('Unknown')) {
-          correctedBusinessName = 'GR Salon';
-          console.log('🔧 CORRECTED: Setting business name to "GR Salon" for testing user (was:', pendingUser.businessName, ')');
-        }
       }
       
       // Check if consultation is complete and script is ready
@@ -1139,14 +992,15 @@ const AdminPage: React.FC = () => {
         throw new Error('User must complete consultation and have script ready before moving to testing.');
       }
       
-      // Create the ready-for-testing table entry
-      console.log('🚀 Moving user to ready-for-testing:', pendingUser.email);
+      // Use unified service to update workflow stage - handles all table complexity internally
+      console.log('🔧 Updating workflow stage from pending to qa_testing via unified service...');
+      await updateUserWorkflowStage(userId, 'qa_testing');
       
-      // First, insert into ready-for-testing table
+      // Create ready-for-testing entry for QA-specific tracking
       const readyForTestingData = {
         id: userId,
         email: pendingUser.email,
-        businessname: correctedBusinessName,
+        businessname: pendingUser.businessName,
         businesstype: pendingUser.businessType,
         subscriptiontier: pendingUser.subscriptionTier,
         billingcycle: pendingUser.billingCycle,
@@ -1158,44 +1012,22 @@ const AdminPage: React.FC = () => {
         updatedat: new Date().toISOString()
       };
       
-      console.log('📝 Inserting ready-for-testing data:', readyForTestingData);
-      
+      console.log('📝 Creating QA tracking record in ready-for-testing table...');
       const { error: insertError } = await supabase
         .from('ready-for-testing')
         .insert([readyForTestingData]);
       
-      console.log('📝 Insert result:', { insertError });
-      
       if (insertError) throw insertError;
       
-      console.log('✅ Successfully inserted into ready-for-testing');
-      
-      // Update status in clients table AND preserve business name
-      console.log('🔧 Updating clients table status AND preserving business name...');
-      const { error: updateError } = await supabase
-        .from('clients')
-        .update({ 
-          status: 'qa_testing',  // Change from 'testing' to 'qa_testing'
-          business_name: correctedBusinessName, // PRESERVE business name when moving to testing
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      console.log('🔧 Update result:', { updateError });
-      
-      if (updateError) throw updateError;
-      
-      console.log('✅ Successfully updated status in clients table');
-      
-      // Refresh both lists
+      // Refresh data
       console.log('🔄 Refreshing data...');
       await fetchPendingUsers();
       await fetchReadyForTestingUsers();
-      console.log('✅ Data refresh completed');
+      console.log('✅ moveToTesting completed via unified service');
         
     } catch (error: any) {
       console.error('❌ Error moving user to testing:', error);
-      // Inline error handling - no popup
+      throw error; // Re-throw so the UI can handle it
     }
   };
 
@@ -3069,217 +2901,95 @@ This will:
             customUrls={customUrls}
             setCustomUrls={setCustomUrls}
             onFinalApprove={async (userId: string, userData: Partial<ApprovedUser>) => {
-              console.log('🚀 onFinalApprove called with userId:', userId, 'userData:', userData);
+              console.log('🚀 onFinalApprove: Using unified service for workflow stage update...');
               
               try {
-                // Move user from ready-for-testing to approved  
+                // Get user data for validation
                 const readyUser = readyForTestingUsers.find(u => u.id === userId);
-                console.log('📋 Found readyUser:', readyUser);
-                
                 if (!readyUser) {
                   console.error('❌ Ready user not found for userId:', userId);
                   return;
                 }
 
-                // Add to approved users - PRESERVE ALL DATA including website info
-                const approvedUserData = {
-                  ...userData,
-                  id: userId,
-                  email: readyUser.email,
-                  businessName: readyUser.businessName,
-                  businessType: readyUser.businessType,
-                  subscriptionTier: readyUser.subscriptionTier,
-                  billingCycle: readyUser.billingCycle,
-                  createdAt: readyUser.createdAt,
-                  // ✅ CRITICAL: Preserve website data
-                  siteUrl: readyUser.siteUrl || null,
-                  // siteId removed - using single-site architecture
-                  siteName: readyUser.siteName || null,
-                  // ✅ Preserve consultation data with defaults for undefined values
-                  consultationCompleted: readyUser.consultationCompleted ?? true,
-                  scriptReady: readyUser.scriptReady ?? true,
-                  consultationNotes: readyUser.consultationNotes || '',
-                  // ✅ Add approval timestamp
-                  qaPassedAt: new Date().toISOString(),
-                  approvedAt: new Date().toISOString(),
-                  status: 'approved'
+                // Use unified service to update workflow stage - handles all table complexity internally
+                console.log('🔧 Updating workflow stage from qa_testing to approved via unified service...');
+                await updateUserWorkflowStage(userId, 'approved');
+                
+                // Preserve QA-specific data in usage table (site URLs, scripts, etc.)
+                const approvalExtras = {
+                  siteUrl: readyUser.siteUrl,
+                  siteName: readyUser.siteName,
+                  approvedat: new Date().toISOString()
                 };
                 
-                console.log('🎯 Final approval - transferring data:', approvedUserData);
-                
-                // Fetch client_path from clients table to preserve website name
-                let clientPath = null;
-                try {
-                  const { data: clientData, error: clientError } = await supabase
-                    .from('clients')
-                    .select('client_path')
-                    .eq('id', userId)
-                    .single();
-                  
-                  if (!clientError && clientData) {
-                    clientPath = clientData.client_path;
-                    console.log('✅ Found client_path:', clientPath);
-                  }
-                } catch (error) {
-                  console.log('ℹ️ No client record found, will use fallback');
-                }
-                
-                // Use minimal fields that definitely exist in usage table
-                const dbApprovedUserData = {
-                  id: userId,
-                  email: readyUser.email,
-                  subscriptionTier: readyUser.subscriptionTier, // Required field - camelCase in usage table!
-                  status: 'approved',
-                  comparisonsUsed: 0,
-                  comparisonsLimit: TIER_LIMITS[readyUser.subscriptionTier as keyof typeof TIER_LIMITS] || 100
-                  // Note: Business data is stored in clients table, not usage table
-                };
-                
-                console.log('🔥 CACHE BUST v7.0 - WITH REQUIRED SUBSCRIPTIONTIER:', dbApprovedUserData);
-                
-                // Check for existing email to prevent duplicates
-                await validateEmailUniqueness(readyUser.email, userId, 'usage');
-                
-                // Update in database - move to usage collection with approved status
-                console.log('💾 Writing to usage collection...');
-                console.log('📊 Data being written:', JSON.stringify(dbApprovedUserData, null, 2));
-                const { error: upsertError } = await supabase
+                // Update usage table with approval-specific data
+                console.log('📝 Adding approval-specific data to usage table...');
+                const { error: usageUpdateError } = await supabase
                   .from('usage')
-                  .upsert(dbApprovedUserData);
+                  .update(approvalExtras)
+                  .eq('id', userId);
                 
-                if (upsertError) {
-                  console.error('❌ Database upsert failed:', upsertError);
-                  console.error('❌ Error details:', JSON.stringify(upsertError, null, 2));
-                  throw upsertError;
-                }
-                console.log('✅ Successfully wrote to usage collection');
-                
-                // Ensure business name is stored in clients table for proper display
-                console.log('📝 Updating/creating clients table entry with business name...');
-                const clientsData = {
-                  id: userId,
-                  business_name: readyUser.businessName,
-                  business_type: readyUser.businessType,
-                  email: readyUser.email,
-                  client_path: clientPath || readyUser.businessName?.toLowerCase().replace(/[^a-z0-9]/g, '') || 
-                              readyUser.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client'
-                };
-                
-                const { error: clientsError } = await supabase
-                  .from('clients')
-                  .upsert(clientsData);
-                
-                if (clientsError) {
-                  console.warn('⚠️ Failed to update clients table (non-critical):', clientsError);
-                } else {
-                  console.log('✅ Successfully updated clients table with business name');
+                if (usageUpdateError) {
+                  console.warn('⚠️ Failed to update usage table with approval data (non-critical):', usageUpdateError);
                 }
                 
-                // Remove from ready-for-testing collection
+                // Remove from ready-for-testing collection (QA data no longer needed)
                 console.log('🗑️ Removing from ready-for-testing collection...');
                 const { error: deleteError } = await supabase
                   .from('ready-for-testing')
                   .delete()
                   .eq('id', userId);
                 
-                if (deleteError) throw deleteError;
-                console.log('✅ Successfully removed from ready-for-testing');
+                if (deleteError) {
+                  console.warn('⚠️ Failed to remove from ready-for-testing (non-critical):', deleteError);
+                }
                 
                 // Refresh data
                 console.log('🔄 Refreshing data...');
                 await fetchReadyForTestingUsers();
                 await fetchApprovedUsers();
-                console.log('✅ Data refresh completed');
-                
-                // Success - don't show popup notification, let the component handle UI updates
-                console.log('✅ User approved successfully:', readyUser.email);
+                console.log('✅ onFinalApprove completed via unified service');
                 
               } catch (error) {
                 console.error('❌ Error in onFinalApprove:', error);
-                // Re-throw error so the component can handle it with inline display
-                throw error;
+                throw error; // Re-throw so the UI can handle it
               }
             }}
             onSendBackToPending={async (userId: string, reason?: string) => {
-              console.log('🔄 sendBackToPending called with:', { userId, reason });
+              console.log('🔄 sendBackToPending: Using unified service for workflow stage update...');
               
-              // Move user back to pending with reason
+              // Get user data for validation
               const readyUser = readyForTestingUsers.find(u => u.id === userId);
-              console.log('📋 Found readyUser:', readyUser);
-              
-              if (readyUser) {
-                // Add back to pending users - UPDATE CLIENTS TABLE STATUS
-                console.log('🔧 BUSINESS NAME PRESERVATION - Moving back to pending with business name:', readyUser.businessName);
-                
-                // CRITICAL FIX: Update clients table status to 'testing' (which maps to pending workflow)
-                console.log('📝 Updating clients table status to "testing" for pending workflow...');
-                const { error: clientsUpdateError } = await supabase
-                  .from('clients')
-                  .update({ 
-                    status: 'testing',  // This is the status that fetchPendingUsers looks for
-                    business_name: readyUser.businessName || 'Business Name Not Set', // PRESERVE business name
-                    updated_at: new Date().toISOString()
-                  })
-                  .eq('id', userId);
-                
-                if (clientsUpdateError) {
-                  console.error('❌ Failed to update clients table:', clientsUpdateError);
-                  throw clientsUpdateError;
-                }
-                console.log('✅ Successfully updated clients table status to testing');
-                
-                // Also maintain backward compatibility with pendingUsers table
-                const pendingUserData = {
-                  id: userId,
-                  email: readyUser.email,
-                  businessname: readyUser.businessName || 'Business Name Not Set', // Use snake_case field name
-                  businesstype: readyUser.businessType || 'Other',
-                  subscriptiontier: readyUser.subscriptionTier || 'starter',
-                  billingcycle: readyUser.billingCycle || 'monthly',
-                  createdat: readyUser.createdAt || new Date().toISOString(),
-                  updatedat: new Date().toISOString(),
-                  status: 'pending'
-                };
-                
-                console.log('💾 Also updating pendingUsers table for compatibility:', pendingUserData);
-                
-                try {
-                  // Update pendingUsers table for backward compatibility
-                  const { error: insertError } = await supabase
-                    .from('pendingUsers')
-                    .upsert(pendingUserData, { onConflict: 'id' });
-                  
-                  if (insertError) {
-                    console.warn('⚠️ PendingUsers table update failed (non-critical):', insertError);
-                  } else {
-                    console.log('✅ Successfully updated pendingUsers table');
-                  }
-                  
-                  // Remove from ready-for-testing collection
-                  console.log('🗑️ Removing from ready-for-testing collection...');
-                  const { error: deleteError } = await supabase
-                    .from('ready-for-testing')
-                    .delete()
-                    .eq('id', userId);
-                  
-                  if (deleteError) throw deleteError;
-                  console.log('✅ Successfully removed from ready-for-testing');
-                  
-                  // Refresh data
-                  console.log('🔄 Refreshing data...');
-                  await fetchReadyForTestingUsers();
-                  await fetchPendingUsers();
-                  console.log('✅ Data refresh completed');
-                  
-                  // Success - no notification needed for normal operation
-                  
-                } catch (error) {
-                  console.error('❌ Error in sendBackToPending:', error);
-                  throw error; // Re-throw so the UI can handle it
-                }
-              } else {
+              if (!readyUser) {
                 console.error('❌ Ready user not found for userId:', userId);
                 throw new Error('User not found in ready-for-testing list');
+              }
+              
+              try {
+                // Use unified service to update workflow stage - handles all table complexity internally
+                console.log('🔧 Updating workflow stage from qa_testing to pending via unified service...');
+                await updateUserWorkflowStage(userId, 'pending');
+                
+                // Remove from ready-for-testing collection (QA-specific data no longer needed)
+                console.log('🗑️ Removing from ready-for-testing collection...');
+                const { error: deleteError } = await supabase
+                  .from('ready-for-testing')
+                  .delete()
+                  .eq('id', userId);
+                
+                if (deleteError) {
+                  console.warn('⚠️ Failed to remove from ready-for-testing (non-critical):', deleteError);
+                }
+                
+                // Refresh data
+                console.log('🔄 Refreshing data...');
+                await fetchReadyForTestingUsers();
+                await fetchPendingUsers();
+                console.log('✅ sendBackToPending completed via unified service');
+                
+              } catch (error) {
+                console.error('❌ Error in sendBackToPending:', error);
+                throw error; // Re-throw so the UI can handle it
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
