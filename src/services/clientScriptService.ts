@@ -33,14 +33,18 @@ export async function loadClientScript(clientId: string): Promise<string | null>
     });
 
     if (!response.ok) {
-      console.warn(`⚠️ Script not found for client ${clientId}: ${response.status}`);
+      if (response.status === 404) {
+        console.info(`📝 No scripts uploaded yet for client ${clientId} - this is normal for new clients`);
+      } else {
+        console.warn(`⚠️ Script fetch error for client ${clientId}: ${response.status}`);
+      }
       return null;
     }
 
     const scripts = await response.json();
     
     if (!scripts || scripts.length === 0) {
-      console.warn(`⚠️ No scripts found for client: ${clientId}`);
+      console.info(`📝 No scripts found for client: ${clientId} - scripts need to be uploaded in admin`);
       return null;
     }
 

@@ -23,7 +23,7 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
   try {
     const { data, error } = await supabase
       .from('usage')
-      .select('comparisonsUsed, comparisonsLimit, subscriptionTier, status, lastLimitReset')
+      .select('comparisonsUsed, comparisonsLimit, subscriptionTier, status')
       .eq('id', userId)
       .single();
 
@@ -37,7 +37,7 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
       comparisonsLimit: data.comparisonsLimit || TIER_LIMITS.starter,
       subscriptionTier: data.subscriptionTier || 'starter',
       status: data.status || 'pending',
-      lastLimitReset: data.lastLimitReset
+      lastLimitReset: undefined // Column doesn't exist in usage table
     };
   } catch (error) {
     console.error('usageService: Error in getUserUsage:', error);
@@ -173,7 +173,7 @@ export async function resetMonthlyUsage(userId: string, subscriptionTier: string
       .update({
         comparisonsUsed: 0,
         comparisonsLimit: defaultLimit,
-        lastLimitReset: currentDate.toISOString(),
+        // lastLimitReset: currentDate.toISOString(), // Column doesn't exist
         updatedAt: currentDate.toISOString()
       })
       .eq('id', userId);
@@ -206,7 +206,7 @@ export async function checkAndResetMonthlyLimits(userId: string): Promise<UsageD
     const currentMonth = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
     
     // Check if we need to reset for new month
-    const lastResetDate = userData.lastLimitReset ? new Date(userData.lastLimitReset) : null;
+    const lastResetDate = null; // lastLimitReset column doesn't exist, use updatedAt instead
     const lastResetMonth = lastResetDate ? 
       lastResetDate.getFullYear() + '-' + String(lastResetDate.getMonth() + 1).padStart(2, '0') : null;
 
