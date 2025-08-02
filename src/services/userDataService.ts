@@ -306,8 +306,7 @@ export const getUsersByWorkflowStage = async (
 
   console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for ${usageUsers.length} usage records`);
 
-  // Get business_type data from pendingUsers table
-  const userIds = usageUsers.map(u => u.id);
+  // Get business_type data from pendingUsers table (reuse existing userIds)
   const { data: pendingData } = await supabase
     .from('pendingUsers')
     .select('id, businesstype')
