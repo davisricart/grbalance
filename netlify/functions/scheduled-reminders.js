@@ -25,12 +25,12 @@ exports.handler = async (event, context) => {
 
     // Find pending users who:
     // 1. Signed up more than 48 hours ago
-    // 2. Are still in pending status
-    // Note: We'll check for sent reminders in a simpler way
+    // 2. Are still in testing status (which means pending in the workflow)
+    // Note: According to userDataService, pending workflow stage maps to 'testing' status in clients table
     const { data: usersNeedingReminders, error } = await supabase
       .from('clients')
       .select('id, email, business_name, created_at')
-      .eq('status', 'pending')
+      .eq('status', 'testing')
       .lt('created_at', fortyEightHoursAgo.toISOString());
 
     if (error) {
