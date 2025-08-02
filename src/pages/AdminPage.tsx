@@ -2176,13 +2176,16 @@ This will:
 
       if (insertError) throw insertError;
 
-      // Remove from usage table
-      const { error: deleteError } = await supabase
+      // Update usage table status (DO NOT DELETE - preserve data)
+      const { error: updateError } = await supabase
         .from('usage')
-        .delete()
+        .update({
+          status: 'trial', // qa_testing stage maps to 'trial' status
+          updatedAt: new Date().toISOString()
+        })
         .eq('id', userId);
 
-      if (deleteError) throw deleteError;
+      if (updateError) throw updateError;
 
       // Refresh both lists
       await fetchApprovedUsers();
