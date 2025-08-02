@@ -89,7 +89,7 @@ export const createUser = async (userData: {
   const usageData = {
     id: userData.id,
     email: userData.email,
-    subscriptiontier: userData.subscription_tier, // snake_case for database
+    subscriptionTier: userData.subscription_tier, // camelCase for usage table (confirmed by AdminPage)
     // billingcycle: userData.billing_cycle, // REMOVED - column doesn't exist in usage table
     comparisonsUsed: 0,
     comparisonsLimit: comparison_limit,
