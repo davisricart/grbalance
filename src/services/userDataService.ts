@@ -94,7 +94,7 @@ export const createUser = async (userData: {
     comparisonsUsed: 0,
     comparisonsLimit: comparison_limit,
     status: 'pending',
-    createdat: now, // snake_case for database
+    // createdat: now, // REMOVED - column doesn't exist in usage table
     updatedAt: now
   };
 
