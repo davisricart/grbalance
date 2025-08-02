@@ -2193,48 +2193,14 @@ This will:
     }
   };
 
-  // Delete approved user (move to deleted status)
+  // Hard delete approved user (DANGEROUS - use deactivateApprovedUser instead for normal cases)
   const deleteApprovedUser = async (userId: string) => {
-    try {
-      // Update status to 'deleted' instead of hard deleting
-      const { error: updateError } = await supabase
-        .from('usage')
-        .update({
-          status: 'deleted'
-        })
-        .eq('id', userId);
-
-      if (updateError) throw updateError;
-
-      // Delete from Supabase Auth using secure Netlify function (like other delete functions)
-      try {
-        console.log('🔥 Deleting user from Supabase Auth:', userId);
-        const response = await fetch('/.netlify/functions/delete-user', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ userId })
-        });
-        
-        const result = await response.json();
-        
-        if (!response.ok) {
-          console.error('❌ Error deleting from auth:', result);
-        } else {
-          console.log('✅ Successfully deleted from Supabase Auth');
-        }
-      } catch (authError) {
-        console.error('❌ Error calling delete-user function:', authError);
-        // Continue anyway since usage table was already updated
-      }
-
-      // Refresh approved users list to remove from approved tab
-      await fetchApprovedUsers();
-
-    } catch (error) {
-      console.error('Error deleting user:', error);
-    }
+    console.warn('⚠️ deleteApprovedUser called - this should only be used for true hard deletions!');
+    console.warn('⚠️ Consider using deactivateApprovedUser instead to preserve data');
+    
+    // For now, redirect to deactivation to prevent data loss
+    // If hard deletion is really needed, use the handleDeleteUser flow instead
+    return deactivateApprovedUser(userId);
   };
 
   // Clean up orphaned auth user (for fixing stuck registrations)
