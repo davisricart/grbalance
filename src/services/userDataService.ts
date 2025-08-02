@@ -85,7 +85,7 @@ export const createUser = async (userData: {
       comparisonsUsed: 0,
       comparisonsLimit: comparison_limit,
       status: 'pending',
-      createdAt: now,
+      createdat: now, // snake_case for database
       updatedAt: now
     });
 
