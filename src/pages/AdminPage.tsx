@@ -560,9 +560,23 @@ const AdminPage: React.FC = () => {
         }
       }
 
-      // FIX: Use clients table data instead of empty pendingUsers table
-      console.log('🔧 SWITCHING to clients table data since that\'s where registration puts users...');
-      const allClients = clientsData;
+      // SMART FIX: Use whichever table actually has data
+      let allClients, dataSource;
+      if (clientsData && clientsData.length > 0) {
+        console.log('🔧 Using clients table data (has', clientsData.length, 'records)');
+        allClients = clientsData;
+        dataSource = 'clients';
+      } else if (pendingUsersData && pendingUsersData.length > 0) {
+        console.log('🔧 Using pendingUsers table data (has', pendingUsersData.length, 'records)');
+        allClients = pendingUsersData;
+        dataSource = 'pendingUsers';
+      } else {
+        console.log('❌ No data found in either table');
+        allClients = [];
+        dataSource = 'none';
+      }
+      
+      console.log('🔧 Data source selected:', dataSource);
       if (allClients) {
         console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
         
@@ -1156,12 +1170,13 @@ const AdminPage: React.FC = () => {
       
       console.log('✅ Successfully inserted into ready-for-testing');
       
-      // Update status in clients table (where our data actually is)
-      console.log('🔧 Updating clients table status from "testing" to "qa_testing"...');
+      // Update status in clients table AND preserve business name
+      console.log('🔧 Updating clients table status AND preserving business name...');
       const { error: updateError } = await supabase
         .from('clients')
         .update({ 
           status: 'qa_testing',  // Change from 'testing' to 'qa_testing'
+          business_name: correctedBusinessName, // PRESERVE business name when moving to testing
           updated_at: new Date().toISOString()
         })
         .eq('id', userId);
@@ -3193,33 +3208,52 @@ This will:
               console.log('📋 Found readyUser:', readyUser);
               
               if (readyUser) {
-                // Add back to pending users (using pendingUsers table with pending status)
+                // Add back to pending users - UPDATE CLIENTS TABLE STATUS
+                console.log('🔧 BUSINESS NAME PRESERVATION - Moving back to pending with business name:', readyUser.businessName);
+                
+                // CRITICAL FIX: Update clients table status to 'testing' (which maps to pending workflow)
+                console.log('📝 Updating clients table status to "testing" for pending workflow...');
+                const { error: clientsUpdateError } = await supabase
+                  .from('clients')
+                  .update({ 
+                    status: 'testing',  // This is the status that fetchPendingUsers looks for
+                    business_name: readyUser.businessName || 'Business Name Not Set', // PRESERVE business name
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', userId);
+                
+                if (clientsUpdateError) {
+                  console.error('❌ Failed to update clients table:', clientsUpdateError);
+                  throw clientsUpdateError;
+                }
+                console.log('✅ Successfully updated clients table status to testing');
+                
+                // Also maintain backward compatibility with pendingUsers table
                 const pendingUserData = {
                   id: userId,
                   email: readyUser.email,
-                  businessName: readyUser.businessName || 'Business Name Not Set',
-                  businessType: readyUser.businessType || 'Other',
-                  subscriptionTier: readyUser.subscriptionTier || 'starter',
-                  billingCycle: readyUser.billingCycle || 'monthly',
-                  createdAt: readyUser.createdAt || new Date().toISOString(),
+                  businessname: readyUser.businessName || 'Business Name Not Set', // Use snake_case field name
+                  businesstype: readyUser.businessType || 'Other',
+                  subscriptiontier: readyUser.subscriptionTier || 'starter',
+                  billingcycle: readyUser.billingCycle || 'monthly',
+                  createdat: readyUser.createdAt || new Date().toISOString(),
+                  updatedat: new Date().toISOString(),
                   status: 'pending'
-                  // Note: consultation tracking fields are not stored in database table
                 };
                 
-                console.log('💾 Preparing to save pendingUserData:', pendingUserData);
+                console.log('💾 Also updating pendingUsers table for compatibility:', pendingUserData);
                 
                 try {
-                  // Check for existing email to prevent duplicates
-                  await validateEmailUniqueness(readyUser.email, userId, 'pendingUsers');
-                  
-                  // Update in database (use pendingUsers table, not clients)
-                  console.log('📝 Writing to pendingUsers table with pending status...');
-                  const { data: insertData, error: insertError } = await supabase
+                  // Update pendingUsers table for backward compatibility
+                  const { error: insertError } = await supabase
                     .from('pendingUsers')
                     .upsert(pendingUserData, { onConflict: 'id' });
                   
-                  if (insertError) throw insertError;
-                  console.log('✅ Successfully wrote to pendingUsers table, result:', insertData);
+                  if (insertError) {
+                    console.warn('⚠️ PendingUsers table update failed (non-critical):', insertError);
+                  } else {
+                    console.log('✅ Successfully updated pendingUsers table');
+                  }
                   
                   // Remove from ready-for-testing collection
                   console.log('🗑️ Removing from ready-for-testing collection...');
