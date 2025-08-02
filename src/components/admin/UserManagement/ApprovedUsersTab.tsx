@@ -107,6 +107,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
+      // Use consistent 14-day trial duration (should match trialService.ts)
       const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase
@@ -349,6 +350,7 @@ const ApprovedUsersTab = React.memo(({
       );
       
       const trialStartDate = new Date();
+      // Use consistent 14-day trial duration (should match trialService.ts)
       const trialEndDate = new Date(trialStartDate.getTime() + (14 * 24 * 60 * 60 * 1000)); // 14 days from now
       
       const { error } = await supabase

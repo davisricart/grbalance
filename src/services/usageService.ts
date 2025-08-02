@@ -224,3 +224,63 @@ export async function checkAndResetMonthlyLimits(userId: string): Promise<UsageD
     return null;
   }
 }
+
+/**
+ * Add usage count (admin function)
+ */
+export async function addUsage(userId: string, amount: number): Promise<boolean> {
+  try {
+    const currentUsage = await getUserUsage(userId);
+    if (!currentUsage) {
+      console.error('usageService: Could not fetch current usage for addUsage');
+      return false;
+    }
+
+    const newUsageCount = currentUsage.comparisonsUsed + amount;
+    
+    const { error } = await supabase
+      .from('usage')
+      .update({ 
+        comparisonsUsed: newUsageCount,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('usageService: Error adding usage:', error.message);
+      return false;
+    }
+
+    console.log(`usageService: Added ${amount} usage, new total: ${newUsageCount}/${currentUsage.comparisonsLimit}`);
+    return true;
+  } catch (error) {
+    console.error('usageService: Error in addUsage:', error);
+    return false;
+  }
+}
+
+/**
+ * Update usage limit (admin function)
+ */
+export async function updateLimit(userId: string, newLimit: number): Promise<boolean> {
+  try {
+    const { error } = await supabase
+      .from('usage')
+      .update({ 
+        comparisonsLimit: newLimit,
+        updatedAt: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('usageService: Error updating limit:', error.message);
+      return false;
+    }
+
+    console.log(`usageService: Updated limit to ${newLimit} for user:`, userId);
+    return true;
+  } catch (error) {
+    console.error('usageService: Error in updateLimit:', error);
+    return false;
+  }
+}
