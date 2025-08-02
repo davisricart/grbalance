@@ -81,7 +81,7 @@ export const createUser = async (userData: {
       id: userData.id,
       email: userData.email,
       subscriptionTier: userData.subscription_tier, // Keep existing field name for compatibility
-      billingCycle: userData.billing_cycle, // Store billing cycle in usage table
+      billingcycle: userData.billing_cycle, // Store billing cycle in usage table (snake_case for database)
       comparisonsUsed: 0,
       comparisonsLimit: comparison_limit,
       status: 'pending',
@@ -143,7 +143,7 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
   // Get usage data (includes billing info)
   const { data: usageData } = await supabase
     .from('usage')
-    .select('billingCycle, comparisonsUsed, comparisonsLimit')
+    .select('billingcycle, comparisonsUsed, comparisonsLimit')
     .eq('id', userId)
     .single();
 
@@ -170,7 +170,7 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     subscription_tier: clientData.subscription_tier || 'starter',
     status: clientData.status || 'testing',
     workflow_stage: statusToWorkflowStage[clientData.status as keyof typeof statusToWorkflowStage] || 'pending',
-    billing_cycle: usageData?.billingCycle || 'monthly',
+    billing_cycle: usageData?.billingcycle || 'monthly',
     comparisons_used: usageData?.comparisonsUsed || 0,
     comparisons_limit: usageData?.comparisonsLimit || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
     created_at: clientData.created_at,
@@ -254,7 +254,7 @@ export const getUsersByWorkflowStage = async (
   const userIds = clients.map(c => c.id);
   const { data: usageData } = await supabase
     .from('usage')
-    .select('id, billingCycle, comparisonsUsed, comparisonsLimit')
+    .select('id, billingcycle, comparisonsUsed, comparisonsLimit')
     .in('id', userIds);
 
   // Get business_type data from pendingUsers table
@@ -286,7 +286,7 @@ export const getUsersByWorkflowStage = async (
       subscription_tier: client.subscription_tier || 'starter',
       status: client.status || 'testing',
       workflow_stage: statusToWorkflowStage[client.status as keyof typeof statusToWorkflowStage] || stage,
-      billing_cycle: usage?.billingCycle || 'monthly',
+      billing_cycle: usage?.billingcycle || 'monthly',
       comparisons_used: usage?.comparisonsUsed || 0,
       comparisons_limit: usage?.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
@@ -344,7 +344,7 @@ export const updateUserBusinessInfo = async (
   }
   
   if (updates.billing_cycle) {
-    usageUpdates.billingCycle = updates.billing_cycle;
+    usageUpdates.billingcycle = updates.billing_cycle;
     needsUsageUpdate = true;
   }
   
