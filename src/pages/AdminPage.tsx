@@ -560,8 +560,9 @@ const AdminPage: React.FC = () => {
         }
       }
 
-      // For now, let's use the original pendingUsers table logic, but with enhanced debugging
-      const allClients = pendingUsersData;
+      // FIX: Use clients table data instead of empty pendingUsers table
+      console.log('🔧 SWITCHING to clients table data since that\'s where registration puts users...');
+      const allClients = clientsData;
       if (allClients) {
         console.log('📊 ALL CLIENTS in database:', allClients?.length || 0, 'total clients:', allClients);
         
@@ -586,25 +587,36 @@ const AdminPage: React.FC = () => {
           });
         });
         
-        // Let's also see specific details of any potential pending users
+        // Filter for pending users from clients table (status = testing)
         const potentialPending = allClients?.filter((client: any) => 
-          !client.status || client.status === 'pending' || client.status === '' || client.status === null
+          client.status === 'testing' // This is the status set by registration
         );
         console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
+        
+        // Map clients table data to PendingUser format
+        const mappedUsers: PendingUser[] = potentialPending?.map((client: any) => {
+          console.log('🔧 Mapping client to pending user:', client);
+          const pendingUserData = pendingUsersData?.find((p: any) => p.id === client.id);
+          
+          return {
+            id: client.id,
+            email: client.email,
+            businessName: client.business_name || 'Business Name Not Set',
+            businessType: pendingUserData?.businesstype || 'Other',
+            subscriptionTier: client.subscription_tier || 'starter',
+            billingCycle: pendingUserData?.billingcycle || 'monthly',
+            createdAt: client.created_at || new Date().toISOString()
+          };
+        }) || [];
+        
+        console.log('🔧 MAPPED PENDING USERS:', JSON.stringify(mappedUsers, null, 2));
+        console.log('✅ fetchPendingUsers: Found', mappedUsers.length, 'pending users from clients table');
+        setPendingUsers(mappedUsers);
+        return; // Exit early since we've found and set the data
       }
       
-      // Now fetch pending ones
-      const { data: users, error } = await supabase
-        .from('pendingUsers')
-        .select('*')
-        .eq('status', 'pending')
-        .order('id', { ascending: false });
-      
-      console.log('🔍 PENDING QUERY RESULT:', users?.length || 0, 'users found:', users);
-      
-      if (error) throw error;
-      console.log('✅ fetchPendingUsers: Found', users?.length || 0, 'pending users:', users);
-      setPendingUsers(users || []);
+      console.log('❌ No data found, setting empty array');
+      setPendingUsers([]);
     } catch (error: any) {
       console.error('🚨 DATABASE ERROR in fetchPendingUsers:');
       console.error('🚨 Error Code:', error.code);
