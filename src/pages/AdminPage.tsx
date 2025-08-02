@@ -587,9 +587,9 @@ const AdminPage: React.FC = () => {
           });
         });
         
-        // Filter for pending users from clients table (status = testing)
+        // Filter for pending users from clients table (status = testing only)
         const potentialPending = allClients?.filter((client: any) => 
-          client.status === 'testing' // This is the status set by registration
+          client.status === 'testing' // Only include new registrations, exclude qa_testing, approved, etc.
         );
         console.log('🔍 POTENTIAL PENDING USERS:', potentialPending);
         
@@ -1156,17 +1156,21 @@ const AdminPage: React.FC = () => {
       
       console.log('✅ Successfully inserted into ready-for-testing');
       
-      // Remove from pending users
-      const { error: deleteError } = await supabase
-        .from('pendingUsers')
-        .delete()
+      // Update status in clients table (where our data actually is)
+      console.log('🔧 Updating clients table status from "testing" to "qa_testing"...');
+      const { error: updateError } = await supabase
+        .from('clients')
+        .update({ 
+          status: 'qa_testing',  // Change from 'testing' to 'qa_testing'
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId);
       
-      console.log('🗑️ Delete result:', { deleteError });
+      console.log('🔧 Update result:', { updateError });
       
-      if (deleteError) throw deleteError;
+      if (updateError) throw updateError;
       
-      console.log('✅ Successfully removed from pending users');
+      console.log('✅ Successfully updated status in clients table');
       
       // Refresh both lists
       console.log('🔄 Refreshing data...');
