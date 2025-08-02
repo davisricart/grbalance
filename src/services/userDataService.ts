@@ -80,8 +80,8 @@ export const createUser = async (userData: {
     .upsert({
       id: userData.id,
       email: userData.email,
-      subscriptionTier: userData.subscription_tier, // Keep existing field name for compatibility
-      billingcycle: userData.billing_cycle, // Store billing cycle in usage table (snake_case for database)
+      subscriptiontier: userData.subscription_tier, // snake_case for database
+      billingcycle: userData.billing_cycle, // snake_case for database
       comparisonsUsed: 0,
       comparisonsLimit: comparison_limit,
       status: 'pending',
