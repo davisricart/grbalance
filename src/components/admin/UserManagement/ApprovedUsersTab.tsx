@@ -349,22 +349,28 @@ const ApprovedUsersTab = React.memo(({
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
       );
       
-      // Use trialService for consistent trial setup
-      const success = await setTrialStatus(userId);
-      if (!success) throw new Error('Failed to set trial status');
-      
+      // Set client to 'active' status (NOT 'trial' which puts them back in QA workflow)
       const trialStartDate = new Date();
       const trialEndDate = calculateTrialEndDate(trialStartDate);
       
       const { error } = await supabase
         .from('usage')
         .update({
+          status: 'active', // Active paying customer, out of workflow
           updatedAt: new Date().toISOString()
-          // Trial status already set via trialService
+        })
+        .eq('id', userId);
+      
+      // Also update clients table to active status
+      const { error: clientError } = await supabase
+        .from('clients')
+        .update({
+          status: 'active'
         })
         .eq('id', userId);
       
       if (error) throw error;
+      if (clientError) console.warn('Client status update failed:', clientError);
       
       console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       console.log('💡 User will be prompted for payment when trial expires');
