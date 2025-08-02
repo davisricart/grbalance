@@ -40,7 +40,20 @@ exports.handler = async (event, context) => {
 
     console.log('🗑️ Deleting user:', userId);
 
-    // Step 1: Delete from usage table
+    // Step 1: Delete from clients table (contains client_path constraint)
+    const { error: clientsError } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', userId);
+
+    if (clientsError) {
+      console.log('⚠️ Clients table deletion warning:', clientsError.message);
+      // Don't fail if clients record doesn't exist, just log it
+    } else {
+      console.log('✅ Deleted from clients table');
+    }
+
+    // Step 2: Delete from usage table
     const { error: usageError } = await supabase
       .from('usage')
       .delete()
@@ -56,7 +69,7 @@ exports.handler = async (event, context) => {
 
     console.log('✅ Deleted from usage table');
 
-    // Step 2: Delete from auth.users
+    // Step 3: Delete from auth.users
     const { error: authError } = await supabase.auth.admin.deleteUser(userId);
 
     if (authError) {
