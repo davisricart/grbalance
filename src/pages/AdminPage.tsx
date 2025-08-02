@@ -1052,25 +1052,35 @@ const AdminPage: React.FC = () => {
       const comparisonLimit = TIER_LIMITS[pendingUser.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
 
       // Prepare update data (using snake_case for database fields)
-      const updateData = {
+      // Update usage table (only columns that exist in usage table)
+      const usageUpdateData = {
         status: 'approved',
         comparisonsLimit: comparisonLimit,
-        subscriptiontier: pendingUser.subscriptionTier, // Fixed: snake_case for database
-        approvedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        businessname: pendingUser.businessName,  // Fixed: snake_case for database
-        businesstype: pendingUser.businessType,  // Fixed: snake_case for database
-        billingcycle: pendingUser.billingCycle   // Fixed: snake_case for database
+        subscriptionTier: pendingUser.subscriptionTier, // Correct camelCase for usage table
+        updatedAt: new Date().toISOString()
       };
-      
 
-      // Update status in usage collection to "approved" and set limits
-      const { error: updateError } = await supabase
+      const { error: usageUpdateError } = await supabase
         .from('usage')
-        .update(updateData)
+        .update(usageUpdateData)
+        .eq('id', userId);
+
+      if (usageUpdateError) throw usageUpdateError;
+
+      // Update clients table (business info belongs here)
+      const clientUpdateData = {
+        business_name: pendingUser.businessName,    // snake_case for clients table
+        subscription_tier: pendingUser.subscriptionTier, // snake_case for clients table
+        status: 'active', // Update client status to active when approved
+        updated_at: new Date().toISOString()
+      };
+
+      const { error: clientUpdateError } = await supabase
+        .from('clients')
+        .update(clientUpdateData)
         .eq('id', userId);
       
-      if (updateError) throw updateError;
+      if (clientUpdateError) throw clientUpdateError;
 
       // CRITICAL FIX: Insert approved user into clients table
       // This is what makes users appear in the admin dashboard
@@ -1380,20 +1390,29 @@ This will:
     try {
       const newComparisonLimit = TIER_LIMITS[editUserForm.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
       
-      const { error } = await supabase
+      // Update usage table (only columns that exist)
+      const { error: usageError } = await supabase
         .from('usage')
         .update({
-          businessname: editUserForm.businessName,        // Fixed: snake_case for database
-          businesstype: editUserForm.businessType,        // Fixed: snake_case for database
-          subscriptiontier: editUserForm.subscriptionTier, // Fixed: snake_case for database
-          billingcycle: editUserForm.billingCycle,         // Fixed: snake_case for database
+          subscriptionTier: editUserForm.subscriptionTier, // Correct camelCase for usage table
           comparisonsLimit: newComparisonLimit,
-          adminNotes: editUserForm.adminNotes,
           updatedAt: new Date().toISOString()
         })
         .eq('id', selectedUserForEdit.id);
-      
-      if (error) throw error;
+
+      if (usageError) throw usageError;
+
+      // Update clients table (business info belongs here)
+      const { error: clientError } = await supabase
+        .from('clients')
+        .update({
+          business_name: editUserForm.businessName,    // snake_case for clients table
+          subscription_tier: editUserForm.subscriptionTier, // snake_case for clients table
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedUserForEdit.id);
+
+      if (clientError) throw clientError;
 
       // User details updated successfully
       
