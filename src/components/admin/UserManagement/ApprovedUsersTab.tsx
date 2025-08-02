@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
-import { calculateTrialFromCreatedAt, calculateTrialEndDate, setTrialStatus } from '../../../services/trialService';
+import { calculateTrialFromCreatedAt, calculateTrialEndDate, setTrialStatus, getTrialInfo } from '../../../services/trialService';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
@@ -265,16 +265,20 @@ const ApprovedUsersTab = React.memo(({
 
   // Calculate trial time remaining for a user using shared service
   const getTrialTimeRemaining = (user: ApprovedUser) => {
-    if (user.status !== 'trial') {
-      return null; // Not on trial
+    // For approved users, check if they're within their 14-day trial period
+    if (!user.createdAt && !user.approvedAt) {
+      return null;
     }
     
-    // Use database createdAt (simple, reliable approach)
-    if (!user.createdAt) {
-      return 'Unknown';
+    // Use approvedAt as trial start time (when they were activated)
+    const trialStartTime = user.approvedAt || user.createdAt;
+    const trialInfo = calculateTrialFromCreatedAt(trialStartTime, true);
+    
+    // Only show trial info if they're still within the trial period
+    if (trialInfo.isExpired || trialInfo.daysLeft <= 0) {
+      return null;
     }
     
-    const trialInfo = calculateTrialFromCreatedAt(user.createdAt, true);
     return trialInfo.displayText;
   };
 
@@ -524,7 +528,7 @@ const ApprovedUsersTab = React.memo(({
                     )}
                 </span>
                 {/* Trial Time Display */}
-                {user.status === 'trial' && (
+                {getTrialTimeRemaining(user) && (
                   <>
                     <span>•</span>
                     <span className={`flex items-center gap-1 ${
@@ -608,7 +612,7 @@ const ApprovedUsersTab = React.memo(({
               {/* Client Activation Section */}
               <div className="flex items-center justify-between">
                 {/* Client Activation Status */}
-                {user.status === 'trial' || (userState.trialStarted && userState.welcomePackageSent && userState.goLive) ? (
+                {getTrialTimeRemaining(user) || (userState.trialStarted && userState.welcomePackageSent && userState.goLive) ? (
                   <div className="flex-1">
                     <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                       <div className="flex items-center gap-3 mb-2">

@@ -623,11 +623,11 @@ const AdminPage: React.FC = () => {
       // Use unified service for core user data
       const unifiedUsers = await getUsersByWorkflowStage('approved');
       
-      // Get approved-user-specific data from usage table (for site URLs, scripts, etc.)
+      // Get approved-user-specific data from usage table (basic data only)
       const userIds = unifiedUsers.map(u => u.id);
       const { data: usageData } = await supabase
         .from('usage')
-        .select('id, siteUrl, deployedScripts, approvedat')
+        .select('id, status, createdAt')
         .in('id', userIds);
       
       // Map usage data by user ID for easy lookup
@@ -648,23 +648,28 @@ const AdminPage: React.FC = () => {
           comparisonsLimit: user.comparisons_limit,
           status: user.status,
           createdAt: user.created_at,
-          approvedAt: usage?.approvedat || new Date().toISOString(),
+          approvedAt: usage?.createdAt || new Date().toISOString(),
           // Default consultation fields
           consultationCompleted: true, // Must be true to reach approved
           scriptReady: true, // Must be true to reach approved
         };
       });
       
-      // Extract site URLs and deployed scripts for backward compatibility
+      // Get site URLs and scripts from clients table instead
+      const { data: clientsData } = await supabase
+        .from('clients')
+        .select('id, client_path, deployed_scripts')
+        .in('id', userIds);
+      
       const urlsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
       
-      usageData?.forEach((usage) => {
-        if (usage.siteUrl) {
-          urlsData[usage.id] = usage.siteUrl;
+      clientsData?.forEach((client) => {
+        if (client.client_path) {
+          urlsData[client.id] = `https://grbalance.com/${client.client_path}`;
         }
-        if (usage.deployedScripts && Array.isArray(usage.deployedScripts)) {
-          scriptsData[usage.id] = usage.deployedScripts;
+        if (client.deployed_scripts && Array.isArray(client.deployed_scripts)) {
+          scriptsData[client.id] = client.deployed_scripts;
         }
       });
       
