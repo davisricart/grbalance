@@ -257,67 +257,104 @@ export const updateUserWorkflowStage = async (
 export const getUsersByWorkflowStage = async (
   stage: UnifiedUser['workflow_stage']
 ): Promise<UnifiedUser[]> => {
-  // Map workflow_stage to status for querying clients table
-  const workflowToStatusMap = {
-    pending: 'testing',
-    qa_testing: 'testing',
-    approved: 'active',
-    deactivated: 'inactive',
-    deleted: 'inactive'
+  console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
+  
+  // Use usage table status to differentiate workflow stages properly
+  const stageToUsageStatusMap = {
+    pending: 'pending',
+    qa_testing: 'trial', 
+    approved: 'approved',
+    deactivated: 'deactivated',
+    deleted: 'deleted'
   } as const;
 
-  const { data: clients, error } = await supabase
+  // Get users from usage table first (this has the proper status differentiation)
+  const { data: usageUsers, error: usageError } = await supabase
+    .from('usage')
+    .select('id, status, subscriptionTier, comparisonsUsed, comparisonsLimit, billingcycle')
+    .eq('status', stageToUsageStatusMap[stage])
+    .order('id');
+
+  if (usageError) {
+    console.error(`❌ getUsersByWorkflowStage: Error fetching from usage table:`, usageError);
+    throw usageError;
+  }
+  
+  if (!usageUsers || usageUsers.length === 0) {
+    console.log(`📊 getUsersByWorkflowStage: No users found for stage "${stage}"`);
+    return [];
+  }
+
+  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${stageToUsageStatusMap[stage]}"`);
+
+  // Get corresponding client data
+  const userIds = usageUsers.map(u => u.id);
+  const { data: clients, error: clientError } = await supabase
     .from('clients')
     .select('*')
-    .eq('status', workflowToStatusMap[stage])
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  if (!clients) return [];
-
-  // Get usage data for all users (includes billing info)
-  const userIds = clients.map(c => c.id);
-  const { data: usageData } = await supabase
-    .from('usage')
-    .select('id, billingcycle, comparisonsUsed, comparisonsLimit')
     .in('id', userIds);
 
+  if (clientError) {
+    console.error(`❌ getUsersByWorkflowStage: Error fetching clients:`, clientError);
+    throw clientError;
+  }
+
+  if (!clients || clients.length === 0) {
+    console.log(`📊 getUsersByWorkflowStage: No client data found for ${usageUsers.length} usage records`);
+    return [];
+  }
+
+  console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for ${usageUsers.length} usage records`);
+
   // Get business_type data from pendingUsers table
+  const userIds = usageUsers.map(u => u.id);
   const { data: pendingData } = await supabase
     .from('pendingUsers')
     .select('id, businesstype')
     .in('id', userIds);
 
-  const usageMap = new Map(usageData?.map(u => [u.id, u]) || []);
+  // Create maps for efficient lookup
+  const usageMap = new Map(usageUsers.map(u => [u.id, u]));
   const pendingMap = new Map(pendingData?.map(p => [p.id, p]) || []);
+  const clientMap = new Map(clients.map(c => [c.id, c]));
 
-  // Map status back to workflow_stage
-  const statusToWorkflowStage = {
-    'testing': stage === 'pending' ? 'pending' : 'qa_testing', // Distinguish based on requested stage
-    'active': 'approved',
-    'inactive': 'deactivated'
+  // Map status to workflow stage based on usage table status (single source of truth)
+  const usageStatusToWorkflowStage = {
+    'pending': 'pending',
+    'trial': 'qa_testing',
+    'approved': 'approved',
+    'deactivated': 'deactivated',
+    'deleted': 'deleted'
   } as const;
 
-  return clients.map(client => {
-    const usage = usageMap.get(client.id);
-    const pending = pendingMap.get(client.id);
+  const result = usageUsers.map(usageUser => {
+    const client = clientMap.get(usageUser.id);
+    const pending = pendingMap.get(usageUser.id);
+    
+    if (!client) {
+      console.warn(`⚠️ Missing client data for user ${usageUser.id}`);
+      return null;
+    }
     
     return {
-      id: client.id,
+      id: usageUser.id,
       email: client.email,
       business_name: client.business_name || 'Business Name Not Set',
       business_type: pending?.businesstype || 'Other',
       client_path: client.client_path,
       subscription_tier: client.subscription_tier || 'starter',
       status: client.status || 'testing',
-      workflow_stage: statusToWorkflowStage[client.status as keyof typeof statusToWorkflowStage] || stage,
-      billing_cycle: usage?.billingcycle || 'monthly',
-      comparisons_used: usage?.comparisonsUsed || 0,
-      comparisons_limit: usage?.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
+      workflow_stage: usageStatusToWorkflowStage[usageUser.status as keyof typeof usageStatusToWorkflowStage] || stage,
+      billing_cycle: usageUser.billingcycle || 'monthly',
+      comparisons_used: usageUser.comparisonsUsed || 0,
+      comparisons_limit: usageUser.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
       updated_at: client.updated_at
     };
-  });
+  }).filter(Boolean) as UnifiedUser[];
+
+  console.log(`✅ getUsersByWorkflowStage: Returning ${result.length} users for stage "${stage}"`);
+  return result;
 };
 
 /**
