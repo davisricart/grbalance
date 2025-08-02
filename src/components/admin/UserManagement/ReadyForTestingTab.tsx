@@ -439,44 +439,17 @@ export default function ReadyForTestingTab({
     try {
       await onSendBackToPending(userId, 'Sent back from QA testing');
       
-      // NUCLEAR RESET: LIVE deletion of all client data
-              console.log('🧨 LIVE COMPLETE RESET: Erasing all traces of client:', userId);
+      // Note: onSendBackToPending already handles the workflow stage change
+      // No need to delete client data - just reset local UI state
+      console.log('🔄 Resetting UI state for client sent back to pending:', userId);
         
-        try {
-          // DIRECT SUPABASE DELETION: Remove client record completely
-          const supabaseUrl = 'https://qkrptazfydtaoyhhczyr.supabase.co';
-          const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM';
-          
-          const deleteResponse = await fetch(`${supabaseUrl}/rest/v1/clients?id=eq.${userId}`, {
-            method: 'DELETE',
-            headers: {
-              'apikey': supabaseKey,
-              'Authorization': `Bearer ${supabaseKey}`,
-              'Content-Type': 'application/json'
-            }
-          });
-          
-          if (deleteResponse.ok) {
-            console.log('✅ LIVE Supabase deletion completed for client:', userId);
-          } else {
-            console.warn('⚠️ Supabase deletion failed - continuing with local reset');
-          }
-        } catch (error) {
-          console.warn('⚠️ Data wipe failed - continuing with local reset:', error);
-          // Don't fail the send-back operation if deletion fails
-        }
-        
-        // Reset ALL local state - virgin slate
-        setWebsiteStatus(prev => ({ ...prev, [userId]: 'none' }));
-        setScriptStatus(prev => ({ ...prev, [userId]: 'none' }));
-        setCustomUrls(prev => {
-          const newUrls = { ...prev };
-          delete newUrls[userId];
-          return newUrls;
-        });
-        setTestingNotes(prev => ({ ...prev, [userId]: '' }));
-        
-        console.log('🎯 LIVE RESET: Client never existed - fresh start ready');
+      // Reset local UI state only (preserve database records and custom URLs)
+      setWebsiteStatus(prev => ({ ...prev, [userId]: 'none' }));
+      setScriptStatus(prev => ({ ...prev, [userId]: 'none' }));
+      setTestingNotes(prev => ({ ...prev, [userId]: '' }));
+      // Note: NOT resetting customUrls to preserve client_path when they return to QA
+      
+      console.log('✅ UI state reset completed - client data and URLs preserved');
     } finally {
       setProcessingUser(null);
     }
