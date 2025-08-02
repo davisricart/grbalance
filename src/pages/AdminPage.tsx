@@ -588,15 +588,15 @@ const AdminPage: React.FC = () => {
           subscriptionTier: user.subscription_tier,
           billingCycle: user.billing_cycle,
           createdAt: user.created_at,
-          // QA-specific fields from ready-for-testing table
-          readyForTestingAt: qa?.readyfortestingat || new Date().toISOString(),
-          qaStatus: qa?.qastatus || 'pending',
-          qaTestedAt: qa?.qatestedat,
-          qaTestingNotes: qa?.qatestnotes || '',
-          websiteProvisioned: qa?.websiteprovisioned || false,
-          websiteProvisionedAt: qa?.websiteprovisionedat,
-          scriptDeployed: qa?.scriptdeployed || false,
-          scriptDeployedAt: qa?.scriptdeployedat,
+          // QA-specific fields from ready-for-testing table (all lowercase columns)
+          readyForTestingAt: qa?.readyfortestingat || new Date().toISOString(),  // Fixed: lowercase column
+          qaStatus: qa?.qastatus || 'pending',                                    // Fixed: lowercase column
+          qaTestedAt: qa?.qatestedat,                                             // Fixed: lowercase column
+          qaTestingNotes: qa?.qatestnotes || '',                                  // Fixed: lowercase column
+          websiteProvisioned: qa?.websiteprovisioned || false,                   // Fixed: lowercase column
+          websiteProvisionedAt: qa?.websiteprovisionedat,                        // Fixed: lowercase column
+          scriptDeployed: qa?.scriptdeployed || false,                           // Fixed: lowercase column
+          scriptDeployedAt: qa?.scriptdeployedat,                                // Fixed: lowercase column
           siteUrl: qa?.siteurl,
           siteId: qa?.siteid,
           siteName: qa?.sitename,
@@ -1000,16 +1000,16 @@ const AdminPage: React.FC = () => {
       const readyForTestingData = {
         id: userId,
         email: pendingUser.email,
-        businessname: pendingUser.businessName,
-        businesstype: pendingUser.businessType,
-        subscriptiontier: pendingUser.subscriptionTier,
-        billingcycle: pendingUser.billingCycle,
-        createdat: pendingUser.createdAt,
-        readyfortestingat: new Date().toISOString(),
-        qastatus: 'pending',
-        websiteprovisioned: false,
-        scriptdeployed: false,
-        updatedat: new Date().toISOString()
+        businessname: pendingUser.businessName,        // Fixed: lowercase for ready-for-testing table
+        businesstype: pendingUser.businessType,        // Fixed: lowercase for ready-for-testing table
+        subscriptiontier: pendingUser.subscriptionTier, // Fixed: lowercase for ready-for-testing table
+        billingcycle: pendingUser.billingCycle,         // Fixed: lowercase for ready-for-testing table
+        createdat: pendingUser.createdAt,               // Fixed: lowercase for ready-for-testing table
+        readyfortestingat: new Date().toISOString(),    // Fixed: lowercase for ready-for-testing table
+        qastatus: 'pending',                            // Fixed: lowercase for ready-for-testing table
+        websiteprovisioned: false,                      // Fixed: lowercase for ready-for-testing table
+        scriptdeployed: false,                          // Fixed: lowercase for ready-for-testing table
+        updatedat: new Date().toISOString()             // Fixed: lowercase for ready-for-testing table
       };
       
       console.log('📝 Creating QA tracking record in ready-for-testing table...');
@@ -2159,13 +2159,13 @@ This will:
       const readyForTestingData = {
         id: userId,
         email: approvedUser.email,
-        businessname: businessName || 'Business Name Not Set',
-        businesstype: businessType || 'Other',
-        subscriptiontier: approvedUser.subscriptionTier,
-        billingcycle: approvedUser.billingCycle || 'monthly',
-        createdat: approvedUser.createdAt || new Date().toISOString(),
-        readyfortestingat: new Date().toISOString(),
-        qastatus: 'pending'
+        businessname: businessName || 'Business Name Not Set',  // Fixed: lowercase for ready-for-testing table
+        businesstype: businessType || 'Other',                // Fixed: lowercase for ready-for-testing table
+        subscriptiontier: approvedUser.subscriptionTier,      // Fixed: lowercase for ready-for-testing table
+        billingcycle: approvedUser.billingCycle || 'monthly', // Fixed: lowercase for ready-for-testing table
+        createdat: approvedUser.createdAt || new Date().toISOString(), // Fixed: lowercase for ready-for-testing table
+        readyfortestingat: new Date().toISOString(),          // Fixed: lowercase for ready-for-testing table
+        qastatus: 'pending'                                   // Fixed: lowercase for ready-for-testing table
         // Note: client_path will be restored from clients table, not stored in ready-for-testing
       };
 

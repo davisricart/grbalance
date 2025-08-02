@@ -65,11 +65,11 @@ exports.handler = async (event, context) => {
         const clientData = {
           id: user.id,
           email: user.email,
-          business_name: user.businessname || 'Business Name Not Set',
+          business_name: user.businessname || 'Business Name Not Set',  // Fixed: lowercase from pendingUsers
           client_path: client_path,
-          subscription_tier: user.subscriptiontier || 'starter',
+          subscription_tier: user.subscriptiontier || 'starter',      // Fixed: lowercase from pendingUsers
           status: 'testing', // Maps to pending workflow stage
-          created_at: user.createdat,
+          created_at: user.createdat,                                 // Fixed: lowercase from pendingUsers
           updated_at: new Date().toISOString()
         };
 

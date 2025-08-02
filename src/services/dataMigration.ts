@@ -51,9 +51,9 @@ export const migrateExistingData = async (): Promise<{
         id: user.id,
         email: user.email,
         business_name: businessName,
-        business_type: user.businesstype || user.businessType || 'Other',
-        subscription_tier: user.subscriptiontier || user.subscriptionTier || 'starter',
-        billing_cycle: user.billingcycle || user.billingCycle || 'monthly',
+        business_type: user.businesstype || user.businessType || 'Other',      // Fixed: handles both casing
+        subscription_tier: user.subscriptiontier || user.subscriptionTier || 'starter', // Fixed: handles both casing
+        billing_cycle: user.billingcycle || user.billingCycle || 'monthly',  // Fixed: handles both casing
         workflow_stage: 'pending',
         source: 'pendingUsers'
       });
@@ -77,9 +77,9 @@ export const migrateExistingData = async (): Promise<{
         id: user.id,
         email: user.email,
         business_name: businessName,
-        business_type: user.businesstype || existing.business_type || 'Other',
-        subscription_tier: user.subscriptiontier || existing.subscription_tier || 'starter',
-        billing_cycle: user.billingcycle || existing.billing_cycle || 'monthly',
+        business_type: user.businesstype || existing.business_type || 'Other',      // Fixed: lowercase from ready-for-testing
+        subscription_tier: user.subscriptiontier || existing.subscription_tier || 'starter', // Fixed: lowercase from ready-for-testing
+        billing_cycle: user.billingcycle || existing.billing_cycle || 'monthly',  // Fixed: lowercase from ready-for-testing
         workflow_stage: 'qa_testing',
         source: (existing.source || '') + ',ready-for-testing'
       };

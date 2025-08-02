@@ -122,11 +122,11 @@ export const createUser = async (userData: {
     .upsert({
       id: userData.id,
       email: userData.email,
-      businessname: userData.business_name,
-      businesstype: userData.business_type,
-      subscriptiontier: userData.subscription_tier,
-      billingcycle: userData.billing_cycle,
-      createdat: now,
+      businessname: userData.business_name,    // Fixed: lowercase for pendingUsers
+      businesstype: userData.business_type,    // Fixed: lowercase for pendingUsers
+      subscriptiontier: userData.subscription_tier, // Fixed: lowercase for pendingUsers
+      billingcycle: userData.billing_cycle,    // Fixed: lowercase for pendingUsers
+      createdat: now,                          // Fixed: lowercase for pendingUsers
       status: 'pending'
     });
 
@@ -175,7 +175,7 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
   // Get business_type from pendingUsers table if available
   const { data: pendingData } = await supabase
     .from('pendingUsers')
-    .select('businesstype')
+    .select('businesstype')  // Fixed: lowercase for pendingUsers table
     .eq('id', userId)
     .single();
 
@@ -190,7 +190,7 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     id: clientData.id,
     email: clientData.email,
     business_name: clientData.business_name || 'Business Name Not Set',
-    business_type: pendingData?.businesstype || 'Other',
+    business_type: pendingData?.businesstype || 'Other',  // Fixed: lowercase column reference
     client_path: clientData.client_path,
     subscription_tier: clientData.subscription_tier || 'starter',
     status: clientData.status || 'testing',
@@ -309,7 +309,7 @@ export const getUsersByWorkflowStage = async (
   // Get business_type data from pendingUsers table (reuse existing userIds)
   const { data: pendingData } = await supabase
     .from('pendingUsers')
-    .select('id, businesstype')
+    .select('id, businesstype')  // Fixed: lowercase for pendingUsers table
     .in('id', userIds);
 
   // Create maps for efficient lookup
@@ -339,7 +339,7 @@ export const getUsersByWorkflowStage = async (
       id: usageUser.id,
       email: client.email,
       business_name: client.business_name || 'Business Name Not Set',
-      business_type: pending?.businesstype || 'Other',
+      business_type: pending?.businesstype || 'Other',  // Fixed: lowercase column reference
       client_path: client.client_path,
       subscription_tier: client.subscription_tier || 'starter',
       status: client.status || 'testing',
@@ -426,7 +426,7 @@ export const updateUserBusinessInfo = async (
     const { error: pendingError } = await supabase
       .from('pendingUsers')
       .update({
-        businesstype: updates.business_type
+        businesstype: updates.business_type  // Fixed: lowercase for pendingUsers table
       })
       .eq('id', userId);
 
