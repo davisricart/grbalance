@@ -1,6 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../config/supabase';
 
+// Admin emails configuration
+const ADMIN_EMAILS = ['davisricart@gmail.com'];
+
+/**
+ * Check if an email is an admin email
+ */
+export const isAdminEmail = (email: string): boolean => {
+  return ADMIN_EMAILS.includes(email?.toLowerCase());
+};
+
 interface AdminVerificationResponse {
   isAdmin: boolean;
   userEmail?: string;
@@ -25,7 +35,7 @@ export const verifyAdminAccess = async (): Promise<AdminVerificationResponse> =>
 
     // EMERGENCY BYPASS: Grant admin access to specific email
     const userEmail = user.email || '';
-    const isOwnerEmail = userEmail === 'davisricart@gmail.com';
+    const isOwnerEmail = isAdminEmail(userEmail);
     
     if (isOwnerEmail) {
       console.log('✅ AdminService: Owner access verified:', userEmail);
