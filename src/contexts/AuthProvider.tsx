@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '../config/supabase';
+import { getUserById } from '../services/userDataService';
+import { isAdminEmail } from '../services/adminService';
 
 interface UserStatus {
   isAuthenticated: boolean;
@@ -106,8 +108,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsAuthenticated(true);
         setUser(session.user);
         
-        // Admin access for owner email
-        if (session.user.email === 'davisricart@gmail.com') {
+        // Admin access using admin service
+        if (isAdminEmail(session.user.email)) {
           console.log('✅ AuthProvider: Admin access granted');
           if (mounted.current) {
             setUserStatus('approved');
@@ -118,44 +120,53 @@ export function AuthProvider({ children }: AuthProviderProps) {
           return;
         }
 
-        // Check user approval status for other users
+        // Check user approval status using unified service
         try {
-          const { data: userProfile, error } = await supabase
-            .from('usage')
-            .select('status')
-            .eq('id', session.user.id)
-            .single();
+          console.log('🔐 AuthProvider: Checking user status via unified service...');
+          const userData = await getUserById(session.user.id);
 
           if (!mounted.current) return;
 
-          if (error && error.code !== 'PGRST116') {
-            console.warn('🔐 AuthProvider: User profile fetch error:', error.message);
-            // Default to pending for safety
+          if (!userData) {
+            console.log('🔐 AuthProvider: User not found in database, setting as pending');
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
-            setIsLoading(false); // Set loading false after status is determined
-          } else if (userProfile?.status === 'approved' || userProfile?.status === 'trial') {
-            console.log('🔐 AuthProvider: User approved/trial active');
-            setUserStatus(userProfile.status);
-            setIsApproved(true);
-            setIsPending(false);
-            setIsLoading(false); // Set loading false after status is determined
+            setIsLoading(false);
           } else {
-            console.log('🔐 AuthProvider: User pending approval');
-            setUserStatus('pending');
-            setIsApproved(false);
-            setIsPending(true);
-            setIsLoading(false); // Set loading false after status is determined
+            // Map workflow_stage to auth status
+            const statusMap = {
+              'pending': 'pending',
+              'qa_testing': 'pending', // Still pending from user perspective
+              'approved': userData.status === 'active' ? 'trial' : 'approved', // Use actual status from unified data
+              'deactivated': 'pending',
+              'deleted': 'pending'
+            };
+            
+            const authStatus = statusMap[userData.workflow_stage] || 'pending';
+            
+            if (authStatus === 'approved' || authStatus === 'trial') {
+              console.log('🔐 AuthProvider: User approved/trial active via unified service');
+              setUserStatus(authStatus);
+              setIsApproved(true);
+              setIsPending(false);
+              setIsLoading(false);
+            } else {
+              console.log('🔐 AuthProvider: User pending approval via unified service');
+              setUserStatus('pending');
+              setIsApproved(false);
+              setIsPending(true);
+              setIsLoading(false);
+            }
           }
-        } catch (profileError: any) {
-          console.warn('🔐 AuthProvider: Error checking user status:', profileError.message);
+        } catch (serviceError: any) {
+          console.warn('🔐 AuthProvider: Error checking user status via unified service:', serviceError.message);
           if (mounted.current) {
             // Default to pending for security
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
-            setIsLoading(false); // Set loading false after status is determined
+            setIsLoading(false);
           }
         }
       } else {
