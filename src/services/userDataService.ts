@@ -68,28 +68,52 @@ export const createUser = async (userData: {
     // billing_cycle is stored in usage table
   };
 
+  console.log('🔍 CLIENTS TABLE INSERT - Data being sent:', JSON.stringify(clientData, null, 2));
+
   const { error: clientError } = await supabase
     .from('clients')
     .upsert(clientData);
 
-  if (clientError) throw clientError;
+  if (clientError) {
+    console.error('❌ CLIENTS TABLE INSERT FAILED:', JSON.stringify(clientError, null, 2));
+    console.error('❌ Error code:', clientError.code);
+    console.error('❌ Error message:', clientError.message);
+    console.error('❌ Error details:', clientError.details);
+    console.error('❌ Error hint:', clientError.hint);
+    throw clientError;
+  }
+
+  console.log('✅ CLIENTS TABLE INSERT SUCCESS');
 
   // Create usage tracking record (includes subscription and billing info)
+  const usageData = {
+    id: userData.id,
+    email: userData.email,
+    subscriptiontier: userData.subscription_tier, // snake_case for database
+    billingcycle: userData.billing_cycle, // snake_case for database
+    comparisonsUsed: 0,
+    comparisonsLimit: comparison_limit,
+    status: 'pending',
+    createdat: now, // snake_case for database
+    updatedAt: now
+  };
+
+  console.log('🔍 USAGE TABLE INSERT - Data being sent:', JSON.stringify(usageData, null, 2));
+  
   const { error: usageError } = await supabase
     .from('usage')
-    .upsert({
-      id: userData.id,
-      email: userData.email,
-      subscriptiontier: userData.subscription_tier, // snake_case for database
-      billingcycle: userData.billing_cycle, // snake_case for database
-      comparisonsUsed: 0,
-      comparisonsLimit: comparison_limit,
-      status: 'pending',
-      createdat: now, // snake_case for database
-      updatedAt: now
-    });
+    .upsert(usageData);
 
-  if (usageError) throw usageError;
+  if (usageError) {
+    console.error('❌ USAGE TABLE INSERT FAILED:', JSON.stringify(usageError, null, 2));
+    console.error('❌ Error code:', usageError.code);
+    console.error('❌ Error message:', usageError.message);
+    console.error('❌ Error details:', usageError.details);
+    console.error('❌ Error hint:', usageError.hint);
+    throw usageError;
+  }
+
+  console.log('✅ USAGE TABLE INSERT SUCCESS');
 
   // Also maintain backward compatibility with pendingUsers table
   const { error: pendingError } = await supabase
