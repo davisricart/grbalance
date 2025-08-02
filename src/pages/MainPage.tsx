@@ -6,7 +6,7 @@ import { supabase } from '../config/supabase';
 import { useNavigate } from 'react-router-dom';
 import UsageCounter from '../components/UsageCounter';
 import VirtualTable from '../components/VirtualTable';
-import { canPerformReconciliation, incrementUsage } from '../services/usageService';
+import { canPerformReconciliation, incrementUsage, getUserUsage, checkAndResetMonthlyLimits } from '../services/usageService';
 import {
   ReconciliationResult,
   RawFileData,
@@ -398,48 +398,7 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
     });
   };
 
-  // Automatic monthly limit reset based on subscription tier
-  const checkAndResetMonthlyLimits = async (userData: any) => {
-    try {
-      const currentDate = new Date();
-      const currentMonth = currentDate.getFullYear() + '-' + String(currentDate.getMonth() + 1).padStart(2, '0');
-      
-      // Check if we need to reset for new month
-      const lastResetDate = userData.lastLimitReset ? new Date(userData.lastLimitReset) : null;
-      const lastResetMonth = lastResetDate ? 
-        lastResetDate.getFullYear() + '-' + String(lastResetDate.getMonth() + 1).padStart(2, '0') : null;
-
-      if (lastResetMonth !== currentMonth) {
-        // Get default limit for subscription tier
-        const tierLimits = {
-          'starter': 50,
-          'professional': 100,
-          'business': 200
-        };
-
-        const defaultLimit = tierLimits[userData.subscriptionTier as keyof typeof tierLimits] || 50;
-
-        // Reset usage and limit for new month
-        const { error } = await supabase
-          .from('usage')
-          .update({
-            comparisonsUsed: 0,
-            comparisonsLimit: defaultLimit,
-            lastLimitReset: currentDate.toISOString(),
-            updatedAt: currentDate.toISOString()
-          })
-          .eq('id', userData.id);
-
-        if (error) {
-          console.error('Error resetting monthly limits:', error);
-        } else {
-          console.log(`📅 Auto-reset: ${userData.subscriptionTier} user to ${defaultLimit} comparisons for ${currentMonth}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error in checkAndResetMonthlyLimits:', error);
-    }
-  };
+  // Note: Monthly limit reset logic moved to usageService.checkAndResetMonthlyLimits()
 
   const handleCompare = async () => {
     // First, check if user can perform reconciliation (usage limits, account status)
@@ -511,29 +470,13 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
         console.log('🧪 UNLIMITED MODE: Bypassing usage limits (localhost or test user)');
       } else {
         // Only check and update usage limits for real users on live site
-        console.log('📊 PRODUCTION MODE: Checking usage limits for real user');
+        console.log('📊 PRODUCTION MODE: Checking usage limits for real user via service');
         
-        const { data: userData, error: fetchError } = await supabase
-          .from('usage')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-        
-        if (fetchError || !userData) {
+        // Check and auto-reset monthly limits, get current usage data
+        const currentUserData = await checkAndResetMonthlyLimits(user.id);
+        if (!currentUserData) {
           throw new Error('Usage data not found');
         }
-
-        // Auto-reset monthly limits based on subscription tier
-        await checkAndResetMonthlyLimits(userData);
-
-        // Re-fetch user data after potential reset
-        const { data: refreshedUserData, error: refreshError } = await supabase
-          .from('usage')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-
-        const currentUserData = refreshedUserData || userData;
 
         // Check if near limit (80% or more)
         const usagePercentage = (currentUserData.comparisonsUsed / currentUserData.comparisonsLimit) * 100;
@@ -545,15 +488,9 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
           throw new Error(`Monthly limit of ${currentUserData.comparisonsLimit} comparisons reached. Please contact support to upgrade your plan.`);
         }
 
-        // Update usage count
-        const { error: updateError } = await supabase
-          .from('usage')
-          .update({
-            comparisonsUsed: currentUserData.comparisonsUsed + 1
-          })
-          .eq('id', user.id);
-        
-        if (updateError) {
+        // Update usage count via service
+        const success = await incrementUsage(user.id);
+        if (!success) {
           throw new Error('Failed to update usage count');
         }
       }
