@@ -235,7 +235,7 @@ export const updateUserWorkflowStage = async (
   const statusMap = {
     pending: 'pending',
     qa_testing: 'trial', 
-    approved: 'approved',
+    approved: 'trial', // Keep trial status when moving to approved stage
     deactivated: 'deactivated',
     deleted: 'deleted'
   };
