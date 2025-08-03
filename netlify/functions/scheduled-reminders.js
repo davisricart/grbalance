@@ -173,16 +173,21 @@ function createReminderEmail(user) {
                 
                 <p><strong>Don't let processing errors continue costing you money.</strong> Our salon clients typically save $8,400+ annually by catching hidden fees and discrepancies.</p>
                 
-                <p>Your account for <strong>${user.businessName}</strong> is ready - we just need 15 minutes to understand your payment setup and create your custom reconciliation solution.</p>
+                <p>Your account for <strong>${user.businessName}</strong> is ready - we just need a 30-minute call to understand your payment setup and create your custom reconciliation solution.</p>
                 
                 <div style="text-align: center;">
                     <a href="https://grbalance.com/book" class="button">Schedule Your Consultation</a>
                 </div>
                 
+                <p style="background: #f0fdf4; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">
+                    <strong>Prefer to explain your needs in writing?</strong><br>
+                    Some people find it easier to describe their reconciliation challenges via email. We're happy to start the conversation however you're most comfortable - just reply to this email with your questions or challenges.
+                </p>
+                
                 <p><strong>What happens next:</strong></p>
                 <ul>
-                    <li>15-minute consultation call</li>
-                    <li>Custom script built for your business</li>
+                    <li>30-minute consultation call</li>
+                    <li>Custom script built for your business (5-7 business days)</li>
                     <li>14-day free trial to test everything</li>
                     <li>Start catching errors immediately</li>
                 </ul>
