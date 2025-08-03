@@ -349,14 +349,14 @@ export default function BillingPage() {
                   ))}
                 </div>
                 
-                {/* Show change plan button if not business or if different plan selected */}
-                {(usage.subscriptionTier !== 'business' || selectedPlan !== usage.subscriptionTier) && (
+                {/* Show change plan button for trial users or if different plan selected or not business */}
+                {(usage.status === 'trial' || usage.subscriptionTier !== 'business' || selectedPlan !== usage.subscriptionTier) && (
                   <div className="mt-6 text-center">
                     <button
                       onClick={() => handleUpgrade(selectedPlan)}
-                      disabled={upgrading || selectedPlan === usage.subscriptionTier}
+                      disabled={upgrading || (selectedPlan === usage.subscriptionTier && usage.status !== 'trial')}
                       className={`px-8 py-3 rounded-lg disabled:opacity-50 flex items-center gap-2 mx-auto ${
-                        selectedPlan === usage.subscriptionTier 
+                        (selectedPlan === usage.subscriptionTier && usage.status !== 'trial')
                           ? 'bg-gray-400 text-white cursor-not-allowed' 
                           : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
@@ -366,11 +366,13 @@ export default function BillingPage() {
                           <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                           Processing...
                         </>
-                      ) : selectedPlan === usage.subscriptionTier ? (
+                      ) : (selectedPlan === usage.subscriptionTier && usage.status !== 'trial') ? (
                         <>Current Plan</>
                       ) : (
                         <>
-                          {selectedPlan > usage.subscriptionTier || usage.status === 'trial' ? 'Upgrade' : 'Change'} to {PLANS[selectedPlan]?.name || 'Selected Plan'}
+                          {usage.status === 'trial' && selectedPlan === usage.subscriptionTier ? 'Start Paid Plan' : 
+                           selectedPlan > usage.subscriptionTier || usage.status === 'trial' ? 'Upgrade' : 'Change'} 
+                          {usage.status === 'trial' && selectedPlan === usage.subscriptionTier ? '' : ` to ${PLANS[selectedPlan]?.name || 'Selected Plan'}`}
                           <ArrowRight className="h-4 w-4" />
                         </>
                       )}
