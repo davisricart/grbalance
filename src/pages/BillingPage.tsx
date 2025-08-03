@@ -383,10 +383,10 @@ export default function BillingPage() {
                     )}
                   </div>
                 )}
-                  <p className="text-xs text-gray-500 mt-2">
-                    Secure payment processing by Stripe
-                  </p>
-                </div>
+                
+                <p className="text-xs text-gray-500 mt-6 text-center">
+                  Secure payment processing by Stripe
+                </p>
               </div>
             )}
 
