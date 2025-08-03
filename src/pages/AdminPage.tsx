@@ -3056,41 +3056,38 @@ This will:
               }
             }}
             onUpdateTestingUser={async (userId: string, updates: Partial<ReadyForTestingUser>) => {
-              // Convert camelCase field names to snake_case database column names
-              const dbUpdates: any = {};
+              // Import the database mapper
+              const { ReadyForTestingMapper } = await import('../services/databaseMapper');
               
-              if (updates.qaStatus !== undefined) dbUpdates.qastatus = updates.qaStatus;
-              // Note: Skipping qaTestedAt for now - column may not exist in database
-              // if (updates.qaTestedAt !== undefined) dbUpdates.qatestedat = updates.qaTestedAt;
-              if (updates.qaTestingNotes !== undefined) dbUpdates.qatestnotes = updates.qaTestingNotes;
-              if (updates.websiteProvisioned !== undefined) dbUpdates.websiteprovisioned = updates.websiteProvisioned;
-              if (updates.websiteProvisionedAt !== undefined) dbUpdates.websiteprovisionedat = updates.websiteProvisionedAt;
-              if (updates.scriptDeployed !== undefined) dbUpdates.scriptdeployed = updates.scriptDeployed;
-              if (updates.scriptDeployedAt !== undefined) dbUpdates.scriptdeployedat = updates.scriptDeployedAt;
-              if (updates.siteUrl !== undefined) dbUpdates.siteurl = updates.siteUrl;
-              if (updates.siteId !== undefined) dbUpdates.siteid = updates.siteId;
-              if (updates.siteName !== undefined) dbUpdates.sitename = updates.siteName;
+              // Map standardized field names to actual database column names
+              const standardUpdates = {
+                ...(updates.qaStatus !== undefined && { qa_status: updates.qaStatus }),
+                ...(updates.qaTestingNotes !== undefined && { qa_testing_notes: updates.qaTestingNotes }),
+                ...(updates.websiteProvisioned !== undefined && { website_provisioned: updates.websiteProvisioned }),
+                ...(updates.scriptDeployed !== undefined && { script_deployed: updates.scriptDeployed }),
+                updated_at: new Date().toISOString()
+              };
               
-              console.log('📝 Updating database with:', dbUpdates);
+              const dbUpdates = ReadyForTestingMapper.toDb(standardUpdates);
+              
+              console.log('📝 Updating database with mapped columns:', dbUpdates);
               
               // Try to update first, then insert if no record exists (UPSERT)
               const { error: updateError } = await supabase
                 .from('ready-for-testing')
-                .update({
-                  ...dbUpdates,
-                  updatedat: new Date().toISOString()
-                })
+                .update(dbUpdates)
                 .eq('id', userId);
               
               if (updateError) {
                 // If update failed, try to insert a new record
                 console.log('🔄 Update failed, attempting insert...');
-                const insertData = {
+                const insertStandardData = {
                   id: userId,
-                  readyfortestingat: new Date().toISOString(),
-                  ...dbUpdates,
-                  updatedat: new Date().toISOString()
+                  ready_for_testing_at: new Date().toISOString(),
+                  ...standardUpdates
                 };
+                
+                const insertData = ReadyForTestingMapper.toDb(insertStandardData);
                 
                 const { error: insertError } = await supabase
                   .from('ready-for-testing')
@@ -3101,9 +3098,9 @@ This will:
                   throw insertError;
                 }
                 
-                console.log('✅ New ready-for-testing record created');
+                console.log('✅ New ready-for-testing record created with mapped columns');
               } else {
-                console.log('✅ Database update successful');
+                console.log('✅ Database update successful with mapped columns');
               }
               
               // Refresh data
