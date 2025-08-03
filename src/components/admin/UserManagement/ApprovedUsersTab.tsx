@@ -749,7 +749,7 @@ const ApprovedUsersTab = React.memo(({
                     </button>
                     
                     <button
-                                                  onClick={() => handleActivateClient(user.id, user.email, (user.subscriptionTier || 'starter') as string, user.client_path)}
+                                                  onClick={() => handleActivateClient(user.id, user.email, (user.subscriptionTier || 'starter') as string, clientPath)}
                       disabled={isProcessingUser}
                       className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-emerald-600 text-white rounded-lg text-sm font-medium shadow-lg hover:from-blue-700 hover:to-emerald-700 transform hover:scale-105 transition-all disabled:opacity-50"
                     >
