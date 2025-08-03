@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Shield, AlertTriangle, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, EyeOff, ArrowLeft, CheckSquare } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 
@@ -10,6 +10,7 @@ export default function AdminLoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isHuman, setIsHuman] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,6 +31,13 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     try {
+      // Check human verification first
+      if (!isHuman) {
+        setError('Please verify that you are human');
+        setIsLoading(false);
+        return;
+      }
+
       // First check if this is the admin email
       if (email !== 'davisricart@gmail.com') {
         setError('Unauthorized access. This is a secure admin portal.');
@@ -165,6 +173,20 @@ export default function AdminLoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-center">
+              <label className="flex items-center gap-2 cursor-pointer group">
+                <div 
+                  className={`w-6 h-6 rounded border transition-colors duration-200 flex items-center justify-center ${
+                    isHuman ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 group-hover:border-emerald-400'
+                  }`}
+                  onClick={() => setIsHuman(!isHuman)}
+                >
+                  {isHuman && <CheckSquare className="w-5 h-5 text-white" />}
+                </div>
+                <span className="text-sm text-gray-600">I am human</span>
+              </label>
             </div>
 
             {error && (
