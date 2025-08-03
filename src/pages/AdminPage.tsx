@@ -2993,23 +2993,8 @@ This will:
                 console.log('🔧 Updating workflow stage from qa_testing to approved via unified service...');
                 await updateUserWorkflowStage(userId, 'approved');
                 
-                // Preserve QA-specific data in usage table (site URLs, scripts, etc.)
-                const approvalExtras = {
-                  siteUrl: readyUser.siteUrl,
-                  siteName: readyUser.siteName,
-                  approvedat: new Date().toISOString()
-                };
-                
-                // Update usage table with approval-specific data
-                console.log('📝 Adding approval-specific data to usage table...');
-                const { error: usageUpdateError } = await supabase
-                  .from('usage')
-                  .update(approvalExtras)
-                  .eq('id', userId);
-                
-                if (usageUpdateError) {
-                  console.warn('⚠️ Failed to update usage table with approval data (non-critical):', usageUpdateError);
-                }
+                // Note: Additional approval data is handled by updateUserWorkflowStage
+                // No need to update usage table with extra fields that don't exist
                 
                 // Remove from ready-for-testing collection (QA data no longer needed)
                 console.log('🗑️ Removing from ready-for-testing collection...');
