@@ -696,7 +696,9 @@ const AdminPage: React.FC = () => {
         currentStatus: userToDelete?.status
       });
 
-      // STEP 1: Verify user exists before deletion
+      // STEP 1: Verify user exists before deletion and check all related tables
+      console.log('🔍 Checking user existence across all tables...');
+      
       const { data: existingUser, error: selectError } = await supabase
         .from('usage')
         .select('id, email, status')
@@ -713,7 +715,15 @@ const AdminPage: React.FC = () => {
         throw new Error('User not found in database');
       }
 
-      console.log('✅ User exists in database:', existingUser);
+      console.log('✅ User exists in usage table:', existingUser);
+      
+      // Also check clients table for related data
+      const { data: clientData } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('id', userId);
+      
+      console.log('🔍 Client table data before deletion:', clientData);
       
       // STEP 2: Perform delete with enhanced response logging
       console.log('🔄 Executing delete operation...');
@@ -782,6 +792,26 @@ const AdminPage: React.FC = () => {
         }
         
         console.log('✅ Complete user deletion successful:', deleteResult.message);
+        
+        // Verify deletion was complete
+        console.log('🔍 Verifying complete deletion...');
+        const { data: remainingUsage } = await supabase
+          .from('usage')
+          .select('id')
+          .eq('id', userId);
+        
+        const { data: remainingClient } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('id', userId);
+          
+        console.log('🔍 Remaining usage records:', remainingUsage?.length || 0);
+        console.log('🔍 Remaining client records:', remainingClient?.length || 0);
+        
+        if (remainingUsage?.length > 0 || remainingClient?.length > 0) {
+          console.warn('⚠️ WARNING: Some data still exists after deletion!');
+        }
+        
       } catch (serverDeleteError) {
         console.error('❌ Server deletion error:', serverDeleteError);
         throw new Error(`Complete deletion failed: ${serverDeleteError.message}`);
