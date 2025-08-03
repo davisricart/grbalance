@@ -215,6 +215,21 @@ const ApprovedUsersTab = React.memo(({
   };
 
   const getUserState = (userId: string) => {
+    // Check if user has been activated by looking for trial data in the user object
+    const user = users.find(u => u.id === userId);
+    const hasTrialData = user && getTrialTimeRemaining(user);
+    
+    // If user has trial data, they've been activated
+    if (hasTrialData) {
+      return {
+        billingSetup: false,
+        trialStarted: true,
+        welcomePackageSent: true,
+        goLive: true
+      };
+    }
+    
+    // Otherwise use local state (for in-progress activations)
     return userStates[userId] || {
       billingSetup: false,
       trialStarted: false,
