@@ -278,10 +278,12 @@ export default function BillingPage() {
               </div>
             </div>
 
-            {/* Upgrade Options */}
-            {usage?.status === 'trial' && (
+            {/* Plan Change Options - Available to all users */}
+            {usage && (
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-6">Upgrade Your Plan</h2>
+                <h2 className="text-xl font-semibold text-gray-900 mb-6">
+                  {usage.subscriptionTier === 'business' ? 'Your Plan Options' : 'Change Your Plan'}
+                </h2>
                 
                 {/* Annual/Monthly Toggle */}
                 <div className="flex justify-center mb-6">
@@ -347,24 +349,40 @@ export default function BillingPage() {
                   ))}
                 </div>
                 
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={() => handleUpgrade(selectedPlan)}
-                    disabled={upgrading}
-                    className="bg-emerald-600 text-white px-8 py-3 rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2 mx-auto"
-                  >
-                    {upgrading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Upgrade to {PLANS[selectedPlan]?.name || 'Selected Plan'}
-                        <ArrowRight className="h-4 w-4" />
-                      </>
+                {/* Show change plan button if not business or if different plan selected */}
+                {(usage.subscriptionTier !== 'business' || selectedPlan !== usage.subscriptionTier) && (
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => handleUpgrade(selectedPlan)}
+                      disabled={upgrading || selectedPlan === usage.subscriptionTier}
+                      className={`px-8 py-3 rounded-lg disabled:opacity-50 flex items-center gap-2 mx-auto ${
+                        selectedPlan === usage.subscriptionTier 
+                          ? 'bg-gray-400 text-white cursor-not-allowed' 
+                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
+                      }`}
+                    >
+                      {upgrading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                          Processing...
+                        </>
+                      ) : selectedPlan === usage.subscriptionTier ? (
+                        <>Current Plan</>
+                      ) : (
+                        <>
+                          {selectedPlan > usage.subscriptionTier || usage.status === 'trial' ? 'Upgrade' : 'Change'} to {PLANS[selectedPlan]?.name || 'Selected Plan'}
+                          <ArrowRight className="h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                    
+                    {usage.subscriptionTier === 'business' && selectedPlan !== 'business' && (
+                      <p className="text-xs text-amber-600 mt-2">
+                        Note: Changing from Business plan may result in feature limitations
+                      </p>
                     )}
-                  </button>
+                  </div>
+                )}
                   <p className="text-xs text-gray-500 mt-2">
                     Secure payment processing by Stripe
                   </p>

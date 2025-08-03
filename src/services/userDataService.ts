@@ -320,7 +320,7 @@ export const getUsersByWorkflowStage = async (
   // Map status to workflow stage based on usage table status (single source of truth)
   const usageStatusToWorkflowStage = {
     'pending': 'pending',
-    'trial': 'qa_testing',
+    'trial': 'approved', // Trial users should show in approved tab
     'approved': 'approved',
     'deactivated': 'deactivated',
     'deleted': 'deleted'
