@@ -397,6 +397,12 @@ const ApprovedUsersTab = React.memo(({
       }));
       
       console.log('✅ CLIENT ACTIVATION COMPLETE! Welcome email sent and all systems automated.');
+      console.log('🔍 Final userState for', userId, ':', {
+        trialStarted: true,
+        welcomePackageSent: true,
+        goLive: true,
+        billingSetup: false
+      });
       
       // Refresh the parent users list to show updated status
       if (onRefreshUsers) {
@@ -476,6 +482,14 @@ const ApprovedUsersTab = React.memo(({
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
           const userState = getUserState(user.id);
           const isProcessingUser = processing === user.id;
+          
+          // Debug activation state
+          console.log('🔍 Checking activation state for', user.id, ':', {
+            trialStarted: userState.trialStarted,
+            welcomePackageSent: userState.welcomePackageSent,
+            goLive: userState.goLive,
+            shouldShowActivated: (userState.trialStarted && userState.welcomePackageSent && userState.goLive)
+          });
           
           return (
             <div key={user.id} className="px-6 py-5 hover:bg-gray-50 transition-colors">
