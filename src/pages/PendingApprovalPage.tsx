@@ -60,6 +60,15 @@ export default function PendingApprovalPage() {
                     <ExternalLink className="h-4 w-4" />
                   </a>
                   
+                  <div className="mt-6 pt-6 border-t border-emerald-400/30">
+                    <h3 className="text-lg font-semibold text-white mb-2">
+                      Prefer to explain your needs in writing?
+                    </h3>
+                    <p className="text-emerald-100 text-sm mb-4">
+                      Some people find it easier to describe their reconciliation challenges via email. We're happy to start the conversation however you're most comfortable.
+                    </p>
+                  </div>
+                  
                   <div className="flex flex-col sm:flex-row gap-3 justify-center relative">
                     <div className="relative">
                       <button 
