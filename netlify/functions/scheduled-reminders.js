@@ -181,7 +181,7 @@ function createReminderEmail(user) {
                 
                 <p style="background: #f0fdf4; padding: 15px; border-radius: 6px; border-left: 4px solid #10b981;">
                     <strong>Prefer to explain your needs in writing?</strong><br>
-                    Some people find it easier to describe their reconciliation challenges via email. We're happy to start the conversation however you're most comfortable - just email us at <a href="mailto:davis@grbalance.com">davis@grbalance.com</a> with your questions or challenges.
+                    Some people find it easier to describe their reconciliation challenges via email. We're happy to start the conversation however you're most comfortable - just reply to this email with your questions or challenges.
                 </p>
                 
                 <p><strong>What happens next:</strong></p>
@@ -192,7 +192,7 @@ function createReminderEmail(user) {
                     <li>Start catching errors immediately</li>
                 </ul>
                 
-                <p>Questions? Email us at <a href="mailto:davis@grbalance.com">davis@grbalance.com</a>.</p>
+                <p>Questions? Just reply to this email.</p>
                 
                 <p>Best regards,<br>
                 The GR Balance Team</p>
