@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { FileText, CheckSquare } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import clientConfig from '../config/client';
 import ReconciliationApp from './ReconciliationApp';
@@ -27,6 +27,7 @@ export default function ClientPortalPage() {
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [isAdminBypass, setIsAdminBypass] = useState(false);
+  const [isHuman, setIsHuman] = useState(false);
 
   // Check authentication status on component load
   useEffect(() => {
@@ -208,6 +209,11 @@ export default function ClientPortalPage() {
     e.preventDefault();
     setError('');
     
+    if (!isHuman) {
+      setError('Please verify that you are human');
+      return;
+    }
+    
     if (!clientData) return;
     
     try {
@@ -372,6 +378,20 @@ export default function ClientPortalPage() {
                   className="w-full px-3 py-2.5 rounded-lg border border-emerald-100 focus:ring-2 focus:ring-emerald-400/50 focus:border-transparent transition duration-200"
                   required
                 />
+              </div>
+
+              <div className="flex items-center justify-center">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div 
+                    className={`w-6 h-6 rounded border transition-colors duration-200 flex items-center justify-center ${
+                      isHuman ? 'bg-emerald-600 border-emerald-600' : 'border-gray-300 group-hover:border-emerald-400'
+                    }`}
+                    onClick={() => setIsHuman(!isHuman)}
+                  >
+                    {isHuman && <CheckSquare className="w-5 h-5 text-white" />}
+                  </div>
+                  <span className="text-sm text-gray-600">I am human</span>
+                </label>
               </div>
               
               {error && (
