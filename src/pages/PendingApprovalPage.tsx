@@ -161,7 +161,7 @@ export default function PendingApprovalPage() {
 
               <div className="text-center">
                 <p className="text-gray-600 mb-4">
-                  <strong>Typical Timeline:</strong> 2-3 business days after consultation
+                  <strong>Typical Timeline:</strong> 5-7 business days after consultation
                 </p>
                 
                 <div className="flex items-center justify-center gap-4 text-sm text-gray-500">

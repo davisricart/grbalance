@@ -14,7 +14,7 @@ export default function SupportPage() {
     },
     {
       question: "How does the setup process work?",
-      answer: "We start with a 30-minute strategy call to understand your needs. Our team builds your solution, tests it, and delivers a ready-to-use portal. Most solutions are live within 1-2 weeks."
+      answer: "We start with a 30-minute strategy call to understand your needs. Our team builds your solution, tests it, and delivers a ready-to-use portal. Most solutions are live within 5-7 business days."
     },
     {
       question: "What file formats are supported?",
@@ -26,7 +26,7 @@ export default function SupportPage() {
     },
     {
       question: "How long does setup take?",
-      answer: "Most solutions are live within 1-2 weeks after your consultation."
+      answer: "Most solutions are live within 5-7 business days after your consultation."
     },
     {
       question: "What if you're unavailable?",
@@ -97,7 +97,7 @@ export default function SupportPage() {
                   "name": "How long does setup take?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Initial setup typically takes 1-2 business days. We analyze your specific salon software and payment processor formats to create custom reconciliation scripts tailored to your data structure."
+                    "text": "Initial setup typically takes 5-7 business days. We analyze your specific salon software and payment processor formats to create custom reconciliation scripts tailored to your data structure."
                   }
                 }
               ]
