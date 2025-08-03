@@ -3088,8 +3088,8 @@ This will:
               
               console.log('📝 Updating database with:', dbUpdates);
               
-              // Update ready-for-testing user data
-              const { error } = await supabase
+              // Try to update first, then insert if no record exists (UPSERT)
+              const { error: updateError } = await supabase
                 .from('ready-for-testing')
                 .update({
                   ...dbUpdates,
@@ -3097,12 +3097,29 @@ This will:
                 })
                 .eq('id', userId);
               
-              if (error) {
-                console.error('❌ Database update failed:', error);
-                throw error;
+              if (updateError) {
+                // If update failed, try to insert a new record
+                console.log('🔄 Update failed, attempting insert...');
+                const insertData = {
+                  id: userId,
+                  readyfortestingat: new Date().toISOString(),
+                  ...dbUpdates,
+                  updatedat: new Date().toISOString()
+                };
+                
+                const { error: insertError } = await supabase
+                  .from('ready-for-testing')
+                  .insert(insertData);
+                
+                if (insertError) {
+                  console.error('❌ Both update and insert failed:', insertError);
+                  throw insertError;
+                }
+                
+                console.log('✅ New ready-for-testing record created');
+              } else {
+                console.log('✅ Database update successful');
               }
-              
-              console.log('✅ Database update successful');
               
               // Refresh data
               await fetchReadyForTestingUsers();
