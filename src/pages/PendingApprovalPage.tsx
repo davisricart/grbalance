@@ -64,7 +64,7 @@ export default function PendingApprovalPage() {
                     <h3 className="text-lg font-semibold text-white mb-2">
                       Prefer to explain your needs in writing?
                     </h3>
-                    <p className="text-emerald-100 text-sm mb-4">
+                    <p className="text-emerald-100 mb-4">
                       Some people find it easier to describe their reconciliation challenges via email. We're happy to start the conversation however you're most comfortable.
                     </p>
                   </div>
@@ -102,7 +102,6 @@ export default function PendingApprovalPage() {
                       href="/contact"
                       className="bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium hover:bg-emerald-800 transition-colors flex items-center justify-center gap-2 text-sm min-w-[120px]"
                     >
-                      <Phone className="h-4 w-4" />
                       Contact Us
                     </a>
                   </div>
