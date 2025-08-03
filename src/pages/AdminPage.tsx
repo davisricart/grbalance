@@ -1209,7 +1209,6 @@ const AdminPage: React.FC = () => {
         .update({
           status: 'deactivated',
           comparisonsLimit: 0, // Remove access
-          deactivatedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
@@ -1245,7 +1244,6 @@ const AdminPage: React.FC = () => {
         .update({
           status: 'approved',
           comparisonsLimit: comparisonLimit,
-          reactivatedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
@@ -2201,14 +2199,13 @@ This will:
     }
   };
 
-  // Hard delete approved user (DANGEROUS - use deactivateApprovedUser instead for normal cases)
+  // Hard delete approved user
   const deleteApprovedUser = async (userId: string) => {
     console.warn('⚠️ deleteApprovedUser called - this should only be used for true hard deletions!');
     console.warn('⚠️ Consider using deactivateApprovedUser instead to preserve data');
     
-    // For now, redirect to deactivation to prevent data loss
-    // If hard deletion is really needed, use the handleDeleteUser flow instead
-    return deactivateApprovedUser(userId);
+    // Call the proper deleteUser function for complete deletion
+    return deleteUser(userId);
   };
 
   // Clean up orphaned auth user (for fixing stuck registrations)
