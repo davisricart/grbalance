@@ -100,6 +100,14 @@ export default function BillingPage() {
         const usageData = await getUserUsage(user.id);
         setUsage(usageData);
 
+        // Debug billing data
+        console.log('🔍 BillingPage: User data:', {
+          userId: user.id,
+          userCreatedAt: user.created_at,
+          usageStatus: usageData?.status,
+          subscriptionTier: usageData?.subscriptionTier
+        });
+
         // Calculate trial days left using shared service
         if (usageData?.status === 'trial') {
           const trialInfo = calculateTrialFromCreatedAt(user.created_at, true);
