@@ -1,5 +1,6 @@
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const { createClient } = require('@supabase/supabase-js');
+const { mapToUsageDb } = require('./dbMapper');
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -89,17 +90,19 @@ async function handleCheckoutCompleted(session) {
 
   try {
     // Update user status to 'paid' and store subscription info
+    const updateData = mapToUsageDb({
+      status: 'paid',
+      stripeCustomerId: session.customer,
+      stripeSubscriptionId: session.subscription,
+      subscription_tier: tier,
+      billing_cycle: cycle,
+      trialEnded: true,
+      paidAt: new Date().toISOString()
+    });
+
     const { error } = await supabase
       .from('usage')
-      .update({
-        status: 'paid',
-        stripeCustomerId: session.customer,
-        stripeSubscriptionId: session.subscription,
-        subscriptionTier: tier,
-        billingCycle: cycle,
-        trialEnded: true,
-        paidAt: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) throw error;
@@ -122,14 +125,16 @@ async function handleSubscriptionCreated(subscription) {
   }
 
   try {
+    const updateData = mapToUsageDb({
+      stripeSubscriptionId: subscription.id,
+      subscriptionStatus: subscription.status,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString()
+    });
+
     const { error } = await supabase
       .from('usage')
-      .update({
-        stripeSubscriptionId: subscription.id,
-        subscriptionStatus: subscription.status,
-        currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-        currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString()
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) throw error;

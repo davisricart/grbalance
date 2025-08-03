@@ -1,5 +1,6 @@
 // Usage tracking service for GR Balance
 import { supabase } from '../config/supabase';
+import { UsageMapper } from './databaseMapper';
 import { withErrorHandling, validateRequired, ServiceResult } from '../utils/errorHandler';
 
 export interface UsageData {
@@ -21,9 +22,10 @@ export const TIER_LIMITS = {
  */
 export async function getUserUsage(userId: string): Promise<UsageData | null> {
   try {
+    const selectColumns = `${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}, ${UsageMapper.column('subscription_tier')}, status`;
     const { data, error } = await supabase
       .from('usage')
-      .select('comparisonsUsed, comparisonsLimit, subscriptionTier, status')
+      .select(selectColumns)
       .eq('id', userId)
       .single();
 
@@ -33,9 +35,9 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
     }
 
     return {
-      comparisonsUsed: data.comparisonsUsed || 0,
-      comparisonsLimit: data.comparisonsLimit || TIER_LIMITS.starter,
-      subscriptionTier: data.subscriptionTier || 'starter',
+      comparisonsUsed: data[UsageMapper.column('comparisons_used')] || 0,
+      comparisonsLimit: data[UsageMapper.column('comparisons_limit')] || TIER_LIMITS.starter,
+      subscriptionTier: data[UsageMapper.column('subscription_tier')] || 'starter',
       status: data.status || 'pending',
       lastLimitReset: undefined // Column doesn't exist in usage table
     };
@@ -68,12 +70,14 @@ export async function incrementUsage(userId: string): Promise<boolean> {
     // Increment the count
     const newUsageCount = currentUsage.comparisonsUsed + 1;
     
+    const updateData = UsageMapper.toDb({
+      comparisons_used: newUsageCount,
+      updated_at: new Date().toISOString()
+    });
+    
     const { error } = await supabase
       .from('usage')
-      .update({ 
-        comparisonsUsed: newUsageCount,
-        updatedAt: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) {
@@ -139,12 +143,14 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
  */
 export async function resetUsage(userId: string): Promise<boolean> {
   try {
+    const updateData = UsageMapper.toDb({
+      comparisons_used: 0,
+      updated_at: new Date().toISOString()
+    });
+    
     const { error } = await supabase
       .from('usage')
-      .update({ 
-        comparisonsUsed: 0,
-        updatedAt: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) {
@@ -168,14 +174,15 @@ export async function resetMonthlyUsage(userId: string, subscriptionTier: string
     const defaultLimit = TIER_LIMITS[subscriptionTier as keyof typeof TIER_LIMITS] || 50;
     const currentDate = new Date();
 
+    const updateData = UsageMapper.toDb({
+      comparisons_used: 0,
+      comparisons_limit: defaultLimit,
+      updated_at: currentDate.toISOString()
+    });
+
     const { error } = await supabase
       .from('usage')
-      .update({
-        comparisonsUsed: 0,
-        comparisonsLimit: defaultLimit,
-        // lastLimitReset: currentDate.toISOString(), // Column doesn't exist
-        updatedAt: currentDate.toISOString()
-      })
+      .update(updateData)
       .eq('id', userId);
 
     if (error) {

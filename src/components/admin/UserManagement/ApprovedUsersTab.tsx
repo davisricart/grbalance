@@ -3,6 +3,7 @@ import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircl
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
 import { calculateTrialFromCreatedAt, calculateTrialEndDate, setTrialStatus, getTrialInfo } from '../../../services/trialService';
+import { UsageMapper } from '../../../services/databaseMapper';
 
 interface ApprovedUsersTabProps {
   users: ApprovedUser[];
@@ -110,13 +111,15 @@ const ApprovedUsersTab = React.memo(({
       // Use trialService for consistent trial duration
       const trialEndDate = calculateTrialEndDate(trialStartDate);
       
+      const updateData = UsageMapper.toDb({
+        status: 'trial',
+        trial_started_at: trialStartDate.toISOString(),
+        trial_ends_at: trialEndDate.toISOString()
+      });
+
       const { error } = await supabase
         .from('usage')
-        .update({
-          status: 'trial',
-          trialStartedAt: trialStartDate.toISOString(),
-          trialEndsAt: trialEndDate.toISOString()
-        })
+        .update(updateData)
         .eq('id', userId);
       
       if (error) throw error;

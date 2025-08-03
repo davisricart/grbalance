@@ -3,6 +3,7 @@
 
 import { supabase } from '../config/supabase';
 import { withErrorHandling, validateRequired, ServiceResult } from '../utils/errorHandler';
+import { UsageMapper, ClientsMapper, PendingUsersMapper } from './databaseMapper';
 
 // Standardized User Data Interface
 // Note: This combines data from clients table, usage table, and pendingUsers table
@@ -57,18 +58,17 @@ export const createUser = async (userData: {
   const comparison_limit = TIER_LIMITS[userData.subscription_tier];
   const now = new Date().toISOString();
   
-  // Create in clients table (primary storage) - match actual schema
-  const clientData = {
+  // Create in clients table (primary storage) - use mapper
+  const clientStandardData = {
     id: userData.id,
     email: userData.email,
     business_name: userData.business_name,
     client_path: client_path,
     subscription_tier: userData.subscription_tier,
     status: 'testing' // Default status for new users
-    // Note: business_type is stored in pendingUsers table
-    // billing_cycle is stored in usage table
   };
 
+  const clientData = ClientsMapper.toDb(clientStandardData);
   console.log('🔍 CLIENTS TABLE INSERT - Data being sent:', JSON.stringify(clientData, null, 2));
 
   const { error: clientError } = await supabase
@@ -86,19 +86,18 @@ export const createUser = async (userData: {
 
   console.log('✅ CLIENTS TABLE INSERT SUCCESS');
 
-  // Create usage tracking record (includes subscription and billing info)
-  const usageData = {
+  // Create usage tracking record (includes subscription and billing info) - use mapper
+  const usageStandardData = {
     id: userData.id,
     email: userData.email,
-    subscriptionTier: userData.subscription_tier, // camelCase for usage table (confirmed by AdminPage)
-    // billingcycle: userData.billing_cycle, // REMOVED - column doesn't exist in usage table
-    comparisonsUsed: 0,
-    comparisonsLimit: comparison_limit,
+    subscription_tier: userData.subscription_tier,
+    comparisons_used: 0,
+    comparisons_limit: comparison_limit,
     status: 'pending',
-    // createdat: now, // REMOVED - column doesn't exist in usage table
-    updatedAt: now
+    updated_at: now
   };
 
+  const usageData = UsageMapper.toDb(usageStandardData);
   console.log('🔍 USAGE TABLE INSERT - Data being sent:', JSON.stringify(usageData, null, 2));
   
   const { error: usageError } = await supabase
@@ -116,19 +115,22 @@ export const createUser = async (userData: {
 
   console.log('✅ USAGE TABLE INSERT SUCCESS');
 
-  // Also maintain backward compatibility with pendingUsers table
+  // Also maintain backward compatibility with pendingUsers table - use mapper
+  const pendingStandardData = {
+    id: userData.id,
+    email: userData.email,
+    business_name: userData.business_name,
+    business_type: userData.business_type,
+    subscription_tier: userData.subscription_tier,
+    billing_cycle: userData.billing_cycle,
+    created_at: now,
+    status: 'pending'
+  };
+
+  const pendingData = PendingUsersMapper.toDb(pendingStandardData);
   const { error: pendingError } = await supabase
     .from('pendingUsers')
-    .upsert({
-      id: userData.id,
-      email: userData.email,
-      businessname: userData.business_name,    // Fixed: lowercase for pendingUsers
-      businesstype: userData.business_type,    // Fixed: lowercase for pendingUsers
-      subscriptiontier: userData.subscription_tier, // Fixed: lowercase for pendingUsers
-      billingcycle: userData.billing_cycle,    // Fixed: lowercase for pendingUsers
-      createdat: now,                          // Fixed: lowercase for pendingUsers
-      status: 'pending'
-    });
+    .upsert(pendingData);
 
   if (pendingError) console.warn('Warning: pendingUsers update failed:', pendingError);
 
@@ -165,17 +167,19 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     return null;
   }
 
-  // Get usage data (billingcycle column doesn't exist in usage table)
+  // Get usage data using mapped columns
+  const usageColumns = `${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
   const { data: usageData } = await supabase
     .from('usage')
-    .select('comparisonsUsed, comparisonsLimit')
+    .select(usageColumns)
     .eq('id', userId)
     .single();
 
-  // Get business_type from pendingUsers table if available
+  // Get business_type from pendingUsers table if available using mapped columns
+  const pendingColumn = PendingUsersMapper.column('business_type');
   const { data: pendingData } = await supabase
     .from('pendingUsers')
-    .select('businesstype')  // Fixed: lowercase for pendingUsers table
+    .select(pendingColumn)
     .eq('id', userId)
     .single();
 
@@ -190,14 +194,14 @@ export const getUserById = async (userId: string): Promise<UnifiedUser | null> =
     id: clientData.id,
     email: clientData.email,
     business_name: clientData.business_name || 'Business Name Not Set',
-    business_type: pendingData?.businesstype || 'Other',  // Fixed: lowercase column reference
+    business_type: pendingData?.[PendingUsersMapper.column('business_type')] || 'Other',
     client_path: clientData.client_path,
     subscription_tier: clientData.subscription_tier || 'starter',
     status: clientData.status || 'testing',
     workflow_stage: statusToWorkflowStage[clientData.status as keyof typeof statusToWorkflowStage] || 'pending',
     billing_cycle: 'monthly', // Default since billingcycle column doesn't exist
-    comparisons_used: usageData?.comparisonsUsed || 0,
-    comparisons_limit: usageData?.comparisonsLimit || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
+    comparisons_used: usageData?.[UsageMapper.column('comparisons_used')] || 0,
+    comparisons_limit: usageData?.[UsageMapper.column('comparisons_limit')] || TIER_LIMITS[clientData.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
     created_at: clientData.created_at,
     updated_at: clientData.updated_at
   };
@@ -221,12 +225,14 @@ export const updateUserWorkflowStage = async (
     deleted: 'inactive'
   } as const;
 
-  // Update clients table (update status, not workflow_stage since that column doesn't exist)
+  // Update clients table using mapper
+  const clientUpdateData = ClientsMapper.toDb({
+    status: workflowToStatusMap[newStage]
+  });
+  
   const { error: clientError } = await supabase
     .from('clients')
-    .update({
-      status: workflowToStatusMap[newStage]
-    })
+    .update(clientUpdateData)
     .eq('id', userId);
 
   if (clientError) throw clientError;
@@ -240,12 +246,14 @@ export const updateUserWorkflowStage = async (
     deleted: 'deleted'
   };
 
+  const usageUpdateData = UsageMapper.toDb({
+    status: statusMap[newStage],
+    updated_at: now
+  });
+
   const { error: usageError } = await supabase
     .from('usage')
-    .update({
-      status: statusMap[newStage],
-      updatedAt: now
-    })
+    .update(usageUpdateData)
     .eq('id', userId);
 
   if (usageError) console.warn('Usage table update failed:', usageError);
@@ -268,10 +276,11 @@ export const getUsersByWorkflowStage = async (
     deleted: 'deleted'
   } as const;
 
-  // Get users from usage table first (this has the proper status differentiation)
+  // Get users from usage table first using mapped columns
+  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
   const { data: usageUsers, error: usageError } = await supabase
     .from('usage')
-    .select('id, status, subscriptionTier, comparisonsUsed, comparisonsLimit')
+    .select(usageSelectColumns)
     .eq('status', stageToUsageStatusMap[stage])
     .order('id');
 
@@ -306,10 +315,11 @@ export const getUsersByWorkflowStage = async (
 
   console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for ${usageUsers.length} usage records`);
 
-  // Get business_type data from pendingUsers table (reuse existing userIds)
+  // Get business_type data from pendingUsers table using mapped columns
+  const pendingSelectColumns = `id, ${PendingUsersMapper.column('business_type')}`;
   const { data: pendingData } = await supabase
     .from('pendingUsers')
-    .select('id, businesstype')  // Fixed: lowercase for pendingUsers table
+    .select(pendingSelectColumns)
     .in('id', userIds);
 
   // Create maps for efficient lookup
@@ -339,14 +349,14 @@ export const getUsersByWorkflowStage = async (
       id: usageUser.id,
       email: client.email,
       business_name: client.business_name || 'Business Name Not Set',
-      business_type: pending?.businesstype || 'Other',  // Fixed: lowercase column reference
+      business_type: pending?.[PendingUsersMapper.column('business_type')] || 'Other',
       client_path: client.client_path,
       subscription_tier: client.subscription_tier || 'starter',
       status: client.status || 'testing',
       workflow_stage: usageStatusToWorkflowStage[usageUser.status as keyof typeof usageStatusToWorkflowStage] || stage,
       billing_cycle: 'monthly', // Default since billingcycle column doesn't exist in usage table
-      comparisons_used: usageUser.comparisonsUsed || 0,
-      comparisons_limit: usageUser.comparisonsLimit || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
+      comparisons_used: usageUser[UsageMapper.column('comparisons_used')] || 0,
+      comparisons_limit: usageUser[UsageMapper.column('comparisons_limit')] || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
       updated_at: client.updated_at
     };
@@ -384,11 +394,12 @@ export const updateUserBusinessInfo = async (
     needsClientUpdate = true;
   }
 
-  // Update clients table if needed
+  // Update clients table if needed using mapper
   if (needsClientUpdate) {
+    const mappedClientUpdates = ClientsMapper.toDb(clientUpdates);
     const { error: clientError } = await supabase
       .from('clients')
-      .update(clientUpdates)
+      .update(mappedClientUpdates)
       .eq('id', userId);
 
     if (clientError) throw clientError;
@@ -399,35 +410,32 @@ export const updateUserBusinessInfo = async (
   let needsUsageUpdate = false;
   
   if (updates.subscription_tier) {
-    usageUpdates.subscriptionTier = updates.subscription_tier;
-    usageUpdates.comparisonsLimit = TIER_LIMITS[updates.subscription_tier as keyof typeof TIER_LIMITS];
+    usageUpdates.subscription_tier = updates.subscription_tier;
+    usageUpdates.comparisons_limit = TIER_LIMITS[updates.subscription_tier as keyof typeof TIER_LIMITS];
     needsUsageUpdate = true;
   }
   
-  // Note: billing_cycle is not stored in usage table anymore
-  // if (updates.billing_cycle) {
-  //   usageUpdates.billingcycle = updates.billing_cycle;
-  //   needsUsageUpdate = true;
-  // }
-  
   if (needsUsageUpdate) {
-    usageUpdates.updatedAt = now;
+    usageUpdates.updated_at = now;
     
+    const mappedUsageUpdates = UsageMapper.toDb(usageUpdates);
     const { error: usageError } = await supabase
       .from('usage')
-      .update(usageUpdates)
+      .update(mappedUsageUpdates)
       .eq('id', userId);
 
     if (usageError) console.warn('Usage table update failed:', usageError);
   }
   
-  // Update pendingUsers table for business_type (if it exists there)
+  // Update pendingUsers table for business_type using mapper
   if (updates.business_type) {
+    const pendingUpdates = PendingUsersMapper.toDb({
+      business_type: updates.business_type
+    });
+    
     const { error: pendingError } = await supabase
       .from('pendingUsers')
-      .update({
-        businesstype: updates.business_type  // Fixed: lowercase for pendingUsers table
-      })
+      .update(pendingUpdates)
       .eq('id', userId);
 
     if (pendingError) console.warn('PendingUsers table update failed:', pendingError);
