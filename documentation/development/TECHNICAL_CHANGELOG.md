@@ -2,6 +2,62 @@
 
 ## Latest Updates (January 2025)
 
+### 2025-02-02 - Critical Admin Dashboard & Client Portal Fixes
+**Issue**: Multiple workflow management issues causing client data to disappear and script deployment failures
+**Root Cause Analysis**: 
+- Script deployment was broken due to incorrect table mapping (admin uploaded to `clients.deployed_scripts` but portal read from `client_scripts`)
+- Client activation was setting wrong status combinations causing invisibility in admin dashboard
+- Destructive deletion operations in workflow transitions
+- Trial information display missing after activation
+- Welcome emails missing personalized client portal URLs
+
+**Solutions Implemented**:
+
+1. **Script Deployment Fix**:
+   - Fixed `clientScriptService.ts` to read from `clients.deployed_scripts` instead of `client_scripts`
+   - Updated `MainPage.tsx` to load all available scripts and populate dropdown correctly
+   - Added `handleDeployScript` implementation in `AdminPage.tsx`
+
+2. **Admin Dashboard Visibility Fix**:
+   - Modified client activation to maintain `'approved'` status in usage table for admin visibility
+   - Fixed status mapping: `usage.status = 'approved'` + `clients.status = 'active'`
+   - Removed destructive deletion operations from workflow transitions
+
+3. **Data Consistency Fixes**:
+   - Fixed `sendBackToQA` to update status instead of deleting records
+   - Fixed `deleteApprovedUser` to use soft delete instead of hard delete
+   - Removed "NUCLEAR RESET" operations that deleted client records
+   - Updated `deactivateApprovedUser` to update both tables consistently
+
+4. **Trial Information Display**:
+   - Fixed database query errors (removed non-existent columns: `siteUrl`, `deployedScripts`, `approvedat`)
+   - Updated trial display logic to show for activated clients within 14-day period
+   - Fixed trial calculation to use `approvedAt` as trial start time
+
+5. **Welcome Email Personalization**:
+   - Fixed client path passing to use calculated `clientPath` instead of potentially undefined `user.client_path`
+   - Welcome emails now include personalized URLs: `grbalance.com/grsalon`
+
+**Files Modified**:
+- `src/pages/AdminPage.tsx` - Fixed fetchApprovedUsers, sendBackToQA, deleteApprovedUser, handleDeployScript
+- `src/components/admin/UserManagement/ApprovedUsersTab.tsx` - Fixed activation logic, trial display, client path passing
+- `src/components/admin/UserManagement/ReadyForTestingTab.tsx` - Removed destructive deletion operations
+- `src/services/clientScriptService.ts` - Fixed script loading source
+- `src/pages/MainPage.tsx` - Fixed script dropdown population
+- `src/pages/ClientPortalPage.tsx` - Added automatic authentication for active clients
+
+**Database Operations**:
+- Multiple restore scripts executed to fix client data consistency
+- Status corrections applied to maintain proper workflow visibility
+
+**Result**: 
+- ✅ Clients remain visible in admin dashboard after activation
+- ✅ Scripts deployed via admin QA testing appear on client portal
+- ✅ Trial information displays correctly with green status boxes
+- ✅ Welcome emails include personalized client portal URLs
+- ✅ No more client data disappearing during workflow transitions
+- ✅ Client portal authentication works for active clients
+
 ### 2025-01-23 - BookingPage Email Integration Fix
 **Issue**: BookingPage contact form was using mock email submission instead of actual EmailJS
 **Solution**: 
