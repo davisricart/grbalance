@@ -23,7 +23,7 @@ export default function PricingPage() {
         'DaySmart & processor file support',
         'Excel report downloads',
         'Email support',
-        'Processing fee validation'
+        'Automated reconciliation'
       ]
     },
     {
@@ -42,7 +42,7 @@ export default function PricingPage() {
         'DaySmart & processor file support',
         'Excel report downloads',
         'Priority email support',
-        'Processing fee validation',
+        'Automated reconciliation',
         'Tailored matching rules for your business'
       ]
     },
@@ -61,7 +61,7 @@ export default function PricingPage() {
         'DaySmart & processor file support',
         'Excel report downloads',
         'Priority email support',
-        'Processing fee validation',
+        'Automated reconciliation',
         'Tailored matching rules for your business',
         'Phone support',
         'Personal consultation and setup'
