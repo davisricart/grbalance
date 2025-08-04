@@ -218,14 +218,17 @@ const ApprovedUsersTab = React.memo(({
   };
 
   const getUserState = (userId: string) => {
-    // Check if user has been activated by looking for trial data in the user object
+    // Check if user has been activated by looking at their status in the usage table
+    // Only users with 'trial' status in usage table have been actually activated
     const user = users.find(u => u.id === userId);
-    const hasTrialData = user && getTrialTimeRemaining(user);
     
-    // If user has trial data, they've been activated
-    if (hasTrialData) {
+    // Check if user is in trial status (meaning they've been activated)
+    // Note: users.status comes from usage table via getUsersByWorkflowStage
+    const isActivated = user?.status === 'trial' || user?.status === 'paid';
+    
+    if (isActivated) {
       return {
-        billingSetup: false,
+        billingSetup: user?.status === 'paid',
         trialStarted: true,
         welcomePackageSent: true,
         goLive: true
