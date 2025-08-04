@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, UserX, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
+import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
 import { calculateTrialFromCreatedAt, calculateTrialEndDate, setTrialStatus, getTrialInfo } from '../../../services/trialService';
@@ -12,7 +12,6 @@ interface ApprovedUsersTabProps {
   onAddUsage: (userId: string, amount: number) => Promise<void>;
   onUpdateLimit: (userId: string, newLimit: number) => Promise<void>;
   onSendBackToQA?: (userId: string) => Promise<void>;
-  onDeactivateUser?: (userId: string) => Promise<void>;
   onDeleteUser?: (userId: string) => Promise<void>;
   inlineNotifications: Record<string, { type: 'success' | 'error' | 'info'; message: string }>;
   onRefreshUsers?: () => Promise<void>;
@@ -25,7 +24,6 @@ const ApprovedUsersTab = React.memo(({
   onAddUsage,
   onUpdateLimit,
   onSendBackToQA,
-  onDeactivateUser,
   onDeleteUser,
   inlineNotifications,
   onRefreshUsers
@@ -42,7 +40,6 @@ const ApprovedUsersTab = React.memo(({
   const [expandedActivation, setExpandedActivation] = useState<{[key: string]: boolean}>({});
   const [confirmActivation, setConfirmActivation] = useState<{[key: string]: boolean}>({});
   const [sendingBackToQA, setSendingBackToQA] = useState<string | null>(null);
-  const [deactivatingUser, setDeactivatingUser] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
   // Sequential workflow handlers
@@ -206,16 +203,6 @@ const ApprovedUsersTab = React.memo(({
     }
   };
 
-  const handleDeactivateUserClick = async (userId: string) => {
-    if (onDeactivateUser) {
-      setDeactivatingUser(userId);
-      try {
-        await onDeactivateUser(userId);
-      } finally {
-        setDeactivatingUser(null);
-      }
-    }
-  };
 
   const getUserState = (userId: string) => {
     // Check if user has been activated by looking at their status in the usage table
@@ -716,14 +703,6 @@ const ApprovedUsersTab = React.memo(({
                     </button>
                   )}
                   
-                  <button
-                    onClick={() => setDeactivatingUser(user.id)}
-                    disabled={deactivatingUser === user.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-amber-600 hover:bg-amber-50 rounded-md text-sm font-medium transition-all hover:scale-105 disabled:opacity-50"
-                  >
-                    <UserX className="h-4 w-4" />
-                    <span>Deactivate</span>
-                  </button>
                   
                   <button
                     onClick={() => setDeletingUser(user.id)}
@@ -831,37 +810,6 @@ const ApprovedUsersTab = React.memo(({
                 </div>
               )}
 
-              {/* Deactivate User Confirmation */}
-              {deactivatingUser === user.id && (
-                <div className="mt-4 mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                  <div className="flex items-start gap-3 mb-4">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
-                        <UserX className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <div>
-                        <h4 className="text-amber-800 font-medium">Deactivate User</h4>
-                        <p className="text-amber-600 text-sm">This will deactivate the user's account. They can be reactivated later.</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <button
-                      onClick={() => setDeactivatingUser(null)}
-                      className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-md text-sm transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={() => handleDeactivateUserClick(user.id)}
-                      className="flex items-center gap-2 px-6 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 transition-all"
-                    >
-                      <UserX className="h-4 w-4" />
-                      <span>Yes, Deactivate</span>
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Delete User Confirmation */}
               {deletingUser === user.id && (

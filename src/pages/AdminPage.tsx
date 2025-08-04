@@ -1229,65 +1229,7 @@ const AdminPage: React.FC = () => {
     }
   };
 
-  // Deactivate approved user
-  const deactivateApprovedUser = async (userId: string) => {
-    try {
-      
-      // Update status in usage collection to "deactivated"
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'deactivated',
-          comparisonsLimit: 0, // Remove access
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
 
-      
-      // Refresh approved users list
-      await fetchApprovedUsers();
-      
-    } catch (error) {
-      console.error('Error deactivating user:', error);
-    }
-  };
-
-  // Reactivate deactivated user
-  const reactivateApprovedUser = async (userId: string) => {
-    try {
-      
-      // Get the user data to restore their original subscription limits
-      const user = approvedUsers.find(u => u.id === userId);
-      if (!user) {
-        console.error('User not found');
-        return;
-      }
-
-      // Restore their comparison limit based on subscription tier
-      const comparisonLimit = TIER_LIMITS[user.subscriptionTier as keyof typeof TIER_LIMITS] || 0;
-      
-      // Update status back to "approved" and restore access
-      const { error } = await supabase
-        .from('usage')
-        .update({
-          status: 'approved',
-          comparisonsLimit: comparisonLimit,
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-      
-      if (error) throw error;
-
-      
-      // Refresh approved users list
-      await fetchApprovedUsers();
-      
-    } catch (error) {
-      console.error('Error reactivating user:', error);
-    }
-  };
 
   // Confirmation handlers
   const handleApprovePendingUser = (userId: string, userEmail: string) => {
@@ -1340,45 +1282,6 @@ Warning:
     );
   };
 
-  const handleDeactivateApprovedUser = (userId: string, userEmail: string) => {
-    showConfirmation(
-      'Temporarily Deactivate User',
-      `Are you sure you want to deactivate ${userEmail}?
-
-This will:
-• Remove their access to all services
-• Set their usage limit to 0
-• Keep their account data intact
-
-Benefits:
-• User can be reactivated later
-• No data loss occurs
-• Preserves user history and settings`,
-      'Deactivate User',
-      'bg-orange-600 text-white',
-      () => deactivateApprovedUser(userId)
-    );
-  };
-
-  const handleReactivateApprovedUser = (userId: string, userEmail: string) => {
-    showConfirmation(
-      'Reactivate User Account',
-      `Are you sure you want to reactivate the account for ${userEmail}?
-
-This will:
-• Restore full access to their subscription
-• Re-enable their comparison limits
-• Allow them to use the platform again
-
-Result:
-• User will regain access immediately
-• All previous data will be restored
-• Usage limits will be reset to subscription tier`,
-      'Reactivate User',
-      'bg-green-600 hover:bg-green-700',
-      () => reactivateApprovedUser(userId)
-    );
-  };
 
   // Handler for user deletion with confirmation
   const handleDeleteUser = (userId: string, userEmail: string) => {
@@ -3118,7 +3021,6 @@ This will:
             onAddUsage={addUserUsage}
             onUpdateLimit={updateUserLimit}
             onSendBackToQA={sendBackToQA}
-            onDeactivateUser={deactivateApprovedUser}
             onDeleteUser={deleteApprovedUser}
             inlineNotifications={inlineNotifications}
             onRefreshUsers={fetchApprovedUsers}
