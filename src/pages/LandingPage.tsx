@@ -1,13 +1,30 @@
 // PAGE MARKER: Landing Page Component
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle, Mail, Users, Play, ArrowRight, Target, TrendingUp } from 'lucide-react';
+import { FileSpreadsheet, CheckCircle, Shield, Zap, Calendar, DollarSign, Clock, MessageCircle, Mail, Users, Play, ArrowRight, Target, TrendingUp, ChevronDown } from 'lucide-react';
 
 import ROICalculator from '../components/ROICalculator';
 import WhoIsThisFor from '../components/WhoIsThisFor';
 
 export default function LandingPage() {
+  const [showEmailOptions, setShowEmailOptions] = useState(false);
+
+  const emailOptions = [
+    {
+      name: 'Gmail',
+      url: 'https://mail.google.com/mail/?view=cm&to=davis@grbalance.com&su=Strategy%20Call%20Request&body=Hi%2C%20I%27d%20like%20to%20schedule%20a%20strategy%20call%20to%20discuss%20how%20GR%20Balance%20can%20help%20with%20our%20reconciliation%20needs.%20Please%20let%20me%20know%20your%20availability.'
+    },
+    {
+      name: 'Outlook',
+      url: 'https://outlook.live.com/mail/0/deeplink/compose?to=davis@grbalance.com&subject=Strategy%20Call%20Request&body=Hi%2C%20I%27d%20like%20to%20schedule%20a%20strategy%20call%20to%20discuss%20how%20GR%20Balance%20can%20help%20with%20our%20reconciliation%20needs.%20Please%20let%20me%20know%20your%20availability.'
+    },
+    {
+      name: 'Default Email App',
+      url: 'mailto:davis@grbalance.com?subject=Strategy%20Call%20Request&body=Hi%2C%20I%27d%20like%20to%20schedule%20a%20strategy%20call%20to%20discuss%20how%20GR%20Balance%20can%20help%20with%20our%20reconciliation%20needs.%20Please%20let%20me%20know%20your%20availability.'
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
       <Helmet>
@@ -99,12 +116,48 @@ export default function LandingPage() {
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 leading-relaxed">
               Book a Strategy Call and let us build a custom solution for your business. We handle everything—consultation, development, and ongoing support. You just upload your files and get results.
             </p>
-            <Link
-              to="/contact"
-              className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 text-lg sm:text-xl"
-            >
-              Book a Strategy Call
-            </Link>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                to="/contact"
+                className="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 text-lg sm:text-xl"
+              >
+                <Calendar className="mr-2 h-5 w-5" />
+                Book a Strategy Call
+              </Link>
+              
+              <div className="relative">
+                <button 
+                  onClick={() => setShowEmailOptions(!showEmailOptions)}
+                  className="inline-flex items-center bg-white text-emerald-600 border-2 border-emerald-600 hover:bg-emerald-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 text-base sm:text-lg"
+                >
+                  <Mail className="mr-2 h-5 w-5" />
+                  Contact Us
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </button>
+                
+                {showEmailOptions && (
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 min-w-[180px]">
+                    {emailOptions.map((option, index) => (
+                      <a
+                        key={index}
+                        href={option.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                        onClick={() => setShowEmailOptions(false)}
+                      >
+                        {option.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-sm text-gray-500 mt-4">
+              Prefer to describe your needs in writing? Use the contact button to reach us via email.
+            </p>
           </div>
           {/* Insert WhoIsThisFor section here for maximum visibility */}
           <WhoIsThisFor />
