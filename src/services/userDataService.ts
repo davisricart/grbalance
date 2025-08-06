@@ -26,6 +26,11 @@ export interface UnifiedUser {
   // From pendingUsers table (for compatibility):
   business_type: string;
   workflow_stage: 'pending' | 'qa_testing' | 'approved' | 'deactivated' | 'deleted';
+  
+  // Trial/activation tracking
+  trial_started_at: string | null;
+  trial_ends_at: string | null;
+  activation_status: 'inactive' | 'trial' | 'paid' | 'expired';
 }
 
 // Generate consistent client path
@@ -267,29 +272,22 @@ export const getUsersByWorkflowStage = async (
 ): Promise<UnifiedUser[]> => {
   console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
   
-  // Use usage table status to differentiate workflow stages properly
+  // Use usage table status ONLY for workflow stages (not activation states)
   const stageToUsageStatusMap = {
     pending: 'pending',
     qa_testing: 'trial', 
-    approved: ['approved', 'trial'], // Approved tab shows both approved AND activated users
+    approved: 'approved', // Users stay 'approved' even after activation
     deactivated: 'deactivated',
     deleted: 'deleted'
   } as const;
 
-  // Get users from usage table first using mapped columns
-  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
-  const statusFilter = stageToUsageStatusMap[stage];
-  
-  let query = supabase.from('usage').select(usageSelectColumns);
-  
-  // Handle array of statuses for approved stage
-  if (Array.isArray(statusFilter)) {
-    query = query.in('status', statusFilter);
-  } else {
-    query = query.eq('status', statusFilter);
-  }
-  
-  const { data: usageUsers, error: usageError } = await query.order('id');
+  // Get users from usage table first using mapped columns (include trial fields for activation detection)
+  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}, ${UsageMapper.column('trial_started_at')}, ${UsageMapper.column('trial_ends_at')}`;
+  const { data: usageUsers, error: usageError } = await supabase
+    .from('usage')
+    .select(usageSelectColumns)
+    .eq('status', stageToUsageStatusMap[stage])
+    .order('id');
 
   if (usageError) {
     console.error(`❌ getUsersByWorkflowStage: Error fetching from usage table:`, usageError);
@@ -301,8 +299,7 @@ export const getUsersByWorkflowStage = async (
     return [];
   }
 
-  const statusDesc = Array.isArray(statusFilter) ? statusFilter.join(' or ') : statusFilter;
-  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${statusDesc}"`);
+  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${stageToUsageStatusMap[stage]}"`);
 
   // Get corresponding client data
   const userIds = usageUsers.map(u => u.id);
@@ -366,7 +363,11 @@ export const getUsersByWorkflowStage = async (
       comparisons_used: usageUser[UsageMapper.column('comparisons_used')] || 0,
       comparisons_limit: usageUser[UsageMapper.column('comparisons_limit')] || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
-      updated_at: client.updated_at
+      updated_at: client.updated_at,
+      // Add trial fields for activation detection
+      trial_started_at: usageUser[UsageMapper.column('trial_started_at')] || null,
+      trial_ends_at: usageUser[UsageMapper.column('trial_ends_at')] || null,
+      activation_status: usageUser[UsageMapper.column('trial_started_at')] ? 'trial' : 'inactive'
     };
   }).filter(Boolean) as UnifiedUser[];
 

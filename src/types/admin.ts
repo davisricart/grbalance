@@ -78,6 +78,11 @@ export interface ApprovedUser {
   
   // Website name from QA testing phase
   client_path?: string;
+  
+  // Trial/activation tracking
+  trial_started_at?: string | null;
+  trial_ends_at?: string | null;
+  activation_status?: 'inactive' | 'trial' | 'paid' | 'expired';
 }
 
 export interface ScriptData {

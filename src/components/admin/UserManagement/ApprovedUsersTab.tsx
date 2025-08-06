@@ -205,15 +205,13 @@ const ApprovedUsersTab = React.memo(({
 
 
   const getUserState = (userId: string) => {
-    // Check if user has been activated by looking at their status in the usage table
-    // Only users with 'trial' status in usage table have been actually activated
+    // Check if user has been activated by looking for trial data
     const user = users.find(u => u.id === userId);
     
-    // Check if user is in trial status (meaning they've been activated)
-    // Note: users.status comes from usage table via getUsersByWorkflowStage
-    const isActivated = user?.status === 'trial' || user?.status === 'paid';
+    // Check if user has been activated (has trial time remaining)
+    const hasTrialData = user && getTrialTimeRemaining(user);
     
-    if (isActivated) {
+    if (hasTrialData) {
       return {
         billingSetup: user?.status === 'paid',
         trialStarted: true,
@@ -273,14 +271,13 @@ const ApprovedUsersTab = React.memo(({
 
   // Calculate trial time remaining for a user using shared service
   const getTrialTimeRemaining = (user: ApprovedUser) => {
-    // For approved users, check if they're within their 14-day trial period
-    if (!user.createdAt && !user.approvedAt) {
+    // Check if user has been activated (has trial_started_at)
+    if (!user.trial_started_at) {
       return null;
     }
     
-    // Use approvedAt as trial start time (when they were activated)
-    const trialStartTime = user.approvedAt || user.createdAt;
-    const trialInfo = calculateTrialFromCreatedAt(trialStartTime, true);
+    // Use trial_started_at for accurate trial calculation
+    const trialInfo = calculateTrialFromCreatedAt(user.trial_started_at, true);
     
     // Only show trial info if they're still within the trial period
     if (trialInfo.isExpired || trialInfo.daysLeft <= 0) {
@@ -365,10 +362,13 @@ const ApprovedUsersTab = React.memo(({
       const trialStartDate = new Date();
       const trialEndDate = calculateTrialEndDate(trialStartDate);
       
+      // Track activation without changing workflow status
       const { error } = await supabase
         .from('usage')
         .update({
-          status: 'trial', // Set to trial status for billing page detection
+          // Keep status as 'approved' - don't change workflow stage
+          trial_started_at: trialStartDate.toISOString(),
+          trial_ends_at: trialEndDate.toISOString(),
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
