@@ -206,12 +206,14 @@ const ApprovedUsersTab = React.memo(({
 
   const getUserState = (userId: string) => {
     // Use local state for activation tracking (persists during session)
-    return userStates[userId] || {
+    const state = userStates[userId] || {
       billingSetup: false,
       trialStarted: false,
       welcomePackageSent: false,
       goLive: false
     };
+    console.log('🔍 getUserState for', userId, '- current userStates:', userStates[userId], '- returning:', state);
+    return state;
   };
 
   // Usage Management Functions
@@ -373,15 +375,20 @@ const ApprovedUsersTab = React.memo(({
       console.log('💡 User will be prompted for payment when trial expires');
       
       // Update all states to completed (billing will happen when trial expires)
-      setUserStates(prev => ({
-        ...prev,
-        [userId]: { 
-          trialStarted: true,
-          welcomePackageSent: true,
-          goLive: true,
-          billingSetup: false // Will be set to true after payment
-        }
-      }));
+      setUserStates(prev => {
+        console.log('🔄 Setting userStates for', userId, '- prev state:', prev[userId]);
+        const newState = {
+          ...prev,
+          [userId]: { 
+            trialStarted: true,
+            welcomePackageSent: true,
+            goLive: true,
+            billingSetup: false // Will be set to true after payment
+          }
+        };
+        console.log('🔄 New userStates:', newState[userId]);
+        return newState;
+      });
       
       // Close the activation panel
       setExpandedActivation(prev => ({
