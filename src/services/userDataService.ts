@@ -281,8 +281,8 @@ export const getUsersByWorkflowStage = async (
     deleted: 'deleted'
   } as const;
 
-  // Get users from usage table first using mapped columns (include trial fields for activation detection)
-  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}, ${UsageMapper.column('trial_started_at')}, ${UsageMapper.column('trial_ends_at')}`;
+  // Get users from usage table first using mapped columns
+  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
   const { data: usageUsers, error: usageError } = await supabase
     .from('usage')
     .select(usageSelectColumns)
@@ -364,10 +364,10 @@ export const getUsersByWorkflowStage = async (
       comparisons_limit: usageUser[UsageMapper.column('comparisons_limit')] || TIER_LIMITS[client.subscription_tier as keyof typeof TIER_LIMITS] || TIER_LIMITS.starter,
       created_at: client.created_at,
       updated_at: client.updated_at,
-      // Add trial fields for activation detection
-      trial_started_at: usageUser[UsageMapper.column('trial_started_at')] || null,
-      trial_ends_at: usageUser[UsageMapper.column('trial_ends_at')] || null,
-      activation_status: usageUser[UsageMapper.column('trial_started_at')] ? 'trial' : 'inactive'
+      // Trial fields (will be null until columns added to DB)
+      trial_started_at: null,
+      trial_ends_at: null,
+      activation_status: 'inactive'
     };
   }).filter(Boolean) as UnifiedUser[];
 

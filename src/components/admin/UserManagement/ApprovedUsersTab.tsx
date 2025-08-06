@@ -205,22 +205,7 @@ const ApprovedUsersTab = React.memo(({
 
 
   const getUserState = (userId: string) => {
-    // Check if user has been activated by looking for trial data
-    const user = users.find(u => u.id === userId);
-    
-    // Check if user has been activated (has trial time remaining)
-    const hasTrialData = user && getTrialTimeRemaining(user);
-    
-    if (hasTrialData) {
-      return {
-        billingSetup: user?.status === 'paid',
-        trialStarted: true,
-        welcomePackageSent: true,
-        goLive: true
-      };
-    }
-    
-    // Otherwise use local state (for in-progress activations)
+    // Use local state for activation tracking (persists during session)
     return userStates[userId] || {
       billingSetup: false,
       trialStarted: false,
@@ -271,13 +256,14 @@ const ApprovedUsersTab = React.memo(({
 
   // Calculate trial time remaining for a user using shared service
   const getTrialTimeRemaining = (user: ApprovedUser) => {
-    // Check if user has been activated (has trial_started_at)
-    if (!user.trial_started_at) {
+    // For approved users, check if they're within their 14-day trial period
+    if (!user.createdAt && !user.approvedAt) {
       return null;
     }
     
-    // Use trial_started_at for accurate trial calculation
-    const trialInfo = calculateTrialFromCreatedAt(user.trial_started_at, true);
+    // Use approvedAt as trial start time (when they were activated)
+    const trialStartTime = user.approvedAt || user.createdAt;
+    const trialInfo = calculateTrialFromCreatedAt(trialStartTime, true);
     
     // Only show trial info if they're still within the trial period
     if (trialInfo.isExpired || trialInfo.daysLeft <= 0) {
@@ -367,8 +353,7 @@ const ApprovedUsersTab = React.memo(({
         .from('usage')
         .update({
           // Keep status as 'approved' - don't change workflow stage
-          trial_started_at: trialStartDate.toISOString(),
-          trial_ends_at: trialEndDate.toISOString(),
+          // Note: trial columns will be added to DB later, for now just update timestamp
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
