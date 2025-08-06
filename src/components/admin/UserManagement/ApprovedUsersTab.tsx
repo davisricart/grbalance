@@ -397,10 +397,9 @@ const ApprovedUsersTab = React.memo(({
         billingSetup: false
       });
       
-      // Refresh the parent users list to show updated status
-      if (onRefreshUsers) {
-        await onRefreshUsers();
-      }
+      // DON'T refresh users - it resets the activation state we just set
+      // The activation state is now in local component state and will show green
+      // Refreshing would cause the user to appear non-activated again
       
     } catch (error) {
       console.error('❌ Client activation failed:', error);
