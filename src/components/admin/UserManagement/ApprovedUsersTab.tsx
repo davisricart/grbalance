@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ExternalLink, User, Calendar, TrendingUp, CreditCard, Clock, CheckCircle2, Mail, Rocket, Trash2, RotateCcw, Settings, ArrowLeft } from 'lucide-react';
 import { ApprovedUser } from '../../../types/admin';
 import { stripeConfig } from '../../../config/stripe';
@@ -29,6 +29,14 @@ const ApprovedUsersTab = React.memo(({
   onRefreshUsers
 }: ApprovedUsersTabProps) => {
   const [processing, setProcessing] = useState<string | null>(null);
+  // Use ref to persist activation state across re-renders
+  const userStatesRef = useRef<{[key: string]: {
+    billingSetup: boolean;
+    trialStarted: boolean;
+    welcomePackageSent: boolean;
+    goLive: boolean;
+  }}>({});
+  
   const [userStates, setUserStates] = useState<{[key: string]: {
     billingSetup: boolean;
     trialStarted: boolean;
@@ -205,14 +213,16 @@ const ApprovedUsersTab = React.memo(({
 
 
   const getUserState = (userId: string) => {
-    // Use local state for activation tracking (persists during session)
-    const state = userStates[userId] || {
+    // Check both ref and state - ref persists across re-renders
+    const refState = userStatesRef.current[userId];
+    const reactState = userStates[userId];
+    const state = refState || reactState || {
       billingSetup: false,
       trialStarted: false,
       welcomePackageSent: false,
       goLive: false
     };
-    console.log('🔍 getUserState for', userId, '- current userStates:', userStates[userId], '- returning:', state);
+    console.log('🔍 getUserState for', userId, '- ref:', refState, '- state:', reactState, '- returning:', state);
     return state;
   };
 
@@ -375,18 +385,27 @@ const ApprovedUsersTab = React.memo(({
       console.log('💡 User will be prompted for payment when trial expires');
       
       // Update all states to completed (billing will happen when trial expires)
+      const activationState = {
+        trialStarted: true,
+        welcomePackageSent: true,
+        goLive: true,
+        billingSetup: false // Will be set to true after payment
+      };
+      
+      // Update both ref (persists across re-renders) and state (triggers re-render)
+      userStatesRef.current = {
+        ...userStatesRef.current,
+        [userId]: activationState
+      };
+      
       setUserStates(prev => {
         console.log('🔄 Setting userStates for', userId, '- prev state:', prev[userId]);
         const newState = {
           ...prev,
-          [userId]: { 
-            trialStarted: true,
-            welcomePackageSent: true,
-            goLive: true,
-            billingSetup: false // Will be set to true after payment
-          }
+          [userId]: activationState
         };
         console.log('🔄 New userStates:', newState[userId]);
+        console.log('🔄 Also saved to ref:', userStatesRef.current[userId]);
         return newState;
       });
       
