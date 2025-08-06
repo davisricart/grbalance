@@ -216,14 +216,38 @@ const ApprovedUsersTab = React.memo(({
     // Check both ref and state - ref persists across re-renders
     const refState = userStatesRef.current[userId];
     const reactState = userStates[userId];
-    const state = refState || reactState || {
+    
+    // If we have explicit state (from recent activation), use it
+    if (refState || reactState) {
+      const state = refState || reactState;
+      console.log('🔍 getUserState for', userId, '- using explicit state - ref:', refState, '- state:', reactState, '- returning:', state);
+      return state;
+    }
+    
+    // Otherwise, check if user has trial time remaining (means they're activated)
+    const user = users.find(u => u.id === userId);
+    const hasTrialData = user && getTrialTimeRemaining(user);
+    
+    if (hasTrialData) {
+      const activatedState = {
+        billingSetup: false,
+        trialStarted: true,
+        welcomePackageSent: true,
+        goLive: true
+      };
+      console.log('🔍 getUserState for', userId, '- detected trial data, user is activated:', activatedState);
+      return activatedState;
+    }
+    
+    // Default inactive state
+    const defaultState = {
       billingSetup: false,
       trialStarted: false,
       welcomePackageSent: false,
       goLive: false
     };
-    console.log('🔍 getUserState for', userId, '- ref:', refState, '- state:', reactState, '- returning:', state);
-    return state;
+    console.log('🔍 getUserState for', userId, '- no activation detected, using default:', defaultState);
+    return defaultState;
   };
 
   // Usage Management Functions
