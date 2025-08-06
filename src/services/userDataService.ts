@@ -272,22 +272,29 @@ export const getUsersByWorkflowStage = async (
 ): Promise<UnifiedUser[]> => {
   console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
   
-  // Use usage table status ONLY for workflow stages (not activation states)
+  // Use usage table status for workflow stages - approved tab includes trial users
   const stageToUsageStatusMap = {
     pending: 'pending',
     qa_testing: 'trial', 
-    approved: 'approved', // Users stay 'approved' even after activation
+    approved: ['approved', 'trial'], // Approved tab shows both approved AND activated trial users
     deactivated: 'deactivated',
     deleted: 'deleted'
   } as const;
 
   // Get users from usage table first using mapped columns
   const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
-  const { data: usageUsers, error: usageError } = await supabase
-    .from('usage')
-    .select(usageSelectColumns)
-    .eq('status', stageToUsageStatusMap[stage])
-    .order('id');
+  const statusFilter = stageToUsageStatusMap[stage];
+  
+  let query = supabase.from('usage').select(usageSelectColumns);
+  
+  // Handle array of statuses for approved stage
+  if (Array.isArray(statusFilter)) {
+    query = query.in('status', statusFilter);
+  } else {
+    query = query.eq('status', statusFilter);
+  }
+  
+  const { data: usageUsers, error: usageError } = await query.order('id');
 
   if (usageError) {
     console.error(`❌ getUsersByWorkflowStage: Error fetching from usage table:`, usageError);
@@ -299,7 +306,8 @@ export const getUsersByWorkflowStage = async (
     return [];
   }
 
-  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${stageToUsageStatusMap[stage]}"`);
+  const statusDesc = Array.isArray(statusFilter) ? statusFilter.join(' or ') : statusFilter;
+  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${statusDesc}"`);
 
   // Get corresponding client data
   const userIds = usageUsers.map(u => u.id);

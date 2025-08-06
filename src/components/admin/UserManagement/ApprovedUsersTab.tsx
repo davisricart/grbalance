@@ -384,12 +384,11 @@ const ApprovedUsersTab = React.memo(({
       const trialStartDate = new Date();
       const trialEndDate = calculateTrialEndDate(trialStartDate);
       
-      // Track activation without changing workflow status
+      // Set user to trial status for billing page detection
       const { error } = await supabase
         .from('usage')
         .update({
-          // Keep status as 'approved' - don't change workflow stage
-          // Note: trial columns will be added to DB later, for now just update timestamp
+          status: 'trial', // Required for billing page to show trial features
           updatedAt: new Date().toISOString()
         })
         .eq('id', userId);
