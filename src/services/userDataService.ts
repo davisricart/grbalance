@@ -272,11 +272,11 @@ export const getUsersByWorkflowStage = async (
 ): Promise<UnifiedUser[]> => {
   console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
   
-  // Use usage table status for workflow stages - but fix approved tab to not overlap with QA
+  // Use usage table status for workflow stages - approved stage needs special handling
   const stageToUsageStatusMap = {
     pending: 'pending',
     qa_testing: 'trial', 
-    approved: 'approved', // Only show actually approved users, not trial users
+    approved: ['approved', 'trial'], // Show both approved and trial users for approved stage
     deactivated: 'deactivated',
     deleted: 'deleted'
   } as const;
@@ -285,11 +285,16 @@ export const getUsersByWorkflowStage = async (
   const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
   const statusFilter = stageToUsageStatusMap[stage];
   
-  const { data: usageUsers, error: usageError } = await supabase
-    .from('usage')
-    .select(usageSelectColumns)
-    .eq('status', statusFilter)
-    .order('id');
+  let query = supabase.from('usage').select(usageSelectColumns);
+  
+  // Handle array of statuses for approved stage
+  if (Array.isArray(statusFilter)) {
+    query = query.in('status', statusFilter);
+  } else {
+    query = query.eq('status', statusFilter);
+  }
+  
+  const { data: usageUsers, error: usageError } = await query.order('id');
 
   if (usageError) {
     console.error(`❌ getUsersByWorkflowStage: Error fetching from usage table:`, usageError);
@@ -322,12 +327,25 @@ export const getUsersByWorkflowStage = async (
 
   console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for ${usageUsers.length} usage records`);
 
+  // For approved stage, filter out users who are still in ready-for-testing table
+  let filteredUserIds = userIds;
+  if (stage === 'approved') {
+    const { data: readyForTestingUsers } = await supabase
+      .from('ready-for-testing')
+      .select('id')
+      .in('id', userIds);
+    
+    const readyForTestingIds = new Set(readyForTestingUsers?.map(u => u.id) || []);
+    filteredUserIds = userIds.filter(id => !readyForTestingIds.has(id));
+    console.log(`📊 getUsersByWorkflowStage: Filtered out ${userIds.length - filteredUserIds.length} users still in QA testing`);
+  }
+
   // Get business_type data from pendingUsers table using mapped columns
   const pendingSelectColumns = `id, ${PendingUsersMapper.column('business_type')}`;
   const { data: pendingData } = await supabase
     .from('pendingUsers')
     .select(pendingSelectColumns)
-    .in('id', userIds);
+    .in('id', filteredUserIds);
 
   // Create maps for efficient lookup
   const usageMap = new Map(usageUsers.map(u => [u.id, u]));
@@ -343,7 +361,9 @@ export const getUsersByWorkflowStage = async (
     'deleted': 'deleted'
   } as const;
 
-  const result = usageUsers.map(usageUser => {
+  const result = usageUsers
+    .filter(usageUser => filteredUserIds.includes(usageUser.id))
+    .map(usageUser => {
     const client = clientMap.get(usageUser.id);
     const pending = pendingMap.get(usageUser.id);
     
