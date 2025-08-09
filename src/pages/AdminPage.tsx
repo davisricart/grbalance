@@ -607,6 +607,7 @@ const AdminPage: React.FC = () => {
       });
       
       console.log('✅ fetchReadyForTestingUsers: Found', mappedData.length, 'QA testing users via unified service');
+      console.log('🔍 QA Status breakdown:', mappedData.map(u => ({ email: u.email, qaStatus: u.qaStatus })));
       setReadyForTestingUsers(mappedData);
       
     } catch (error: any) {
@@ -2851,13 +2852,16 @@ This will:
                 
                 // Remove from ready-for-testing collection (QA data no longer needed)
                 console.log('🗑️ Removing from ready-for-testing collection...');
-                const { error: deleteError } = await supabase
+                const { error: deleteError, count } = await supabase
                   .from('ready-for-testing')
                   .delete()
                   .eq('id', userId);
                 
                 if (deleteError) {
-                  console.warn('⚠️ Failed to remove from ready-for-testing (non-critical):', deleteError);
+                  console.error('❌ Failed to remove from ready-for-testing:', deleteError);
+                  throw deleteError; // Make this critical since it causes duplicates
+                } else {
+                  console.log('✅ Removed from ready-for-testing, rows affected:', count);
                 }
                 
                 // Refresh data
@@ -2923,7 +2927,10 @@ This will:
               
               const dbUpdates = ReadyForTestingMapper.toDb(standardUpdates);
               
-              console.log('📝 Updating database with mapped columns:', dbUpdates);
+              console.log('📝 Updating QA status for user:', userId);
+              console.log('🔄 Original updates:', updates);
+              console.log('🔄 Standard updates:', standardUpdates);
+              console.log('📝 Database updates (mapped):', dbUpdates);
               
               // Try to update first, then insert if no record exists (UPSERT)
               const { error: updateError } = await supabase
@@ -2954,10 +2961,25 @@ This will:
                 console.log('✅ New ready-for-testing record created with mapped columns');
               } else {
                 console.log('✅ Database update successful with mapped columns');
+                
+                // Verify the update by querying the updated record
+                const { data: verifyData, error: verifyError } = await supabase
+                  .from('ready-for-testing')
+                  .select('qastatus')
+                  .eq('id', userId)
+                  .single();
+                  
+                if (!verifyError && verifyData) {
+                  console.log('🔍 Verification: Updated QA status in DB:', verifyData.qastatus);
+                } else {
+                  console.warn('⚠️ Could not verify update:', verifyError);
+                }
               }
               
-              // Refresh data
+              // Refresh data - refresh QA testing users to reflect status change
+              console.log('🔄 Refreshing QA testing data after status update...');
               await fetchReadyForTestingUsers();
+              console.log('✅ QA testing data refresh completed');
             }}
             isLoading={loading}
           />

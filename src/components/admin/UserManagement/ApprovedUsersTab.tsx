@@ -224,19 +224,19 @@ const ApprovedUsersTab = React.memo(({
       return state;
     }
     
-    // Otherwise, check if user has trial time remaining (means they're activated)
+    // Check if user has trial time remaining (but NOT fully activated unless explicitly set)
     const user = users.find(u => u.id === userId);
     const hasTrialData = user && getTrialTimeRemaining(user);
     
     if (hasTrialData) {
-      const activatedState = {
+      const trialOnlyState = {
         billingSetup: false,
         trialStarted: true,
-        welcomePackageSent: true,
-        goLive: true
+        welcomePackageSent: false, // Only true after manual activation
+        goLive: false              // Only true after manual activation
       };
-      console.log('🔍 getUserState for', userId, '- detected trial data, user is activated:', activatedState);
-      return activatedState;
+      console.log('🔍 getUserState for', userId, '- detected trial data, NOT fully activated:', trialOnlyState);
+      return trialOnlyState;
     }
     
     // Default inactive state
