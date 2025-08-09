@@ -290,15 +290,28 @@ const ApprovedUsersTab = React.memo(({
       return state;
     }
     
-    // Default state for approved users: awaiting manual activation
-    const defaultApprovedState = {
+    // Check database for persisted activation state
+    const user = users.find(u => u.id === userId);
+    if (user && user.welcome_package_sent && user.go_live) {
+      const activatedState = {
+        billingSetup: false,
+        trialStarted: true,
+        welcomePackageSent: true,
+        goLive: true
+      };
+      console.log('🔍 getUserState for', userId, '- found activated in database:', activatedState);
+      return activatedState;
+    }
+    
+    // Default state: awaiting manual activation
+    const defaultState = {
       billingSetup: false,
       trialStarted: true,  // Users in approved tab have trial by default
-      welcomePackageSent: false, // Only true after manual "Activate Client"
-      goLive: false              // Only true after manual "Activate Client"
+      welcomePackageSent: false, // Only true after manual activation
+      goLive: false              // Only true after manual activation
     };
-    console.log('🔍 getUserState for', userId, '- default approved state (awaiting manual activation):', defaultApprovedState);
-    return defaultApprovedState;
+    console.log('🔍 getUserState for', userId, '- awaiting activation:', defaultState);
+    return defaultState;
   };
 
   // Usage Management Functions
@@ -485,6 +498,25 @@ const ApprovedUsersTab = React.memo(({
         console.log('🔄 Also saved to ref:', userStatesRef.current[userId]);
         return newState;
       });
+      
+      // Update database with activation state
+      console.log('💾 Updating database with activation state...');
+      try {
+        const { error } = await supabase
+          .from('clients')
+          .update({
+            welcome_package_sent: true,
+            go_live: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', userId);
+        
+        if (error) throw error;
+        console.log('✅ Activation state persisted to database');
+        
+      } catch (error) {
+        console.error('❌ Failed to persist activation state:', error);
+      }
       
       // Close the activation panel
       setExpandedActivation(prev => ({
