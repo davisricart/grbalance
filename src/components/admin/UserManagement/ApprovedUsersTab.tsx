@@ -290,45 +290,15 @@ const ApprovedUsersTab = React.memo(({
       return state;
     }
     
-    // Check database for persisted activation state
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      // Check if user has been fully activated (both flags set in database)
-      if (user.welcome_package_sent && user.go_live) {
-        const activatedState = {
-          billingSetup: false,
-          trialStarted: true,
-          welcomePackageSent: true,
-          goLive: true
-        };
-        console.log('🔍 getUserState for', userId, '- found activated state in database:', activatedState);
-        return activatedState;
-      }
-      
-      // Check if user has trial time remaining (but NOT fully activated unless explicitly set)
-      const hasTrialData = getTrialTimeRemaining(user);
-      
-      if (hasTrialData) {
-        const trialOnlyState = {
-          billingSetup: false,
-          trialStarted: true,
-          welcomePackageSent: false, // Only true after manual activation
-          goLive: false              // Only true after manual activation
-        };
-        console.log('🔍 getUserState for', userId, '- detected trial data, NOT fully activated:', trialOnlyState);
-        return trialOnlyState;
-      }
-    }
-    
-    // Default inactive state
-    const defaultState = {
+    // Default state for approved users: awaiting manual activation
+    const defaultApprovedState = {
       billingSetup: false,
-      trialStarted: false,
-      welcomePackageSent: false,
-      goLive: false
+      trialStarted: true,  // Users in approved tab have trial by default
+      welcomePackageSent: false, // Only true after manual "Activate Client"
+      goLive: false              // Only true after manual "Activate Client"
     };
-    console.log('🔍 getUserState for', userId, '- no activation detected, using default:', defaultState);
-    return defaultState;
+    console.log('🔍 getUserState for', userId, '- default approved state (awaiting manual activation):', defaultApprovedState);
+    return defaultApprovedState;
   };
 
   // Usage Management Functions
