@@ -2067,9 +2067,41 @@ This will:
     console.log('🚀 sendBackToQA: Using unified service for workflow stage update...');
     
     try {
-      // Use unified service to update workflow stage - handles all table complexity internally
+      // Get the approved user data
+      const approvedUser = approvedUsers.find(user => user.id === userId);
+      if (!approvedUser) {
+        console.error('❌ Approved user not found for userId:', userId);
+        return;
+      }
+
+      // Use unified service to update workflow stage
       console.log('🔧 Updating workflow stage from approved to qa_testing via unified service...');
       await updateUserWorkflowStage(userId, 'qa_testing');
+      
+      // Add user back to ready-for-testing table
+      console.log('➕ Adding user back to ready-for-testing table...');
+      const readyForTestingData = {
+        id: userId,
+        email: approvedUser.email,
+        businessname: approvedUser.businessName || 'Business Name Not Set',
+        businesstype: approvedUser.businessType || 'Other',
+        subscriptiontier: approvedUser.subscriptionTier,
+        billingcycle: approvedUser.billingCycle || 'monthly',
+        createdat: approvedUser.createdAt || new Date().toISOString(),
+        readyfortestingat: new Date().toISOString(),
+        qastatus: 'pending'
+      };
+
+      const { error: insertError } = await supabase
+        .from('ready-for-testing')
+        .insert(readyForTestingData);
+
+      if (insertError) {
+        console.error('❌ Failed to add user back to ready-for-testing:', insertError);
+        throw insertError;
+      } else {
+        console.log('✅ User added back to ready-for-testing table');
+      }
       
       // Refresh data
       console.log('🔄 Refreshing data...');
