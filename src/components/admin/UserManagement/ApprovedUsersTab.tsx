@@ -903,11 +903,6 @@ const ApprovedUsersTab = React.memo(({
       </div>
     </div>
   );
-}, (prevProps, nextProps) => {
-  return (
-    prevProps.users === nextProps.users &&
-    prevProps.isLoading === nextProps.isLoading
-  );
 });
 
 ApprovedUsersTab.displayName = 'ApprovedUsersTab';
