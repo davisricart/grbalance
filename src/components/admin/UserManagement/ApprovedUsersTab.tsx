@@ -142,6 +142,10 @@ const ApprovedUsersTab = React.memo(({
       
       console.log(`✅ 14-day FREE trial started - expires ${trialEndDate.toLocaleString()}`);
       
+      // Refresh users to show updated database state
+      if (onRefreshUsers) {
+        await onRefreshUsers();
+      }
     } catch (error) {
       console.error('❌ Error starting trial:', error);
       alert('Failed to start trial. Please try again.');
@@ -154,7 +158,28 @@ const ApprovedUsersTab = React.memo(({
     setProcessing(userId);
     console.log(`Sending welcome package to user ${userId}`);
     
-    setTimeout(() => {
+    try {
+      // Simulate welcome package sending
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Persist to database
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://qkrptazfydtaoyhhczyr.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
+      );
+      
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          welcome_package_sent: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state
       setUserStates(prev => ({
         ...prev,
         [userId]: { 
@@ -164,16 +189,47 @@ const ApprovedUsersTab = React.memo(({
           goLive: prev[userId]?.goLive || false
         }
       }));
+      
+      console.log('✅ Welcome package sent and persisted to database');
+      
+      // Refresh users to show updated database state
+      if (onRefreshUsers) {
+        await onRefreshUsers();
+      }
+    } catch (error) {
+      console.error('❌ Error sending welcome package:', error);
+      alert('Failed to send welcome package. Please try again.');
+    } finally {
       setProcessing(null);
-      console.log('✅ Welcome package sent');
-    }, 1500);
+    }
   };
 
   const handleGoLive = async (userId: string) => {
     setProcessing(userId);
     console.log(`Making client portal LIVE for user ${userId}`);
     
-    setTimeout(() => {
+    try {
+      // Simulate go live process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Persist to database
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(
+        'https://qkrptazfydtaoyhhczyr.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrcnB0YXpmeWR0YW95aGhjenlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAzNjk4MjEsImV4cCI6MjA2NTk0NTgyMX0.1RMndlLkNeztTMsWP6_Iu8Q0VNGPYRp2H9ij7OJQVaM'
+      );
+      
+      const { error } = await supabase
+        .from('clients')
+        .update({
+          go_live: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state
       setUserStates(prev => ({
         ...prev,
         [userId]: { 
@@ -183,9 +239,19 @@ const ApprovedUsersTab = React.memo(({
           goLive: true
         }
       }));
+      
+      console.log('🚀 Client portal is now LIVE and persisted to database!');
+      
+      // Refresh users to show updated database state
+      if (onRefreshUsers) {
+        await onRefreshUsers();
+      }
+    } catch (error) {
+      console.error('❌ Error making client portal live:', error);
+      alert('Failed to make client portal live. Please try again.');
+    } finally {
       setProcessing(null);
-      console.log('🚀 Client portal is now LIVE!');
-    }, 2000);
+    }
   };
 
   // Administrative actions with inline confirmations
@@ -224,19 +290,34 @@ const ApprovedUsersTab = React.memo(({
       return state;
     }
     
-    // Check if user has trial time remaining (but NOT fully activated unless explicitly set)
+    // Check database for persisted activation state
     const user = users.find(u => u.id === userId);
-    const hasTrialData = user && getTrialTimeRemaining(user);
-    
-    if (hasTrialData) {
-      const trialOnlyState = {
-        billingSetup: false,
-        trialStarted: true,
-        welcomePackageSent: false, // Only true after manual activation
-        goLive: false              // Only true after manual activation
-      };
-      console.log('🔍 getUserState for', userId, '- detected trial data, NOT fully activated:', trialOnlyState);
-      return trialOnlyState;
+    if (user) {
+      // Check if user has been fully activated (both flags set in database)
+      if (user.welcome_package_sent && user.go_live) {
+        const activatedState = {
+          billingSetup: false,
+          trialStarted: true,
+          welcomePackageSent: true,
+          goLive: true
+        };
+        console.log('🔍 getUserState for', userId, '- found activated state in database:', activatedState);
+        return activatedState;
+      }
+      
+      // Check if user has trial time remaining (but NOT fully activated unless explicitly set)
+      const hasTrialData = getTrialTimeRemaining(user);
+      
+      if (hasTrialData) {
+        const trialOnlyState = {
+          billingSetup: false,
+          trialStarted: true,
+          welcomePackageSent: false, // Only true after manual activation
+          goLive: false              // Only true after manual activation
+        };
+        console.log('🔍 getUserState for', userId, '- detected trial data, NOT fully activated:', trialOnlyState);
+        return trialOnlyState;
+      }
     }
     
     // Default inactive state
@@ -393,11 +474,14 @@ const ApprovedUsersTab = React.memo(({
         })
         .eq('id', userId);
       
-      // Also update clients table to active status
+      // Also update clients table to active status and persist activation state
       const { error: clientError } = await supabase
         .from('clients')
         .update({
-          status: 'active'
+          status: 'active',
+          welcome_package_sent: true,
+          go_live: true,
+          updated_at: new Date().toISOString()
         })
         .eq('id', userId);
       
@@ -446,9 +530,11 @@ const ApprovedUsersTab = React.memo(({
         billingSetup: false
       });
       
-      // DON'T refresh users - it resets the activation state we just set
-      // The activation state is now in local component state and will show green
-      // Refreshing would cause the user to appear non-activated again
+      // Refresh users to get updated activation state from database
+      // This ensures the UI shows the persisted activation state
+      if (onRefreshUsers) {
+        await onRefreshUsers();
+      }
       
     } catch (error) {
       console.error('❌ Client activation failed:', error);

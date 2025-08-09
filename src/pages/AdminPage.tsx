@@ -656,14 +656,15 @@ const AdminPage: React.FC = () => {
         };
       });
       
-      // Get site URLs and scripts from clients table instead
+      // Get site URLs, scripts, and activation state from clients table instead
       const { data: clientsData } = await supabase
         .from('clients')
-        .select('id, client_path, deployed_scripts')
+        .select('id, client_path, deployed_scripts, welcome_package_sent, go_live')
         .in('id', userIds);
       
       const urlsData: {[userId: string]: string} = {};
       const scriptsData: {[userId: string]: (string | ScriptInfo)[]} = {};
+      const activationData: {[userId: string]: {welcome_package_sent?: boolean, go_live?: boolean}} = {};
       
       clientsData?.forEach((client) => {
         if (client.client_path) {
@@ -672,10 +673,22 @@ const AdminPage: React.FC = () => {
         if (client.deployed_scripts && Array.isArray(client.deployed_scripts)) {
           scriptsData[client.id] = client.deployed_scripts;
         }
+        // Store activation state data
+        activationData[client.id] = {
+          welcome_package_sent: client.welcome_package_sent || false,
+          go_live: client.go_live || false
+        };
       });
       
-      console.log('✅ fetchApprovedUsers: Found', approvedUsersData.length, 'approved users via unified service');
-      setApprovedUsers(approvedUsersData);
+      // Add activation data to approved users
+      const approvedUsersWithActivation = approvedUsersData.map(user => ({
+        ...user,
+        welcome_package_sent: activationData[user.id]?.welcome_package_sent || false,
+        go_live: activationData[user.id]?.go_live || false
+      }));
+      
+      console.log('✅ fetchApprovedUsers: Found', approvedUsersWithActivation.length, 'approved users via unified service');
+      setApprovedUsers(approvedUsersWithActivation);
       setSiteUrls(urlsData);
       setDeployedScripts(scriptsData);
       

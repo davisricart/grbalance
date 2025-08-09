@@ -33,6 +33,8 @@ interface ClientsColumns {
   created_at: 'created_at'; // DB uses snake_case
   updated_at: 'updated_at'; // DB uses snake_case
   deployed_scripts: 'deployed_scripts'; // DB uses snake_case
+  welcome_package_sent: 'welcome_package_sent'; // DB uses snake_case
+  go_live: 'go_live'; // DB uses snake_case
 }
 
 interface PendingUsersColumns {
@@ -93,7 +95,9 @@ const COLUMN_MAPS: TableColumnMaps = {
     status: 'status',
     created_at: 'created_at',
     updated_at: 'updated_at',
-    deployed_scripts: 'deployed_scripts'
+    deployed_scripts: 'deployed_scripts',
+    welcome_package_sent: 'welcome_package_sent',
+    go_live: 'go_live'
   },
   pendingUsers: {
     id: 'id',

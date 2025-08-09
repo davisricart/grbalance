@@ -83,6 +83,10 @@ export interface ApprovedUser {
   trial_started_at?: string | null;
   trial_ends_at?: string | null;
   activation_status?: 'inactive' | 'trial' | 'paid' | 'expired';
+  
+  // Activation state persistence 
+  welcome_package_sent?: boolean;
+  go_live?: boolean;
 }
 
 export interface ScriptData {
