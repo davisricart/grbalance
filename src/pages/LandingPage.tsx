@@ -119,7 +119,7 @@ export default function LandingPage() {
             
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                to="/contact"
+                to="/book"
                 className="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-8 rounded-lg shadow-lg transition-colors duration-200 text-lg sm:text-xl"
               >
                 <Calendar className="mr-2 h-5 w-5" />
