@@ -272,40 +272,55 @@ export const getUsersByWorkflowStage = async (
 ): Promise<UnifiedUser[]> => {
   console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
   
-  // Get users from clients table first by workflow_stage to avoid duplicates
-  const { data: clients, error: clientError } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('workflow_stage', stage)
-    .order('id');
+  // Use usage table status for workflow stages - but fix approved tab to not overlap with QA
+  const stageToUsageStatusMap = {
+    pending: 'pending',
+    qa_testing: 'trial', 
+    approved: 'approved', // Only show actually approved users, not trial users
+    deactivated: 'deactivated',
+    deleted: 'deleted'
+  } as const;
 
-  if (clientError) {
-    console.error(`❌ getUsersByWorkflowStage: Error fetching from clients table:`, clientError);
-    throw clientError;
-  }
-  
-  if (!clients || clients.length === 0) {
-    console.log(`📊 getUsersByWorkflowStage: No users found for stage "${stage}"`);
-    return [];
-  }
-
-  console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} users in clients table with workflow_stage "${stage}"`);
-
-  // Get corresponding usage data
-  const userIds = clients.map(c => c.id);
+  // Get users from usage table first using mapped columns
   const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
+  const statusFilter = stageToUsageStatusMap[stage];
   
   const { data: usageUsers, error: usageError } = await supabase
     .from('usage')
     .select(usageSelectColumns)
-    .in('id', userIds);
+    .eq('status', statusFilter)
+    .order('id');
 
   if (usageError) {
     console.error(`❌ getUsersByWorkflowStage: Error fetching from usage table:`, usageError);
     throw usageError;
   }
+  
+  if (!usageUsers || usageUsers.length === 0) {
+    console.log(`📊 getUsersByWorkflowStage: No users found for stage "${stage}"`);
+    return [];
+  }
 
-  console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for workflow_stage "${stage}"`);
+  console.log(`📊 getUsersByWorkflowStage: Found ${usageUsers.length} users in usage table with status "${statusFilter}"`);
+
+  // Get corresponding client data
+  const userIds = usageUsers.map(u => u.id);
+  const { data: clients, error: clientError } = await supabase
+    .from('clients')
+    .select('*')
+    .in('id', userIds);
+
+  if (clientError) {
+    console.error(`❌ getUsersByWorkflowStage: Error fetching clients:`, clientError);
+    throw clientError;
+  }
+
+  if (!clients || clients.length === 0) {
+    console.log(`📊 getUsersByWorkflowStage: No client data found for ${usageUsers.length} usage records`);
+    return [];
+  }
+
+  console.log(`📊 getUsersByWorkflowStage: Found ${clients.length} clients for ${usageUsers.length} usage records`);
 
   // Get business_type data from pendingUsers table using mapped columns
   const pendingSelectColumns = `id, ${PendingUsersMapper.column('business_type')}`;
