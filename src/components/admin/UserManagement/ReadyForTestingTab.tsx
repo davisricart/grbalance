@@ -179,6 +179,7 @@ export default function ReadyForTestingTab({
   const [testingNotes, setTestingNotes] = useState<{[key: string]: string}>({});
   const [sendBackConfirm, setSendBackConfirm] = useState<string | null>(null);
   const [scriptRefreshTrigger, setScriptRefreshTrigger] = useState<{[key: string]: number}>({});
+  const [localQAStatus, setLocalQAStatus] = useState<{[key: string]: 'pending' | 'testing' | 'passed' | 'failed'}>({});
 
   // Initialize customUrls from clients table when users are loaded
   useEffect(() => {
@@ -344,6 +345,9 @@ export default function ReadyForTestingTab({
 
   const updateQAStatus = async (userId: string, status: 'pending' | 'testing' | 'passed' | 'failed') => {
     setProcessingUser(userId);
+    // Set local state immediately for instant UI feedback
+    setLocalQAStatus(prev => ({ ...prev, [userId]: status }));
+    
     try {
       const updates: Partial<ReadyForTestingUser> = {
         qaStatus: status
@@ -361,7 +365,8 @@ export default function ReadyForTestingTab({
       console.log('✅ QA status updated successfully:', status);
     } catch (error) {
       console.error('❌ Failed to update QA status:', error);
-      // Don't clear processing state on error so user can see the button didn't work
+      // Revert local state on error
+      setLocalQAStatus(prev => ({ ...prev, [userId]: 'pending' }));
       throw error;
     } finally {
       setProcessingUser(null);
@@ -788,7 +793,7 @@ export default function ReadyForTestingTab({
 
       <div className="divide-y divide-gray-100">
         {readyForTestingUsers.map((user) => {
-          const qaStatus = user.qaStatus || 'pending';
+          const qaStatus = localQAStatus[user.id] || user.qaStatus || 'pending';
           const isQAPassed = qaStatus === 'passed';
           const currentScriptStatus = scriptStatus[user.id] || 'none';
           const isScriptCompleted = currentScriptStatus === 'completed';
