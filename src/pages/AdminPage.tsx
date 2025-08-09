@@ -2063,72 +2063,22 @@ This will:
 
   // Send approved user back to QA testing
   const sendBackToQA = async (userId: string) => {
+    console.log('🚀 sendBackToQA: Using unified service for workflow stage update...');
+    
     try {
-      // Get the approved user data
-      const approvedUser = approvedUsers.find(user => user.id === userId);
-      if (!approvedUser) {
-        console.error('Approved user not found');
-        return;
-      }
-
-      // Fetch business name from clients table to ensure it's preserved
-      let businessName = approvedUser.businessName;
-      let businessType = approvedUser.businessType;
+      // Use unified service to update workflow stage - handles all table complexity internally
+      console.log('🔧 Updating workflow stage from approved to qa_testing via unified service...');
+      await updateUserWorkflowStage(userId, 'qa_testing');
       
-      try {
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('business_name')
-          .eq('id', userId)
-          .single();
-        
-        if (clientData) {
-          businessName = clientData.business_name || businessName;
-          businessType = clientData.business_type || businessType;
-          console.log('✅ Found business data from clients table:', { businessName, businessType });
-        }
-      } catch (error) {
-        console.warn('⚠️ Could not fetch from clients table, using approved user data');
-      }
-
-      // Move user from usage table to ready-for-testing table
-      const readyForTestingData = {
-        id: userId,
-        email: approvedUser.email,
-        businessname: businessName || 'Business Name Not Set',  // Fixed: lowercase for ready-for-testing table
-        businesstype: businessType || 'Other',                // Fixed: lowercase for ready-for-testing table
-        subscriptiontier: approvedUser.subscriptionTier,      // Fixed: lowercase for ready-for-testing table
-        billingcycle: approvedUser.billingCycle || 'monthly', // Fixed: lowercase for ready-for-testing table
-        createdat: approvedUser.createdAt || new Date().toISOString(), // Fixed: lowercase for ready-for-testing table
-        readyfortestingat: new Date().toISOString(),          // Fixed: lowercase for ready-for-testing table
-        qastatus: 'pending'                                   // Fixed: lowercase for ready-for-testing table
-        // Note: client_path will be restored from clients table, not stored in ready-for-testing
-      };
-
-      // Add to ready-for-testing table
-      const { error: insertError } = await supabase
-        .from('ready-for-testing')
-        .insert(readyForTestingData);
-
-      if (insertError) throw insertError;
-
-      // Update usage table status (DO NOT DELETE - preserve data)
-      const { error: updateError } = await supabase
-        .from('usage')
-        .update({
-          status: 'trial', // qa_testing stage maps to 'trial' status
-          updatedAt: new Date().toISOString()
-        })
-        .eq('id', userId);
-
-      if (updateError) throw updateError;
-
-      // Refresh both lists
+      // Refresh data
+      console.log('🔄 Refreshing data...');
       await fetchApprovedUsers();
       await fetchReadyForTestingUsers();
-
+      console.log('✅ sendBackToQA completed via unified service');
+      
     } catch (error) {
-      console.error('Error sending user back to QA:', error);
+      console.error('❌ Error in sendBackToQA:', error);
+      throw error; // Re-throw so the UI can handle it
     }
   };
 
