@@ -265,6 +265,91 @@ export const updateUserWorkflowStage = async (
 };
 
 /**
+ * Get QA Testing users (only from ready-for-testing table)
+ */
+const getQATestingUsers = async (): Promise<UnifiedUser[]> => {
+  console.log('🔍 getQATestingUsers: Fetching from ready-for-testing table only');
+  
+  // Get users directly from ready-for-testing table
+  const { data: readyForTestingUsers, error: readyError } = await supabase
+    .from('ready-for-testing')
+    .select('*')
+    .order('id');
+
+  if (readyError) {
+    console.error(`❌ getQATestingUsers: Error fetching from ready-for-testing table:`, readyError);
+    throw readyError;
+  }
+  
+  if (!readyForTestingUsers || readyForTestingUsers.length === 0) {
+    console.log(`📊 getQATestingUsers: No users found in ready-for-testing table`);
+    return [];
+  }
+
+  console.log(`📊 getQATestingUsers: Found ${readyForTestingUsers.length} users in ready-for-testing table`);
+
+  // Get corresponding usage and client data
+  const userIds = readyForTestingUsers.map(u => u.id);
+  
+  // Get usage data
+  const usageSelectColumns = `id, status, ${UsageMapper.column('subscription_tier')}, ${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}`;
+  const { data: usageUsers, error: usageError } = await supabase
+    .from('usage')
+    .select(usageSelectColumns)
+    .in('id', userIds);
+
+  if (usageError) {
+    console.error(`❌ getQATestingUsers: Error fetching usage data:`, usageError);
+    throw usageError;
+  }
+
+  // Get client data
+  const { data: clients, error: clientError } = await supabase
+    .from('clients')
+    .select('*')
+    .in('id', userIds);
+
+  if (clientError) {
+    console.error(`❌ getQATestingUsers: Error fetching client data:`, clientError);
+    throw clientError;
+  }
+
+  // Create maps for efficient lookup
+  const usageMap = new Map(usageUsers?.map(u => [u.id, u]) || []);
+  const clientMap = new Map(clients?.map(c => [c.id, c]) || []);
+
+  // Map ready-for-testing users to UnifiedUser format
+  const result = readyForTestingUsers.map(readyUser => {
+    const usage = usageMap.get(readyUser.id);
+    const client = clientMap.get(readyUser.id);
+    
+    if (!client || !usage) {
+      console.warn(`⚠️ Missing data for QA user ${readyUser.id}`);
+      return null;
+    }
+    
+    return {
+      id: readyUser.id,
+      email: client.email,
+      business_name: client.business_name || readyUser.businessname || 'Business Name Not Set',
+      business_type: readyUser.businesstype || 'Other',
+      client_path: client.client_path,
+      subscription_tier: client.subscription_tier || readyUser.subscriptiontier || 'starter',
+      status: usage.status || 'trial',
+      workflow_stage: 'qa_testing' as const,
+      billing_cycle: readyUser.billingcycle || 'monthly',
+      comparisons_used: usage[UsageMapper.column('comparisons_used')] || 0,
+      comparisons_limit: usage[UsageMapper.column('comparisons_limit')] || 50,
+      created_at: client.created_at || readyUser.createdat,
+      updated_at: client.updated_at || readyUser.updatedat || readyUser.readyfortestingat,
+    };
+  }).filter(Boolean) as UnifiedUser[];
+
+  console.log(`✅ getQATestingUsers: Returning ${result.length} QA testing users`);
+  return result;
+};
+
+/**
  * Get users by workflow stage
  */
 export const getUsersByWorkflowStage = async (
@@ -272,10 +357,14 @@ export const getUsersByWorkflowStage = async (
 ): Promise<UnifiedUser[]> => {
   console.log(`🔍 getUsersByWorkflowStage: Fetching users for stage "${stage}"`);
   
-  // Use usage table status for workflow stages - approved stage needs special handling
+  // QA Testing stage should ONLY check ready-for-testing table, not usage status
+  if (stage === 'qa_testing') {
+    return getQATestingUsers();
+  }
+  
+  // Use usage table status for other workflow stages
   const stageToUsageStatusMap = {
     pending: 'pending',
-    qa_testing: 'trial', 
     approved: ['approved', 'trial'], // Show both approved and trial users for approved stage
     deactivated: 'deactivated',
     deleted: 'deleted'
