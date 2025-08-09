@@ -792,7 +792,7 @@ export default function ReadyForTestingTab({
           const isQAPassed = qaStatus === 'passed';
           const currentScriptStatus = scriptStatus[user.id] || 'none';
           const isScriptCompleted = currentScriptStatus === 'completed';
-          const canApprove = isQAPassed && isScriptCompleted;
+          const canApprove = isQAPassed;
           const isProcessing = processingUser === user.id;
           // Debug: Log the business name and URL generation
           console.log('🔍 URL Generation for user:', user.email, {
@@ -894,58 +894,33 @@ export default function ReadyForTestingTab({
                         </button>
                       )}
 
-                      {/* QA Status Buttons */}
-                      <div className="flex items-center gap-1">
+                      {/* Simplified QA Buttons */}
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateQAStatus(user.id, qaStatus === 'testing' ? 'passed' : qaStatus === 'failed' ? 'testing' : 'testing')}
+                          onClick={() => updateQAStatus(user.id, 'passed')}
                           disabled={isProcessing}
                           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
-                            qaStatus === 'passed' 
-                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
-                              : qaStatus === 'testing'
-                              ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                              : qaStatus === 'failed'
-                              ? 'bg-red-100 text-red-700 border border-red-200'
-                              : 'bg-amber-100 text-amber-700 border border-amber-200'
+                            qaStatus === 'passed'
+                              ? 'bg-emerald-600 text-white border border-emerald-600'
+                              : 'bg-white text-emerald-600 border border-emerald-600 hover:bg-emerald-50'
                           }`}
                         >
-                          {qaStatus === 'passed' ? (
-                            <>
-                              <CheckCircle2 className="h-3 w-3" />
-                              <span>QA Passed</span>
-                            </>
-                          ) : qaStatus === 'testing' ? (
-                            <>
-                              <Eye className="h-3 w-3" />
-                              <span>Testing</span>
-                            </>
-                          ) : qaStatus === 'failed' ? (
-                            <>
-                              <XCircle className="h-3 w-3" />
-                              <span>QA Failed</span>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3" />
-                              <span>Start QA</span>
-                            </>
-                          )}
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Pass</span>
                         </button>
 
-                        {qaStatus !== 'pending' && qaStatus !== 'failed' && (
-                          <button
-                            onClick={() => updateQAStatus(user.id, 'failed')}
-                            disabled={isProcessing}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
-                              qaStatus === 'passed' 
-                                ? 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
-                                : 'bg-red-100 text-red-700 border border-red-200 hover:bg-red-200'
-                            }`}
-                          >
-                            <AlertCircle className="h-3 w-3" />
-                            <span>Fail</span>
-                          </button>
-                        )}
+                        <button
+                          onClick={() => updateQAStatus(user.id, 'failed')}
+                          disabled={isProcessing}
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all hover:scale-105 disabled:opacity-50 ${
+                            qaStatus === 'failed'
+                              ? 'bg-red-600 text-white border border-red-600'
+                              : 'bg-white text-red-600 border border-red-600 hover:bg-red-50'
+                          }`}
+                        >
+                          <XCircle className="h-3 w-3" />
+                          <span>Fail</span>
+                        </button>
                       </div>
 
                       {/* Final Actions */}
@@ -970,9 +945,7 @@ export default function ReadyForTestingTab({
                               <span>
                                 {canApprove 
                                   ? 'Move to Approved' 
-                                  : !isQAPassed 
-                                  ? 'QA Required' 
-                                  : 'Script Completion Required'
+                                  : 'QA Required'
                                 }
                               </span>
                             </>
