@@ -2861,7 +2861,22 @@ This will:
                   console.error('❌ Failed to remove from ready-for-testing:', deleteError);
                   throw deleteError; // Make this critical since it causes duplicates
                 } else {
-                  console.log('✅ Removed from ready-for-testing, rows affected:', count);
+                  console.log('✅ Delete operation completed, rows affected:', count);
+                }
+
+                // Verify deletion worked
+                const { data: stillExists, error: verifyError } = await supabase
+                  .from('ready-for-testing')
+                  .select('id')
+                  .eq('id', userId);
+                
+                if (verifyError) {
+                  console.error('❌ Error verifying deletion:', verifyError);
+                } else if (stillExists && stillExists.length > 0) {
+                  console.error('❌ CRITICAL: User still exists in ready-for-testing after delete!', stillExists);
+                  throw new Error(`Failed to remove user ${userId} from ready-for-testing table`);
+                } else {
+                  console.log('✅ Verified: User successfully removed from ready-for-testing');
                 }
                 
                 // Refresh data
