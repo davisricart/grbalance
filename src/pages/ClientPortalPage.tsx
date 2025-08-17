@@ -25,7 +25,8 @@ export default function ClientPortalPage() {
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); // Form validation errors
+  const [fatalError, setFatalError] = useState(''); // Client not found, etc.
   const [isAdminBypass, setIsAdminBypass] = useState(false);
   const [isHuman, setIsHuman] = useState(false);
 
@@ -83,7 +84,7 @@ export default function ClientPortalPage() {
     const checkClientExists = async () => {
       if (!clientname) {
         console.log('❌ No clientname provided in URL');
-        setError('No client name provided');
+        setFatalError('No client name provided');
         setLoading(false);
         return;
       }
@@ -187,16 +188,16 @@ export default function ClientPortalPage() {
               console.log('🔍 All available clients:', allClients);
             }
             
-            setError(`Client portal "${clientname}" not found`);
+            setFatalError(`Client portal "${clientname}" not found`);
           }
         } else {
           const errorData = await response.text();
           console.log('❌ Response error:', errorData);
-          setError(`Failed to load client portal: ${response.status}`);
+          setFatalError(`Failed to load client portal: ${response.status}`);
         }
       } catch (error) {
         console.error('❌ Error loading client:', error);
-        setError(`Error loading client portal: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setFatalError(`Error loading client portal: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -301,8 +302,8 @@ export default function ClientPortalPage() {
     );
   }
 
-  if (error || !clientData) {
-    console.log('🚨 Showing Portal Not Found page - error:', error, 'clientData:', !!clientData);
+  if (fatalError || !clientData) {
+    console.log('🚨 Showing Portal Not Found page - fatalError:', fatalError, 'clientData:', !!clientData);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -310,7 +311,7 @@ export default function ClientPortalPage() {
             <span className="text-2xl">❌</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Portal Not Found</h1>
-          <p className="text-gray-600 mb-4">{error || 'This client portal does not exist'}</p>
+          <p className="text-gray-600 mb-4">{fatalError || 'This client portal does not exist'}</p>
           <a 
             href="/" 
             className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
