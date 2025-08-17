@@ -101,6 +101,13 @@
 - **Data Persistence Root Cause**: Enhanced deletion to prevent client_path collision inheritance
 - **Status**: Complete trial-to-paid conversion workflow with consistent security
 
+## Client Portal CAPTCHA Validation Fix - COMPLETED ✅ (2025-08-17)
+- **Problem**: Client portal login showed "Portal Not Found" page instead of inline CAPTCHA validation errors
+- **Root Cause**: Single error state used for both fatal errors (client not found) and form validation errors
+- **Solution**: Separated error states - `fatalError` for portal issues, `error` for form validation
+- **Files**: `src/pages/ClientPortalPage.tsx` - error state management and render logic
+- **Status**: Client portal now shows proper inline CAPTCHA validation like main login form
+
 ## Configuration Files - CRITICAL
 - **tailwind.config.js**: Must maintain proper Tailwind configuration
 - **postcss.config.js**: Required for PostCSS/Tailify processing

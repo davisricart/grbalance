@@ -210,21 +210,15 @@ export default function ClientPortalPage() {
     e.preventDefault();
     setError('');
     
-    console.log('🔐 Form submission started - isHuman:', isHuman, 'clientData:', !!clientData);
-    
     if (!isHuman) {
-      console.log('❌ CAPTCHA not checked - showing error');
       setError('Please verify that you are human');
       return;
     }
     
     if (!clientData) {
-      console.log('❌ No client data - showing error');
       setError('Client portal data not available. Please refresh the page.');
       return;
     }
-    
-    console.log('✅ Form validation passed, proceeding with authentication');
     
     try {
       // Use proper Supabase authentication
@@ -303,7 +297,6 @@ export default function ClientPortalPage() {
   }
 
   if (fatalError || !clientData) {
-    console.log('🚨 Showing Portal Not Found page - fatalError:', fatalError, 'clientData:', !!clientData);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
