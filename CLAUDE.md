@@ -108,6 +108,15 @@
 - **Files**: `src/pages/ClientPortalPage.tsx` - error state management and render logic
 - **Status**: Client portal now shows proper inline CAPTCHA validation like main login form
 
+## Trial Expiry Security & Navigation Fixes - COMPLETED ✅ (2025-08-30)
+- **Trial Expiry Enforcement**: Added trial expiration checking to `usageService.canPerformReconciliation()`
+- **Security Vulnerability Fix**: Wrapped `/:clientname` route with `ApprovedUserRoute` to prevent trial bypass
+- **Billing Page UX**: Fixed 'Upgrade Now' button loading states and removed redundant trial banner button
+- **Dashboard Navigation**: Added `clientPath` to AuthProvider for pending users to access their specific client portal
+- **Error Messages**: Updated trial verification errors to suggest subscription upgrade instead of just "contact support"
+- **Files**: `src/services/usageService.ts`, `src/App.tsx`, `src/pages/BillingPage.tsx`, `src/components/Header.tsx`, `src/contexts/AuthProvider.tsx`
+- **Status**: Trial expiry now enforced across all portal access methods, no workarounds possible
+
 ## Configuration Files - CRITICAL
 - **tailwind.config.js**: Must maintain proper Tailwind configuration
 - **postcss.config.js**: Required for PostCSS/Tailify processing
