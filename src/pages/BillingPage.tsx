@@ -91,6 +91,13 @@ export default function BillingPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
 
+  // Reset upgrading state when payment form is hidden
+  useEffect(() => {
+    if (!showPaymentForm && upgrading) {
+      setUpgrading(false);
+    }
+  }, [showPaymentForm, upgrading]);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
