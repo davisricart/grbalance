@@ -128,6 +128,7 @@ export default function BillingPage() {
     if (!user || !usage) return;
 
     console.log('🚀 Starting upgrade process for plan:', planTier);
+    setUpgrading(true);
     setSelectedPlan(planTier);
     setShowPaymentForm(true);
   };
@@ -139,12 +140,14 @@ export default function BillingPage() {
       const updatedUsage = await getUserUsage(user.id);
       setUsage(updatedUsage);
     }
+    setUpgrading(false);
     setShowPaymentForm(false);
     // Optionally redirect to success page or show success message
   };
 
   const handlePaymentCancel = () => {
     console.log('❌ Payment cancelled');
+    setUpgrading(false);
     setShowPaymentForm(false);
   };
 

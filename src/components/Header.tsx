@@ -24,7 +24,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
     };
   }
 
-  const { isAuthenticated, isApproved, isPending, isLoading } = authState;
+  const { isAuthenticated, isApproved, isPending, isLoading, clientPath } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dashboardUrl, setDashboardUrl] = useState('/app');
 
@@ -120,20 +120,20 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
               Contact
             </Link>
             <Link
-              to={isAuthenticated ? (isPending ? '/pending-approval' : dashboardUrl) : '/login'}
+              to={isAuthenticated ? (isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-4 lg:px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation"
             >
-              {isLoading ? 'Loading...' : (isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login')}
+              {isLoading ? 'Loading...' : (isAuthenticated ? 'Dashboard' : 'Login')}
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2 sm:gap-4">
             <Link
-              to={isAuthenticated ? (isPending ? '/pending-approval' : dashboardUrl) : '/login'}
+              to={isAuthenticated ? (isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-xs sm:text-sm min-h-[44px] flex items-center touch-manipulation"
             >
-              {isLoading ? 'Loading...' : (isAuthenticated ? (isPending ? 'Pending' : 'Dashboard') : 'Login')}
+              {isLoading ? 'Loading...' : (isAuthenticated ? 'Dashboard' : 'Login')}
             </Link>
             <button
               onClick={toggleMobileMenu}

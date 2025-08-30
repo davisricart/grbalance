@@ -2,6 +2,7 @@
 import { supabase } from '../config/supabase';
 import { UsageMapper } from './databaseMapper';
 import { withErrorHandling, validateRequired, ServiceResult } from '../utils/errorHandler';
+import { calculateTrialFromCreatedAt } from './trialService';
 
 export interface UsageData {
   comparisonsUsed: number;
@@ -114,6 +115,30 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
         reason: 'Account not activated. Please contact support.',
         usage 
       };
+    }
+
+    // For trial users, check if trial has expired
+    if (usage.status === 'trial') {
+      // Get user creation date from auth to check trial expiry
+      const { data: { user }, error: authError } = await supabase.auth.admin.getUserById(userId);
+      
+      if (authError || !user) {
+        return { 
+          canProceed: false, 
+          reason: 'Could not verify trial status. Please contact support.',
+          usage 
+        };
+      }
+
+      const trialInfo = calculateTrialFromCreatedAt(user.created_at, true);
+      
+      if (trialInfo.isExpired) {
+        return { 
+          canProceed: false, 
+          reason: 'Your 14-day trial has expired. Please upgrade your plan to continue using GR Balance.',
+          usage 
+        };
+      }
     }
 
     // Check usage limits

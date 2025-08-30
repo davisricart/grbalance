@@ -10,6 +10,7 @@ interface UserStatus {
   isLoading: boolean;
   user: any;
   userStatus: string | null;
+  clientPath: string | null;
 }
 
 interface AuthContextType extends UserStatus {
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userStatus, setUserStatus] = useState<string | null>(null);
+  const [clientPath, setClientPath] = useState<string | null>(null);
   
   const mounted = useRef(true);
   const initializationStarted = useRef(false);
@@ -132,8 +134,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
+            setClientPath(null);
             setIsLoading(false);
           } else {
+            // Store client path for dashboard redirects
+            setClientPath(userData.client_path);
+            
             // Map workflow_stage to auth status
             const statusMap = {
               'pending': 'pending',
@@ -166,6 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setUserStatus('pending');
             setIsApproved(false);
             setIsPending(true);
+            setClientPath(null);
             setIsLoading(false);
           }
         }
@@ -178,6 +185,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setIsPending(false);
           setUser(null);
           setUserStatus(null);
+          setClientPath(null);
           setIsLoading(false); // Set loading false for unauthenticated users
         }
       }
@@ -233,6 +241,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     isLoading,
     user,
     userStatus,
+    clientPath,
     signOut,
     refreshAuthState
   };
