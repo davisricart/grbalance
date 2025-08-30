@@ -1,9 +1,9 @@
 // Trial time calculation service - Single source of truth
 import { supabase } from '../config/supabase';
 
-// Constants - TESTING: 10 minutes instead of 14 days
+// Constants - TESTING: 5 minutes instead of 14 days
 export const TRIAL_DURATION_DAYS = 14; // Keep original for reference
-export const TRIAL_DURATION_MS = 10 * 60 * 1000; // 10 minutes for testing
+export const TRIAL_DURATION_MS = 5 * 60 * 1000; // 5 minutes for testing
 
 export interface TrialInfo {
   daysLeft: number;
