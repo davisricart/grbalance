@@ -98,13 +98,13 @@ export default function BillingPage() {
     }
   }, [showPaymentForm, upgrading]);
 
-  // Safety fallback: reset upgrading state after 10 seconds if still stuck
+  // Safety fallback: reset upgrading state after 5 seconds if still stuck
   useEffect(() => {
     if (upgrading) {
       const timeout = setTimeout(() => {
         console.warn('Billing: Resetting stuck upgrading state after timeout');
         setUpgrading(false);
-      }, 10000);
+      }, 5000);
       
       return () => clearTimeout(timeout);
     }
