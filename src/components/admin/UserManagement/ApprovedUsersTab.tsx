@@ -373,6 +373,36 @@ const ApprovedUsersTab = React.memo(({
     return trialInfo.displayText;
   };
 
+  // Get dynamic trial status for display
+  const getTrialStatus = (user: ApprovedUser, userState: any) => {
+    if (userState.billingSetup) {
+      return {
+        title: 'Client Activated',
+        badge: 'All Systems Live',
+        status: 'activated'
+      };
+    }
+    
+    // Check if trial is expired dynamically
+    const trialStartTime = user.approvedAt || user.createdAt;
+    if (trialStartTime) {
+      const trialInfo = calculateTrialFromCreatedAt(trialStartTime, true);
+      if (trialInfo.isExpired) {
+        return {
+          title: 'Trial Expired',
+          badge: 'Trial Expired',
+          status: 'expired'
+        };
+      }
+    }
+    
+    return {
+      title: 'Trial Active',
+      badge: '14-Day Trial Active',
+      status: 'active'
+    };
+  };
+
   // Client Activation Functions
   const toggleActivationExpanded = (userId: string) => {
     setExpandedActivation(prev => ({
@@ -611,6 +641,7 @@ const ApprovedUsersTab = React.memo(({
                             user.email?.split('@')[0]?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'client';
           const userState = getUserState(user.id);
           const isProcessingUser = processing === user.id;
+          const trialStatus = getTrialStatus(user, userState);
           
           // Debug activation state
           console.log('🔍 Checking activation state for', user.id, ':', {
@@ -757,16 +788,24 @@ const ApprovedUsersTab = React.memo(({
                 {/* Client Activation Status */}
                 {(userState.trialStarted && userState.welcomePackageSent && userState.goLive) ? (
                   <div className="flex-1">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className={`rounded-lg p-4 ${
+                      trialStatus.status === 'expired' 
+                        ? 'bg-red-50 border border-red-200' 
+                        : 'bg-green-50 border border-green-200'
+                    }`}>
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-5 w-5 text-green-600" />
-                          <h5 className="text-sm font-semibold text-green-900">
-                            {userState.billingSetup ? 'Client Activated' : 'Trial Active'}
+                          <CheckCircle2 className={`h-5 w-5 ${trialStatus.status === 'expired' ? 'text-red-600' : 'text-green-600'}`} />
+                          <h5 className={`text-sm font-semibold ${trialStatus.status === 'expired' ? 'text-red-900' : 'text-green-900'}`}>
+                            {trialStatus.title}
                           </h5>
                         </div>
-                        <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                          {userState.billingSetup ? 'All Systems Live' : '14-Day Trial Active'}
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          trialStatus.status === 'expired' 
+                            ? 'bg-red-100 text-red-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {trialStatus.badge}
                         </span>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
@@ -774,9 +813,9 @@ const ApprovedUsersTab = React.memo(({
                           <Mail className="h-3 w-3" />
                           <span>Welcome sent</span>
                         </div>
-                        <div className="flex items-center gap-1 text-green-700">
+                        <div className={`flex items-center gap-1 ${trialStatus.status === 'expired' ? 'text-red-700' : 'text-green-700'}`}>
                           <Clock className="h-3 w-3" />
-                          <span>14-day trial active</span>
+                          <span>{trialStatus.status === 'expired' ? 'Trial expired' : '14-day trial active'}</span>
                         </div>
                         <div className="flex items-center gap-1 text-green-700">
                           <Rocket className="h-3 w-3" />
