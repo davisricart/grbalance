@@ -192,31 +192,12 @@ export default function BillingPage() {
                 <h3 className="text-lg font-semibold text-emerald-900 mb-2">
                   {trialDaysLeft === 0 ? 'Trial Expired' : `${trialDaysLeft} Days Left in Trial`}
                 </h3>
-                <p className="text-emerald-700 mb-4">
+                <p className="text-emerald-700">
                   {trialDaysLeft === 0 
-                    ? 'Your trial has ended. Upgrade to continue using GR Balance.'
-                    : `You're currently on a 14-day free trial. Upgrade anytime to continue using all features.`
+                    ? 'Your trial has ended. Choose a plan below to continue using GR Balance.'
+                    : `You're currently on a 14-day free trial. Choose a plan below to upgrade anytime.`
                   }
                 </p>
-                {trialDaysLeft === 0 && (
-                  <button
-                    onClick={() => handleUpgrade('professional')}
-                    disabled={upgrading}
-                    className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {upgrading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Upgrade Now
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </button>
-                )}
               </div>
             </div>
           </div>
