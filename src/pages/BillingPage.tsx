@@ -91,12 +91,24 @@ export default function BillingPage() {
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
 
-  // Reset upgrading state when payment form is hidden
+  // Reset upgrading state when payment form is hidden or after timeout
   useEffect(() => {
     if (!showPaymentForm && upgrading) {
       setUpgrading(false);
     }
   }, [showPaymentForm, upgrading]);
+
+  // Safety fallback: reset upgrading state after 10 seconds if still stuck
+  useEffect(() => {
+    if (upgrading) {
+      const timeout = setTimeout(() => {
+        console.warn('Billing: Resetting stuck upgrading state after timeout');
+        setUpgrading(false);
+      }, 10000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [upgrading]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -134,10 +146,15 @@ export default function BillingPage() {
   const handleUpgrade = async (planTier: string) => {
     if (!user || !usage) return;
 
-    console.log('🚀 Starting upgrade process for plan:', planTier);
-    setUpgrading(true);
-    setSelectedPlan(planTier);
-    setShowPaymentForm(true);
+    try {
+      console.log('🚀 Starting upgrade process for plan:', planTier);
+      setUpgrading(true);
+      setSelectedPlan(planTier);
+      setShowPaymentForm(true);
+    } catch (error) {
+      console.error('Error in handleUpgrade:', error);
+      setUpgrading(false);
+    }
   };
 
   const handlePaymentSuccess = async (subscriptionId: string) => {
