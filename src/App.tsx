@@ -1,7 +1,8 @@
-import React, { Suspense, useState } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthProvider';
+import { calculateTrialFromCreatedAt } from './services/trialService';
 
 import Layout from './components/Layout';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -46,9 +47,31 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isApproved, isPending, isLoading, userStatus } = useAuth();
+  const { isAuthenticated, isApproved, isPending, isLoading, userStatus, user } = useAuth();
+  const [trialCheckLoading, setTrialCheckLoading] = useState(false);
   
-  if (isLoading) {
+  useEffect(() => {
+    const checkTrialExpiry = async () => {
+      // Only check trial expiry for trial users
+      if (userStatus === 'trial' && user?.created_at) {
+        setTrialCheckLoading(true);
+        const trialInfo = calculateTrialFromCreatedAt(user.created_at, true);
+        
+        if (trialInfo.isExpired) {
+          // Trial expired - redirect to billing page
+          window.location.href = '/billing';
+          return;
+        }
+        setTrialCheckLoading(false);
+      }
+    };
+    
+    if (!isLoading && isAuthenticated) {
+      checkTrialExpiry();
+    }
+  }, [userStatus, user, isLoading, isAuthenticated]);
+  
+  if (isLoading || trialCheckLoading) {
     return <div>Loading...</div>;
   }
   
@@ -56,7 +79,7 @@ const ApprovedUserRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/login" />;
   }
   
-  // Explicitly allow trial and approved users
+  // Explicitly allow trial and approved users (trial expiry checked in useEffect above)
   if (userStatus === 'trial' || userStatus === 'approved' || isApproved) {
     return <>{children}</>;
   }
