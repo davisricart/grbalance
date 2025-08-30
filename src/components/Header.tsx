@@ -4,6 +4,7 @@ import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard } from 'lucide-rea
 import clientConfig from '../config/client';
 import { useAuth } from '../contexts/AuthProvider';
 import UsageCounter from './UsageCounter';
+import { calculateTrialFromCreatedAt } from '../services/trialService';
 
 interface HeaderProps {
   usageRefreshTrigger?: number;
@@ -24,9 +25,18 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
     };
   }
 
-  const { isAuthenticated, isApproved, isPending, isLoading, clientPath } = authState;
+  const { isAuthenticated, isApproved, isPending, isLoading, clientPath, userStatus, user } = authState;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [dashboardUrl, setDashboardUrl] = useState('/app');
+  
+  // Check if trial user has expired trial
+  const isTrialExpired = () => {
+    if (userStatus === 'trial' && user?.created_at) {
+      const trialInfo = calculateTrialFromCreatedAt(user.created_at, true);
+      return trialInfo.isExpired;
+    }
+    return false;
+  };
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
@@ -120,7 +130,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
               Contact
             </Link>
             <Link
-              to={isAuthenticated ? (isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
+              to={isAuthenticated ? (isTrialExpired() ? '/billing' : isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-4 lg:px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 min-h-[44px] flex items-center touch-manipulation"
             >
               {isLoading ? 'Loading...' : (isAuthenticated ? 'Dashboard' : 'Login')}
@@ -130,7 +140,7 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-2 sm:gap-4">
             <Link
-              to={isAuthenticated ? (isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
+              to={isAuthenticated ? (isTrialExpired() ? '/billing' : isPending ? (clientPath ? `/${clientPath}` : '/pending-approval') : dashboardUrl) : '/login'}
               className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors duration-200 text-xs sm:text-sm min-h-[44px] flex items-center touch-manipulation"
             >
               {isLoading ? 'Loading...' : (isAuthenticated ? 'Dashboard' : 'Login')}
