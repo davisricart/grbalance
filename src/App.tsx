@@ -182,7 +182,11 @@ export default function App() {
                       </ProtectedRoute>
                     } />
                     {/* Dynamic Client Portal Route */}
-                    <Route path="/:clientname" element={<ClientPortalPage />} />
+                    <Route path="/:clientname" element={
+                      <ApprovedUserRoute>
+                        <ClientPortalPage />
+                      </ApprovedUserRoute>
+                    } />
                     <Route path="*" element={<NotFoundPage />} />
                   </Routes>
                 </Layout>
