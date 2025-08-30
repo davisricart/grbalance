@@ -125,7 +125,7 @@ export async function canPerformReconciliation(userId: string): Promise<{ canPro
       if (authError || !user) {
         return { 
           canProceed: false, 
-          reason: 'Could not verify trial status. Please contact support.',
+          reason: 'Could not verify trial status. Please upgrade your subscription or contact support if you continue to experience issues.',
           usage 
         };
       }
