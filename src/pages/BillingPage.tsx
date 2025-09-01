@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../config/supabase';
 import { getUserUsage, UsageData } from '../services/usageService';
 import { calculateTrialFromCreatedAt } from '../services/trialService';
+import { cancelSubscription } from '../services/stripeService';
 import StripePaymentForm from '../components/StripePaymentForm';
 import { stripeConfig, formatPrice } from '../config/stripe';
 import { Elements } from '@stripe/react-stripe-js';
@@ -90,6 +91,7 @@ export default function BillingPage() {
   const [selectedPlan, setSelectedPlan] = useState<string>('professional');
   const [showPaymentForm, setShowPaymentForm] = useState(false);
   const [isAnnual, setIsAnnual] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   // Reset upgrading state when payment form is hidden or after timeout
   useEffect(() => {
@@ -173,6 +175,41 @@ export default function BillingPage() {
     console.log('❌ Payment cancelled');
     setUpgrading(false);
     setShowPaymentForm(false);
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!user || !usage || cancelling) return;
+    
+    // Only allow cancellation for paid users (not trial)
+    if (usage.status === 'trial') {
+      alert('Trial users cannot cancel subscriptions. Trial will expire automatically.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel your subscription? You\'ll keep access until your current billing period ends.'
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setCancelling(true);
+      
+      // For now, we'll need the subscription ID - in a real implementation,
+      // this would be stored in the database when the subscription is created
+      console.log('🚫 Cancelling subscription for user:', user.id);
+      
+      // This is a placeholder - we'd need to store subscription IDs in the database
+      // await cancelSubscription(subscriptionId);
+      
+      alert('Subscription cancellation feature coming soon. Please contact support to cancel.');
+      
+    } catch (error) {
+      console.error('Error cancelling subscription:', error);
+      alert('Failed to cancel subscription. Please contact support.');
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const getCurrentPlan = () => {
@@ -292,6 +329,25 @@ export default function BillingPage() {
                   ))}
                 </div>
               </div>
+              
+              {/* Cancel Subscription - Only for paid users */}
+              {usage.status === 'paid' || usage.status === 'approved' && usage.status !== 'trial' ? (
+                <div className="border-t pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900">Subscription Management</h3>
+                      <p className="text-xs text-gray-500 mt-1">Cancel anytime - you'll keep access until your billing period ends</p>
+                    </div>
+                    <button
+                      onClick={handleCancelSubscription}
+                      disabled={cancelling}
+                      className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Plan Change Options - Available to all users */}
