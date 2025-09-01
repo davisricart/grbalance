@@ -41,37 +41,40 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { subscriptionId, userId } = JSON.parse(event.body);
+    const { subscriptionId } = JSON.parse(event.body);
 
-    if (!subscriptionId || !userId) {
+    if (!subscriptionId) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Missing subscriptionId or userId' })
+        body: JSON.stringify({ error: 'Missing subscriptionId' })
       };
     }
 
-    console.log('🚫 Cancelling subscription:', subscriptionId, 'for user:', userId);
+    console.log('🚫 Cancelling subscription:', subscriptionId);
+
+    // Get subscription details first to find the customer
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const customerId = subscription.customer;
 
     // Cancel subscription at period end (not immediately)
-    const subscription = await stripe.subscriptions.update(subscriptionId, {
+    const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
       cancel_at_period_end: true,
       metadata: {
         cancelled_by_user: 'true',
-        cancelled_at: new Date().toISOString(),
-        user_id: userId
+        cancelled_at: new Date().toISOString()
       }
     });
 
     // Update user status in database to track cancellation
-    // But keep them active until period ends
+    // Find user by subscription ID and update status
     const { error: updateError } = await supabase
       .from('usage')
       .update({
         status: 'cancelled',
         updated_at: new Date().toISOString()
       })
-      .eq('id', userId);
+      .eq('stripeSubscriptionId', subscriptionId);
 
     if (updateError) {
       console.error('❌ Database update error:', updateError);
@@ -80,9 +83,9 @@ exports.handler = async (event, context) => {
 
     console.log('✅ Subscription cancelled successfully:', {
       subscriptionId,
-      userId,
-      current_period_end: subscription.current_period_end,
-      cancel_at_period_end: subscription.cancel_at_period_end
+      customerId,
+      current_period_end: updatedSubscription.current_period_end,
+      cancel_at_period_end: updatedSubscription.cancel_at_period_end
     });
 
     return {
@@ -91,9 +94,9 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         success: true,
         subscription: {
-          id: subscription.id,
-          cancel_at_period_end: subscription.cancel_at_period_end,
-          current_period_end: subscription.current_period_end,
+          id: updatedSubscription.id,
+          cancel_at_period_end: updatedSubscription.cancel_at_period_end,
+          current_period_end: updatedSubscription.current_period_end,
           cancelled_at: new Date().toISOString()
         }
       })

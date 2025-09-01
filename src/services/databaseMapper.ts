@@ -21,6 +21,7 @@ interface UsageColumns {
   updated_at: 'updatedAt'; // DB uses camelCase
   trial_started_at: 'trialStartedAt'; // DB uses camelCase
   trial_ends_at: 'trialEndsAt'; // DB uses camelCase
+  stripe_subscription_id: 'stripeSubscriptionId'; // DB uses camelCase
 }
 
 interface ClientsColumns {
@@ -84,7 +85,8 @@ const COLUMN_MAPS: TableColumnMaps = {
     status: 'status',
     updated_at: 'updatedAt',
     trial_started_at: 'trialStartedAt',
-    trial_ends_at: 'trialEndsAt'
+    trial_ends_at: 'trialEndsAt',
+    stripe_subscription_id: 'stripeSubscriptionId'
   },
   clients: {
     id: 'id',

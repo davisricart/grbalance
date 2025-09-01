@@ -7,7 +7,8 @@ const USAGE_COLUMNS = {
   subscription_tier: 'subscriptionTier',
   updated_at: 'updatedAt',
   trial_started_at: 'trialStartedAt',
-  trial_ends_at: 'trialEndsAt'
+  trial_ends_at: 'trialEndsAt',
+  stripe_subscription_id: 'stripeSubscriptionId'
 };
 
 const CLIENTS_COLUMNS = {

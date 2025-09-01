@@ -103,7 +103,9 @@
       "Bash(host:*)",
       "Bash(dig:*)",
       "WebFetch(domain:resend.com)",
-      "Bash(passwd)"
+      "Bash(passwd)",
+      "WebSearch",
+      "WebSearch"
     ],
     "deny": []
   }

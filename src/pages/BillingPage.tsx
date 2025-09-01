@@ -186,6 +186,11 @@ export default function BillingPage() {
       return;
     }
 
+    if (!usage.stripeSubscriptionId) {
+      alert('No subscription ID found. Please contact support to cancel your subscription.');
+      return;
+    }
+
     const confirmed = window.confirm(
       'Are you sure you want to cancel your subscription? You\'ll keep access until your current billing period ends.'
     );
@@ -195,14 +200,18 @@ export default function BillingPage() {
     try {
       setCancelling(true);
       
-      // For now, we'll need the subscription ID - in a real implementation,
-      // this would be stored in the database when the subscription is created
-      console.log('🚫 Cancelling subscription for user:', user.id);
+      console.log('🚫 Cancelling subscription:', usage.stripeSubscriptionId, 'for user:', user.id);
       
-      // This is a placeholder - we'd need to store subscription IDs in the database
-      // await cancelSubscription(subscriptionId);
+      const result = await cancelSubscription(usage.stripeSubscriptionId);
       
-      alert('Subscription cancellation feature coming soon. Please contact support to cancel.');
+      if (result.success) {
+        alert('Subscription cancelled successfully. You\'ll keep access until your billing period ends.');
+        // Refresh usage data to show updated status
+        const updatedUsage = await getUserUsage(user.id);
+        setUsage(updatedUsage);
+      } else {
+        throw new Error('Cancellation failed');
+      }
       
     } catch (error) {
       console.error('Error cancelling subscription:', error);
