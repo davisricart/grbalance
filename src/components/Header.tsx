@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard } from 'lucide-react';
+import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard, LogOut } from 'lucide-react';
 import clientConfig from '../config/client';
 import { useAuth } from '../contexts/AuthProvider';
 import UsageCounter from './UsageCounter';
 import { calculateTrialFromCreatedAt } from '../services/trialService';
+import { signOut } from '../services/authService';
 
 interface HeaderProps {
   usageRefreshTrigger?: number;
@@ -36,6 +37,17 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
       return trialInfo.isExpired;
     }
     return false;
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const success = await signOut();
+      if (success) {
+        window.location.href = '/';
+      }
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const toggleMobileMenu = () => {
@@ -135,6 +147,15 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
             >
               {isLoading ? 'Loading...' : (isAuthenticated ? 'Dashboard' : 'Login')}
             </Link>
+            {isAuthenticated && (
+              <button
+                onClick={handleSignOut}
+                className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -209,6 +230,18 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
                 <MessageCircle className="h-5 w-5 flex-shrink-0" />
                 <span className="font-medium">Contact</span>
               </Link>
+              {isAuthenticated && (
+                <button
+                  onClick={() => {
+                    closeMobileMenu();
+                    handleSignOut();
+                  }}
+                  className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation w-full text-left"
+                >
+                  <LogOut className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-medium">Sign Out</span>
+                </button>
+              )}
             </div>
           </div>
         )}
