@@ -187,7 +187,7 @@ export default function BillingPage() {
     }
 
     if (!usage.stripeSubscriptionId) {
-      alert('No subscription ID found. Please contact support to cancel your subscription.');
+      alert('Subscription cancellation is being set up. Please contact support to cancel your subscription for now.');
       return;
     }
 

@@ -24,7 +24,7 @@ export const TIER_LIMITS = {
  */
 export async function getUserUsage(userId: string): Promise<UsageData | null> {
   try {
-    const selectColumns = `${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}, ${UsageMapper.column('subscription_tier')}, status, ${UsageMapper.column('stripe_subscription_id')}`;
+    const selectColumns = `${UsageMapper.column('comparisons_used')}, ${UsageMapper.column('comparisons_limit')}, ${UsageMapper.column('subscription_tier')}, status`;
     const { data, error } = await supabase
       .from('usage')
       .select(selectColumns)
@@ -42,7 +42,7 @@ export async function getUserUsage(userId: string): Promise<UsageData | null> {
       subscriptionTier: data[UsageMapper.column('subscription_tier')] || 'starter',
       status: data.status || 'pending',
       lastLimitReset: undefined, // Column doesn't exist in usage table
-      stripeSubscriptionId: data[UsageMapper.column('stripe_subscription_id')] || undefined
+      stripeSubscriptionId: undefined // Column doesn't exist yet - will be added later
     };
   } catch (error) {
     console.error('usageService: Error in getUserUsage:', error);
