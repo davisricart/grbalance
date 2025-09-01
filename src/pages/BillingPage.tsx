@@ -340,7 +340,7 @@ export default function BillingPage() {
               </div>
               
               {/* Cancel Subscription - Only for paid users */}
-              {usage.status === 'paid' || usage.status === 'approved' && usage.status !== 'trial' ? (
+              {(usage.status === 'paid' || usage.status === 'approved') && usage.status !== 'trial' ? (
                 <div className="border-t pt-6">
                   <div className="flex items-center justify-between">
                     <div>
