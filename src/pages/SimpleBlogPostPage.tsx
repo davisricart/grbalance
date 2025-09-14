@@ -20,29 +20,29 @@ interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     id: '1',
-    title: 'Why Your DaySmart Reports Don\'t Match Your Square Deposits (And How to Fix It)',
-    excerpt: 'If you\'re spending hours trying to reconcile your DaySmart salon software with your Square payment processor, you\'re not alone. Here\'s why this happens and the exact steps to solve it.',
+    title: 'Why Your DaySmart Reports Don\'t Match Your Fee Passing System Deposits (And How to Fix It)',
+    excerpt: 'If you\'re spending hours trying to reconcile your DaySmart salon management software with your third-party fee passing payment processor, you\'re not alone. Here\'s why this happens and the exact steps to solve it.',
     htmlContent: `
-      <h1>Why Your DaySmart Reports Don't Match Your Square Deposits (And How to Fix It)</h1>
+      <h1>Why Your DaySmart Reports Don't Match Your Fee Passing System Deposits (And How to Fix It)</h1>
       
-      <p>If you're a salon owner using DaySmart for scheduling and Square for payment processing, you've probably experienced the frustration of trying to match your daily reports. Your DaySmart end-of-day shows one total, but your Square deposit is different. Sound familiar?</p>
+      <p>If you're a salon owner using DaySmart for scheduling and client management with a third-party fee passing payment processor, you've probably experienced the frustration of trying to match your daily reports. Your DaySmart end-of-day shows one total, but your payment processor deposit is different. Sound familiar?</p>
 
       <h2>The Root of the Problem</h2>
       
-      <p>This mismatch happens because <strong>DaySmart and Square operate on different timelines and fee structures</strong>:</p>
+      <p>This mismatch happens because <strong>DaySmart salon software and third-party fee passing systems operate on different timelines and fee structures</strong>:</p>
 
       <h3>1. Settlement Timing Differences</h3>
       <ul>
-        <li><strong>DaySmart</strong>: Shows transactions when they're processed at your salon</li>
-        <li><strong>Square</strong>: Deposits money 1-2 business days later, often grouping multiple days together</li>
-        <li><strong>Result</strong>: Your Tuesday DaySmart report includes Tuesday's sales, but your Tuesday Square deposit might include Monday's transactions</li>
+        <li><strong>DaySmart</strong>: Shows transactions when they're processed at your salon (gross amounts)</li>
+        <li><strong>Fee Passing Processor</strong>: Deposits money 1-2 business days later, often batching multiple days together</li>
+        <li><strong>Result</strong>: Your Tuesday DaySmart report includes Tuesday's sales, but your Tuesday deposit might include Monday's transactions</li>
       </ul>
 
-      <h3>2. Fee Calculation Methods</h3>
+      <h3>2. Fee Passing Complications</h3>
       <ul>
-        <li><strong>DaySmart</strong>: Shows gross transaction amounts (what the customer paid)</li>
-        <li><strong>Square</strong>: Deducts processing fees before deposit (what you actually receive)</li>
-        <li><strong>Processing fees</strong>: Typically 2.6% + 10¢ per transaction, but can vary by card type</li>
+        <li><strong>DaySmart</strong>: Records what the customer was charged (including passed fees)</li>
+        <li><strong>Fee Passing System</strong>: May show fees separately or bundle them differently in reports</li>
+        <li><strong>Dual Pricing Impact</strong>: Cash vs credit pricing creates additional reconciliation complexity</li>
       </ul>
 
       <h3>3. Transaction Type Handling</h3>
@@ -69,27 +69,29 @@ const blogPosts: BlogPost[] = [
 
       <h3>Option 1: Use DaySmart's Integrated Processing</h3>
       <p><strong>Pros</strong>: Automatic reconciliation built-in<br>
-      <strong>Cons</strong>: Higher processing fees, less flexibility with payment terms</p>
+      <strong>Cons</strong>: Higher processing fees, no fee passing options, less competitive rates</p>
 
       <h3>Option 2: Automated Reconciliation Service (Recommended)</h3>
       <p><strong>What it does</strong>:</p>
       <ul>
-        <li>Automatically imports both your DaySmart reports and Square transaction data</li>
-        <li>Matches transactions using intelligent algorithms</li>
+        <li>Automatically imports both your DaySmart reports and fee passing processor transaction data</li>
+        <li>Handles dual pricing and fee passing reconciliation automatically</li>
+        <li>Matches transactions using intelligent algorithms that account for timing differences</li>
         <li>Identifies discrepancies and processing errors</li>
         <li>Generates reconciled reports in minutes, not hours</li>
       </ul>
 
-      <p><strong>Real Example</strong>: GR Salon in Miami reduced their weekly reconciliation from 4 hours to 15 minutes, catching $347 in processing errors they missed manually.</p>
+      <p><strong>Real Example</strong>: Bella's Beauty in Dallas reduced their weekly reconciliation from 4 hours to 15 minutes while using three different payment processors, catching $347 in processing errors they missed manually.</p>
 
       <h2>DIY Quick Fix (Temporary Solution)</h2>
       
       <p>If you want to improve your manual process while exploring automation:</p>
       <ol>
-        <li><strong>Download reports for the same date range</strong>: Use DaySmart's date range selector to match Square's deposit periods</li>
-        <li><strong>Account for processing fees</strong>: Create a simple spreadsheet that deducts Square's fees from DaySmart totals</li>
-        <li><strong>Track refunds separately</strong>: Note any refunds/chargebacks that might appear in different reporting periods</li>
-        <li><strong>Use daily totals method</strong>: Reconcile daily instead of by deposit to reduce confusion</li>
+        <li><strong>Download reports for the same date range</strong>: Use DaySmart's date range selector to match your fee passing processor's deposit periods</li>
+        <li><strong>Account for fee passing differences</strong>: Create a simple spreadsheet that separates cash vs credit transactions and tracks passed fees</li>
+        <li><strong>Track refunds and chargebacks separately</strong>: Note any refunds/chargebacks that might appear in different reporting periods</li>
+        <li><strong>Use transaction-level matching</strong>: Instead of daily totals, try to match individual transactions when possible</li>
+        <li><strong>Document dual pricing rules</strong>: Keep clear records of your cash vs credit pricing structure</li>
       </ol>
 
       <h2>When to Consider Professional Help</h2>
@@ -106,7 +108,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Next Steps</h2>
       
-      <p>Ready to eliminate reconciliation headaches? <strong>Book a free 15-minute consultation</strong> to see how automated reconciliation works with your specific DaySmart and Square setup. We'll analyze your current process and show you exactly how much time and money you could save.</p>
+      <p>Ready to eliminate reconciliation headaches? <strong>Book a free 15-minute consultation</strong> to see how automated reconciliation works with your specific DaySmart and fee passing system setup. We'll analyze your current process and show you exactly how much time and money you could save.</p>
 
       <div style="text-align: center; margin: 2rem 0;">
         <a href="/book" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">Book Free Consultation</a>
@@ -115,13 +117,13 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Have questions about DaySmart and Square reconciliation? Email us at support@grbalance.com - we respond to every message within 4 hours.</em></p>
+      <p><em>Have questions about DaySmart and fee passing system reconciliation? Email us at support@grbalance.com - we respond to every message within 4 hours.</em></p>
     `,
     author: 'Michael Rodriguez',
     date: '2025-01-14',
     readTime: '8 min read',
     category: 'Payment Processing',
-    slug: 'daysmart-square-reconciliation-mismatch',
+    slug: 'daysmart-fee-passing-reconciliation-mismatch',
     featured: true
   },
   {

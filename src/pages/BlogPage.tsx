@@ -20,8 +20,8 @@ interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     id: '1',
-    title: 'Why Your DaySmart Reports Don\'t Match Your Square Deposits (And How to Fix It)',
-    excerpt: 'If you\'re spending hours trying to reconcile your DaySmart salon software with your Square payment processor, you\'re not alone. Here\'s why this happens and the exact steps to solve it.',
+    title: 'Why Your DaySmart Reports Don\'t Match Your Fee Passing System Deposits (And How to Fix It)',
+    excerpt: 'If you\'re spending hours trying to reconcile your DaySmart salon management software with your third-party fee passing payment processor, you\'re not alone. Here\'s why this happens and the exact steps to solve it.',
     content: `
 # Why Your DaySmart Reports Don't Match Your Square Deposits (And How to Fix It)
 
@@ -105,7 +105,7 @@ Ready to eliminate reconciliation headaches? **Book a free 15-minute consultatio
     date: '2025-01-14',
     readTime: '8 min read',
     category: 'Payment Processing',
-    slug: 'daysmart-square-reconciliation-mismatch',
+    slug: 'daysmart-fee-passing-reconciliation-mismatch',
     featured: true
   },
   {
