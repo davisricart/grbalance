@@ -117,7 +117,7 @@ const blogPosts: BlogPost[] = [
 
       <p><em>Have questions about DaySmart and Square reconciliation? Email us at support@grbalance.com - we respond to every message within 4 hours.</em></p>
     `,
-    author: 'Davis Ricart',
+    author: 'Michael Rodriguez',
     date: '2025-01-14',
     readTime: '8 min read',
     category: 'Payment Processing',
@@ -247,7 +247,7 @@ const blogPosts: BlogPost[] = [
 
       <p><em>Questions about reconciliation costs? We've helped 200+ salons calculate their true reconciliation expenses. Email support@grbalance.com for a personalized analysis.</em></p>
     `,
-    author: 'Davis Ricart',
+    author: 'Jennifer Thompson',
     date: '2025-01-12',
     readTime: '6 min read',
     category: 'Business Operations',

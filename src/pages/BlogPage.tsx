@@ -101,7 +101,7 @@ Ready to eliminate reconciliation headaches? **Book a free 15-minute consultatio
 
 *Have questions about DaySmart and Square reconciliation? Email us at support@grbalance.com - we respond to every message within 4 hours.*
     `,
-    author: 'Davis Ricart',
+    author: 'Sarah Chen',
     date: '2025-01-14',
     readTime: '8 min read',
     category: 'Payment Processing',
@@ -223,7 +223,7 @@ Ready to see how much you could save? **Book a free reconciliation audit** to ge
 
 *Questions about reconciliation costs? We've helped 200+ salons calculate their true reconciliation expenses. Email support@grbalance.com for a personalized analysis.*
     `,
-    author: 'Davis Ricart',
+    author: 'Sarah Chen',
     date: '2025-01-12',
     readTime: '6 min read',
     category: 'Business Operations',
@@ -373,7 +373,7 @@ Bella's Beauty isn't unique - they represent what's possible when salon owners s
 
 *Interested in sharing your salon's reconciliation story? We feature successful automation case studies. Email us at success@grbalance.com*
     `,
-    author: 'Davis Ricart',
+    author: 'Sarah Chen',
     date: '2025-01-10',
     readTime: '10 min read',
     category: 'Case Studies',
