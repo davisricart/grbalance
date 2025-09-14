@@ -111,10 +111,10 @@ export default function PricingPage() {
               <h2 className="text-xl font-bold">Launch Special - Setup Fee Waived</h2>
             </div>
             <p className="text-lg font-medium mb-2">
-              Sign up before September 1st, 2025 and get setup fee waived + 14-day free trial
+              Sign up before October 1st, 2025 and get setup fee waived + 14-day free trial
             </p>
             <p className="text-emerald-100 text-sm">
-              Save $497 + risk-free trial • After September 1st, standard pricing applies
+              Save $497 + risk-free trial • After October 1st, standard pricing applies
             </p>
           </div>
         </div>
