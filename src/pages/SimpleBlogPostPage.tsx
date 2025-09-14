@@ -381,8 +381,7 @@ const blogPosts: BlogPost[] = [
 
       <div style="text-align: center; margin: 2rem 0;">
         <a href="/book" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">Book Free Audit</a>
-        <a href="/interactive-demo" style="border: 2px solid #059669; color: #059669; padding: 10px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">See Interactive Demo</a>
-        <a href="/pricing" style="border: 2px solid #059669; color: #059669; padding: 10px 24px; border-radius: 8px; text-decoration: none;">Calculate Your Savings</a>
+        <a href="/interactive-demo" style="border: 2px solid #059669; color: #059669; padding: 10px 24px; border-radius: 8px; text-decoration: none;">See Interactive Demo</a>
       </div>
 
       <hr>
