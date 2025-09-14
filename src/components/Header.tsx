@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard, LogOut } from 'lucide-react';
+import { Book, HelpCircle, MessageCircle, Menu, X, CreditCard, LogOut, FileText } from 'lucide-react';
 import clientConfig from '../config/client';
 import { useAuth } from '../contexts/AuthProvider';
 import UsageCounter from './UsageCounter';
@@ -125,6 +125,10 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
                 <span>Billing</span>
               </Link>
             )}
+            <Link to="/blog" className="text-gray-600 hover:text-emerald-600 flex items-center gap-2 transition-colors duration-200 min-h-[44px] px-2">
+              <FileText className="h-4 w-4" />
+              Blog
+            </Link>
             <Link to="/pricing" className="text-gray-600 hover:text-emerald-600 transition-colors duration-200 min-h-[44px] px-2 flex items-center">
               Pricing
             </Link>
@@ -199,6 +203,14 @@ export default function Header({ usageRefreshTrigger }: HeaderProps = {}) {
                   </Link>
                 </>
               )}
+              <Link 
+                to="/blog" 
+                className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"
+                onClick={closeMobileMenu}
+              >
+                <FileText className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">Blog</span>
+              </Link>
               <Link 
                 to="/pricing" 
                 className="text-gray-600 hover:text-emerald-600 flex items-center gap-3 transition-colors duration-200 py-3 px-2 rounded-lg hover:bg-gray-50 min-h-[44px] touch-manipulation"

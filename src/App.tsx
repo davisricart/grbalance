@@ -31,6 +31,8 @@ const BillingSuccessPage = React.lazy(() => import('./pages/BillingSuccessPage')
 const BillingCancelledPage = React.lazy(() => import('./pages/BillingCancelledPage'));
 const BillingWireframe = React.lazy(() => import('./mockups/BillingWireframe'));
 const ClientPortalPage = React.lazy(() => import('./pages/ClientPortalPage'));
+const BlogPage = React.lazy(() => import('./pages/BlogPage'));
+const SimpleBlogPostPage = React.lazy(() => import('./pages/SimpleBlogPostPage'));
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -181,6 +183,8 @@ export default function App() {
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/blog" element={<BlogPage />} />
+                    <Route path="/blog/:slug" element={<SimpleBlogPostPage />} />
                     <Route path="/book" element={<BookingPage />} />
                     <Route path="/demo" element={<DemoPage />} />
                     <Route path="/interactive-demo" element={<InteractiveDemoPage />} />
