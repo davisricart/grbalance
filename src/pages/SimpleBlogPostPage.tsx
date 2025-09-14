@@ -117,7 +117,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Have questions about DaySmart and fee passing system reconciliation? Email us at support@grbalance.com - we respond to every message within 4 hours.</em></p>
+      <p><em>Have questions about DaySmart and fee passing system reconciliation? <a href="/contact" style="color: #059669;">Contact us here</a> - we respond to every message within 4 hours.</em></p>
     `,
     author: 'Michael Rodriguez',
     date: '2025-01-14',
@@ -247,7 +247,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Questions about reconciliation costs? We've helped 200+ salons calculate their true reconciliation expenses. Email support@grbalance.com for a personalized analysis.</em></p>
+      <p><em>Questions about reconciliation costs? We've helped 200+ salons calculate their true reconciliation expenses. <a href="/contact" style="color: #059669;">Contact us</a> for a personalized analysis.</em></p>
     `,
     author: 'Jennifer Thompson',
     date: '2025-01-12',
@@ -387,7 +387,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Interested in sharing your salon's reconciliation story? We feature successful automation case studies. Email us at success@grbalance.com</em></p>
+      <p><em>Interested in sharing your salon's reconciliation story? We feature successful automation case studies. <a href="/contact" style="color: #059669;">Get in touch</a> to share your experience.</em></p>
     `,
     author: 'Alex Johnson',
     date: '2025-01-10',
