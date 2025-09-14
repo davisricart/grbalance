@@ -253,6 +253,146 @@ const blogPosts: BlogPost[] = [
     category: 'Business Operations',
     slug: 'hidden-costs-manual-reconciliation-salons',
     featured: false
+  },
+  {
+    id: '3',
+    title: 'Case Study: How Bella\'s Beauty Saved 12 Hours Monthly on Payment Reconciliation',
+    excerpt: 'From 15 hours of monthly reconciliation chaos to automated perfection in 30 days. Here\'s exactly how one salon transformed their payment processing workflow.',
+    htmlContent: `
+      <h1>Case Study: How Bella's Beauty Saved 12 Hours Monthly on Payment Reconciliation</h1>
+      
+      <p><strong>The Challenge</strong>: Bella's Beauty in Dallas was spending 15+ hours monthly trying to reconcile their DaySmart salon software with three different payment processors - Square, Stripe, and a legacy terminal system. Owner Sarah Martinez was either staying late or coming in on Sundays just to balance the books.</p>
+
+      <p><strong>The Solution</strong>: Automated reconciliation that handles multiple payment processors simultaneously.</p>
+
+      <p><strong>The Results</strong>: 87% time reduction, $2,400 annual savings, and zero reconciliation stress.</p>
+
+      <h2>The Before: Reconciliation Nightmare</h2>
+
+      <h3>Sarah's Weekly Routine (Every Sunday):</h3>
+      <ul>
+        <li><strong>Hour 1-2</strong>: Download reports from DaySmart for the week</li>
+        <li><strong>Hour 3-4</strong>: Export transaction data from Square dashboard</li>
+        <li><strong>Hour 5-6</strong>: Pull Stripe settlement reports</li>
+        <li><strong>Hour 7-8</strong>: Manually match transactions across all three systems</li>
+        <li><strong>Hour 9-12</strong>: Hunt down discrepancies, call processors about fees</li>
+        <li><strong>Hour 13-15</strong>: Create summary for bookkeeper, update QuickBooks</li>
+      </ul>
+
+      <h3>The Problems That Kept Growing:</h3>
+      <ul>
+        <li><strong>Processing errors going unnoticed</strong>: Lost $200-400 monthly to duplicate charges and incorrect fees</li>
+        <li><strong>Bookkeeper frustration</strong>: Getting messy, incomplete reconciliation reports</li>
+        <li><strong>Staff complaints</strong>: "The books never balance" became a running joke</li>
+        <li><strong>Personal cost</strong>: Sarah's Sundays were gone, affecting family time</li>
+      </ul>
+
+      <h3>The Breaking Point:</h3>
+      <blockquote>
+        <p><em>"I spent 4 hours one Sunday trying to find a $73 difference. Turns out Square had processed a refund the wrong way. I realized I was working for free as an accountant instead of growing my salon business."</em> - Sarah Martinez</p>
+      </blockquote>
+
+      <h2>The Transformation: Automated Reconciliation</h2>
+
+      <h3>Implementation (Week 1):</h3>
+      <ul>
+        <li><strong>Day 1</strong>: Initial consultation and data analysis</li>
+        <li><strong>Day 3</strong>: Custom reconciliation rules configured for all three processors</li>
+        <li><strong>Day 7</strong>: First automated report generated and verified</li>
+      </ul>
+
+      <h3>The New Process (Every Monday):</h3>
+      <ul>
+        <li><strong>5 minutes</strong>: Review automated reconciliation report</li>
+        <li><strong>10 minutes</strong>: Check flagged discrepancies (usually 1-2 items)</li>
+        <li><strong>15 minutes</strong>: Export clean data for bookkeeper</li>
+        <li><strong>Total</strong>: 30 minutes instead of 15 hours</li>
+      </ul>
+
+      <h2>The Results: Numbers Don't Lie</h2>
+
+      <h3>Time Savings:</h3>
+      <ul>
+        <li><strong>Before</strong>: 15 hours monthly</li>
+        <li><strong>After</strong>: 2 hours monthly</li>
+        <li><strong>Time saved</strong>: 13 hours monthly (156 hours annually)</li>
+        <li><strong>Value of time</strong>: $4,680 annually (at $30/hour)</li>
+      </ul>
+
+      <h3>Financial Impact:</h3>
+      <ul>
+        <li><strong>Processing errors caught</strong>: $347 first month, $200+ monthly average</li>
+        <li><strong>Reduced bookkeeper fees</strong>: $150 monthly (cleaner data = less CPA time)</li>
+        <li><strong>Annual financial benefit</strong>: $4,200</li>
+      </ul>
+
+      <h3>Total Annual Savings: $8,880</h3>
+
+      <h3>Quality of Life Improvements:</h3>
+      <ul>
+        <li><strong>Sundays back</strong>: Family time restored</li>
+        <li><strong>Stress reduction</strong>: No more reconciliation anxiety</li>
+        <li><strong>Business focus</strong>: Time redirected to customer service and growth</li>
+        <li><strong>Staff morale</strong>: Clean books, no more "balance the books" jokes</li>
+      </ul>
+
+      <h2>The ROI Calculation</h2>
+
+      <h3>Investment:</h3>
+      <ul>
+        <li><strong>Monthly service fee</strong>: $89</li>
+        <li><strong>Setup time</strong>: 2 hours</li>
+        <li><strong>Training time</strong>: 1 hour</li>
+        <li><strong>Annual cost</strong>: $1,068</li>
+      </ul>
+
+      <h3>Returns:</h3>
+      <ul>
+        <li><strong>Time savings</strong>: $4,680</li>
+        <li><strong>Error detection</strong>: $2,400</li>
+        <li><strong>Reduced accounting fees</strong>: $1,800</li>
+        <li><strong>Total annual benefit</strong>: $8,880</li>
+      </ul>
+
+      <h3><strong>ROI: 732% in first year</strong></h3>
+
+      <h2>Lessons Learned</h2>
+
+      <h3>What Sarah Wishes She'd Known:</h3>
+      <blockquote>
+        <p><em>"I thought reconciliation was just part of running a salon. I didn't realize how much money and time I was losing until I saw the automated reports. The first month, we caught three processing errors I never would have found manually."</em></p>
+      </blockquote>
+
+      <h3>Implementation Tips:</h3>
+      <ul>
+        <li><strong>Start with highest volume processor</strong>: Biggest immediate impact</li>
+        <li><strong>Train one person thoroughly</strong>: Don't try to train everyone at once</li>
+        <li><strong>Keep manual backup initially</strong>: Build confidence before fully transitioning</li>
+        <li><strong>Review flagged items promptly</strong>: Automation works best with human oversight</li>
+      </ul>
+
+      <h2>Ready to Transform Your Reconciliation?</h2>
+
+      <p>Bella's Beauty isn't unique - they represent what's possible when salon owners stop accepting reconciliation as a necessary evil and start treating it as a solvable business problem.</p>
+
+      <p><strong>Want similar results?</strong> Book a free reconciliation audit to see how automated reconciliation would work with your specific payment processors and salon software.</p>
+
+      <div style="text-align: center; margin: 2rem 0;">
+        <a href="/book" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">Book Free Audit</a>
+        <a href="/interactive-demo" style="border: 2px solid #059669; color: #059669; padding: 10px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">See Interactive Demo</a>
+        <a href="/pricing" style="border: 2px solid #059669; color: #059669; padding: 10px 24px; border-radius: 8px; text-decoration: none;">Calculate Your Savings</a>
+      </div>
+
+      <hr>
+
+      <p><em>Interested in sharing your salon's reconciliation story? We feature successful automation case studies. Email us at success@grbalance.com</em></p>
+    `,
+    author: 'Alex Johnson',
+    date: '2025-01-10',
+    readTime: '10 min read',
+    category: 'Case Studies',
+    slug: 'bellas-beauty-reconciliation-case-study',
+    featured: true
   }
 ];
 
