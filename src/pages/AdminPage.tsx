@@ -4812,12 +4812,13 @@ This will:
                             onChange={async (e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
-                                const validation = await bulletproofValidateFile(file);
+                                // Simple file validation
+                                const validation = { 
+                                  isValid: file.size > 0 && file.size < 10 * 1024 * 1024, // Max 10MB
+                                  error: file.size === 0 ? 'File is empty' : file.size > 10 * 1024 * 1024 ? 'File too large (max 10MB)' : null
+                                };
                                 if (!validation.isValid) {
-                                  const errorMsg = validation.securityWarning 
-                                    ? `${validation.error} ${validation.securityWarning}`
-                                    : validation.error || 'Invalid file. Please upload a valid JavaScript or TypeScript file.';
+                                  const errorMsg = validation.error || 'Invalid file. Please upload a valid JavaScript or TypeScript file.';
                                   
                                   // Show inline error message instead of popup
                                   setScriptDeployError(errorMsg);
