@@ -497,19 +497,27 @@ export default function BlogPage() {
           </div>
         </section>
 
-        {/* Newsletter CTA */}
+        {/* Get Help CTA */}
         <section className="mt-16 bg-emerald-600 rounded-2xl p-8 text-center text-white">
-          <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
+          <h2 className="text-3xl font-bold mb-4">Need Help with Reconciliation?</h2>
           <p className="text-xl mb-6">
-            Get the latest reconciliation tips and salon business insights delivered to your inbox.
+            Ready to eliminate reconciliation headaches? Book a free consultation to see how we can help your salon save time and money.
           </p>
-          <Link
-            to="/contact"
-            className="inline-flex items-center bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-          >
-            Subscribe to Updates
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              to="/book"
+              className="inline-flex items-center bg-white text-emerald-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Book Free Consultation
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+            <Link
+              to="/contact"
+              className="inline-flex items-center border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-emerald-700 transition-colors"
+            >
+              Get in Touch
+            </Link>
+          </div>
         </section>
       </div>
     </div>
