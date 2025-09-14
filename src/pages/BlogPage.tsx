@@ -379,6 +379,30 @@ Bella's Beauty isn't unique - they represent what's possible when salon owners s
     category: 'Case Studies',
     slug: 'bellas-beauty-reconciliation-case-study',
     featured: true
+  },
+  {
+    id: '4',
+    title: 'The Excel Nightmare: Why TrendSetters Salon Finally Ditched Spreadsheets for Automated Reconciliation',
+    excerpt: 'After three years of spreadsheet chaos, cash flow mistakes, and weekend reconciliation marathons, TrendSetters Salon discovered why 73% of growing salons abandon Excel for automated solutions.',
+    content: 'This post shows how Maria Santos ended her 6-hour weekly Excel reconciliation nightmare...',
+    author: 'Lisa Martinez',
+    date: '2025-01-08',
+    readTime: '7 min read',
+    category: 'Case Studies',
+    slug: 'trendsetters-salon-excel-nightmare-automated-reconciliation',
+    featured: false
+  },
+  {
+    id: '5',
+    title: 'Why Style Innovators Salon Switched from Manual to Automated Payment Reconciliation (And Saved 15 Hours Weekly)',
+    excerpt: 'Cash flow chaos, missed payments, and weekend reconciliation marathons nearly closed Style Innovators Salon. Here\'s how automated reconciliation saved their business and sanity.',
+    content: 'This post details Jessica Chen\'s transformation from 15 hours weekly to 45 minutes...',
+    author: 'David Kim',
+    date: '2025-01-06',
+    readTime: '9 min read',
+    category: 'Case Studies',
+    slug: 'style-innovators-manual-automated-reconciliation-transformation',
+    featured: false
   }
 ];
 
