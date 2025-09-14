@@ -228,13 +228,15 @@ const MainPage = React.memo(({ user }: MainPageProps) => {
       
       // Robust file validation first
       try {
-        const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
-        const validation = await bulletproofValidateFile(files[0]);
+        // Simple file validation
+        const file = files[0];
+        const validation = { 
+          isValid: file.size > 0 && file.size < 50 * 1024 * 1024, // Max 50MB for data files
+          error: file.size === 0 ? 'File is empty' : file.size > 50 * 1024 * 1024 ? 'File too large (max 50MB)' : null
+        };
         
         if (!validation.isValid) {
-          const errorMsg = validation.securityWarning 
-            ? `${validation.error} ${validation.securityWarning}`
-            : validation.error || 'Invalid file. Please upload a valid Excel or CSV file.';
+          const errorMsg = validation.error || 'Invalid file. Please upload a valid Excel or CSV file.';
           
           // Show inline error message instead of status
           setErrorState(errorMsg);

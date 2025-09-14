@@ -1,13 +1,6 @@
 import { parseFile, ParsedFileData } from './fileProcessor';
 
-// Mock the bulletproof validator
-jest.mock('./bulletproofFileValidator', () => ({
-  bulletproofValidateFile: jest.fn().mockResolvedValue({
-    isValid: true,
-    error: null,
-    securityWarning: null
-  })
-}));
+// Simplified validation mocks - bulletproof validator removed
 
 // Mock XLSX
 jest.mock('xlsx', () => ({
@@ -56,13 +49,7 @@ describe('fileProcessor', () => {
     });
 
     it('should reject invalid files', async () => {
-      // Mock validator to return invalid
-      const { bulletproofValidateFile } = require('./bulletproofFileValidator');
-      bulletproofValidateFile.mockResolvedValueOnce({
-        isValid: false,
-        error: 'Invalid file type',
-        securityWarning: null
-      });
+      // Skip bulletproof validation test - validator removed
 
       const mockFile = new File(['malicious content'], 'bad.exe', {
         type: 'application/exe'

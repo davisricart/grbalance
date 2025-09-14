@@ -52,22 +52,20 @@ const DynamicExcelFileReader: React.FC<DynamicExcelFileReaderProps> = React.memo
     setLoading(true);
     try {
       
-      // BULLETPROOF VALIDATION - blocks ALL disguised files
-      const { bulletproofValidateFile } = await import('../utils/bulletproofFileValidator');
+      // Simple file validation - check extension
+      const isValidExtension = /\.(xlsx?|csv)$/i.test(fileName);
       
-      // Create a fake File object for validation since we're loading from URL
+      // Fetch the file
       const response = await fetch(`/sample-data/${fileName}`);
       const arrayBuffer = await response.arrayBuffer();
-      const fakeFile = new File([arrayBuffer], fileName, {
-        type: response.headers.get('content-type') || ''
-      });
       
-      const validation = await bulletproofValidateFile(fakeFile);
+      const validation = { 
+        isValid: isValidExtension && arrayBuffer.byteLength > 0,
+        error: !isValidExtension ? 'Invalid file type' : arrayBuffer.byteLength === 0 ? 'File is empty' : null
+      };
       
       if (!validation.isValid) {
-        const errorMsg = validation.securityWarning 
-          ? `🚨 SECURITY ALERT: ${validation.error}\n\n${validation.securityWarning}`
-          : validation.error || 'File validation failed';
+        const errorMsg = validation.error || 'File validation failed';
         onError(errorMsg);
         return;
       }

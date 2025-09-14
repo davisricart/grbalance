@@ -5,7 +5,7 @@ export * from './dynamicFileLoader';
 
 // File validation utilities
 export * from './fileValidator';
-export * from './bulletproofFileValidator';
+// Bulletproof file validator removed - using simplified validation instead
 export * from './robustFileValidator';
 export * from './universalFileValidator';
 

@@ -32,7 +32,7 @@ const enableInlineProtection = () => {
       
       // Check if call is from a validated source
       const validSources = [
-        'bulletproofFileValidator',
+        // 'bulletproofFileValidator', - removed
         'universalFileValidator',
         'safeLoadFile',
         'processFileWithChunking',
