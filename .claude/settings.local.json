@@ -105,7 +105,8 @@
       "WebFetch(domain:resend.com)",
       "Bash(passwd)",
       "WebSearch",
-      "WebSearch"
+      "WebSearch",
+      "Bash(ssh:*)"
     ],
     "deny": []
   }
