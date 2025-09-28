@@ -106,7 +106,9 @@
       "Bash(passwd)",
       "WebSearch",
       "WebSearch",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(ssh-add:*)",
+      "Bash(/dev/null)"
     ],
     "deny": []
   }

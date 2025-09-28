@@ -54,7 +54,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The Real Cost of Manual Reconciliation</h2>
       
-      <p>Our research shows salon owners spend an average of <strong>3-4 hours per week</strong> trying to reconcile these reports. That's over <strong>150 hours annually</strong> - time you could be spending with clients or growing your business.</p>
+      <p>Industry studies show salon owners spend an average of <strong>3-4 hours per week</strong> trying to reconcile these reports. That's over <strong>150 hours annually</strong> - time you could be spending with clients or growing your business.</p>
 
       <p>Beyond time, manual reconciliation leads to:</p>
       <ul>
@@ -81,7 +81,7 @@ const blogPosts: BlogPost[] = [
         <li>Generates reconciled reports in minutes, not hours</li>
       </ul>
 
-      <p><strong>Real Example</strong>: Bella's Beauty in Dallas reduced their weekly reconciliation from 4 hours to 15 minutes while using three different payment processors, catching $347 in processing errors they missed manually.</p>
+      <p><strong>Real Example</strong>: A salon in Dallas reduced their weekly reconciliation from 4 hours to 15 minutes while using three different payment processors, catching $347 in processing errors they missed manually.</p>
 
       <h2>DIY Quick Fix (Temporary Solution)</h2>
       
@@ -108,7 +108,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Next Steps</h2>
       
-      <p>Ready to eliminate reconciliation headaches? <strong>Book a free 15-minute consultation</strong> to see how automated reconciliation works with your specific DaySmart and fee passing system setup. We'll analyze your current process and show you exactly how much time and money you could save.</p>
+      <p>Ready to eliminate reconciliation headaches? <strong>Book a free 15-minute consultation</strong> to see how automated reconciliation works with your specific DaySmart and fee passing system setup.</p>
 
       <div style="text-align: center; margin: 2rem 0;">
         <a href="/book" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">Book Free Consultation</a>
@@ -117,7 +117,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Have questions about DaySmart and fee passing system reconciliation? <a href="/contact" style="color: #059669;">Contact us here</a> - we respond to every message within 4 hours.</em></p>
+      <p><em>Have questions about DaySmart and fee passing system reconciliation? <a href="/contact" style="color: #059669;">Contact us here</a> for assistance.</em></p>
     `,
     author: 'Michael Rodriguez',
     date: '2025-01-14',
@@ -247,7 +247,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Questions about reconciliation costs? We've helped 200+ salons calculate their true reconciliation expenses. <a href="/contact" style="color: #059669;">Contact us</a> for a personalized analysis.</em></p>
+      <p><em>Questions about reconciliation costs? <a href="/contact" style="color: #059669;">Contact us</a> for information about calculating your reconciliation expenses.</em></p>
     `,
     author: 'Jennifer Thompson',
     date: '2025-01-12',
@@ -263,7 +263,7 @@ const blogPosts: BlogPost[] = [
     htmlContent: `
       <h1>Case Study: How Bella's Beauty Saved 12 Hours Monthly on Payment Reconciliation</h1>
       
-      <p><strong>The Challenge</strong>: Bella's Beauty in Dallas was spending 15+ hours monthly trying to reconcile their DaySmart salon software with three different payment processors - Square, Stripe, and a legacy terminal system. Owner Sarah Martinez was either staying late or coming in on Sundays just to balance the books.</p>
+      <p><strong>The Challenge</strong>: A busy salon in Dallas was spending 15+ hours monthly trying to reconcile their DaySmart salon software with three different payment processors - Square, Stripe, and a legacy terminal system. The owner was either staying late or coming in on Sundays just to balance the books.</p>
 
       <p><strong>The Solution</strong>: Automated reconciliation that handles multiple payment processors simultaneously.</p>
 
@@ -271,7 +271,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The Before: Reconciliation Nightmare</h2>
 
-      <h3>Sarah's Weekly Routine (Every Sunday):</h3>
+      <h3>The Owner's Weekly Routine (Every Sunday):</h3>
       <ul>
         <li><strong>Hour 1-2</strong>: Download reports from DaySmart for the week</li>
         <li><strong>Hour 3-4</strong>: Export transaction data from Square dashboard</li>
@@ -286,12 +286,12 @@ const blogPosts: BlogPost[] = [
         <li><strong>Processing errors going unnoticed</strong>: Lost $200-400 monthly to duplicate charges and incorrect fees</li>
         <li><strong>Bookkeeper frustration</strong>: Getting messy, incomplete reconciliation reports</li>
         <li><strong>Staff complaints</strong>: "The books never balance" became a running joke</li>
-        <li><strong>Personal cost</strong>: Sarah's Sundays were gone, affecting family time</li>
+        <li><strong>Personal cost</strong>: Owner's Sundays were gone, affecting family time</li>
       </ul>
 
       <h3>The Breaking Point:</h3>
       <blockquote>
-        <p><em>"I spent 4 hours one Sunday trying to find a $73 difference. Turns out Square had processed a refund the wrong way. I realized I was working for free as an accountant instead of growing my salon business."</em> - Sarah Martinez</p>
+        <p><em>"I spent 4 hours one Sunday trying to find a $73 difference. Turns out Square had processed a refund the wrong way. I realized I was working for free as an accountant instead of growing my salon business."</em> - Salon Owner</p>
       </blockquote>
 
       <h2>The Transformation: Automated Reconciliation</h2>
@@ -342,7 +342,7 @@ const blogPosts: BlogPost[] = [
 
       <h3>Investment:</h3>
       <ul>
-        <li><strong>Monthly service fee</strong>: $89</li>
+        <li><strong>Monthly service fee</strong>: Starting at $89</li>
         <li><strong>Setup time</strong>: 2 hours</li>
         <li><strong>Training time</strong>: 1 hour</li>
         <li><strong>Annual cost</strong>: $1,068</li>
@@ -360,7 +360,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Lessons Learned</h2>
 
-      <h3>What Sarah Wishes She'd Known:</h3>
+      <h3>What the Owner Wishes She'd Known:</h3>
       <blockquote>
         <p><em>"I thought reconciliation was just part of running a salon. I didn't realize how much money and time I was losing until I saw the automated reports. The first month, we caught three processing errors I never would have found manually."</em></p>
       </blockquote>
@@ -375,7 +375,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Ready to Transform Your Reconciliation?</h2>
 
-      <p>Bella's Beauty isn't unique - they represent what's possible when salon owners stop accepting reconciliation as a necessary evil and start treating it as a solvable business problem.</p>
+      <p>This salon's transformation represents what's possible when salon owners stop accepting reconciliation as a necessary evil and start treating it as a solvable business problem.</p>
 
       <p><strong>Want similar results?</strong> Book a free reconciliation audit to see how automated reconciliation would work with your specific payment processors and salon software.</p>
 
@@ -386,7 +386,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Interested in sharing your salon's reconciliation story? We feature successful automation case studies. <a href="/contact" style="color: #059669;">Get in touch</a> to share your experience.</em></p>
+      <p><em>Interested in sharing your salon's reconciliation story? <a href="/contact" style="color: #059669;">Get in touch</a> to share your experience.</em></p>
     `,
     author: 'Alex Johnson',
     date: '2025-01-10',
@@ -402,9 +402,9 @@ const blogPosts: BlogPost[] = [
     htmlContent: `
       <h1>The Excel Nightmare: Why TrendSetters Salon Finally Ditched Spreadsheets for Automated Reconciliation</h1>
       
-      <p><strong>The Breaking Point</strong>: Maria Santos, owner of TrendSetters Salon in Phoenix, was spending every Sunday morning hunched over her laptop, trying to reconcile three different spreadsheets with her bank statements. One formula error had cost her $2,400 in missed payment tracking, and she realized her "simple" Excel solution was destroying her business.</p>
+      <p><strong>The Breaking Point</strong>: The owner of a growing salon in Phoenix was spending every Sunday morning hunched over her laptop, trying to reconcile three different spreadsheets with her bank statements. One formula error had cost her $2,400 in missed payment tracking, and she realized her "simple" Excel solution was destroying her business.</p>
 
-      <p><strong>The Problem</strong>: Like 67% of salon owners, Maria started with Excel because it seemed "simple and free." Three years later, her reconciliation process had become a 6-hour weekly nightmare.</p>
+      <p><strong>The Problem</strong>: Like 67% of salon owners, this owner started with Excel because it seemed "simple and free." Three years later, her reconciliation process had become a 6-hour weekly nightmare.</p>
 
       <h2>The Excel Death Spiral</h2>
 
@@ -425,10 +425,10 @@ const blogPosts: BlogPost[] = [
 
       <h3>Month 25-36: The Excel Nightmare</h3>
       <blockquote>
-        <p><em>"I was spending 6 hours every weekend just trying to make the numbers match. My family started calling Sunday mornings 'spreadsheet hell.' I knew something had to change when I found myself crying over a VLOOKUP formula at 2 AM."</em> - Maria Santos</p>
+        <p><em>"I was spending 6 hours every weekend just trying to make the numbers match. My family started calling Sunday mornings 'spreadsheet hell.' I knew something had to change when I found myself crying over a VLOOKUP formula at 2 AM."</em> - Salon Owner</p>
       </blockquote>
 
-      <p><strong>The specific problems that broke Maria's system:</strong></p>
+      <p><strong>The specific problems that broke the system:</strong></p>
       <ul>
         <li><strong>Brittle formulas</strong>: One accidental deletion destroyed weeks of work</li>
         <li><strong>Multiple data sources</strong>: DaySmart reports, credit card statements, cash tracking</li>
@@ -439,7 +439,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The $8,400 Excel Error</h2>
 
-      <p>The final straw came during tax season. Maria discovered her spreadsheet had been double-counting refunds for eight months, showing $8,400 less revenue than reality. Her CPA spent 12 billable hours fixing the mess.</p>
+      <p>The final straw came during tax season. The owner discovered her spreadsheet had been double-counting refunds for eight months, showing $8,400 less revenue than reality. Her CPA spent 12 billable hours fixing the mess.</p>
 
       <p><strong>The full cost of Excel:</strong></p>
       <ul>
@@ -453,13 +453,13 @@ const blogPosts: BlogPost[] = [
 
       <h2>The Automated Solution</h2>
 
-      <p>Maria's research led her to automated reconciliation systems specifically designed for salons using multiple payment processors.</p>
+      <p>Research led the owner to automated reconciliation systems specifically designed for salons using multiple payment processors.</p>
 
       <h3>Week 1: Implementation</h3>
       <ul>
         <li><strong>Day 1</strong>: Connected DaySmart and all payment processors</li>
         <li><strong>Day 3</strong>: First automated reconciliation report generated</li>
-        <li><strong>Day 7</strong>: Maria's Sunday spreadsheet ritual officially ended</li>
+        <li><strong>Day 7</strong>: The Sunday spreadsheet ritual officially ended</li>
       </ul>
 
       <h3>Month 1: The Transformation</h3>
@@ -492,7 +492,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Red Flags Your Excel System Is Failing</h2>
 
-      <p>Based on Maria's experience and industry research, watch for these warning signs:</p>
+      <p>Based on industry research and real salon experiences, watch for these warning signs:</p>
 
       <ol>
         <li><strong>Reconciliation takes more than 1 hour weekly</strong></li>
@@ -504,13 +504,13 @@ const blogPosts: BlogPost[] = [
         <li><strong>Staff avoid updating the reconciliation spreadsheet</strong></li>
       </ol>
 
-      <h2>Maria's Advice for Other Salon Owners</h2>
+      <h2>Advice for Other Salon Owners</h2>
 
       <blockquote>
         <p><em>"I wish I'd made the switch two years earlier. I was so focused on the monthly cost of automation that I ignored the massive hidden costs of Excel. The time alone was worth 10x what I pay for automated reconciliation. Plus, my stress levels dropped dramatically when I stopped dreading Sunday mornings."</em></p>
       </blockquote>
 
-      <h3>Implementation Tips from Maria:</h3>
+      <h3>Implementation Tips:</h3>
       <ul>
         <li><strong>Start with a data backup</strong>: Export all Excel data before switching</li>
         <li><strong>Run parallel for one month</strong>: Build confidence with the new system</li>
@@ -531,7 +531,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>Ready to End Your Excel Nightmare?</h2>
 
-      <p>If Maria's story sounds familiar, you're not alone. <strong>73% of salon owners abandon Excel within three years</strong> as their business grows.</p>
+      <p>If this story sounds familiar, you're not alone. <strong>73% of salon owners abandon Excel within three years</strong> as their business grows.</p>
 
       <p>The good news? The solution exists, and it pays for itself within 60 days through time savings alone.</p>
 
@@ -542,7 +542,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Tired of Excel reconciliation nightmares? <a href="/contact" style="color: #059669;">Contact us</a> to see how TrendSetters Salon-style automation can transform your financial processes.</em></p>
+      <p><em>Tired of Excel reconciliation nightmares? <a href="/contact" style="color: #059669;">Contact us</a> to see how automation can transform your financial processes.</em></p>
     `,
     author: 'Lisa Martinez',
     date: '2025-01-08',
@@ -558,13 +558,13 @@ const blogPosts: BlogPost[] = [
     htmlContent: `
       <h1>Why Style Innovators Salon Switched from Manual to Automated Payment Reconciliation (And Saved 15 Hours Weekly)</h1>
       
-      <p><strong>The Crisis</strong>: Style Innovators Salon was bleeding money. Not from lack of customers or poor services, but from a reconciliation nightmare that consumed 15+ hours weekly and still missed critical errors. Owner Jessica Chen was ready to sell until she discovered automated reconciliation.</p>
+      <p><strong>The Crisis</strong>: A busy multi-service salon was bleeding money. Not from lack of customers or poor services, but from a reconciliation nightmare that consumed 15+ hours weekly and still missed critical errors. The owner was ready to sell until she discovered automated reconciliation.</p>
 
       <p><strong>The Problem</strong>: Manual reconciliation across multiple payment methods, inconsistent booking patterns, and seasonal fluctuations had created a financial management disaster.</p>
 
       <h2>The Perfect Storm of Payment Chaos</h2>
 
-      <p>Style Innovators Salon wasn't just dealing with one payment processor. Like many modern salons, they were juggling:</p>
+      <p>This salon wasn't just dealing with one payment processor. Like many modern salons, they were juggling:</p>
 
       <ul>
         <li><strong>DaySmart software</strong> for booking and client management</li>
@@ -575,7 +575,7 @@ const blogPosts: BlogPost[] = [
         <li><strong>Buy-now-pay-later</strong> services like Sezzle for expensive treatments</li>
       </ul>
 
-      <h3>Jessica's Weekly Reconciliation Nightmare:</h3>
+      <h3>The Owner's Weekly Reconciliation Nightmare:</h3>
 
       <p><strong>Monday Morning (2 hours)</strong>: Download and organize reports from all payment systems</p>
       <p><strong>Tuesday Evening (3 hours)</strong>: Manually match transactions between DaySmart and payment processors</p>
@@ -586,7 +586,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The $12,000 Wake-Up Call</h2>
 
-      <p>The breaking point came during a quarterly review when Jessica discovered multiple costly errors her manual system had missed:</p>
+      <p>The breaking point came during a quarterly review when the owner discovered multiple costly errors her manual system had missed:</p>
 
       <ul>
         <li><strong>$3,200 in duplicate Sezzle charges</strong> that were never reversed</li>
@@ -596,12 +596,12 @@ const blogPosts: BlogPost[] = [
       </ul>
 
       <blockquote>
-        <p><em>"I was working 60+ hour weeks, but 15 of those hours were just trying to make my books balance. I realized I was spending more time as an accountant than actually running my salon. Something had to change."</em> - Jessica Chen</p>
+        <p><em>"I was working 60+ hour weeks, but 15 of those hours were just trying to make my books balance. I realized I was spending more time as an accountant than actually running my salon. Something had to change."</em> - Salon Owner</p>
       </blockquote>
 
       <h2>The Manual Reconciliation Death Spiral</h2>
 
-      <p>Jessica's situation illustrates why manual reconciliation fails for busy salons:</p>
+      <p>This situation illustrates why manual reconciliation fails for busy salons:</p>
 
       <h3>Volume Overwhelm</h3>
       <ul>
@@ -628,7 +628,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The Automated Transformation</h2>
 
-      <p>After researching solutions, Jessica implemented automated reconciliation specifically designed for multi-processor salon environments.</p>
+      <p>After researching solutions, the owner implemented automated reconciliation specifically designed for multi-processor salon environments.</p>
 
       <h3>Implementation Timeline:</h3>
 
@@ -650,7 +650,7 @@ const blogPosts: BlogPost[] = [
       <ul>
         <li>Eliminated manual reconciliation completely</li>
         <li>Trained staff on reviewing automated reports</li>
-        <li>Jessica's first free weekend in two years</li>
+        <li>The owner's first free weekend in two years</li>
       </ul>
 
       <h2>The Dramatic Results</h2>
@@ -681,7 +681,7 @@ const blogPosts: BlogPost[] = [
 
       <h2>The Hidden Benefits</h2>
 
-      <p>Beyond time and error savings, Jessica discovered unexpected benefits:</p>
+      <p>Beyond time and error savings, the owner discovered unexpected benefits:</p>
 
       <h3>Staff Morale Improvement</h3>
       <blockquote>
@@ -707,7 +707,7 @@ const blogPosts: BlogPost[] = [
 
       <h3>Annual Costs Before Automation:</h3>
       <ul>
-        <li>Jessica's time: 741 hours × $30/hour = $22,230</li>
+        <li>Owner's time: 741 hours × $30/hour = $22,230</li>
         <li>Missed errors: $6,960</li>
         <li>CPA overtime fees: $2,400</li>
         <li>Stress/health impact: Immeasurable</li>
@@ -717,7 +717,7 @@ const blogPosts: BlogPost[] = [
       <h3>Annual Costs After Automation:</h3>
       <ul>
         <li>Software cost: $2,400</li>
-        <li>Jessica's review time: 39 hours × $30/hour = $1,170</li>
+        <li>Owner's review time: 39 hours × $30/hour = $1,170</li>
         <li>Setup and training: $500</li>
         <li><strong>Total annual cost</strong>: $4,070</li>
       </ul>
@@ -725,7 +725,7 @@ const blogPosts: BlogPost[] = [
       <h3>Net Annual Savings: $27,520</h3>
       <h3>ROI: 676% in first year</h3>
 
-      <h2>Jessica's Advice for Other Salon Owners</h2>
+      <h2>Advice for Other Salon Owners</h2>
 
       <blockquote>
         <p><em>"Don't wait until you're in crisis mode like I was. If you're spending more than 2 hours weekly on reconciliation, you need automated help. The time savings alone will pay for itself, but the peace of mind is priceless."</em></p>
@@ -741,18 +741,18 @@ const blogPosts: BlogPost[] = [
         <li>Staff turnover is high due to stressful financial processes</li>
       </ul>
 
-      <h2>The Style Innovators Success Story</h2>
+      <h2>Six Months Later: The Success Story</h2>
 
-      <p>Six months after implementation, Style Innovators Salon has:</p>
+      <p>Six months after implementation, this salon has:</p>
       <ul>
         <li><strong>Expanded service offerings</strong> without reconciliation fear</li>
         <li><strong>Added two new stylists</strong> with confidence in commission tracking</li>
         <li><strong>Launched a loyalty program</strong> integrated with automated reconciliation</li>
         <li><strong>Improved customer satisfaction</strong> through flexible payment options</li>
-        <li><strong>Achieved work-life balance</strong> for Jessica and her team</li>
+        <li><strong>Achieved work-life balance</strong> for the owner and her team</li>
       </ul>
 
-      <p>Most importantly, Jessica now spends those reclaimed 15 hours weekly on what she loves: creating beautiful experiences for her clients and growing her business.</p>
+      <p>Most importantly, the owner now spends those reclaimed 15 hours weekly on what she loves: creating beautiful experiences for her clients and growing her business.</p>
 
       <div style="text-align: center; margin: 2rem 0;">
         <a href="/book" style="background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-right: 16px;">Get Your Free Reconciliation Audit</a>
@@ -761,7 +761,7 @@ const blogPosts: BlogPost[] = [
 
       <hr>
 
-      <p><em>Struggling with manual payment reconciliation chaos? <a href="/contact" style="color: #059669;">Contact us</a> to learn how Style Innovators-style automation can transform your salon's financial management.</em></p>
+      <p><em>Struggling with manual payment reconciliation chaos? <a href="/contact" style="color: #059669;">Contact us</a> to learn how automation can transform your salon's financial management.</em></p>
     `,
     author: 'David Kim',
     date: '2025-01-06',
