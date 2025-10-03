@@ -84,7 +84,7 @@ export default function LandingPage() {
               Setup fee waived + 14-day free trial • No credit card required
             </p>
             <p className="text-emerald-100 text-xs sm:text-sm">
-              Save $497 on custom script development • Just email signup • Offer expires October 1st, 2025
+              Save $497 on custom script development • Just email signup • Offer expires November 1st, 2025
             </p>
           </div>
         </div>
